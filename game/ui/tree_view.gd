@@ -27,6 +27,8 @@ const IKON_PX := 22
 
 var _ikoner := {}                  ## id -> TextureRect
 var _rader := {}                   ## id -> Dictionary (gren, nivå, def)
+var _rubrik: Label
+var _rutnät: GridContainer
 var _info: Label
 var _meta: Meta
 
@@ -41,6 +43,14 @@ static func _mättad() -> Color:
 
 
 func _ready() -> void:
+	_bygg()
+
+
+## Byggs på ett ställe och kan kallas om: _refresh_shell kan köra innan barnets _ready har hunnit
+## (skalet sätter sin vy under sin egen uppstart), och då finns ingen Rubrik att sätta text i.
+func _bygg() -> void:
+	if _info != null:
+		return
 	custom_minimum_size = Vector2(456, 0)
 	add_theme_stylebox_override("panel", _panel_stil())
 	var box := VBoxContainer.new()
@@ -48,10 +58,12 @@ func _ready() -> void:
 
 	var rubrik := Label.new()
 	rubrik.name = "Rubrik"
+	_rubrik = rubrik
 	box.add_child(rubrik)
 
 	var rutnät := GridContainer.new()
 	rutnät.name = "Rutnät"
+	_rutnät = rutnät
 	rutnät.columns = GRENAR.size()
 	box.add_child(rutnät)
 
@@ -80,8 +92,9 @@ func _panel_stil() -> StyleBoxFlat:
 ## Bygger om rutan ur metan. Anropas när vyn öppnas och efter varje köp — allt som visas kommer
 ## därifrån, så vyn kan inte hamna i otakt med sparfilen.
 func visa(meta: Meta, titel: String) -> void:
+	_bygg()
 	_meta = meta
-	(get_node("Rubrik") as Label).text = titel
+	_rubrik.text = titel
 	for barn in _ikoner.values():
 		barn.queue_free()
 	_ikoner.clear()
@@ -92,7 +105,7 @@ func visa(meta: Meta, titel: String) -> void:
 		if not FILNAMN.has(gren):
 			continue
 		var nivå: int = int(def.get("tier", 1))
-		var cell := get_node_or_null("Rutnät/%s_%d" % [FILNAMN[gren], nivå]) as HBoxContainer
+		var cell := _rutnät.get_node_or_null("%s_%d" % [FILNAMN[gren], nivå]) as HBoxContainer
 		if cell == null:
 			continue
 		var id: String = def["id"]

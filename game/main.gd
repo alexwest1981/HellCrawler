@@ -2716,6 +2716,10 @@ func _refresh_shell() -> void:
 		# Byn och kartan ritar sig själva: de får metat och ordningen, inte en färdig textrad.
 		by_view.visa(meta, _stage_order.size())
 	elif shell == "trad" or shell == "smed":
+		# Smeden visar trädet som vy nu. Raden med köpstatus (M61) räknas ändå ut: provet läser den i
+		# smed_label, och skulle panelen komma tillbaka ska den visa något som är räknat, inte sparat.
+		if shell == "smed":
+			smed_label.text = _smed_text()
 		trad_view.visa(meta, Tr.t("ui.tree.title", "TRÄDET"))
 	elif shell == "album":
 		_show_album()
