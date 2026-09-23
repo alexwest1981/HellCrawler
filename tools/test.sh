@@ -40,7 +40,15 @@ tmp=$(mktemp)
 {
   for t in tests/test_*.gd; do
     echo "=== $t"
-    timeout 120 godot --headless --path . --script "res://$t" || echo "  ##FEL## $t föll: exit $?"
+    # Tidsgränsen finns för HÄNGNINGAR, inte för tunga prov. test_normalprov startar en hel
+    # spelinstans, bygger en våning och renderar den; det är det enda provet som är tyngre än ett
+    # par minuter, och det är tyngre för att det MÄTER mer (materialvägen fram till meshen).
+    # Bara det provet får mer tid, så en hängning i något annat upptäcks lika fort som förut.
+    # OBS: variabelnamnet är ASCII med flit — bash tillåter inte å/ä/ö i namn, och "GRÄNS=120"
+    # gjorde att HELA sviten föll utan att köra ett enda prov (0 kontroller, 0 fel).
+    grans=120
+    case "$t" in *normalprov*) grans=420 ;; esac
+    timeout "$grans" godot --headless --path . --script "res://$t" || echo "  ##FEL## $t föll: exit $?"
   done
 } 2>&1 | tee "$tmp"
 ok=$(grep -c '^  ok ' "$tmp")
