@@ -2354,7 +2354,14 @@ func _smed_text() -> String:
 	return "\n".join(rader)
 
 ## Köp en nod i den visade grenen. Samma `meta.buy` som butiken — trädet är en annan VY över samma köp.
+##
+## Vägen in är stängd sedan trädet blev en egen vy (M94): panelen med textlistan ritas inte längre,
+## och TreeView köper själv vid klick. Sifferköpet står kvar som kod men får inte köpa i blindo när
+## ingen panel visar vad siffran pekar på — därför grinden på panelens synlighet i stället för på
+## skalets namn. Släpps panelen upp igen fungerar tangenterna som förut, utan en andra ändring.
 func _buy_node(i: int) -> void:
+	if not smed_panel.visible:
+		return
 	var grenar := meta.branches()
 	if grenar.is_empty():
 		return
@@ -2680,11 +2687,11 @@ func _refresh_shell() -> void:
 	var i_körning: bool = shell == "körning"
 	by_view.visible = shell == "hem"
 	karta_view.visible = shell == "karta"
-	trad_view.visible = shell == "trad"
+	trad_view.visible = shell == "trad" or shell == "smed"
 	butik_panel.visible = shell == "butik"
 	album_panel.visible = shell == "album"
 	inn_panel.visible = shell == "vardshus"
-	smed_panel.visible = shell == "smed"
+	smed_panel.visible = false          # trädet ritas av TreeView, inte som textrader (M94)
 	jewel_panel.visible = shell == "juvelerare"
 	verk_panel.visible = shell == "banverkstad"
 	map_view.visible = i_körning
@@ -2708,7 +2715,7 @@ func _refresh_shell() -> void:
 	if shell == "hem":
 		# Byn och kartan ritar sig själva: de får metat och ordningen, inte en färdig textrad.
 		by_view.visa(meta, _stage_order.size())
-	elif shell == "trad":
+	elif shell == "trad" or shell == "smed":
 		trad_view.visa(meta, Tr.t("ui.tree.title", "TRÄDET"))
 	elif shell == "album":
 		_show_album()
