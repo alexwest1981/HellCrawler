@@ -112,7 +112,13 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 	# Innehåll i rummen mellan start och boss.
 	var pool := Enemies.by_tier(bestiary, stage.tiers)
 	if pool.is_empty():
+		# Ingen fiende att lägga ut: våningen går inte att bygga, och den ska inte byggas halvfärdig.
+		# Förr skrevs felet och koden fortsatte rakt in i rng.randi_range(0, -1) på den tomma listan
+		# -> "Out of bounds get index '-1'" -> generate returnerade null -> test_dungeon dog mitt i
+		# _initialize, och ett scriptfel där avslutar INTE trädet. Provet hängde i 120 sekunder och
+		# sviten kallade det en timeout, utan ett ord om stage_46 och dess tier 4.
 		push_error("stage %s saknar fiender i sina tiers %s" % [stage.id, stage.tiers])
+		return null
 	for i in range(1, rooms.size() - 1):
 		var room: Rect2i = rooms[i]
 		var spots := _spots(rng, room)

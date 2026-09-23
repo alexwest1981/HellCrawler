@@ -14,16 +14,17 @@
   "krypta",
   "tunnel",
   "asklunden",
-  "bro"
+  "bro",
+  "grotta"
  ],
- "floors": 10,
+ "floors": 11,
  "gold_bonus": 1.32,
  "id": "stage_67",
- "name": "Tysta hjärtat",
+ "name": "Sista vinden",
  "regel": "",
  "theme": "bro",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

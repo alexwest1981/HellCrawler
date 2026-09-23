@@ -21,11 +21,11 @@
  "floors": 12,
  "gold_bonus": 1.72,
  "id": "stage_87",
- "name": "Märgens sanden",
+ "name": "Kärrets askan",
  "regel": "",
  "theme": "bro",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

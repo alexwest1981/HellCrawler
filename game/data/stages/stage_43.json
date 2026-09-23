@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.84,
  "id": "stage_43",
- "name": "Kupolens kammaren",
+ "name": "Klockornas sanden",
  "regel": "",
  "theme": "grotta",
  "tiers": [
-  3
+  2
  ],
  "xp_bonus": 0.0
 }

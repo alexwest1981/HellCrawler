@@ -14,16 +14,17 @@
   "tunnel",
   "asklunden",
   "bro",
-  "grotta"
+  "grotta",
+  "krypta"
  ],
- "floors": 10,
+ "floors": 11,
  "gold_bonus": 1.44,
  "id": "stage_73",
- "name": "Svarta valen",
+ "name": "Inre hålan",
  "regel": "",
  "theme": "grotta",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

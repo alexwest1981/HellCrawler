@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.92,
  "id": "stage_47",
- "name": "Märgens spegeln",
+ "name": "Kärrets vreten",
  "regel": "",
  "theme": "bro",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

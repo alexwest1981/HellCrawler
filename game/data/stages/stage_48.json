@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.94,
  "id": "stage_48",
- "name": "Dova svalget",
+ "name": "Märgens spegeln",
  "regel": "",
  "theme": "grotta",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

@@ -20,11 +20,11 @@
  "floors": 11,
  "gold_bonus": 1.54,
  "id": "stage_78",
- "name": "Övre hallen",
+ "name": "Smältans glaskupan",
  "regel": "",
  "theme": "grotta",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

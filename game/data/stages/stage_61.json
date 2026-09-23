@@ -19,11 +19,11 @@
  "floors": 10,
  "gold_bonus": 1.2,
  "id": "stage_61",
- "name": "Gömda tornet",
+ "name": "Blåsterns munnen",
  "regel": "",
  "theme": "asklunden",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

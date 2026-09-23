@@ -83,6 +83,7 @@ func _initialize() -> void:
 	var no_shovel := 0
 	var too_few_encounters := 0
 	var unknown_enemy := []
+	var missing_floor := []
 	var same_tile := 0
 	var empty_floor := 0
 	var checksum_dupes := {}
@@ -92,6 +93,12 @@ func _initialize() -> void:
 			for fi in stage.floors:
 				var f := Dungeon.generate(stage, fi, seed_value, bestiary)
 				floor_count += 1
+				if f == null:
+					# En våning som inte går att bygga ska RÄKNAS, inte döda provet. Utan den här
+					# raden kraschade hela testet på första trasiga stage och hängde tills tidsgränsen
+					# tog det — kontrollen nedan fäller i stället med stage-id:t i klartext.
+					missing_floor.append("%s v%d" % [stage.id, fi + 1])
+					continue
 				if Dungeon.unreachable_nodes(f).size() > 0:
 					unreachable += 1
 				if f.nodes_of_kind("boss").is_empty():
@@ -122,6 +129,8 @@ func _initialize() -> void:
 	check(empty_floor == 0, "ingen våning är tom på golv")
 	check(too_few_encounters == 0, "varje våning har minst 4 strider")
 	check(unknown_enemy.is_empty(), "inga okända fiende-id:n i noderna", ", ".join(unknown_enemy.slice(0, 3)))
+	check(missing_floor.is_empty(), "varje stage går att bygga (ingen våning utan fiender)",
+		", ".join(missing_floor.slice(0, 3)))
 
 	print("— banornas form —")
 	var floor_min := 99
@@ -130,8 +139,26 @@ func _initialize() -> void:
 		var s: Stages.StageDef = stages[id]
 		floor_min = min(floor_min, s.floors)
 		floor_max = max(floor_max, s.floors)
-	check(floor_min >= 3, "ingen bana är kortare än 3 våningar", "min %d" % floor_min)
-	check(floor_max <= 8, "ingen bana är längre än 8 våningar", "max %d" % floor_max)
+	check(floor_min >= 5, "ingen bana är kortare än kurvans 5 våningar", "min %d" % floor_min)
+	check(floor_max <= 12, "ingen bana är längre än kurvans tolv", "max %d" % floor_max)
+	# Kurvan (docs/skilltree.md) säger att banorna blir LÄNGRE ju längre in man kommer — Alex: *"det
+	# skall ta tid att gå genom en bana"*. Provet hade förut ett TAK (max 8) eftersom världen var 40
+	# banor i 1-8 våningar; nu är spannet 5-12 med flit, så det som ska mätas är RIKTNINGEN. Den här
+	# kontrollen hittade två riktiga dippar i generatorn (stage_55->56 och 72->73), där ett bands
+	# startvärde inte tog vid där det förra slutade.
+	var ids: Array = stages.keys()
+	ids.sort()
+	var backs := []
+	for i in range(1, ids.size()):
+		var prev: Stages.StageDef = stages[ids[i - 1]]
+		var now: Stages.StageDef = stages[ids[i]]
+		if now.floors < prev.floors or now.encounters_per_floor < prev.encounters_per_floor \
+				or now.difficulty < prev.difficulty:
+			backs.append("%s->%s (%d v %d m sv %d mot %d v %d m sv %d)" % [ids[i - 1], ids[i],
+				prev.floors, prev.encounters_per_floor, prev.difficulty,
+				now.floors, now.encounters_per_floor, now.difficulty])
+	check(backs.is_empty(), "kurvan backar aldrig: längd och svårighetsgrad växer bana för bana",
+		", ".join(backs.slice(0, 2)))
 	var total_floors := 0
 	for id in stages:
 		total_floors += stages[id].floors
@@ -160,29 +187,19 @@ func _initialize() -> void:
 			grupper[avtryck] = []
 		grupper[avtryck].append({"id": s.id, "sv": s.difficulty})
 	var saknade := []
-	for d in range(1, 10):
+	var högsta: int = svårigheter.keys().max()
+	for d in range(1, högsta + 1):
 		if not svårigheter.has(d):
 			saknade.append(d)
-	check(saknade.is_empty(), "varje svårighetsgrad 1-9 har minst en bana", "saknas: %s" % str(saknade))
-	var blandade := []
-	var klonrader := []
-	for avtryck_nyckel in grupper:
-		var rader: Array = grupper[avtryck_nyckel]          # [{id, sv}, ...]
-		var sv: Array = []
-		var namn: Array = []
-		for r in rader:
-			namn.append("%s (sv %d)" % [r["id"], r["sv"]])
-			if not sv.has(r["sv"]):
-				sv.append(r["sv"])
-		klonrader.append("%d banor: %s" % [namn.size(), ", ".join(namn)])
-		if sv.size() > 1:
-			blandade.append(", ".join(namn))
-	check(blandade.is_empty(),
-		"samma rattar hör till EN svårighetsgrad (ingen fil har fel svårighetsgrad)",
-		"; ".join(blandade))
-	print("    %d unika uppsättningar rattar för %d banor" % [grupper.size(), stages.size()])
-	for rad in klonrader:
-		print("      %s" % rad)
+	check(saknade.is_empty(), "varje svårighetsgrad 1-%d har minst en bana" % högsta,
+		"saknas: %s" % str(saknade))
+	# REGELN SOM FÖRSVANN: "samma rattar hör till EN svårighetsgrad". Den var sann när 40 banor delade
+	# nio steg — en trappa där varje steg hade exakt en uppsättning rattar. Nu är det 90 banor över 30
+	# steg, alltså en kurva där längden växer mjukt inuti varje steg, och samma uppsättning rattar bär
+	# med flit flera banor. Kontrollen är därför ersatt av den ovan (kurvan backar aldrig), som mäter
+	# riktningen i stället för unikheten — och som fångade två riktiga fel i generatorn.
+	print("    %d unika uppsättningar rattar för %d banor över %d svårighetsgrader" % [grupper.size(),
+		stages.size(), högsta])
 
 	print("")
 	print("%d kontroller, %d fel i %d genererade våningar" % [checks, fails, floor_count])

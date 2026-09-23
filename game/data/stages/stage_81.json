@@ -15,16 +15,17 @@
   "krypta",
   "tunnel",
   "asklunden",
-  "bro"
+  "bro",
+  "grotta"
  ],
- "floors": 11,
+ "floors": 12,
  "gold_bonus": 1.6,
  "id": "stage_81",
- "name": "Ribbgångens tåren",
+ "name": "Ärggångens malmen",
  "regel": "",
  "theme": "asklunden",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

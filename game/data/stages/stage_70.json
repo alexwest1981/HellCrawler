@@ -20,11 +20,11 @@
  "floors": 11,
  "gold_bonus": 1.38,
  "id": "stage_70",
- "name": "Benhusets sotet",
+ "name": "Kalkens branten",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

@@ -21,11 +21,11 @@
  "floors": 12,
  "gold_bonus": 1.62,
  "id": "stage_82",
- "name": "Klockornas skuggan",
+ "name": "Ribbgångens tåren",
  "regel": "",
  "theme": "bro",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.8,
  "id": "stage_41",
- "name": "Ribbgångens askan",
+ "name": "Ärggångens brunnen",
  "regel": "",
  "theme": "asklunden",
  "tiers": [
-  3
+  2
  ],
  "xp_bonus": 0.0
 }

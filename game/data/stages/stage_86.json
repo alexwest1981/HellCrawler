@@ -21,11 +21,11 @@
  "floors": 12,
  "gold_bonus": 1.7,
  "id": "stage_86",
- "name": "Kärrets askan",
+ "name": "Kalla brunnen",
  "regel": "",
  "theme": "asklunden",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

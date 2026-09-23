@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.86,
  "id": "stage_44",
- "name": "Glömda ugnen",
+ "name": "Kupolens kammaren",
  "regel": "",
  "theme": "krypta",
  "tiers": [
-  3
+  2
  ],
  "xp_bonus": 0.0
 }

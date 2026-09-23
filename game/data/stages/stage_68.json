@@ -20,11 +20,11 @@
  "floors": 11,
  "gold_bonus": 1.34,
  "id": "stage_68",
- "name": "Första valvet",
+ "name": "Tysta hjärtat",
  "regel": "",
  "theme": "grotta",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

@@ -13,16 +13,17 @@
   "bro",
   "grotta",
   "krypta",
-  "tunnel"
+  "tunnel",
+  "asklunden"
  ],
- "floors": 9,
+ "floors": 10,
  "gold_bonus": 1.1,
  "id": "stage_56",
- "name": "Svala röken",
+ "name": "Nedre mörkret",
  "regel": "",
  "theme": "asklunden",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

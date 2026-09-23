@@ -40,15 +40,18 @@ tmp=$(mktemp)
 {
   for t in tests/test_*.gd; do
     echo "=== $t"
-    # Tidsgränsen finns för HÄNGNINGAR, inte för tunga prov. test_normalprov startar en hel
-    # spelinstans, bygger en våning och renderar den; det är det enda provet som är tyngre än ett
-    # par minuter, och det är tyngre för att det MÄTER mer (materialvägen fram till meshen).
-    # Bara det provet får mer tid, så en hängning i något annat upptäcks lika fort som förut.
+    # Tidsgränsen finns för HÄNGNINGAR, inte för tunga prov. Ett prov tog 420 s en gång och såg ut
+    # som ett tungt prov — men det var ett TYPFEL i provet: ett ShaderMaterial tilldelades en
+    # variabel av typen StandardMaterial3D, och ett scriptfel i _initialize avslutar inte trädet.
+    # Det snurrade alltså i nio minuter utan ett ord. Rättat; provet går på en sekund. Gränsen är
+    # tillbaka på 120 för allt: den fångar hängningar, och tools/test_all.sh kör ett prov som inte
+    # svarar en gång till och skriver ut dess sista rad.
     # OBS: variabelnamnet är ASCII med flit — bash tillåter inte å/ä/ö i namn, och "GRÄNS=120"
     # gjorde att HELA sviten föll utan att köra ett enda prov (0 kontroller, 0 fel).
-    grans=120
-    case "$t" in *normalprov*) grans=420 ;; esac
-    timeout "$grans" godot --headless --path . --script "res://$t" || echo "  ##FEL## $t föll: exit $?"
+    # -k 5: om Godot inte lyder SIGTERM (ett scriptfel i _initialize lämnar huvudloopen snurrande)
+    # tar SIGKILL den fem sekunder senare. Utan det kan en hängning stå kvar som ett spöke och hålla
+    # röret öppet, så att hela sviten väntar på något som redan är dött.
+    timeout -k 5 120 godot --headless --path . --script "res://$t" || echo "  ##FEL## $t föll: exit $?"
   done
 } 2>&1 | tee "$tmp"
 ok=$(grep -c '^  ok ' "$tmp")

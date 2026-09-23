@@ -13,16 +13,17 @@
   "grotta",
   "krypta",
   "tunnel",
-  "asklunden"
+  "asklunden",
+  "bro"
  ],
- "floors": 9,
+ "floors": 10,
  "gold_bonus": 1.12,
  "id": "stage_57",
- "name": "Gruvgångens kryptan",
+ "name": "Svala röken",
  "regel": "",
  "theme": "bro",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

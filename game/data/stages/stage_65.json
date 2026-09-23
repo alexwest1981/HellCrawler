@@ -14,16 +14,17 @@
   "bro",
   "grotta",
   "krypta",
-  "tunnel"
+  "tunnel",
+  "asklunden"
  ],
- "floors": 10,
+ "floors": 11,
  "gold_bonus": 1.28,
  "id": "stage_65",
- "name": "Ringmurens porten",
+ "name": "Kraniernas pelaren",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

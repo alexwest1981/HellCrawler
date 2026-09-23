@@ -20,11 +20,11 @@
  "floors": 11,
  "gold_bonus": 1.36,
  "id": "stage_69",
- "name": "Kalkens branten",
+ "name": "Första valvet",
  "regel": "",
  "theme": "krypta",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

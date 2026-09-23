@@ -20,11 +20,11 @@
  "floors": 11,
  "gold_bonus": 1.52,
  "id": "stage_77",
- "name": "Smältans glaskupan",
+ "name": "Torkade gapet",
  "regel": "",
  "theme": "bro",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

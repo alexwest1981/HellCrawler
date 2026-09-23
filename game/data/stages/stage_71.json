@@ -20,11 +20,11 @@
  "floors": 11,
  "gold_bonus": 1.4,
  "id": "stage_71",
- "name": "Klockmoderns rummet",
+ "name": "Benhusets sotet",
  "regel": "",
  "theme": "asklunden",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

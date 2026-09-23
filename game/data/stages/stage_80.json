@@ -15,16 +15,17 @@
   "grotta",
   "krypta",
   "tunnel",
-  "asklunden"
+  "asklunden",
+  "bro"
  ],
- "floors": 11,
+ "floors": 12,
  "gold_bonus": 1.58,
  "id": "stage_80",
- "name": "Ärggångens malmen",
+ "name": "Askans glöden",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

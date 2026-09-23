@@ -16,7 +16,7 @@ band 85-90 ar 12 x 10. Svårighetsgraden går 1..30 i stället för 1..9, efters
 redan är linjära och bara behövde mer spann.
 
 Kör:  python3 tools/gen_stages.py            (skriver om alla 90 filerna)
-       python3 tools/gen_stages.py --kontroll (skriver ingenting, granskar bara)
+       python3 tools/gen_stages.py --check    (skriver ingenting, granskar bara)  [alias: --kontroll]
 """
 import json
 import os
@@ -24,7 +24,29 @@ import sys
 
 ROT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STAGES = os.path.join(ROT, "game", "data", "stages")
+BESTIARY = os.path.join(ROT, "game", "data", "enemies", "00_bestiary.json")
 ANTAL = 90
+
+
+def tiers_i_bestiariet():
+    """Tiers som FAKTISKT har fiender, ur bestiariet.
+
+    Den gamla raden var `[(nr - 1) // 15 + 1]`, alltså en tier var femtonde bana upp till sex. Men
+    bestiariet har TRE tiers (17 fiender: 4 i tier 1, 4 i tier 2, 9 i tier 3). Från stage_46 och framåt
+    bad varje bana därför om en tier utan fiender, fick en tom pool, och spelet kunde inte bygga
+    våningen alls — dungeon.gd indexerade den tomma listan, generate returnerade null, och provet
+    hängde i stället för att säga att stage_46 saknade fiender i tier 4. Halva spelet var obyggbart.
+
+    Generatorn läser därför bestiariet i stället för att gissa, och kurvan fördelar de 90 banorna
+    jämnt över de tiers som finns. Växer bestiariet följer banorna med, utan att någon behöver komma
+    ihåg ett tak.
+    """
+    db = json.load(open(BESTIARY, encoding="utf-8"))
+    rader = db if isinstance(db, list) else list(db.values())
+    return sorted({int(e["tier"]) for e in rader})
+
+
+TIERS = tiers_i_bestiariet()
 
 # Ordbanker byggda av de 40 befintliga namnen. LED markerar om en stavelse star i genitiv (Kalkens tar)
 # eller ar ett adjektiv (Branda vreten) - bada ger samma form pa subjektet, och det ar spelets egen
@@ -60,8 +82,13 @@ BAND = [
     (1, 15, 1, 4, 5, 5, 6, 6),
     (16, 35, 5, 9, 6, 8, 7, 7),
     (36, 55, 10, 14, 8, 10, 8, 8),
-    (56, 72, 15, 19, 9, 11, 9, 9),
-    (73, 84, 20, 24, 10, 12, 10, 10),
+    # Bandens startvärde måste fortsätta där det förra slutade, annars DIPPAr kurvan: band 4 började
+    # på 9 våningar efter att band 3 slutat på 10, så stage_55 hade 10 våningar och stage_56 nio —
+    # och band 5 började på 10 efter 11, samma sak vid stage_72/73. Mätt med ett svep över alla 90
+    # filer (difficulty och möten steg bara; våningarna föll två gånger). Alex: "det skall ta tid att
+    # gå genom en bana" — en bana som blir KORTARE längre in i spelet motsäger det.
+    (56, 72, 15, 19, 10, 11, 9, 9),
+    (73, 84, 20, 24, 11, 12, 10, 10),
     (85, 90, 25, 30, 12, 12, 10, 10),
 ]
 
@@ -133,7 +160,7 @@ def bygg(nr, befintliga, namn, tagna_namn):
         "gold_bonus": round(0.02 * (nr - 1), 2),
         "xp_bonus": 0.0,
         "theme": tema,
-        "tiers": [(nr - 1) // 15 + 1],
+        "tiers": [TIERS[min(len(TIERS) - 1, (nr - 1) * len(TIERS) // ANTAL)]],
         "regel": "",
     }
 
@@ -223,10 +250,18 @@ def granska(ut):
 
 
 def main():
-    torr = "--kontroll" in sys.argv
+    # --check är standardnamnet i tools/ (14 andra generatorer har det, och tools/test_all.sh letar
+    # efter just det). --kontroll behålls som alias så att inget handgrepp går förlorat.
+    torr = "--check" in sys.argv or "--kontroll" in sys.argv
     befintliga = las_befintliga()
-    tagna = {s["name"] for s in befintliga.values()} | {"Första ugnen"}
-    nya = nya_namn(ANTAL - len(befintliga), tagna)   # 50: stage_40 tappar sitt namn till sista banan
+    # Namnen måste vara en FUNKTION av bana nummer, inte av vad som ligger på disken just nu. Poolen
+    # byggdes förut ur alla befintliga filer ("tagna"), så andra körningen fick ett annat set än den
+    # första — och stage_40, vars namn frigörs till "Första ugnen", bytte namn varannan gång. Mätt:
+    # körning 1 och 3 gav c332c5f2…, körning 2 gav 167ce3a1…, och diffen var EN rad: stage_40:s namn.
+    # Driftkontrollen i tools/test_all.sh hittade det genom att köra generatorn och jämföra.
+    # stage_01..39 behåller sina namn för evigt och "Första ugnen" är reserverat, så poolen är stabil.
+    tagna = {s["name"] for nr, s in befintliga.items() if nr < 40} | {"Första ugnen"}
+    nya = nya_namn(ANTAL - 40, tagna)   # 50: stage_40 tappar sitt namn till sista banan
     ut = []
     for nr in range(1, ANTAL + 1):
         gammal = befintliga.get(nr)

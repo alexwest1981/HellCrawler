@@ -19,11 +19,11 @@
  "floors": 10,
  "gold_bonus": 1.04,
  "id": "stage_53",
- "name": "Saltets klyftan",
+ "name": "Kalkbrottets ringen",
  "regel": "",
  "theme": "grotta",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

@@ -21,11 +21,11 @@
  "floors": 12,
  "gold_bonus": 1.76,
  "id": "stage_89",
- "name": "Vita lagen",
+ "name": "Yttre ugnen",
  "regel": "",
  "theme": "krypta",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

@@ -13,16 +13,17 @@
   "asklunden",
   "bro",
   "grotta",
-  "krypta"
+  "krypta",
+  "tunnel"
  ],
- "floors": 9,
+ "floors": 10,
  "gold_bonus": 1.18,
  "id": "stage_60",
- "name": "Blåsterns munnen",
+ "name": "Spegelns kitteln",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

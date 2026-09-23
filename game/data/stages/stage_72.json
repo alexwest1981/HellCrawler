@@ -20,11 +20,11 @@
  "floors": 11,
  "gold_bonus": 1.42,
  "id": "stage_72",
- "name": "Inre hålan",
+ "name": "Klockmoderns rummet",
  "regel": "",
  "theme": "bro",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

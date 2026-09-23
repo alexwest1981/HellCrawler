@@ -19,11 +19,11 @@
  "floors": 10,
  "gold_bonus": 1.22,
  "id": "stage_62",
- "name": "Brända kanten",
+ "name": "Gömda tornet",
  "regel": "",
  "theme": "bro",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

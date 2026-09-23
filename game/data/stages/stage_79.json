@@ -15,16 +15,17 @@
   "bro",
   "grotta",
   "krypta",
-  "tunnel"
+  "tunnel",
+  "asklunden"
  ],
- "floors": 11,
+ "floors": 12,
  "gold_bonus": 1.56,
  "id": "stage_79",
- "name": "Askans glöden",
+ "name": "Övre hallen",
  "regel": "",
  "theme": "krypta",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

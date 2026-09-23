@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.88,
  "id": "stage_45",
- "name": "Kalla lagen",
+ "name": "Glömda ugnen",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  3
+  2
  ],
  "xp_bonus": 0.0
 }

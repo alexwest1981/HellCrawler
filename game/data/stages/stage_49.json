@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.96,
  "id": "stage_49",
- "name": "Yttre leran",
+ "name": "Dova svalget",
  "regel": "",
  "theme": "krypta",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

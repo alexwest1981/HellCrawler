@@ -21,11 +21,11 @@
  "floors": 12,
  "gold_bonus": 1.68,
  "id": "stage_85",
- "name": "Kalla brunnen",
+ "name": "Glömda djuphålet",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

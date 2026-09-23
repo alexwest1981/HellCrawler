@@ -14,16 +14,17 @@
   "asklunden",
   "bro",
   "grotta",
-  "krypta"
+  "krypta",
+  "tunnel"
  ],
- "floors": 10,
+ "floors": 11,
  "gold_bonus": 1.46,
  "id": "stage_74",
- "name": "Koppargruvans tystnaden",
+ "name": "Svarta valen",
  "regel": "",
  "theme": "krypta",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.98,
  "id": "stage_50",
- "name": "Vita gången",
+ "name": "Yttre leran",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

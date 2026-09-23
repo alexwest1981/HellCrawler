@@ -18,11 +18,11 @@
  "floors": 9,
  "gold_bonus": 0.9,
  "id": "stage_46",
- "name": "Kärrets vreten",
+ "name": "Kalla lagen",
  "regel": "",
  "theme": "asklunden",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

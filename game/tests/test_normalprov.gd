@@ -167,8 +167,15 @@ func _initialize() -> void:
 	var blanka := 0
 	var felglans: Array = []
 	for n in mmis:
-		var m: StandardMaterial3D = (n as MultiMeshInstance3D).multimesh.mesh.material
-		if m == null or m.roughness_texture == null:
+		# Untyped on purpose: the water lies in the same list as a ShaderMaterial, and naming the
+		# type here (StandardMaterial3D) killed the whole test with a script error. A type error in
+		# _initialize does NOT end the tree — it keeps running, so the suite reported a 420-second
+		# timeout with no reason at all, and the reason only showed in the raw output.
+		var mat: Material = (n as MultiMeshInstance3D).multimesh.mesh.material
+		if not (mat is StandardMaterial3D):
+			continue
+		var m := mat as StandardMaterial3D
+		if m.roughness_texture == null:
 			continue
 		var rå: float = main._radhet(m.roughness_texture)
 		var matt: bool = m.specular_mode == BaseMaterial3D.SPECULAR_DISABLED

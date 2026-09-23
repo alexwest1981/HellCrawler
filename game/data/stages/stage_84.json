@@ -21,11 +21,11 @@
  "floors": 12,
  "gold_bonus": 1.66,
  "id": "stage_84",
- "name": "Glömda djuphålet",
+ "name": "Kupolens muren",
  "regel": "",
  "theme": "krypta",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }

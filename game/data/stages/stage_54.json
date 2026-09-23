@@ -19,11 +19,11 @@
  "floors": 10,
  "gold_bonus": 1.06,
  "id": "stage_54",
- "name": "Glasets domen",
+ "name": "Saltets klyftan",
  "regel": "",
  "theme": "krypta",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

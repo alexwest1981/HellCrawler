@@ -19,11 +19,11 @@
  "floors": 10,
  "gold_bonus": 1.08,
  "id": "stage_55",
- "name": "Nedre mörkret",
+ "name": "Glasets domen",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  4
+  2
  ],
  "xp_bonus": 0.0
 }

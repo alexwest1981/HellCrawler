@@ -14,16 +14,17 @@
   "bro",
   "grotta",
   "krypta",
-  "tunnel"
+  "tunnel",
+  "asklunden"
  ],
- "floors": 10,
+ "floors": 11,
  "gold_bonus": 1.48,
  "id": "stage_75",
- "name": "Blekta gjutningen",
+ "name": "Koppargruvans tystnaden",
  "regel": "",
  "theme": "tunnel",
  "tiers": [
-  5
+  3
  ],
  "xp_bonus": 0.0
 }

@@ -21,11 +21,11 @@
  "floors": 12,
  "gold_bonus": 1.64,
  "id": "stage_83",
- "name": "Kupolens muren",
+ "name": "Klockornas skuggan",
  "regel": "",
  "theme": "grotta",
  "tiers": [
-  6
+  3
  ],
  "xp_bonus": 0.0
 }
