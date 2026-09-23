@@ -6450,7 +6450,7 @@ func _build_hud() -> void:
 
 	draft_panel = PanelContainer.new()
 	draft_panel.set_anchors_preset(Control.PRESET_CENTER)
-	draft_panel.add_theme_stylebox_override("panel", _panel_style())
+	draft_panel.add_theme_stylebox_override("panel", _bench_style())
 	draft_panel.visible = false
 	var dbox := VBoxContainer.new()
 	# Innehållet centreras lodrätt: panelen är HELA vyn (se _show_draft), och rubrik + kort ska stå i
@@ -6503,7 +6503,7 @@ func _build_hud() -> void:
 	# samma CardView. Det som inte står på kortet (hans passiva verkan och priset) står i etiketten.
 	inn_panel = PanelContainer.new()
 	inn_panel.set_anchors_preset(Control.PRESET_CENTER)
-	inn_panel.add_theme_stylebox_override("panel", _panel_style())
+	inn_panel.add_theme_stylebox_override("panel", _bench_style())
 	inn_panel.visible = false
 	var ibox := VBoxContainer.new()
 	inn_panel.add_child(ibox)
@@ -6769,6 +6769,27 @@ func _panel_style() -> StyleBoxFlat:
 	sb.bg_color = Color(0.05, 0.05, 0.08, 0.93)
 	sb.border_color = Color(0.45, 0.48, 0.60)
 	sb.set_border_width_all(1)
+	sb.set_content_margin_all(4)
+	return sb
+
+
+## The cards lie on a BENCH. Alex generated a plank surface (images/desk2.jpeg, top-down, seamless)
+## and said the shop should lay its cards on it rather than on a flat black panel. A StyleBoxTexture
+## is the panel drawing the wood itself: no extra node to keep in sync with the panel size, and it
+## scales with the panel. Tinted well below the raw plank, because a bright wood surface behind pale
+## card text costs contrast — the rest of the game is read against near-black.
+##
+## The texture is assets/ui/bench.png, NOT the raw sheet: game/images/ is gitignored (Alex's
+## generated sheets), so a fresh clone would have no bench and the panel would go black without a
+## word. The crop is cut by hand from the clean middle of the plank and scaled to 512x288, which is
+## the view's own 480x270 with a margin — one source pixel per drawn pixel, no resampling in game.
+const BENCH_TEXTURE := "res://assets/ui/bench.png"
+
+
+func _bench_style() -> StyleBoxTexture:
+	var sb := StyleBoxTexture.new()
+	sb.texture = load(BENCH_TEXTURE)
+	sb.modulate_color = Color(0.32, 0.27, 0.23, 0.96)
 	sb.set_content_margin_all(4)
 	return sb
 

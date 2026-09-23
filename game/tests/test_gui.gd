@@ -589,6 +589,14 @@ func _initialize() -> void:
 		"juvelerarpanelen ryms i spelvyn i höjd", "y %.0f..%.0f av %.0f" % [jr.position.y, jr.end.y, main.VY.y])
 	check(jr.position.x >= -0.5 and jr.end.x <= float(main.VY.x) + 0.5,
 		"och i sidled (tipsraden var 1236 px på en rad)", "x %.0f..%.0f av %.0f" % [jr.position.x, jr.end.x, main.VY.x])
+	# THE BENCH (23 Sep): Alex drew a plank surface and wants the shop's cards to lie on it. The
+	# texture is loaded from disk at startup, so a missing or unimported PNG would leave a silent
+	# black panel — the exact failure mode this checks. Godot only sees a new PNG after `--import`.
+	var bench: Texture2D = load(main.BENCH_TEXTURE) as Texture2D
+	check(bench != null and bench.get_width() > 0, "the bench texture loads from disk",
+		"%s (%dx%d)" % [main.BENCH_TEXTURE, 0 if bench == null else bench.get_width(),
+			0 if bench == null else bench.get_height()])
+	check(main._bench_style().texture == bench, "and the shop panel draws it (StyleBoxTexture)")
 	main.shell = "karta"
 	main._refresh_shell()
 	check(main.top_label.visible, "på kartan syns den igen (ingen panel där)")
