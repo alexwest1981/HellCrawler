@@ -6577,9 +6577,13 @@ func _refresh() -> void:
 	# panelen visar det levande.
 	var i_strid: bool = active_combat != null and not active_combat.over()
 	var hp_nu: float = active_combat.hp if i_strid else run.hp
-	top_label.text = Tr.t("ui.hud.status", "%s %d/%d · nivå %d · HP %.0f/%.0f · %d guld · %d xp") % [
+	# Alex: *"I strid skall ens totala, och det man dragit in på den omgången visas."* Två tal, för de
+	# betyder olika saker: guldet i körningen försvinner när körningen tar slut och går då in i banken
+	# (se _banked nedan). Utan banken ser spelaren bara vad han bär, och undrar varför butikens priser
+	# inte går ihop med siffran i toppen.
+	top_label.text = Tr.t("ui.hud.status", "%s %d/%d · nivå %d · HP %.0f/%.0f · bank %d · omgången %d · %d xp") % [
 		Tr.name_of("stage", run.stage.id, run.stage.name), run.floor_index + 1, run.stage.floors,
-		run.level, hp_nu, run.max_hp, run.gold, run.xp]
+		run.level, hp_nu, run.max_hp, meta.gold, run.gold, run.xp]
 	_hud_sätt(hp_nu, i_strid)
 	# Jukeboxen (M54): spåret som spelar står i tipsraden. Tangenten N byter, och utan namnet här
 	# vore bytet tyst — en spellista man inte ser är en spellista man inte styr.

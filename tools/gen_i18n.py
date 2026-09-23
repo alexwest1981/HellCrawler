@@ -36,7 +36,7 @@ UI: dict[str, dict[str, str]] = {
         "ui.hud.sort.drawn": "dragen",
         "ui.hud.sort.cost": "kostnad",
         "ui.hud.sort.role": "roll",
-        "ui.hud.status": "%s %d/%d · nivå %d · HP %.0f/%.0f · %d guld · %d xp",
+        "ui.hud.status": "%s %d/%d · nivå %d · HP %.0f/%.0f · bank %d · %d guld · %d xp",
         "ui.hud.rust": "rust %.0f",
         "ui.shell.status": "HellCrawler · %d guld · %d/%d banor upplåsta",
         "ui.hud.kort": "%d kort",
@@ -80,7 +80,7 @@ UI: dict[str, dict[str, str]] = {
         "ui.hud.sort.drawn": "drawn",
         "ui.hud.sort.cost": "cost",
         "ui.hud.sort.role": "role",
-        "ui.hud.status": "%s %d/%d · level %d · HP %.0f/%.0f · %d gold · %d xp",
+        "ui.hud.status": "%s %d/%d · level %d · HP %.0f/%.0f · bank %d · %d gold · %d xp",
         "ui.hud.rust": "armor %.0f",
         "ui.shell.status": "HellCrawler · %d gold · %d/%d stages unlocked",
         "ui.hud.kort": "%d cards",
@@ -122,7 +122,7 @@ UI: dict[str, dict[str, str]] = {
     "de": {
         "ui.hud.hint": "WASD gehen · 1-9 Karten · P alles spielen · E Zug beenden · S sortieren (%s) · R neu",
         "ui.hud.sort.drawn": "gezogen", "ui.hud.sort.cost": "Kosten", "ui.hud.sort.role": "Rolle",
-        "ui.hud.status": "%s %d/%d · Stufe %d · HP %.0f/%.0f · %d Gold · %d XP",
+        "ui.hud.status": "%s %d/%d · Stufe %d · HP %.0f/%.0f · bank %d · %d Gold · %d XP",
         "ui.hud.rust": "Rüstung %.0f",
         "ui.shell.status": "HellCrawler · %d Gold · %d/%d Ebenen freigeschaltet",
         "ui.hud.kort": "%d Karten",
@@ -152,7 +152,7 @@ UI: dict[str, dict[str, str]] = {
     "fr": {
         "ui.hud.hint": "WASD marcher · 1-9 cartes · P tout jouer · E fin de tour · S trier (%s) · R relancer",
         "ui.hud.sort.drawn": "piochées", "ui.hud.sort.cost": "coût", "ui.hud.sort.role": "rôle",
-        "ui.hud.status": "%s %d/%d · niveau %d · PV %.0f/%.0f · %d or · %d xp",
+        "ui.hud.status": "%s %d/%d · niveau %d · PV %.0f/%.0f · bank %d · %d or · %d xp",
         "ui.hud.rust": "armure %.0f",
         "ui.shell.status": "HellCrawler · %d or · %d/%d niveaux débloqués",
         "ui.hud.kort": "%d cartes",
@@ -182,7 +182,7 @@ UI: dict[str, dict[str, str]] = {
     "es": {
         "ui.hud.hint": "WASD andar · 1-9 cartas · P jugar todo · E fin del turno · S ordenar (%s) · R reiniciar",
         "ui.hud.sort.drawn": "robadas", "ui.hud.sort.cost": "coste", "ui.hud.sort.role": "rol",
-        "ui.hud.status": "%s %d/%d · nivel %d · PV %.0f/%.0f · %d oro · %d xp",
+        "ui.hud.status": "%s %d/%d · nivel %d · PV %.0f/%.0f · bank %d · %d oro · %d xp",
         "ui.hud.rust": "armadura %.0f",
         "ui.shell.status": "HellCrawler · %d oro · %d/%d niveles desbloqueados",
         "ui.hud.kort": "%d cartas",
@@ -212,7 +212,7 @@ UI: dict[str, dict[str, str]] = {
     "it": {
         "ui.hud.hint": "WASD muoversi · 1-9 carte · P gioca tutto · E fine turno · S ordina (%s) · R riavvia",
         "ui.hud.sort.drawn": "pescate", "ui.hud.sort.cost": "costo", "ui.hud.sort.role": "ruolo",
-        "ui.hud.status": "%s %d/%d · livello %d · HP %.0f/%.0f · %d oro · %d xp",
+        "ui.hud.status": "%s %d/%d · livello %d · HP %.0f/%.0f · bank %d · %d oro · %d xp",
         "ui.hud.rust": "armatura %.0f",
         "ui.shell.status": "HellCrawler · %d oro · %d/%d livelli sbloccati",
         "ui.hud.kort": "%d carte",
@@ -242,7 +242,7 @@ UI: dict[str, dict[str, str]] = {
     "pl": {
         "ui.hud.hint": "WASD idź · 1-9 karty · P zagraj wszystko · E koniec tury · S sortuj (%s) · R od nowa",
         "ui.hud.sort.drawn": "dobrane", "ui.hud.sort.cost": "koszt", "ui.hud.sort.role": "rola",
-        "ui.hud.status": "%s %d/%d · poziom %d · HP %.0f/%.0f · %d złota · %d pd",
+        "ui.hud.status": "%s %d/%d · poziom %d · HP %.0f/%.0f · bank %d · %d złota · %d pd",
         "ui.hud.rust": "pancerz %.0f",
         "ui.shell.status": "HellCrawler · %d złota · %d/%d etapów odblokowanych",
         "ui.hud.kort": "%d karty",
@@ -272,7 +272,7 @@ UI: dict[str, dict[str, str]] = {
     "pt-BR": {
         "ui.hud.hint": "WASD andar · 1-9 cartas · P jogar tudo · E encerrar turno · S ordenar (%s) · R reiniciar",
         "ui.hud.sort.drawn": "compradas", "ui.hud.sort.cost": "custo", "ui.hud.sort.role": "função",
-        "ui.hud.status": "%s %d/%d · nível %d · HP %.0f/%.0f · %d ouro · %d xp",
+        "ui.hud.status": "%s %d/%d · nível %d · HP %.0f/%.0f · bank %d · %d ouro · %d xp",
         "ui.hud.rust": "armadura %.0f",
         "ui.shell.status": "HellCrawler · %d ouro · %d/%d níveis liberados",
         "ui.hud.kort": "%d cartas",
@@ -302,7 +302,7 @@ UI: dict[str, dict[str, str]] = {
     "ru": {
         "ui.hud.hint": "WASD идти · 1-9 карты · P сыграть всё · E конец хода · S сортировка (%s) · R заново",
         "ui.hud.sort.drawn": "взятые", "ui.hud.sort.cost": "стоимость", "ui.hud.sort.role": "роль",
-        "ui.hud.status": "%s %d/%d · уровень %d · HP %.0f/%.0f · %d золота · %d опыта",
+        "ui.hud.status": "%s %d/%d · уровень %d · HP %.0f/%.0f · bank %d · %d золота · %d опыта",
         "ui.hud.rust": "броня %.0f",
         "ui.shell.status": "HellCrawler · %d золота · %d/%d этапов открыто",
         "ui.hud.kort": "%d карт",
@@ -332,7 +332,7 @@ UI: dict[str, dict[str, str]] = {
     "ja": {
         "ui.hud.hint": "WASD 移動 · 1-9 カード · P すべて出す · E ターン終了 · S 並べ替え (%s) · R やり直し",
         "ui.hud.sort.drawn": "引いた順", "ui.hud.sort.cost": "コスト順", "ui.hud.sort.role": "役割順",
-        "ui.hud.status": "%s %d/%d · レベル %d · HP %.0f/%.0f · %d ゴールド · %d 経験値",
+        "ui.hud.status": "%s %d/%d · レベル %d · HP %.0f/%.0f · bank %d · %d ゴールド · %d 経験値",
         "ui.hud.rust": "防御 %.0f",
         "ui.shell.status": "HellCrawler · %d ゴールド · ステージ %d/%d 解放",
         "ui.hud.kort": "%d 枚",
@@ -362,7 +362,7 @@ UI: dict[str, dict[str, str]] = {
     "ko": {
         "ui.hud.hint": "WASD 이동 · 1-9 카드 · P 전부 사용 · E 턴 종료 · S 정렬 (%s) · R 다시",
         "ui.hud.sort.drawn": "뽑은 순", "ui.hud.sort.cost": "비용순", "ui.hud.sort.role": "역할순",
-        "ui.hud.status": "%s %d/%d · 레벨 %d · HP %.0f/%.0f · %d 골드 · %d 경험치",
+        "ui.hud.status": "%s %d/%d · 레벨 %d · HP %.0f/%.0f · bank %d · %d 골드 · %d 경험치",
         "ui.hud.rust": "방어 %.0f",
         "ui.shell.status": "HellCrawler · 골드 %d · 스테이지 %d/%d 해제",
         "ui.hud.kort": "%d 장",
@@ -392,7 +392,7 @@ UI: dict[str, dict[str, str]] = {
     "zh-Hans": {
         "ui.hud.hint": "WASD 移动 · 1-9 出牌 · P 全部打出 · E 结束回合 · S 排序 (%s) · R 重开",
         "ui.hud.sort.drawn": "抽牌顺序", "ui.hud.sort.cost": "费用顺序", "ui.hud.sort.role": "职责顺序",
-        "ui.hud.status": "%s %d/%d · 等级 %d · HP %.0f/%.0f · %d 金币 · %d 经验",
+        "ui.hud.status": "%s %d/%d · 等级 %d · HP %.0f/%.0f · bank %d · %d 金币 · %d 经验",
         "ui.hud.rust": "护甲 %.0f",
         "ui.shell.status": "HellCrawler · %d 金币 · 已解锁 %d/%d 关卡",
         "ui.hud.kort": "%d 张",
@@ -422,7 +422,7 @@ UI: dict[str, dict[str, str]] = {
     "zh-Hant": {
         "ui.hud.hint": "WASD 移動 · 1-9 出牌 · P 全部打出 · E 結束回合 · S 排序 (%s) · R 重來",
         "ui.hud.sort.drawn": "抽牌順序", "ui.hud.sort.cost": "費用順序", "ui.hud.sort.role": "職責順序",
-        "ui.hud.status": "%s %d/%d · 等級 %d · HP %.0f/%.0f · %d 金幣 · %d 經驗",
+        "ui.hud.status": "%s %d/%d · 等級 %d · HP %.0f/%.0f · bank %d · %d 金幣 · %d 經驗",
         "ui.hud.rust": "護甲 %.0f",
         "ui.shell.status": "HellCrawler · %d 金幣 · 已解鎖 %d/%d 關卡",
         "ui.hud.kort": "%d 張",
