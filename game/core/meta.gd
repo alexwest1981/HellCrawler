@@ -223,12 +223,29 @@ func can_buy(id: String) -> Dictionary:
 			return {"ok": false, "reason": "for_lite_guld"}
 	return {"ok": true, "reason": ""}
 
-## Trädets noder kräver varandra: en nod öppnas när dess förälder är köpt minst en gång.
-func requires_met(id: String) -> bool:
+## Trädets noder kräver varandra: en nod öppnas när dess förälder är FULLT uppgraderad.
+##
+## Alex: *"Jag vill ha dem så de bara blir tillgängliga när noden innan är fullt uppgraderad."*
+## Ändrat från `rank(krav) < 1` (köpt en gång räckte): den regeln gjorde trädet till en solfjäder man
+## kunde breda ut sig i. Nu måste en nod bli klar innan nästa i samma gren öppnar.
+##
+## Både `requires_met` och `missing_requirement` går genom samma kontroll, så UI:ts skäl i klartext
+## aldrig kan säga något annat än knappen gör — inte ens när regeln ändras igen.
+func _krav_kvar(id: String) -> String:
 	for krav in def_for(id).get("requires", []):
-		if rank(str(krav)) < 1:
-			return false
-	return true
+		if not is_maxed(str(krav)):
+			return str(krav)
+	return ""
+
+
+func requires_met(id: String) -> bool:
+	return _krav_kvar(id).is_empty()
+
+
+## Första oköpta kravet, i klartext — "LÅST" utan att säga av vad är en återvändsgränd.
+func missing_requirement(id: String) -> String:
+	var krav := _krav_kvar(id)
+	return def_name(krav) if not krav.is_empty() else ""
 
 ## Namnet på en uppgradering eller en trädnod. Nyckeln kommer ur datat (powerup.<id> / tree.<id>),
 ## precis som för korten: en ny nod får ett värde att översätta utan att någon kod ändras.
@@ -238,12 +255,7 @@ func def_name(id: String) -> String:
 	var sort := "tree" if not str(d.get("branch", "")).is_empty() else "powerup"
 	return Tr.name_of(sort, id, str(d.get("name", id)))
 
-## Första oköpta kravet, i klartext — "LÅST" utan att säga av vad är en återvändsgränd.
-func missing_requirement(id: String) -> String:
-	for krav in def_for(id).get("requires", []):
-		if rank(str(krav)) < 1:
-			return def_name(str(krav))
-	return ""
+## (missing_requirement ligger ovanför def_name, tillsammans med _krav_kvar — en definition, en regel.)
 
 func buy(id: String) -> Dictionary:
 	var v := can_buy(id)

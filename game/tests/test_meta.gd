@@ -238,9 +238,10 @@ func _tree_checks() -> void:
 	check(is_equal_approx(mt.stat("might"), 0.02), "noden höjer skadan med sitt lilla steg",
 		"%.3f" % mt.stat("might"))
 	check(mt.gold == 960, "priset drogs", "%d guld" % mt.gold)
-	check(not bool(mt.tree_lines("Järnvägen")[1]["låst"]), "nästa nod öppnades av den första")
-	check(mt.buy("iron_2").ok, "och går nu att köpa")
-	check(is_equal_approx(mt.stat("might"), 0.05), "stegen läggs ihop", "%.3f" % mt.stat("might"))
+	# REGELN (Alex): nästa nod öppnas först när noden innan är FULLT uppgraderad. Att den är köpt en
+	# gång räcker inte — det var den gamla regeln, och det här paret provar att den är borta.
+	check(bool(mt.tree_lines("Järnvägen")[1]["låst"]), "nästa nod är låst efter ett köp")
+	check(not mt.buy("iron_2").ok, "och går inte att köpa förrän noden innan är full")
 	# Rangen får inte gå förbi taket: tre ranger, sedan stopp.
 	mt.add_gold(5000)
 	mt.buy("iron_1")
