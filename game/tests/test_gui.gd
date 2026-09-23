@@ -578,6 +578,17 @@ func _initialize() -> void:
 	main.shell = "juvelerare"
 	main._refresh_shell()
 	check(not main.top_label.visible, "och inte över juveleraren")
+	# JUVELERAREN (M58) ryms i vyn. Texten växte från sex rader till nio när facken och fickan byggdes
+	# ut, men panelen centreras i spelvyn — blev den högre än 270 px klipptes rubriken (guld och fack)
+	# i överkant och kortraden i underkant. Mätt på Alex' skärmbild 23 sep. Måttet står här så en
+	# framtida rad i panelen inte tyst knuffar ut texten igen.
+	var jr: Rect2 = Rect2(main.jewel_panel.position, main.jewel_panel.size)
+	print("    juveleraren: panelen %.0fx%.0f px, y %.0f..%.0f, vyn är %.0f hög"
+		% [jr.size.x, jr.size.y, jr.position.y, jr.end.y, main.VY.y])
+	check(jr.position.y >= -0.5 and jr.end.y <= float(main.VY.y) + 0.5,
+		"juvelerarpanelen ryms i spelvyn i höjd", "y %.0f..%.0f av %.0f" % [jr.position.y, jr.end.y, main.VY.y])
+	check(jr.position.x >= -0.5 and jr.end.x <= float(main.VY.x) + 0.5,
+		"och i sidled (tipsraden var 1236 px på en rad)", "x %.0f..%.0f av %.0f" % [jr.position.x, jr.end.x, main.VY.x])
 	main.shell = "karta"
 	main._refresh_shell()
 	check(main.top_label.visible, "på kartan syns den igen (ingen panel där)")

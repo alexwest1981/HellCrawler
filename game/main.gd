@@ -276,12 +276,15 @@ var inn_index := 0
 const INN_SKALA := 0.66
 const INN_RAD := 0.45
 ## JUVELERAREN (M58): samma kortvägg som värdshuset, men raden är LEKEN och raderna ovanför är
-## facken och fickan. Skalan är mätt mot spelvyns 270 px: etiketten är sex rader (~66 px) och raden
-## i 0.5 är 72 px, alltså 150 px med kanterna — gott om plats kvar.
-const JEWEL_RAD := 0.5
+## facken och fickan. Skalan är mätt mot spelvyns 480x270: hela leken ska rymmas i EN rad, och
+## måttet kommer ur vyn, inte ur ögat (M93). Vid 0,5 blev raden 1236 px i en 480 px vy — panelen
+## centreras, så x hamnade på -378 och vänsterkanten av varje rad låg utanför skärmen. Mätt nedåt i
+## steg: 0,5 gav 1236 px, 0,18 gav 510 (kortet är ~340 px brett, alltså 8 x 0,18 x 340 + mellanrum),
+## och 0,15 ger 436 + etikettens 440 → panelen 456, alltså innanför vyns 480. Vill man läsa namnen i
+## raden krävs scroll eller radbrytning, och det är ett större ingrepp än att få allt att synas.
+const JEWEL_RAD := 0.15
 var jewel_panel: PanelContainer
 var jewel_label: Label
-var jewel_stor: CenterContainer
 var jewel_box: HBoxContainer
 var jewel_kort := 0        ## valt kort i leken
 var jewel_fack := 0        ## valt fack (0-3)
@@ -2505,8 +2508,6 @@ func _verk_spara() -> void:
 func _show_jewel() -> void:
 	var lek := _start_lek()
 	jewel_kort = clampi(jewel_kort, 0, maxi(0, lek.size() - 1))
-	for barn in jewel_stor.get_children():
-		barn.queue_free()
 	for barn in jewel_box.get_children():
 		barn.queue_free()
 	jewel_panel.visible = true
@@ -2546,11 +2547,24 @@ func _show_jewel() -> void:
 			bitar.append("%s%s x%d" % [m, meta.gem_name(str(rad["fam"]), int(rad["grad"])),
 				int(rad["antal"])])
 		rader.append("  ".join(bitar))
-	rader.append(Tr.t("ui.jewel.hint",
-		"← → kort · 1-4 fack · W/S sten · Enter = öppna/sätt/plocka ur · Esc = tillbaka"))
+	# TIPS-RADEN BRÖTS I TVÅ (M93). Den är 1236 px på en rad ("← → kort · 1-4 fack · W/S sten ·
+	# Enter = öppna/sätt/plocka ur · Esc = tillbaka"), och panelen centreras i den 480 px breda vyn —
+	# hela vänsterkanten av varje rad hamnade utanför skärmen, rubriken med guldet först av allt.
+	# En Labels egen minimibredd är textens bredd även med radbrytning på, så en bredd på etiketten
+	# räcker inte (mätt: panelen blev 1236 px ändå). Här bryts strängen själv, vid mitten av dess
+	# "·"-delar — samma struktur i alla 13 språk, så ingen översättning behöver röras.
+	var tips := Tr.t("ui.jewel.hint",
+		"← → kort · 1-4 fack · W/S sten · Enter = öppna/sätt/plocka ur · Esc = tillbaka")
+	var bitar := tips.split("·", false)
+	if bitar.size() >= 3:
+		var mitt := int(ceil(bitar.size() / 2.0))
+		rader.append(" · ".join(bitar.slice(0, mitt)).strip_edges())
+		rader.append(" · ".join(bitar.slice(mitt)).strip_edges())
+	else:
+		rader.append(tips)
 	jewel_label.text = "\n".join(rader)
-	# Raden: hela leken, med det valda kortet framme. Facken syns på kortet som små märken (CardView).
-	jewel_stor.add_child(CardView.make(c, jewel_kort, _card_icon(c.id), true, 0.62))
+	# Raden: hela leken. Det valda kortet är det som lyfts fram (`set_forward`), och facken syns på
+	# korten som små märken (CardView) — förhandsvisningen ovanför togs bort i M93.
 	for i in lek.size():
 		var k: CardView = CardView.make(lek[i], i, _card_icon(lek[i].id), false, JEWEL_RAD)
 		k.set_forward(i == jewel_kort)
@@ -6517,16 +6531,28 @@ func _build_hud() -> void:
 	jewel_panel = PanelContainer.new()
 	jewel_panel.set_anchors_preset(Control.PRESET_CENTER)
 	jewel_panel.add_theme_stylebox_override("panel", _panel_style())
+	# Panelen håller sig inom vyns bredd (480): bredden sätts HÄR, inte på etiketten, för det är
+	# panelen som bestämmer hur mycket plats VBoxen får — och först då bryter etiketten sina rader.
+	jewel_panel.custom_minimum_size = Vector2(456.0, 0.0)
 	jewel_panel.visible = false
 	var jbox := VBoxContainer.new()
 	jewel_panel.add_child(jbox)
 	jewel_label = Label.new()
 	jewel_label.add_theme_font_size_override("font_size", 8)
 	jewel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# BRYTS ÖVER FLERA RADER (M93): tipsraden ("← → kort · 1-4 fack · W/S sten · Enter = öppna/sätt/
+	# plocka ur · Esc = tillbaka") är 1236 px lång på en rad. Panelen centreras i den 480 px breda vyn,
+	# så hela vänsterkanten av varje rad hamnade utanför skärmen — rubriken med guldet först av allt.
+	# Med en bredd och automatisk radbrytning ryms texten i vyn, och det gäller alla 13 språk utan att
+	# en enda översättning behöver röras.
+	jewel_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	jewel_label.custom_minimum_size = Vector2(440.0, 0.0)
 	jbox.add_child(jewel_label)
-	jewel_stor = CenterContainer.new()
-	jewel_stor.custom_minimum_size = Vector2(CardView.HAND_SIZE.x * JEWEL_RAD + 8.0, 0)
-	jbox.add_child(jewel_stor)
+	# DEN STORA FÖRHANDSVISNINGEN ÄR BORTTAGEN (M93). Den kostade ~90 px höjd, och panelen behövde
+	# dem: texten växte från sex rader till nio när facken och fickan byggdes ut, och med den kvar
+	# blev panelen 352 px i en 270 px hög vy — rubriken (guld, fack) klipptes i överkant och kortraden
+	# i underkant. Kortet som visas stort ligger redan i raden under, och det VALDA kortet är det som
+	# lyfts fram där, så ingen information försvann med förhandsvisningen.
 	jewel_box = HBoxContainer.new()
 	jewel_box.custom_minimum_size = Vector2(CardView.HAND_SIZE.x * JEWEL_RAD * 8.0 + 7.0 * 4.0, 0)
 	jewel_box.alignment = BoxContainer.ALIGNMENT_CENTER
