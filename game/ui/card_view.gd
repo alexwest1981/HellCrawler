@@ -317,32 +317,44 @@ func set_forward(on: bool) -> void:
 	z_index = 3 if on else 0
 	_effect.visible = on or _big
 	add_theme_stylebox_override("panel", _style(on))
+	var f := _fas()
 	_tween = create_tween()
 	if on:
+		# Ingen fördröjning före svikten: pekaren ska svara direkt, och en väntan på 20-60 ms känns
+		# som tröghet. Olikheten mellan korten kommer i stället ur att de tar olika lång tid på sig
+		# (0.85-1.25 av nominell tid), vilket är det som bryter vågen när man drar pekaren längs raden.
 		# FAS 1 — svikten: kortet trycks ned och kramas ihop, kvar kring sin hemplats. Mätt som fel
 		# först: drev jag storleken mot det framträdda måttet redan här växte kortet 80 -> 118 px
 		# på 45 ms och svikten syntes inte alls — hela rörelsen var lyftet, med 45 ms försprång.
-		_tween.tween_method(_vik, 0.0, 1.0, SVIKT_TID) \
+		_tween.tween_method(_vik, 0.0, 1.0, SVIKT_TID * f) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_method(_kram, 0.0, 1.0, SVIKT_TID) \
+		_tween.parallel().tween_method(_kram, 0.0, 1.0, SVIKT_TID * f) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		# FAS 2 — lyftet ur ledet: hela vägen upp med översläng, kramningen ut igen.
 		_tween.chain()
-		_tween.tween_method(_väx, 0.0, 1.0, LYFT_TID) \
+		_tween.tween_method(_väx, 0.0, 1.0, LYFT_TID * f) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_property(self, "scale", Vector2.ONE, LYFT_TID) \
+		_tween.parallel().tween_property(self, "scale", Vector2.ONE, LYFT_TID * f) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_property(self, "rotation", mål_rot, LYFT_TID) \
+		_tween.parallel().tween_property(self, "rotation", mål_rot, LYFT_TID * f) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	else:
 		# Tillbaka i ledet, med samma svikt: kortet kramas ihop när det sätter sig och rätar ut
 		# sig. Mätt: 3,2 px ihop (4 %) vid 60 ms, satt efter 107 ms.
-		_tween.tween_method(_väx, 1.0, 0.0, ÅTER_TID) \
+		_tween.tween_method(_väx, 1.0, 0.0, ÅTER_TID * f) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_method(_kramfjäder, 0.0, 1.0, ÅTER_TID)
-		_tween.parallel().tween_property(self, "rotation", mål_rot, ÅTER_TID) \
+		_tween.parallel().tween_method(_kramfjäder, 0.0, 1.0, ÅTER_TID * f)
+		_tween.parallel().tween_property(self, "rotation", mål_rot, ÅTER_TID * f) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	forward_changed.emit(index, on)
+
+
+## Kortets egen tid, 0.85-1.25, räknad ur platsen i raden (Alex: *"Rörelsen skall vara lite random,
+## så det inte blir en 'vågen'-effekt"*). Determinismen är med flit: samma kort rör sig likadant varje
+## gång man pekar på det, så det blir karaktär och inte slump. 37 är coprimt mot 100, så grannar i
+## raden får så olika värden som möjligt.
+func _fas() -> float:
+	return 0.85 + 0.40 * float((absi(index) * 37) % 100) / 100.0
 
 ## Det framträdda måttet. I ett KORTVAL (big) växer kortet inte: korten ligger i en rad som
 ## containern äger, och en växt skjuter kortet in över grannen och ut över panelens ram (mätt: 84 ->
