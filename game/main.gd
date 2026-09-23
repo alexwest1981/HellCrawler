@@ -111,6 +111,7 @@ var hand_zone: Control
 var battle_panel: PanelContainer
 var battle_label: Label
 var draft_panel: PanelContainer
+var trad_view: TreeView                 ## trädet som egen vy (M94)
 var draft_label: Label
 var draft_box: HFlowContainer
 var map_view: MapView
@@ -251,7 +252,7 @@ var shell := "hem"              ## hem | butik | karta | körning. Bara körning
 ## Skärmarna i skalet. Listan finns för att en plats i byn som pekar fel ska mötas av en varning i
 ## stället för av en tom skärm (skalet ritar ingenting för ett läge det inte känner igen).
 const SKAL_LÄGEN := ["hem", "butik", "vardshus", "smed", "karta", "album", "juvelerare",
-	"banverkstad"]
+	"banverkstad", "trad"]
 ## Raderna i ALTERNATIV-panelen: språk, CRT, musik och spår (M54). Byggs på ett ställe och fylls
 ## på ett ställe — antalet får inte stå som ett tal på två ställen.
 const ALT_RADER := 4
@@ -2679,6 +2680,7 @@ func _refresh_shell() -> void:
 	var i_körning: bool = shell == "körning"
 	by_view.visible = shell == "hem"
 	karta_view.visible = shell == "karta"
+	trad_view.visible = shell == "trad"
 	butik_panel.visible = shell == "butik"
 	album_panel.visible = shell == "album"
 	inn_panel.visible = shell == "vardshus"
@@ -2706,6 +2708,8 @@ func _refresh_shell() -> void:
 	if shell == "hem":
 		# Byn och kartan ritar sig själva: de får metat och ordningen, inte en färdig textrad.
 		by_view.visa(meta, _stage_order.size())
+	elif shell == "trad":
+		trad_view.visa(meta, Tr.t("ui.tree.title", "TRÄDET"))
 	elif shell == "album":
 		_show_album()
 	elif shell == "karta":
@@ -6335,6 +6339,13 @@ func _build_hud() -> void:
 	by_view.vald.connect(_på_plats)
 	by_view.visible = false
 	hud.add_child(by_view)
+	# Trädet (M94): egen vy med ikoner. Ligger i samma lager som byn och kartan — det är en hel
+	# skärm, inte en panel, och det är där man ser hela trädet på en gång.
+	trad_view = TreeView.new()
+	trad_view.size = Vector2(VY)
+	trad_view.position = Vector2.ZERO
+	trad_view.visible = false
+	hud.add_child(trad_view)
 	karta_view = WorldMapView.new()
 	karta_view.karta = karta
 	karta_view.size = Vector2(VY)
