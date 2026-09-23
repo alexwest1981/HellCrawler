@@ -1,0 +1,35 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="HellCrawler"
+config/version="0.1.0"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7")
+
+[display]
+
+window/size/viewport_width=480
+window/size/viewport_height=270
+window/size/window_width_override=1280
+window/size/window_height_override=720
+; Stretch AV: fönstret är 1280x720 riktiga pixlar. Spelvyn ritas ändå i 480x270 — men i en egen
+; SubViewport som skalas upp med NEAREST (se main.gd _bygg_vy), så 3D:n behåller pixelkonsten medan
+; HUD:en runt omkring ritas i fönstrets upplösning och texten blir skarp i stället för uppskalad.
+window/stretch/mode="disabled"
+
+[rendering]
+
+; Rensfärgen är den yta HUD:en runt spelvyn ligger på. Svart, inte Godots grå standard (0,30) —
+; den grå ramen runt en mörk fängelsehåla såg ut som en tänd skärm i ett mörkt rum.
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)
+
+textures/canvas_textures/default_texture_filter=0

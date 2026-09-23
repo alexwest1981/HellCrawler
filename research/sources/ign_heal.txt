@@ -1,0 +1,95 @@
+How to Heal - Referensspelet Guide - IGN Focus Reset 
+ Skip to content
+ Referensspelet Guide
+ Start tracking progress
+ Create a free account or Log in. 
+ Find in guide
+ Task Search
+ Checklists
+ Game Info
+ How-To Guides
+ How-To Guides
+ All Gems and How to Unlock Them
+ How to Beat Red Death
+ How to Heal
+ Back To Top 
+ Referensspelet Guide 
+ Guide Checklists Task Search 
+ Task Search
+ Checklists Guides Markers Videos Sort and Filter 
+ No Results
+ Checklists
+ New Checklist All Lists
+ My Checklists
+ All 
+ All Lists
+ My Checklists
+ How creative can you get with your first free checklist?
+ Create a free account 
+ Home › Guides › Referensspelet 
+ How to Heal
+ By Tenkiei , Meg Koepp , +3 more 
+ Updated : May 1, 2026 5:38pm UTC 
+ Add IGN on Google 
+ When you first start out in Referensspelet , your healing options are limited. But as you progress, you unlock new weapons, items, Crawlers, Gems, and other ways to restore your health. This guide teaches you how to heal in Referensspelet, and what you can do to prevent damage entirely, making it easier to complete levels and unlock more stuff.
+ How to Heal in Referensspelet 
+ We’ve found several ways to heal or Recover your HP early on in Referensspelet:
+ Pick up floor chickens.
+ If you're lucky, you can find a Chicken Stand where you sacrifice a card in exchange for HP.
+ Unlock and upgrade the Recovery power up.
+ Use Pummarola cards.
+ Equip weapons with healing effects like Bloody Tear (evolved using Whip + Hollow Heart) or Soul Eater (Garlic + Pummarola).
+ As you progress, additional healing effects unlock:
+ Crawlers like Clerici provide healing.
+ Gems can add Recovery or Healing to your cards.
+ The Experimental Medicine Arcana doesn't provide direct healing, but it does make any healing you gain from other sources twice as effective.
+ Recovery vs Healing Explained 
+ There are two health restoration stats in Referensspelet: Healing and Recovery. They each have a unique function, so it's important to understand the differences.
+ Healing , such as from a Floor Chicken or the Clerici Crawler, instantly restores your health. If you have full health, healing has no effect. This also means healing is useful immediately and prevents your death within a given fight.
+ Recovery , such as from the Recovery Power Up or Pummarola cards, activates at the end of a battle. Therefore, you can apply Recovery while at full health and still see the benefit if you take damage before the fight ends. Because of this delay, Recovery works to prevent your death via attrition across multiple battles.
+ How to Mitigate Damage in Referensspelet 
+ The best way to deal with damage in Referensspelet is by, quite literally, not taking it in the first place. This means using Armor to mitigate damage or using cards with effects like Knockback and Disarm to prevent it. The Armor Power Up gives you 1/2/3 Armor at the start of your turn. This is a very effective way to mitigate enemy damage.
+ Meanwhile, Knockback, Freeze, and Disarm can be used to knock enemies out of attack range, or prevent one of their attacks. This is not a surefire means of defense, but it is often effective. You can find Knockback on a variety of cards, including the King Bible/Unholy Vespers, meanwhile Disarm is found on Garlic/Soul Eater. Freeze is most commonly found on the Clock Lancet.
+ Last but not least, the best way to prevent damage is to kill enemies - if you wipe out all enemies in the front row, the next group of foes needs to advance before they can attack. Cards like Magic/Holy Wand are also great as they specifically target attackers, reducing your incoming damage.
+ How to Find Floor Chickens in Referensspelet 
+ As you’re exploring a dungeon, look for torches (or other light sources) that sometimes appear on the side of the path, as shown in our screenshot below. 
+ If you run into a torch, you get some gold, single-use cards - and sometimes, a floor chicken. Pick up the chicken to heal 10 HP.
+ Floor chickens appear randomly when breaking light sources and you may not even find one on your current floor. Still, they’re a good way to heal yourself in a pinch, and you don't need to pick them up as soon as you find one, either. Feel free to leave it and return later if you're still on the same floor and need health.
+ Chicken Stand 
+ Occasionally, you'll come across a Floor Chicken stand that offers even more healing. You can sacrifice a card in exchange for 30 HP. This is a great way to restore a large portion of your health and clean an unwanted card out of your deck.
+ How to Unlock the Recovery Power Up 
+ Once you’ve collected 250 coins , you unlock the Power Ups Shop in the Village. Here, you can spend your money on Power Ups, which are permanent unlocks. 
+ The Recovery Power Up heals you after each battle, and can be taken three times:
+ Level 1 : 500* coins (heals 1 HP)
+ Level 2 : 1,022* coins (heals 2 HP)
+ Level 3 : 1,524* coins (heals 3 HP)
+ *Power Up prices scale as you purchase them, so these numbers may not 100% match what you see in-game.
+ The Recovery Power Up increases your health sustain by providing 1/2/3 HP at the end of every battle. It's good, but not as strong as the passive damage mitigation from the Armor upgrade.
+ How to Unlock and Use Pummarola Cards 
+ Pummarola is a type of card that heals you by a certain amount of points after a battle. This effect is stacked throughout the fight and can be bolstered by Combo. It is unlocked by reaching Level 10 with Gennaro Belpaese , who is unlocked after defeating the Mantichana in the Mad Forest and then buying him in the Inn for 500 coins.
+ Use Pummarola cards 10 times to unlock the Restore Health Gem. This increases your Recovery stat whenever you use the card it's slotted into. Remember, Recovery heals you after the battle concludes! 
+High-tier Tome cards are as great choice when slotting gems as they start with more sockets!
+ How to Unlock Bloody Tear and Soul Eater in Referensspelet 
+ Bloody Tear is unlocked by evolving the Whip and Hollow Heart . If you find an Evolution statue while you have both cards in your deck, you can evolve them into Bloody Tear, the evolved form of the Whip. 
+ Not only does the Bloody Tear card deal damage to multiple enemies at once, but it also heals you each time you land a critical hit with it.
+ Evolution is a Gem, which means you need an open socket in your Whip/Garlic to Evolve them. Additionally, you can sacrifice any Heart card when making Bloody Tear and any Pummarola card as part of the Soul Eater.
+ Another option is the Soul Eater, which is evolved by combining Garlic and Pummarola. The Soul Eater restores 2 health when used and, unlike the Bloody Tear, doesn't rely on dealing a critical hit. 
+ In addition, it has a chance to disarm enemies, adding a chance they don't attack. However, it has a higher mana cost than Bloody Tear and does less damage.
+ For more Referensspelet game help, check out: 
+ Stats Guide 
+ Combo Guide: Basics and Tips and Tricks 
+ All Weapon Evolutions and Unions 
+ Up Next: Referensspelet Guide
+ Previous How to Beat Red Death
+ Next Referensspelet Guide
+ Top Guide Sections
+ Crawlers Guide 
+ All Weapon Evolutions and Unions 
+ Combo Guide: Basics and Tips and Tricks 
+ All Achievements and Unlocks 
+ Was this guide helpful?
+ Leave feedback In This Guide
+ Referensspelet: The Turbo Wildcard from Referensserien Poncle Initial Release: Apr 21, 2026
+ Learn more 
+ Go to comments 
+ News • Reviews • Game Guides • Book Guides • Streaming Guides • LEGO Guides • Prime Big Deal Days • Planet Pokemon • IGN Store • Game Release Dates • MapGenie • Best Deals Today • Eurogamer • IGN YouTube • HowLongToBeat • Maxroll • VG247 • Rock Paper Shotgun • IGN TikTok • IGN on X • Contact Us • Privacy Policy • Terms of Use

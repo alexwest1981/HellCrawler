@@ -1,0 +1,66 @@
+[
+  {
+    "id": "might",
+    "name": "Might",
+    "text": "+10 % skada per rang",
+    "max_rank": 5,
+    "cost": [250, 500, 750, 1000, 1250],
+    "effect": {"might": 0.10}
+  },
+  {
+    "id": "area",
+    "name": "Area",
+    "text": "+10 % area per rang (+2 % skada, area/5)",
+    "max_rank": 5,
+    "cost": [250, 500, 750, 1000, 1250],
+    "effect": {"area": 0.50}
+  },
+  {
+    "id": "cooldown",
+    "name": "Cooldown",
+    "text": "+1 mana per tur och rang",
+    "max_rank": 2,
+    "cost": [500, 1000],
+    "effect": {"mana": 1}
+  },
+  {
+    "id": "speed",
+    "name": "Speed",
+    "text": "+1 kort på handen per rang",
+    "max_rank": 2,
+    "cost": [500, 1000],
+    "effect": {"hand": 1}
+  },
+  {
+    "id": "armor",
+    "name": "Armor",
+    "text": "+1 rustning vid turstart per rang",
+    "max_rank": 3,
+    "cost": [200, 400, 600],
+    "effect": {"armor": 1}
+  },
+  {
+    "id": "recovery",
+    "name": "Recovery",
+    "text": "+2 HP helat efter varje strid per rang",
+    "max_rank": 3,
+    "cost": [200, 400, 600],
+    "effect": {"recovery": 2}
+  },
+  {
+    "id": "hollow_heart",
+    "name": "Hollow Heart",
+    "text": "+10 max-HP per rang",
+    "max_rank": 3,
+    "cost": [250, 500, 750],
+    "effect": {"max_hp": 10}
+  },
+  {
+    "id": "curse",
+    "name": "Skull O'Maniac",
+    "text": "+20 % fiende-HP och +20 % guld per rang",
+    "max_rank": 5,
+    "cost": [300, 600, 900, 1200, 1500],
+    "effect": {"curse": 0.20}
+  }
+]

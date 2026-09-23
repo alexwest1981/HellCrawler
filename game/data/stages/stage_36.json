@@ -1,0 +1,29 @@
+{
+  "id": "stage_36",
+  "name": "Glashyttan",
+  "theme": "tunnel",
+  "floor_themes": [
+    "tunnel",
+    "tunnel",
+    "tunnel",
+    "tunnel",
+    "tunnel",
+    "tunnel",
+    "grotta"
+  ],
+  "difficulty": 9,
+  "floors": 7,
+  "tiers": [
+    3
+  ],
+  "encounters_per_floor": 8,
+  "boss": "bellmother",
+  "bosses": [
+    "bellmother",
+    "bellmother",
+    "ash_sovereign"
+  ],
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.8,
+  "xp_bonus": 1.2
+}

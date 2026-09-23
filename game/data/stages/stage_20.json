@@ -1,0 +1,23 @@
+{
+  "id": "stage_20",
+  "name": "Kalkens tår",
+  "theme": "grotta",
+  "floor_themes": [
+    "grotta",
+    "grotta",
+    "grotta",
+    "grotta",
+    "bro"
+  ],
+  "difficulty": 5,
+  "floors": 5,
+  "tiers": [
+    1,
+    2
+  ],
+  "encounters_per_floor": 6,
+  "boss": "copper_warden",
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.4,
+  "xp_bonus": 0.6
+}

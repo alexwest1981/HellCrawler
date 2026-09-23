@@ -1,0 +1,22 @@
+{
+ "boss": "hollow_choir",
+ "bosses": [],
+ "difficulty": 1,
+ "encounters_per_floor": 4,
+ "final_boss": "pale_reaper",
+ "floor_themes": [
+  "asklunden",
+  "asklunden",
+  "grotta"
+ ],
+ "floors": 3,
+ "gold_bonus": 0.0,
+ "id": "stage_03",
+ "name": "Brända vreten",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  1
+ ],
+ "xp_bonus": 0.0
+}

@@ -1,0 +1,20 @@
+[
+  {"id": "ashhound",     "name": "Askhound",     "cost": 0, "type": "crawler", "rarity": "common",
+   "effects": [{"op": "damage", "damage": 5, "hits": 1}, {"op": "knockback", "amount": 1}],
+   "keywords": ["Companion"]},
+  {"id": "bellringer",   "name": "Bell Ringer",  "cost": 1, "type": "crawler", "rarity": "common",
+   "effects": [{"op": "damage", "damage": 7, "hits": 2}, {"op": "mana", "amount": 1}],
+   "keywords": ["Companion"]},
+  {"id": "wicksister",   "name": "Wick Sister",  "cost": 0, "type": "crawler", "rarity": "common",
+   "effects": [{"op": "heal", "amount": 6}, {"op": "draw", "amount": 1}],
+   "keywords": ["Companion"]},
+  {"id": "bonecarver",   "name": "Bone Carver",  "cost": 1, "type": "crawler", "rarity": "uncommon",
+   "effects": [{"op": "damage", "damage": 12, "hits": 1}, {"op": "freeze", "amount": 1}],
+   "keywords": ["Companion"]},
+  {"id": "tarboy",       "name": "Tar Boy",      "cost": 0, "type": "crawler", "rarity": "common",
+   "effects": [{"op": "armor", "amount": 4}, {"op": "damage", "damage": 4, "hits": 1}],
+   "keywords": ["Companion"]},
+  {"id": "cindernun",    "name": "Cinder Nun",   "cost": 1, "type": "crawler", "rarity": "uncommon",
+   "effects": [{"op": "damage", "damage": 8, "hits": 1}, {"op": "heal", "amount": 5}, {"op": "armor", "amount": 2}],
+   "keywords": ["Companion"]}
+]

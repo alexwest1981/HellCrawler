@@ -1,0 +1,23 @@
+{
+  "id": "stage_23",
+  "name": "Kraniekryptan",
+  "theme": "krypta",
+  "floor_themes": [
+    "krypta",
+    "krypta",
+    "krypta",
+    "krypta",
+    "asklunden"
+  ],
+  "difficulty": 6,
+  "floors": 5,
+  "tiers": [
+    2,
+    3
+  ],
+  "encounters_per_floor": 7,
+  "boss": "copper_warden",
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.5,
+  "xp_bonus": 0.75
+}

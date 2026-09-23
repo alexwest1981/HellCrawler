@@ -1,0 +1,25 @@
+# Godot
+.godot/
+*.import
+.import/
+export_presets.cfg
+
+# Byggda paket
+build/
+*.pck
+*.zip
+__pycache__/
+*.pyc
+
+# Kontaktkartor från generatorerna: provbilder som går att köra om, hör inte till spelet
+*_kontaktkarta.png
+
+# Alex egna bildmaterial (41 MB JPEG): källmaterial, inte speldata. Verktygets källor kopieras
+# till research/ så att körningen kan upprepas utan mappen. Undantagen är de ark som spelets
+# nuvarande figurer och hjältar är klippta ur — de följer med som backup (ca 14 MB).
+game/images/*
+!game/images/heroes.jpeg
+!game/images/Gemini_Generated_Image_hg2q75hg2q75hg2q.jpeg
+!game/images/Gemini_Generated_Image_bnl3m9bnl3m9bnl3.jpeg
+!game/images/Gemini_Generated_Image_npicy9npicy9npic.jpeg
+!game/images/Gemini_Generated_Image_94096b94096b9409.jpeg

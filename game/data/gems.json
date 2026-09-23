@@ -1,0 +1,16 @@
+[
+  {"id": "ember", "name": "Embersten", "key": "damage",
+   "text": "+%d skada på det här kortet", "grad": [1, 2, 3, 5, 8]},
+
+  {"id": "bone", "name": "Bensten", "key": "qty",
+   "text": "+%d träff på det här kortet", "grad": [1, 1, 2, 2, 3]},
+
+  {"id": "ward", "name": "Värnsten", "key": "armor",
+   "text": "+%d rustning när kortet spelas", "grad": [1, 2, 3, 4, 6]},
+
+  {"id": "wick", "name": "Veksten", "key": "mana",
+   "text": "+%d mana när kortet spelas", "grad": [1, 1, 2, 2, 3]},
+
+  {"id": "greed", "name": "Girigsten", "key": "gold",
+   "text": "+%d guld när kortet spelas", "grad": [2, 5, 10, 20, 40]}
+]

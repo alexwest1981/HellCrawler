@@ -1,0 +1,92 @@
+Combo Guide: Basics and Tips and Tricks - Referensspelet Guide - IGN Focus Reset 
+ Skip to content
+ Referensspelet Guide
+ Start tracking progress
+ Create a free account or Log in. 
+ Find in guide
+ Task Search
+ Checklists
+ Game Info
+ Table of Contents
+ Referensspelet Guide
+ Crawlers Guide
+ All Weapon Evolutions and Unions
+ Combo Guide: Basics and Tips and Tricks
+ All Achievements and Unlocks
+ Stats Guide
+ Relic Guide
+ Arcana Guide
+ Blacksmith and Jeweler Guide
+ How-To Guides
+ Back To Top 
+ Referensspelet Guide 
+ Guide Checklists Task Search 
+ Task Search
+ Checklists Guides Markers Videos Sort and Filter 
+ No Results
+ Checklists
+ New Checklist All Lists
+ My Checklists
+ All 
+ All Lists
+ My Checklists
+ How creative can you get with your first free checklist?
+ Create a free account 
+ Home › Guides › Referensspelet 
+ Combo Guide: Basics and Tips and Tricks
+ By Tenkiei , Meg Koepp , +3 more 
+ Updated : May 1, 2026 5:36pm UTC 
+ Add IGN on Google 
+ Combo is a core mechanic in Referensspelet . When you play your cards in ascending order, their effects are enhanced. The more cards you play consecutively, the greater the combo multiplier. Learn how Combos work, including the basics, how to use Wild Cards, and how to keep your Combos going for maximum damage.
+ Click on a link below to jump to that section of this guide: 
+ Combo Basics 
+ How Wild Cards Work 
+ How to Keep Combos Going 
+ Combo Tips and Tricks 
+ Referensspelet Combo Basics 
+ Let's start with the basics. In Referensspelet, Combo builds when you play cards in ascending order, such as playing a 0 Mana card, followed by a 1 Mana card, followed by a 2 Mana card. You can start at any number, but the lower your initial Mana cost, the more room you have to keep the Combo going.
+ The Combo multiplier begins at +100% and scales as Combo Count increases.
+ If a card costs negative Mana, you can still use it for Comboing - just remember you need to do -2, -1, 0, 1, etc.
+ Combo scales stat boosts, card draw, and many more things on your cards.
+ Effects applied by Gems are not scaled by Combo.
+ If you play a card with the same Mana cost as the last one in the sequence (e.g. 0, 1, 2, 2), your Combo ends and the second 2-cost card does not get the Combo bonus!
+ Warning 
+ The "Return" Gem works a bit differently with combo! It returns the card to your hand, which does not advance combo. So if you put Return on your Attractorb, you could play Attractorb (1) -> Fire Wand (1) -> Axe (2). Or you could play Attractorb twice before continuing on with your combo.
+ How Wild Cards Work 
+ You can use Wild Cards to keep your combo going in Referensspelet. Wild Cards combo with any other card and preserve your Combo counter. 
+ In our example above, Knife costs 0, Golden Armor costs 1, and Weighty Tome and Holy Wand both cost 2. So the Combo starts Knife -> Golden Armor -> Weighty Tome, but then Holy Wand doesn't get the Combo bonus - unless you use the Little Clover Wild Card. This way, Holy Wand benefits from Combo with a large multiplier.
+ How to Keep Combos Going in Referensspelet 
+ If you have enough Wild Cards, Mana, and Card Draw, you can keep the Combos going for a long time, which stacks a massive bonus. 
+ Remember, cards like Attractorb benefit from the Combo bonus, allowing you to draw several cards instead of just one. Similarly, playing a Tome at a high combo count generates more Mana so you can keep playing cards.
+ The Chain Link Arcana (unlocked by reaching a Combo count of 12 or above) extends your Combos between turns. 
+ This way, you can play 0-1-2 and then end your turn to keep things going with a 3 or 4 cost card.
+ Even Comboing has its limits! As you continue to play your cards within a turn, you might notice some of them starting to appear a bit worn. If you continue to play the cards without ending your turn, the cracks spread and eventually your cards shatter, permanently destroying them for that run. This is where Chain Link comes in, allowing you to safely end your turn and continue your Combo.
+ For each card you shatter, a Purple Death spawns. This guy isn't as bad as Red Death , but he's still no joke. Most of the time, you should avoid breaking cards, though there are some niche situations where you may want to thin down your deck - just be prepared to deal with the Purple Death spawns if you do! 
+ Combo Tips and Tricks 
+ Here are a few more tips and tricks for keeping your Combo going in Referensspelet:
+ Pay attention to your Mana curve - you don't want any gaps, especially at the top end. If you have 0-1-2-4, you can't smoothly Combo your cards.
+ Add Card Draw through cards like Attractorb, Mana via Tomes, and increase your Hand Size.
+ Crawlers like Pasqualina, Arca Ladonna, and Poe also add these effects on trigger.
+ Until you unlock Permanent Wildcards, use a card like Celestial Dusting or Song of Mana to generate Wild Cards.
+ Many Wild Cards are destroyed on use, but Friendship Amulet and Wings persist so you can play them as much as you want! You can also use the Fireproof gem to turn any Wildcard permanent.
+ The Wild Gem turns anything into a Wild Card, Easy Combo allows anything to Combo into the selected card, and Reverse Combo means you can continue in either direction (3 to 2 or 3 to 4, for example).
+ You can also use a variety of Gems to manipulate Mana costs to play on curve and keep the combo going.
+ Krochi Freetto builds Revive when you play Wild Cards, making him a great choice for any setup where you're trying to chain your combos. He's unlocked after you defeat 6,666 enemies.
+ For more Referensspelet game help, check out: 
+ All Weapon Evolutions and Unions 
+ Stats Guide 
+ How to Heal 
+ Up Next: All Achievements and Unlocks
+ Previous All Weapon Evolutions and Unions
+ Next All Achievements and Unlocks
+ Top Guide Sections
+ Crawlers Guide 
+ All Weapon Evolutions and Unions 
+ Combo Guide: Basics and Tips and Tricks 
+ All Achievements and Unlocks 
+ Was this guide helpful?
+ Leave feedback In This Guide
+ Referensspelet: The Turbo Wildcard from Referensserien Poncle Initial Release: Apr 21, 2026
+ Learn more 
+ Go to comments 
+ News • Reviews • Game Guides • Book Guides • Streaming Guides • LEGO Guides • Prime Big Deal Days • Planet Pokemon • IGN Store • Game Release Dates • MapGenie • Best Deals Today • Eurogamer • IGN YouTube • HowLongToBeat • Maxroll • VG247 • Rock Paper Shotgun • IGN TikTok • IGN on X • Contact Us • Privacy Policy • Terms of Use

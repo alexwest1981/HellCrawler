@@ -1,0 +1,23 @@
+[
+  {"id": "lash",      "name": "Lash",       "cost": 0, "type": "attack", "effects": [{"op": "damage", "damage": 12, "hits": 1}]},
+  {"id": "ward",      "name": "Ward",       "cost": 0, "type": "item",   "effects": [{"op": "armor", "amount": 2}]},
+  {"id": "ash_tome",  "name": "Ash Tome",   "cost": 0, "type": "mana",   "effects": [{"op": "mana", "amount": 1}]},
+  {"id": "vial",      "name": "Vial",       "cost": 0, "type": "item",   "keywords": ["Destroy", "Wild"],
+   "effects": [{"op": "heal", "amount": 1}], "text": "Heal 1 HP. Destroy. Wild."},
+  {"id": "wild_mana", "name": "Wild Mana",  "cost": -1, "type": "wild",  "keywords": ["Destroy", "Wild"],
+   "effects": [{"op": "mana", "amount": 4}], "text": "Add 4 Mana. Destroy. Wild."},
+
+  {"id": "dagger",    "name": "Dagger",     "cost": 1, "type": "attack", "effects": [{"op": "damage", "damage": 20, "hits": 1}]},
+  {"id": "ember_tome","name": "Ember Tome", "cost": 1, "type": "mana",   "effects": [{"op": "mana", "amount": 2}]},
+  {"id": "chime",     "name": "Chime",      "cost": 1, "type": "attack", "effects": [{"op": "damage", "damage": 12, "hits": 5}]},
+
+  {"id": "bell",      "name": "Choir Bell", "cost": 2, "type": "attack", "effects": [{"op": "damage", "damage": 39, "hits": 5}]},
+  {"id": "axe",       "name": "Axe",        "cost": 2, "type": "attack", "effects": [{"op": "damage", "damage": 43, "hits": 3}]},
+  {"id": "deep_tome", "name": "Deep Tome",  "cost": 2, "type": "mana",   "effects": [{"op": "mana", "amount": 3}]},
+
+  {"id": "shard",     "name": "Shard",      "cost": 3, "type": "attack", "effects": [{"op": "damage", "damage": 60, "hits": 1}]},
+  {"id": "emberstorm","name": "Emberstorm", "cost": 3, "type": "attack", "keywords": ["Evolved"],
+   "effects": [{"op": "damage", "damage": 80, "hits": 2}]},
+  {"id": "companion", "name": "Companion",  "cost": 1, "type": "crawler", "effects": [{"op": "armor", "amount": 3}],
+   "text": "+3 Armor. Companion"}
+]

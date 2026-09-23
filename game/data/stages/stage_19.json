@@ -1,0 +1,23 @@
+{
+  "id": "stage_19",
+  "name": "Krittornet",
+  "theme": "asklunden",
+  "floor_themes": [
+    "asklunden",
+    "asklunden",
+    "asklunden",
+    "asklunden",
+    "grotta"
+  ],
+  "difficulty": 5,
+  "floors": 5,
+  "tiers": [
+    1,
+    2
+  ],
+  "encounters_per_floor": 6,
+  "boss": "copper_warden",
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.4,
+  "xp_bonus": 0.6
+}

@@ -1,0 +1,20 @@
+{
+  "id": "stage_05",
+  "name": "Första klyftan",
+  "theme": "grotta",
+  "floor_themes": [
+    "grotta",
+    "grotta",
+    "bro"
+  ],
+  "difficulty": 2,
+  "floors": 3,
+  "tiers": [
+    1
+  ],
+  "encounters_per_floor": 5,
+  "boss": "hollow_choir",
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.1,
+  "xp_bonus": 0.15
+}

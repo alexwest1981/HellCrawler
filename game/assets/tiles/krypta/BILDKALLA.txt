@@ -1,0 +1,1 @@
+Rutorna i den har mappen ar klippta ur Alex' ark i game/images/ av tools/gen_tiles_alex.py, inte raknade ur paletten. Kop: python3 tools/gen_tiles_alex.py

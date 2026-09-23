@@ -1,0 +1,24 @@
+{
+  "id": "stage_28",
+  "name": "Torkade brunnen",
+  "theme": "tunnel",
+  "floor_themes": [
+    "tunnel",
+    "tunnel",
+    "tunnel",
+    "tunnel",
+    "tunnel",
+    "grotta"
+  ],
+  "difficulty": 7,
+  "floors": 6,
+  "tiers": [
+    2,
+    3
+  ],
+  "encounters_per_floor": 7,
+  "boss": "bellmother",
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.6,
+  "xp_bonus": 0.9
+}

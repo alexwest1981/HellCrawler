@@ -1,0 +1,37 @@
+# Crawlers:Dungeons
+
+Jump to navigation Jump to search
+**Dungeons** are the primary locations in *[Referensspelet](/w/Referens_Crawlers:_The_Turbo_Wildcard_from_Referens_Survivors)*, where the player goes to play cards against [enemies](/w/Crawlers:Enemies) and discover treasure chests of loot. Each dungeon is divided into multiple stages, each with their own difficulty level and number of floors. The goal within each stage is to find a shovel to dig to the next floor.
+
+Dungeons are accessed from the [World Map](/w/Crawlers:World_Map).
+
+| Dungeon | Stage | Difficulty | Floors | Description |
+|---|---|---|---|---|
+| [Tutorial](/w/Crawlers:Tutorial) | [Tutorial](/w/Crawlers:Tutorial) | | 1 | |
+| [Village](/w/Crawlers:Village) | [![](/images/thumb/Dungeon-Village.png/60px-Dungeon-Village.png?eb741)](/w/Crawlers:Village) [Village](/w/Crawlers:Village) | | | The village of Gorton, a sleepy, parochial place. Don't let its tranquil exterior fool you. This is a melting pot for heroes and heroines! An adventurer's terminus quo. |
+| [Mad Forest](/w/Crawlers:Mad_Forest) | [![](/images/thumb/Dungeon-Mad_Forest.png/60px-Dungeon-Mad_Forest.png?d9599)](/w/Crawlers:Mad_Forest#Mad_Forest) [Mad Forest](/w/Crawlers:Mad_Forest#Mad_Forest) | 1 | 4 | Once a thriving haven, now a dumping ground for evil. A referens is said to be the root of this evil, but we can find only mayhem and roast chicken. |
+| [![](/images/thumb/Dungeon-Furious_Forest.png/60px-Dungeon-Furious_Forest.png?d151a)](/w/Crawlers:Mad_Forest#Furious_Forest) [Furious Forest](/w/Crawlers:Mad_Forest#Furious_Forest) | 2 | 5 | The deeper the forest goes the more unsettling the monsters become. Something in the air must be pushing them to insanity. Dark magic or maybe the quality of the chicken. | |
+| [![](/images/thumb/Dungeon-Berserk_Wood.png/60px-Dungeon-Berserk_Wood.png?fea30)](/w/Crawlers:Mad_Forest#Berserk_Wood) [Berserk Wood](/w/Crawlers:Mad_Forest#Berserk_Wood) | 3 | 5 | There is no turning back from the depths once inside. A muffled cry can be heard between the trees, along with flapping of a thousand wings. | |
+| [Inlaid Library](/w/Crawlers:Inlaid_Library) | [![](/images/thumb/Dungeon-Inlaid_Library.png/60px-Dungeon-Inlaid_Library.png?52f82)](/w/Crawlers:Inlaid_Library#Inlaid_Library) [Inlaid Library](/w/Crawlers:Inlaid_Library#Inlaid_Library) | 2 | 5 | The Futile Scribe was cursed to know all and understand nothing. His endless library may gift us insight... or damnation. A mask of stone whispers endlessly within. |
+| [Library West Wing](/w/Crawlers:Inlaid_Library#Library_West_Wing) | 3 | 5 | No sane intruder would dare talk louder than a whisper, in this labyrinth of book shelves and cursed tomes. Inhuman forms stalk the halls, seeking long overdue revenge. | |
+| [Library Sanctum](/w/Crawlers:Inlaid_Library#Library_Sanctum) | 4 | 5 | Once home to some of the world's brightest and most talented mages. Now there is nothing but dark magic, while familiars and those who seek to control them. | |
+| [Teeny Bridge](/w/Crawlers:Teeny_Bridge) | [![](/images/thumb/Dungeon-Teeny_Bridge.png/60px-Dungeon-Teeny_Bridge.png?eb816)](/w/Crawlers:Teeny_Bridge) [Teeny Bridge](/w/Crawlers:Teeny_Bridge) | 3 | 1 | This handsome little bridge seems perfectly safe to cross. Definitely better than swimming, anyway. |
+| [Dairy Plant](/w/Crawlers:Dairy_Plant) | [![](/images/thumb/Dungeon-Dairy_Plant.png/60px-Dungeon-Dairy_Plant.png?536ae)](/w/Crawlers:Dairy_Plant#Dairy_Plant) [Dairy Plant](/w/Crawlers:Dairy_Plant#Dairy_Plant) | 4 | 5 | The birthplace of Milk Magic churns with chaos. Here, it's not just blood that curdles. A Creamy Surprise awaits the hero brave enough to enter this overthrown factory. |
+| [Milk Factory](/w/Crawlers:Dairy_Plant#Milk_Factory) | 5 | 5 | In days gone by, corrupt officials skimmed off the top to line their pockets. Now all that remains is a maze of pipes, haunted by the huge golems which once protected this place. | |
+| [Curd Refinery](/w/Crawlers:Dairy_Plant#Curd_Refinery) | 6 | 5 | The epicenter of the Dairy industrial complex, where many a cheesy adventurer has lost their whey. Beware the milk-crazed beasts and raw milky magic. | |
+| [Weeny Bridge](/w/Crawlers:Weeny_Bridge) | [![](/images/thumb/Dungeon-Weeny_Bridge.png/60px-Dungeon-Weeny_Bridge.png?24d63)](/w/Crawlers:Weeny_Bridge) [Weeny Bridge](/w/Crawlers:Weeny_Bridge) | 5 | 1 | This bridge seems even smaller and quieter than the last one. No doubt this time it will be safe to cross in peace. |
+| [Gallo Tower](/w/Crawlers:Gallo_Tower) | [![](/images/thumb/Dungeon-Gallo_Tower.png/60px-Dungeon-Gallo_Tower.png?b9356)](/w/Crawlers:Gallo_Tower) [Gallo Tower](/w/Crawlers:Gallo_Tower) | 6 | 6 | An edifice of science and sorcery where horror was made manifest in the name of progress. Its many artifacts and experiments may lead us to what we seek. |
+| [Meany Bridge](/w/Crawlers:Meany_Bridge) | [![](/images/thumb/Dungeon-Meany_Bridge.png/60px-Dungeon-Meany_Bridge.png?e83e1)](/w/Crawlers:Meany_Bridge) [Meany Bridge](/w/Crawlers:Meany_Bridge) | 7 | 1 | An innocent looking bridge with an intimidating name. What could possibly go wrong? |
+| [Cappella Magna](/w/Crawlers:Cappella_Magna) | [![](/images/thumb/Dungeon-Cappella_Magna.png/60px-Dungeon-Cappella_Magna.png?e83e1)](/w/Crawlers:Cappella_Magna#Cappella_Magna) [Cappella Magna](/w/Crawlers:Cappella_Magna#Cappella_Magna) | 8 | 5 | Conceited were they that ruled from so high yet stooped so low. This nexus of debased purity is the perfect place to find a referens. Probably. |
+| [Cappella Ultima](/w/Crawlers:Cappella_Magna#Cappella_Ultima) | 9 | 5 | Here lies the floating throne room. Where the puppet masters of all this land's woes dangle their strings. A fitting perch for those who fancy themselves gods yet wallow in rot. | |
+| [???](/w/Crawlers:%3F%3F%3F) | [???](/w/Crawlers:%3F%3F%3F) | 0 | 1 | What is this beneath the waves... Just an NPC encounter, or perhaps a sneaky preview of future content? |
+There are a couple of Dungeon modes that can be enabled or disabled in the [World Map](/w/Crawlers:World_Map) or the [Museum](/w/Crawlers:Museum), if the player has unlocked their corresponding relics.
+
+Hurry Mode speeds up the general gameplay in dungeons, including player speed, player attacks, and enemy attacks. The time spent in dungeon is doubled, E.G. 2-minutes in real-life is marked as 4-minutes in game. This mode becomes available after unlocking the [![](/images/CSprite-Sorceress%27_Tears.png?4ff17)](/w/Crawlers:Sorceress%27_Tears) [Sorceress' Tears](/w/Crawlers:Sorceress%27_Tears), which can be found in [Gallo Tower](/w/Crawlers:Gallo_Tower).
+
+Endless Mode is a mode introduced in [1.5](/w/Crawlers:1.5). It allows for players to explore an unlimited number of floors, with increasing enemy difficulty, for dungeons that they have previously completed. The modifications from the [Jeweller](/w/Crawlers:Jeweller) are disabled in this mode.
+
+This mode becomes available after unlocking the [![](/images/CSprite-Seventh_Trumpet.png?51201)](/w/Crawlers:Seventh_Trumpet) [Seventh Trumpet](/w/Crawlers:Seventh_Trumpet), which can be found in [???](/w/Crawlers:%3F%3F%3F)[sic].
+
+- [![Floor shovel emoticon from the Referensspelet Steam Points Shop.](/images/QOL_improvements_update_update_image_%286%29.png?0e715)](/w/File:QOL_improvements_update_update_image_(6).png)
+This information has been manually compiled. Some updates may not be included yet.

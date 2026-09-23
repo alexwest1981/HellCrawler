@@ -1,0 +1,192 @@
+All Weapon Evolutions and Unions - Referensspelet Guide - IGN Focus Reset 
+ Skip to content
+ Referensspelet Guide
+ Start tracking progress
+ Create a free account or Log in. 
+ Find in guide
+ Task Search
+ Checklists
+ Game Info
+ Table of Contents
+ Referensspelet Guide
+ Crawlers Guide
+ All Weapon Evolutions and Unions
+ Combo Guide: Basics and Tips and Tricks
+ All Achievements and Unlocks
+ Stats Guide
+ Relic Guide
+ Arcana Guide
+ Blacksmith and Jeweler Guide
+ How-To Guides
+ Back To Top 
+ Referensspelet Guide 
+ Guide Checklists Task Search 
+ Task Search
+ Checklists Guides Markers Videos Sort and Filter 
+ No Results
+ Checklists
+ New Checklist All Lists
+ My Checklists
+ All 
+ All Lists
+ My Checklists
+ How creative can you get with your first free checklist?
+ Create a free account 
+ Home › Guides › Referensspelet 
+ All Weapon Evolutions and Unions
+ By Tenkiei , Meg Koepp , +3 more 
+ Updated : May 1, 2026 5:29pm UTC 
+ Add IGN on Google 
+ In Referensspelet , you evolve your cards by obtaining a special Evolution Gem and sacrificing the correct weapon and item (or weapon and weapon) combination. Evolutions are generally more powerful in exchange for a higher Mana cost. Eventually, there’s a way to track evolutions in-game, but at first, you need to rely on memory alone - or you can use this page to help. This guide lists all weapon evolutions in Referensspelet and explains how to evolve your cards.
+ Click a link below to jump to that section of this Referensspelet guide: 
+ All Weapon Evolutions - Cheat Sheet 
+ How to Evolve Cards 
+ Grim Grimoire Location 
+ All Weapon Evolutions in Referensspelet - Cheat Sheet 
+ When it comes to evolution in Referensspelet, the item type matters, but the exact card used does not. So, for example, to create the Holy Wand , you combine Magic Wand with a Tome , but it doesn't matter if you use the Empty Tome, Light Tome, Weighty Tome , or Ancient Tome to do this.
+ Here are all the weapon evolutions in Referensspelet, including Mana cost, damage, and effects:
+ Evolution
+ Weapon(s)
+ Item
+ Evolution Effect
+ Bloody Tear
+ Whip
+ Heart
+ Costs 2 Mana 
+Deals 40 damage
+Heal 2 on Crit
+ Holy Wand
+ Magic Wand
+ Tome
+ Costs 2 Mana
+Deals 160 damage
+Prioritizes Attackers
+ NO FUTURE
+ Runetracer
+ Armor
+ Costs 3 Mana
+Deals 15 damage
+Bounces and explodes
+ Thousand Edge
+ Knife
+ Bracer
+ Costs 3 Mana
+Deals 200 damage
+Crit
+ Hellfire
+ Fire Wand
+ Spinach
+ Costs 3 Mana 
+Deals 225 damage
+Knockback
+ Thunder Loop
+ Thunder Ring
+ Duplicator
+ Costs 4 Mana
+Deals 150 damage
+Deals damage again at end of turn
+ Death Spiral
+ Axe
+ Candle
+ Costs 3 Mana 
+Deals 160 damage
+Crit
+ Soul Eater
+ Garlic
+ Pummarola
+ Costs 3 Mana
+Deals 20 damage
+Heal 2 and Disarm
+ Unholy Vespers
+ King Bible
+ Spellbinder
+ Costs 2 Mana
+Deals 120 damage
+Knockback
+ Heaven Sword
+ Cross
+ Clover
+ Costs 3 Mana
+Deals 100 damage
+Crit
+ Gorgeous Moon
+ Pentagram
+ Crown
+ Costs 1-5 Mana 
+Erase enemies
+Moonrise
+ Phieraggi
+ Phiera Der Tuphello + Eight the Sparrow
+ Tirajisu
+ Costs 4 Mana 
+Deals 350 damage
+ Valkyrie Turner
+ Shadow Pinion
+ Wings
+ Costs 2 Mana 
+Deals 25 damage 
+Valkyrie's Inferno
+ Mannajja
+ Song of Mana
+ Skull O'Maniac
+ Costs 5 Mana
+Deals 79 damage
+Raw Mana
+ La Borra
+ Santa Water
+ Attractorb
+ Costs 4 Mana
+Deals 150 damage 
+Burns enemies at the end of the turn
+ Vicious Hunger
+ Gatti Amari
+ Mask
+ Costs 2 Mana
+Deals 100 damage
+May turn enemies into Coins
+ Vandalier
+ Peachone + Ebony Wings
+ N/A
+ Costs 5 Mana
+Deals 500 damage
+Knockback and Big Bird
+ Knockback has a chance to push enemies back a row, preventing melee attacks.
+ Disarm has a chance to prevent an attack (though some enemies can resist this).
+ Erase destroys enemies and gives bonus XP.
+ Moonrise increases the effect and adds +1 Mana cost (resetting after 5).
+ Valkyrie's Inferno builds up damage as you play cards.
+ Raw Mana provides a Wild Card that generates Mana when played.
+ Big Bird clears all birds for a burst of damage.
+ RNG effects like May turn enemies into Coins are enhanced by the Luck stat.
+ How to Evolve Cards in Referensspelet 
+ In Referensspelet, Evolution involves obtaining the correct weapon and/or item combination and then applying an Evolution Gem to the weapon. This means you cannot typically evolve weapons after socketing Gems into them, and you also cannot socket Gems into Evolved cards with only one gem socket. 
+ You're most likely to encounter Evolution for the first time through an Evolution statue. It looks identical to the Mana statue but has a red orb instead of a blue one.
+ When you find an Evolution statue, pick a card to evolve from the Evolution Gem. If you don't have any compatible cards, the statue instead offers you a compensatory item that should help you evolve one of your cards the next time you encounter an Evolution Gem. 
+ Before choosing to evolve, you can see what the card evolves into, the item to be sacrificed, and the final Mana cost.
+ After selecting the evolution, choose which card(s) to sacrifice. Since the evolved card doesn't inherit Gems from the sacrificed items, you ideally want to use an item w i thout a Gem socketed. 
+ But sometimes, sacrifices need to be made in the name of progress. If you do need to sacrifice an item with a Gem, choose the least impactful option.
+ After that, enjoy your shiny new Evolution! Each Evolved card has a holographic foil effect that sets them apart from normal cards. In addition, they're typically more powerful and have a higher Mana cost. 
+ For example, the Magic Wand is a 0-cost card that deals 30 base damage. The Evolved Holy Wand is a 2-cost card that deals a whopping 160 damage while still prioritizing any enemies that intend to attack!
+ Grim Grimoire Location 
+ The Grim Grimoire allows you to keep track of evolutions and check them in-game. You can find it the Library. Clear the zone once to unlock the West Wing. The difficulty 3 version of the library where you fight new enemies. From there, keep your eye out for a shiny bookshelf, bash into it a couple times to break it, and collect the Grim Grimoire.
+ After you obtain the Grim Grimoire, you can check it via the pause menu. Here, you can see all of your known weapon Evolutions and unions. 
+ In addition, it cycles between all discovered compatible items.
+ Time to try out your newly Evolved cards on some referenss... if you can find any.
+ For more Referensspelet game help, check out: 
+ How to Heal 
+ Combo Guide: Basics and Tips and Tricks 
+ Stats Guide 
+ Up Next: Combo Guide: Basics and Tips and Tricks
+ Previous Crawlers Guide
+ Next Combo Guide: Basics and Tips and Tricks
+ Top Guide Sections
+ Crawlers Guide 
+ All Weapon Evolutions and Unions 
+ Combo Guide: Basics and Tips and Tricks 
+ All Achievements and Unlocks 
+ Was this guide helpful?
+ Leave feedback In This Guide
+ Referensspelet: The Turbo Wildcard from Referensserien Poncle Initial Release: Apr 21, 2026
+ Learn more 
+ Go to comments 
+ News • Reviews • Game Guides • Book Guides • Streaming Guides • LEGO Guides • Prime Big Deal Days • Planet Pokemon • IGN Store • Game Release Dates • MapGenie • Best Deals Today • Eurogamer • IGN YouTube • HowLongToBeat • Maxroll • VG247 • Rock Paper Shotgun • IGN TikTok • IGN on X • Contact Us • Privacy Policy • Terms of Use

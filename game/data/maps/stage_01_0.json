@@ -1,0 +1,233 @@
+{
+  "floor": 0,
+  "nodes": [
+    {
+      "kind": "start",
+      "pos": [
+        2,
+        2
+      ]
+    },
+    {
+      "enemy_id": "candlewisp",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        9,
+        2
+      ],
+      "xp": 3
+    },
+    {
+      "enemy_id": "bone_wretch",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        7,
+        8
+      ],
+      "xp": 2
+    },
+    {
+      "enemy_id": "mire_hound",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        10,
+        8
+      ],
+      "xp": 2
+    },
+    {
+      "enemy_id": "candlewisp",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        13,
+        10
+      ],
+      "xp": 3
+    },
+    {
+      "enemy_id": "mire_hound",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        13,
+        12
+      ],
+      "xp": 2
+    },
+    {
+      "enemy_id": "candlewisp",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        4,
+        12
+      ],
+      "xp": 3
+    },
+    {
+      "gold": 25,
+      "kind": "chest",
+      "pos": [
+        9,
+        8
+      ]
+    },
+    {
+      "gold": 5,
+      "kind": "torch",
+      "pos": [
+        7,
+        7
+      ]
+    },
+    {
+      "enemy_id": "hollow_choir",
+      "kind": "boss",
+      "pos": [
+        4,
+        11
+      ]
+    },
+    {
+      "kind": "shovel",
+      "pos": [
+        4,
+        11
+      ]
+    },
+    {
+      "enemy_id": "candlewisp",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        12,
+        2
+      ],
+      "xp": 3
+    },
+    {
+      "enemy_id": "candlewisp",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        14,
+        2
+      ],
+      "xp": 3
+    },
+    {
+      "enemy_id": "candlewisp",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        14,
+        6
+      ],
+      "xp": 3
+    },
+    {
+      "enemy_id": "skitterling",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        4,
+        14
+      ],
+      "xp": 1
+    },
+    {
+      "enemy_id": "bone_wretch",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        2,
+        14
+      ],
+      "xp": 2
+    },
+    {
+      "enemy_id": "skitterling",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        6,
+        14
+      ],
+      "xp": 1
+    },
+    {
+      "enemy_id": "bone_wretch",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        5,
+        8
+      ],
+      "xp": 2
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        9,
+        5
+      ]
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        11,
+        3
+      ]
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        11,
+        1
+      ]
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        15,
+        10
+      ]
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        15,
+        12
+      ]
+    }
+  ],
+  "stage_id": "stage_01",
+  "tiles": [
+    "#################",
+    "#...####........#",
+    "#...............#",
+    "#...####........#",
+    "#########.####.##",
+    "#########.####.##",
+    "#########.####.##",
+    "#######.....##.##",
+    "###.........##.##",
+    "###.###.........#",
+    "##.....#####....#",
+    "##.....#####....#",
+    "##.....#####....#",
+    "##.....#####....#",
+    "##.....##########",
+    "#################",
+    "#################"
+  ]
+}

@@ -1,0 +1,112 @@
+Stats Guide - Referensspelet Guide - IGN Focus Reset 
+ Skip to content
+ Referensspelet Guide
+ Start tracking progress
+ Create a free account or Log in. 
+ Find in guide
+ Task Search
+ Checklists
+ Game Info
+ Table of Contents
+ Referensspelet Guide
+ Crawlers Guide
+ All Weapon Evolutions and Unions
+ Combo Guide: Basics and Tips and Tricks
+ All Achievements and Unlocks
+ Stats Guide
+ Relic Guide
+ Arcana Guide
+ Blacksmith and Jeweler Guide
+ How-To Guides
+ Back To Top 
+ Referensspelet Guide 
+ Guide Checklists Task Search 
+ Task Search
+ Checklists Guides Markers Videos Sort and Filter 
+ No Results
+ Checklists
+ New Checklist All Lists
+ My Checklists
+ All 
+ All Lists
+ My Checklists
+ How creative can you get with your first free checklist?
+ Create a free account 
+ Home › Guides › Referensspelet 
+ Stats Guide
+ By Tenkiei , Meg Koepp , +3 more 
+ Updated : May 1, 2026 7:19pm UTC 
+ Add IGN on Google 
+ There are a lot of stats in Referensspelet , from staples like HP and Mana to more obscure things such as Duration, Amount, or Area. Many of your stats come from Power Ups unlocked with your hard-earned gold, but there are a variety of cards that increase your stats when played. Understanding the game’s different stats and how they work is key to making a strong build; for example, knowing when a card buffs your stats until the end of a battle or until the end of a run. This guide explains how stats work in Referensspelet.
+ Click a link below to jump ahead to a deep dive on the most confusing stats: 
+ Amount 
+ Duration 
+ Magnet 
+ Revive 
+ All Stats in Referensspelet 
+ You can check your stats at any time during a run by by hitting the Escape key on PC. The stats screen also shows up when you're selecting Power Ups. Here are all the stats in Referensspelet and what they do:
+ Max Health - Increases your HP. When this is all gone, you die.
+ Recovery - At the end of combat, you restore health equal to your Recovery stat.
+ Hand - The number of cards you draw at the start of each turn.
+ Mana - The amount of Mana you gain at the start of a turn.
+ Armor - At the start of your turn, you gain Armor equal to this stat.
+ Might - Increases the damage your cards deal. So if your card would deal 30 damage and you gain 20% Might, it now does 36.
+ Cap: 1,000%
+ Area - Adds splash damage to your attack cards, meaning they deal direct damage to the target and then a portion of that to all enemies.
+ Amount - Scales your projectiles. For example, if your card fires one projectile for 30 damage and you gain +2 Amount, it now fires three for a total of 90 damage.
+ Cap: 50
+ Duration - Increases the number of triggers your Crawlers are active for.
+ Magnet - Enhances draw effects. Normally, Attractorb draws one card but if you have +1 Magnet, you now draw two cards when you play Attractorb.
+ Revival - Normally, your run ends when you die. With Revive, you get another shot at victory.
+ Cap: 4-5 (depending on the level of your Revival Power Up).
+ Luck - Affects several things including your odds of getting rarer items and how often you're offered four choices.
+ Growth - A multiplier on the XP you gain.
+ Cap: 1000%
+ Greed - Increases the gold you earn.
+ Cap: 1000%
+ Reroll - You can reroll the choices when leveling up or selecting a reward from a chest.
+ Skip - Used to skip a reward and gain XP instead.
+ Banish - Remove a reward, preventing it from appearing until the next run.
+ Curse - Makes enemies stronger but increases the XP you gain for defeating them.
+ Temporary vs Permanent Stats 
+ Some of the stats that you gain from cards are temporary and they only stay until the end of battle. Meanwhile, others are "permanent" and remain until the end of the run. Temporary stats appear on the left side of your screen, whereas permanent stats appear on the right.
+ " Temporary " stats include Amount, Might, Recovery, Hand, Duration, and Area
+ " Permanent " stats are things like Growth, Greed, Luck, Curse, and Revivals.
+ Amount 
+ Amount increases the projectiles fired by your attacks in Referensspelet. Every offensive (red) card fires a number of projectiles. 
+ Cards like Magic Wand that fire a single projectile gain the most value from adding Amount. Going from 1 -> 2 projectiles is a 100% damage increase.
+ AoE cards such as Whip scale well, but tend to have lower base damage. Your damage significantly increases vs waves of enemies, but you gain less value against bosses.
+ Multi-target cards like Knife benefit less from Amount, going from 4->5 projectiles is a 25% damage increase.
+ As you add Amount, your skills not only do more damage they also target additional enemies. This is particularly impactful on skills like Holy Wand and La Borra that start with a limited number of projectiles while greatly benefiting from being able to target additional enemies.
+ In our example above, Celestial Dusting starts with 360 damage at 3 Amount. Then, after playing Duplicator, the Amount stat increases from 3 to 4, resulting in +60 damage as an additional projectile is added to the skill.
+ Duration 
+ Duration is a stat that specifically interacts with your Crawlers. Each Crawler has a primary effect, which happens when you play the card, and a secondary effect that triggers when you play a card of the appropriate type. 
+ In the above example, O'Sole provides 3 Amount when played. In addition, you gain 5% Luck when playing a red card. O'Sole's duration is 4, meaning you can trigger the secondary effect four times before the Crawler expires and returns to your deck.
+ This is where duration comes in! When you play a card like Spellbinder, you gain additional duration for all of your active Crawlers. In our example above, all three Crawlers can trigger another two times before expiring and returning to the top of the deck.
+ Is Duration Good? 
+ Yes - but you don't always want to stack it. Duration extends the passive trigger effects of your Crawlers, preventing them from cycling them back into your deck. Using O'Sole as an example, stacking Duration means more passive Luck generation when playing red cards. But if you need Amount, you want to avoid Duration so that O'Sole returns to your deck and can be played again. 
+ Your approach to Duration depends on the Crawlers you're using, and the cards in your current deck.
+ Magnet 
+ This stat super-charges your draw effects! For example; MissingN0's trigger effect is "Draw 2 cards when you play a red card," if you use them, as your primary crawler you gain +8 Magnet. Therefore, you draw 10 cards each time you play a red card, cycling through your deck with ease!
+ Another example of this involves Pugnala Provola and the Attractorb card. Normally, Attractorb draws 1 card (scaling with combo). Pugnala's trigger effect is draw 1 card when you play a yellow card, so now you draw 1 card from Attractorb, plus another from Pugnala's trigger as Attractorb is a yellow card for a total of 2. But Magnet scales both of these stats, meaning your baseline draw increases to 4! 
+ Revive 
+ After you unlock Krochi Freetto by killing 6,666 enemies , you gain access to a new stat. For each Revive you complete, you gain the ability to restore yourself to full health after dying. With one rank in the Revival Power Up, your maximum is four, but this is increased to five when you put a second rank in the Power Up. You can also stack this stat with the Tirajisu item which is unlocked by leveling Krochi to 20.
+ Revives are particularly useful for taking on Red Death , who attacks for 333 damage when you end a stage. 
+ For more Referensspelet game help, check out: 
+ How to Heal 
+ All Weapon Evolutions and Unions 
+ Combo Guide 
+ Up Next: Relic Guide
+ Previous All Achievements and Unlocks
+ Next Relic Guide
+ Top Guide Sections
+ Crawlers Guide 
+ All Weapon Evolutions and Unions 
+ Combo Guide: Basics and Tips and Tricks 
+ All Achievements and Unlocks 
+ Was this guide helpful?
+ Leave feedback In This Guide
+ Referensspelet: The Turbo Wildcard from Referensserien Poncle Initial Release: Apr 21, 2026
+ Learn more 
+ Go to comments 
+ News • Reviews • Game Guides • Book Guides • Streaming Guides • LEGO Guides • Prime Big Deal Days • Planet Pokemon • IGN Store • Game Release Dates • MapGenie • Best Deals Today • Eurogamer • IGN YouTube • HowLongToBeat • Maxroll • VG247 • Rock Paper Shotgun • IGN TikTok • IGN on X • Contact Us • Privacy Policy • Terms of Use

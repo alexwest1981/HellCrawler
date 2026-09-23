@@ -1,0 +1,22 @@
+[
+  {"id": "skitterling", "name": "Skitterling",  "hp": 12,  "damage": 3,  "tier": 1, "xp": 1,  "gold": 1},
+  {"id": "bone_wretch", "name": "Bone Wretch",  "hp": 20,  "damage": 4,  "tier": 1, "xp": 2,  "gold": 2},
+  {"id": "mire_hound",  "name": "Mire Hound",   "hp": 26,  "damage": 5,  "tier": 1, "xp": 2,  "gold": 2},
+  {"id": "candlewisp",  "name": "Candlewisp",   "hp": 16,  "damage": 6,  "tier": 1, "xp": 3,  "gold": 1},
+
+  {"id": "wax_sentinel","name": "Wax Sentinel", "hp": 60,  "damage": 9,  "tier": 2, "xp": 4,  "gold": 5},
+  {"id": "glass_herald","name": "Glass Herald", "hp": 75,  "damage": 11, "tier": 2, "xp": 5,  "gold": 6},
+  {"id": "salt_wretch", "name": "Salt Wretch",  "hp": 90,  "damage": 8,  "tier": 2, "xp": 4,  "gold": 8},
+  {"id": "chime_swarm", "name": "Chime Swarm",  "hp": 45,  "damage": 14, "tier": 2, "xp": 6,  "gold": 4},
+
+  {"id": "ossuary_king","name": "Ossuary King", "hp": 200, "damage": 18, "tier": 3, "xp": 10, "gold": 20},
+  {"id": "verdigris",   "name": "Verdigris",    "hp": 240, "damage": 15, "tier": 3, "xp": 12, "gold": 22},
+  {"id": "ash_maw",     "name": "Ash Maw",      "hp": 280, "damage": 22, "tier": 3, "xp": 14, "gold": 25},
+  {"id": "bell_drowned","name": "Bell-Drowned", "hp": 320, "damage": 19, "tier": 3, "xp": 16, "gold": 30},
+
+  {"id": "hollow_choir","name": "The Hollow Choir", "hp": 400,  "damage": 12, "tier": 3, "eyes": 4, "kind": "boss", "xp": 25, "gold": 60},
+  {"id": "copper_warden","name": "Copper Warden",   "hp": 600,  "damage": 16, "tier": 3, "eyes": 5, "kind": "boss", "xp": 35, "gold": 80},
+  {"id": "bellmother",  "name": "The Bellmother",   "hp": 900,  "damage": 20, "tier": 3, "eyes": 6, "kind": "boss", "xp": 45, "gold": 110},
+  {"id": "ash_sovereign","name": "Ash Sovereign",   "hp": 1400, "damage": 26, "tier": 3, "eyes": 6, "kind": "boss", "xp": 60, "gold": 150},
+  {"id": "pale_reaper", "name": "The Pale Reaper",  "hp": 20000, "damage": 999, "tier": 3, "eyes": 6, "kind": "boss", "xp": 0, "gold": 0}
+]

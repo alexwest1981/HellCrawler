@@ -1,0 +1,386 @@
+Crawlers Guide - Referensspelet Guide - IGN Focus Reset 
+ Skip to content
+ Referensspelet Guide
+ Start tracking progress
+ Create a free account or Log in. 
+ Find in guide
+ Task Search
+ Checklists
+ Game Info
+ Table of Contents
+ Referensspelet Guide
+ Crawlers Guide
+ All Weapon Evolutions and Unions
+ Combo Guide: Basics and Tips and Tricks
+ All Achievements and Unlocks
+ Stats Guide
+ Relic Guide
+ Arcana Guide
+ Blacksmith and Jeweler Guide
+ How-To Guides
+ Back To Top 
+ Referensspelet Guide 
+ Guide Checklists Task Search 
+ Task Search
+ Checklists Guides Markers Videos Sort and Filter 
+ No Results
+ Checklists
+ New Checklist All Lists
+ My Checklists
+ All 
+ All Lists
+ My Checklists
+ How creative can you get with your first free checklist?
+ Create a free account 
+ Home › Guides › Referensspelet 
+ Crawlers Guide
+ By Tenkiei , Meg Koepp , +3 more 
+ Updated : May 1, 2026 5:24pm UTC 
+ Add IGN on Google 
+ Crawlers are Hero cards, meaning when you play one, they gain a special effect and remain active for a duration, triggering their secondary effect. After the duration ends, it returns to your deck and you can play them again. As you progress, you unlock new more powerful Crawlers and in addition, gain the ability to use multiple Crawlers in the same deck and combine their powers for even greater benefits! This Referensspelet guide teaches you about Crawlers, including how to unlock them all, mechanics, starting decks, and recommendations.
+ Click on a link below to jump to that section of this Referensspelet guide: 
+ How to Unlock Every Crawler 
+ Crawler Mechanics Combining Crawlers 
+ Crawler Stats & Starting Decks 
+ Crawler Recommendations 
+ How to Unlock All Crawlers in Referensspelet 
+ There are 22 Cralwers to unlock in Referensspelet. Here's how to unlock them and their effects:
+ Crawler
+ Effects
+ How to Unlock
+ Antonio Belpaese Adds 3 Armor when Antonio is played.
+Increase damage by 10% when a red card is played.
+ Complete the Tutorial.
+ Imelda Belpaese Add 15 XP when Imelda is played.
+Gain 1 XP Growth when a yellow card is played.
+ Complete the Tutorial.
+ Pasqualina Belpaese Add 10 Area when Pasqualina is played.
+Increase Hand by 1 when a purple card is played.
+ Reach Level 20 with Imelda in the Inlaid Library.
+Second zone.
+ Gennaro Belpaese Add 2 Amount when Gennaro is played.
+Deal 60 damage when a red card is played.
+ Defeat Mantichana in the Mad Forest.
+First zone.
+ Arca Ladonna Add 3 Mana when Arca is played.
+Add 1 Mana when a purple card is played.
+ Play the Fire Wand card 100 times. 
+You gain the Fire Wand by destroying 20 light sources.
+ Porta Ladonna Add 25 Area when Porta is played.
+Add 1 Mana when a red card is played.
+ Play Lightning Ring 100 times. 
+You unlock Lightning Ring by defeating 2,500 enemies.
+ Lama Ladonna Increase damage by 50% when Lama is played.
+Increase damage by 15% when a blue card is played.
+ Complete a dungeon with 10% Curse or more.
+ Poe Ratcho Add 20 Area when Poe is played.
+Draw 1 card when a blue card is played.
+ Play Garlic cards 25 times. 
+You unlock Garlic by picking up five Floor Chickens.
+ Dommario Gain 2 Duration when Dommario is played.
+Deal 40 damage when a purple card is played.
+ Collect 5,000 Coins.
+ Krochi Freetto Add 10 Revival when Krochi is played.
+Add 5 Revival when a Wild Card is played.
+ Defeat a total of 6,666 enemies.
+ Christine Davain Reduce Mana cost of next card played by 1 when Christine is played.
+Prevent 1 enemy from attacking when a purple card is played.
+ Find and play the Pentagram card. 
+This is unlocked by reaching Level 35.
+ Pugnala Provola Increase damage by 20% when Pugnala is played.
+Draw 1 card when a yellow card is played.
+ Find the Coffin in the Berserk Wood.
+Forest difficulty 3.
+ Poppea Pecorina Increase Hand by 1 when Poppea is played.
+Gain 1 Duration when a yellow card is played.
+ Find the Coffin in the Milk Factory (difficulty 5).
+ Concetta Caciotta Add 10 Area when Concetta is played.
+Add 5 Area when a red card is played.
+ Find the Coffin in Gallo Tower.
+ Yatta Cavallo Add 2 Amount when Cavallo is played.
+Add 1 Amount when a yellow card is played.
+ Defeat 250 Lion Heads, an enemy found in the Inlaid Library.
+ O'Sole Meeo Add 3 Amount when O'Sole is played.
+Add 1 Luck when a red card is played.
+ Defeat 50 Dragon Shrimps in Gallo Tower.
+ Mortaccio Add 2 Amount when Mortaccio is played.
+Add 1 Amount when a blue card is played.
+ Defeat 444 Skeletons.
+You can find these enemies in the Mad Forest (first zone).
+ Bianca Ramba Add 3 Amount when Ramba is played.
+Add 1 Amount when a purple card is played.
+ Defeat the Milk Elemental in the Dairy Plant.
+The fourth zone.
+ Suor Clerici Heal 3 when Clerici is played.
+Heal 1 after encounter when a blue card is played.
+ Recover 1,000 HP.
+ Giovanna Grana Add 20 Luck when Giovanna is played.
+Draw 1 card when a purple card is played.
+ Find the Coffin in the Library Sanctum.
+Difficulty 4.
+ Iguana Gallo Valletto Gain 25% more coins when Gallo is played.
+Gain 10% more coins when a Wild Card is played.
+ Defeat Gallo, the final boss of Gallo Tower.
+ MissingN0 Add 3 Armor when MissingN0 is played.
+Draw 2 cards when a red card is played.
+ Kill Red Death or the Trickster. 
+ Crawler Mechanics 
+ When you draw a Crawler in Referensspelet, you can play it for an active effect. In the example above, O'Sole is giving Amount. This is scaled by your current combo count. 
+ After you play a Crawler, their secondary effect is active for a duration. You can extend this effect by playing Duration cards, and each time it triggers, one use is expended. Once all uses are gone, the Crawler returns to your deck and must be played again. If you're lucky, you can be offered the opportunity to by an additional Crawler during your run!
+ Red cards are weapons and damage dealers.
+ Yellow cards tend to be utility effects like Draw, Hand, Amount, Might, and Area.
+ Blue cards are defensive effects such as Freeze, Armor, and Recovery.
+ Purple cards are Mana, such as the Tomes.
+ You can use the Blue Trigger, Yellow Trigger, Red Trigger, Purple Trigger , or Rainbow Gem to change a card's color.
+ If you want to maximize the passive triggers on your Crawlers, you should stack duration though Power Ups or the Spellbinder. Alternatively, if you want to play the direct effect as much as possible, you can avoid duration or use the Call Crawlers Gem to pull all your Crawlers to your hand.
+ Combining Crawlers 
+ As you progress through Referensspelet, you unlock the Crawlers Power Up. This gives you the ability to select a team of three Crawlers instead of just one! 
+ You can combine different Crawlers for better synergies. For example, Pugnala Provola gives you card draw whenever a yellow card is played. You can combine her with Imelda for XP Growth every time you play a yellow card. Alternatively, you could combine Giovanna's card draw from purple cards with Arca Ladonna's additional Mana from purple cards to build yourself an engine to go infinite.
+ Pick a Main Crawler 
+ The first Crawler you select is your "Main" Crawler, and this determines the stats/Deck you get from your Crawler. This makes a huge difference, especially when using characters like Gallo or MissingN0!
+In the image above, selecting Pugnala first results in +2 Hand and +30% Might instead of the impressive suite of stats you see from MissingN0!
+ Crawler Stats and Starting Decks 
+ The main Crawler determines the stat bonuses you get and your starting deck. This is important because some Crawlers offer more stats than others. If you're using the powerful MissingN0, always set them to your main Crawler as this puts the game into easy mode.
+ Here's a list of all of the Crawlers in Referensspelet, their stats, and their starting deck: 
+ Crawler
+ Effects
+ Deck+
+ Stats*
+ Antonio Belpaese
+ Adds 3 Armor when Antonio is played.
+Increase damage by 10% when a red card is played.
+ Whip x2
+Armor
+Spinach
+ Max HP +10
+ Imelda Belpaese
+ Add 15 XP when Imelda is played.
+Gain 1 XP Growth when a yellow card is played.
+ Magic Wand x2
+Armor
+Attractorb
+ Mana +1
+Growth +20%
+ Pasqualina Belpaese
+ Add 10 Area when Pasqualina is played.
+Increase Hand by 1 when a purple card is played.
+ Rune Tracer x2
+Tome
+Candelabra
+ Max Health +5
+Hand +1
+ Gennaro Belpaese
+ Add 2 Amount when Gennaro is played.
+Deal 60 damage when a red card is played.
+ Knife
+ Hand +1
+Might +25%
+Amount +1
+ Arca Ladonna
+ Add 3 Mana when Arca is played.
+Add 1 Mana when a purple card is played.
+ Fire Wand
+ Max Health +5
+Mana +1
+Might +30%
+ Porta Ladonna
+ Add 25 Area when Porta is played.
+Add 1 Mana when a red card is played.
+ Lightning Ring
+ Mana +1
+Area +40%
+ Lama Ladonna
+ Increase damage by 50% when Lama is played.
+Increase damage by 15% when a blue card is played.
+ Axe
+ Max HP +10
+Armor +5
+Might +50%
+ Poe Ratcho
+ Add 20 Area when Poe is played.
+Draw 1 card when a blue card is played.
+ Garlic x2
+Armor
+Candelabra
+ Hand +1
+Area +20%
+ Dommario
+ Gain 2 Duration when Dommario is played.
+Deal 40 damage when a purple card is played.
+ King Bible x2
+Tome
+Armor
+ Hand +1
+Mana +1
+ Krochi Freetto
+ Add 10 Revival when Krochi is played.
+Add 5 Revival when a Wild card is played.
+ Cross
+Tome
+Armor
+Attractorb
+ Hand +1
+Revival +100%
+Banish +5
+ Christine Davain
+ Reduce Mana cost of next card played by 1 when Christine is played.
+Prevent 1 enemy from attacking when a purple card is played.
+ Pentagram
+Tome
+Armor
+Attractorb
+ Hand +2
+Luck +50%
+Growth +25%
+Reroll +3
+Skip +3
+ Pugnala Provola
+ Increase damage by 20% when Pugnala is played.
+Draw 1 card when a yellow card is played.
+ Phiera Der Tuphello
+Eight the Sparrow
+Tome
+Spellbinder
+ Hand +2
+Might +30%
+ Poppea Pecorina
+ Increase Hand by 1 when Poppea is played.
+Gain 1 Duration when a yellow card is played.
+ Song of Mana
+Candelabra
+Tome
+Attractorb
+ Max HP +10
+Hand +2
+Area +50%
+Duration +5
+ Concetta Caciotta
+ Add 10 Area when Concetta is played.
+Add 5 Area when a red card is played.
+ Shadow Pinion x2
+Tome
+Armor
+ Hand +1
+Mana +1
+Area +50%
+ Yatta Cavallo
+ Add 2 Amount when Cavallo is played.
+Add 1 Amount when a yellow card is played.
+ Cherry Bomb x3
+Candelabra
+ Max HP +20
+Hand +1
+Amount +2
+ O'Sole Meeo
+ Add 3 Amount when O'Sole is played.
+Add 1 Luck when a red card is played.
+ Celestial Dusting x2
+Tome
+Armor
+ Max HP +20
+Amount +3
+ Mortaccio
+ Add 2 Amount when Mortaccio is played.
+Add 1 Amount when a blue card is played.
+ Bone x3
+Armor
+ Max HP +5
+Recovery +1
+Hand +1
+Amount +2
+ Bianca Ramba
+ Add 3 Amount when Ramba is played.
+Add 1 Amount when a purple card is played.
+ Carrello x2
+Tome
+Armor
+ Max HP +10
+Recovery +2
+Area +20%
+Amount +2
+ Suor Clerici
+ Heal 3 when Clerici is played.
+Heal 1 after encounter when a blue card is played.
+ Santa Water
+Tome
+Duplicator
+Armor
+ Max HP +10
+Hand +1
+Mana +1
+Area +25%
+ Giovanna Grana
+ Add 20 Luck when Giovanna is played.
+Draw 1 card when a purple card is played.
+ Gatti Amari
+Tome
+Armor
+ Hand +1
+Mana +1
+Luck +50%
+Greed +25%
+Reroll +5
+ Iguana Gallo Valletto
+ Gain 25% more coins when Gallo is played.
+Gain 10% more coins when a Wild Card is played.
+ Clock Lancet
+Clover
+Tome
+Armor
+ Max HP +30
+Mana +1
+Amount +2
+Duration +3
+Luck +50%
+Greed +50%
+Reroll +10
+Skip +10
+Banish +10
+ MissingN0
+ Add 3 Armor when MissingN0 is played.
+Draw 2 cards when a red card is played.
+ Axe x2
+Death Spiral x2
+ Max HP +97
+Recovery +1
+Hand +8
+Mana +80
+Armor +125
+Might +80%
+Area +260%
+Amount +2
+Magnet +8
+Revival +2%
+Luck +80%
+Growth +80%
+Greed +80%
+Curse +95
+ NOTES: 
+ If you're using more than one Crawler, Only the Main Crawler's stats apply!
+ In the table above, "Tome" "Candelabra" and "Armor" do not necessarily refer to the card, but rather the series. There are different versions, such as the Empty Tome vs Light Tome, which appear in Crawler decks.
+ Early Game Crawler Recommendations 
+ Referensspelet is a very flexible game, but some choices are better than others, especially as you're progressing. Early on, both Imelda and Poe are great choices. Imelda gives XP and XP Growth, which helps you level quickly. Meanwhile, Poe's Garlic helps you disarm foes and avoid damage. 
+ As you progress, you reach the game's first progression wall: the Teeny Bridge. This zone is densely packed with enemies and more difficult than the prior areas.
+ Pugnala Provola is a great option here! She provides damage thanks to the Might stat card draw so you can cycle your deck and a 0-1-2-3 combo for maximum damage. As you progress, keep an eye out for the following Crawlers:
+ Giovanna has a consistent draw effect (based on playing Purple cards), and enhances luck which increases your odds of triggering RNG effects, or getting rare offerings.
+ Krochi's Revives are great for getting you past the difficult spike of the level 6+ zones.
+ Gallo has great stats, making him an excellent choice of main Crawler.
+ Once you unlock MissingN0 , you can smash everything through raw stats alone!
+ For more Referensspelet game help, check out: 
+ All Weapon Evolutions and Unions 
+ Combo Guide: Basics and Tips and Tricks 
+ Stats Guide 
+ Up Next: All Weapon Evolutions and Unions
+ Previous Referensspelet Guide
+ Next All Weapon Evolutions and Unions
+ Top Guide Sections
+ Crawlers Guide 
+ All Weapon Evolutions and Unions 
+ Combo Guide: Basics and Tips and Tricks 
+ All Achievements and Unlocks 
+ Was this guide helpful?
+ Leave feedback In This Guide
+ Referensspelet: The Turbo Wildcard from Referensserien Poncle Initial Release: Apr 21, 2026
+ Learn more 
+ Go to comments 
+ News • Reviews • Game Guides • Book Guides • Streaming Guides • LEGO Guides • Prime Big Deal Days • Planet Pokemon • IGN Store • Game Release Dates • MapGenie • Best Deals Today • Eurogamer • IGN YouTube • HowLongToBeat • Maxroll • VG247 • Rock Paper Shotgun • IGN TikTok • IGN on X • Contact Us • Privacy Policy • Terms of Use

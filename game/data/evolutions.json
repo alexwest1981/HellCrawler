@@ -1,0 +1,19 @@
+[
+  {"card": "whiplash",      "parts": ["lash", "shove"]},
+  {"card": "leech_dagger",  "parts": ["dagger", "vial"]},
+  {"card": "emberstorm",    "parts": ["axe", "ember_tome"]},
+  {"card": "shrouded_bell", "parts": ["bell", "ash_veil"]},
+  {"card": "iron_chime",    "parts": ["chime", "buckle"]},
+  {"card": "warlock_shard", "parts": ["shard", "deep_tome"]},
+  {"card": "scrying_pebbles", "parts": ["pebble", "scry"]},
+  {"card": "brass_oath",    "parts": ["brass_knuckles", "second_wind"]},
+  {"card": "hooked_ward",   "parts": ["hook", "warding_ring"]},
+  {"card": "marrow_axe",    "parts": ["broad_axe", "marrow_draught"]},
+  {"card": "chalk_flail",   "parts": ["bone_flail", "wild_chalk"]},
+  {"card": "tallow_dagger", "parts": ["glass_dagger", "tallow_candle"]},
+  {"card": "frost_bell",    "parts": ["toll_bell", "frost_nail"]},
+  {"card": "seam_weaver",   "parts": ["seam_ripper", "steady_hand"]},
+  {"card": "the_long_winter", "parts": ["hoarfrost", "whiteout"]},
+  {"card": "icicle_storm",  "parts": ["icicle", "nailstorm"]},
+  {"card": "bell_of_rites", "parts": ["final_bell", "last_rites"]}
+]

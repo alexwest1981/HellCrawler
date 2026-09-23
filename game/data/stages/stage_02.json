@@ -1,0 +1,22 @@
+{
+ "boss": "hollow_choir",
+ "bosses": [],
+ "difficulty": 1,
+ "encounters_per_floor": 4,
+ "final_boss": "pale_reaper",
+ "floor_themes": [
+  "grotta",
+  "grotta",
+  "bro"
+ ],
+ "floors": 3,
+ "gold_bonus": 0.0,
+ "id": "stage_02",
+ "name": "Asklundens djuphål",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  1
+ ],
+ "xp_bonus": 0.0
+}

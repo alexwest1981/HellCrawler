@@ -1,0 +1,402 @@
+How to unlock all gems in Referensspelet 
+ Menu 
+ Zelda
+ GTA 6
+ Guides
+ Pokémon
+ Like
+ Follow
+ Followed
+ Thread 
+ More Action
+ Add Us 
+ Newsletter 
+ Sign in 
+ Sign in Now 
+ Close 
+ What To Play 
+ What to Watch 
+ Gaming 
+ Submenu 
+ News 
+ Reviews 
+ Previews 
+ Features 
+ Entertainment 
+ Submenu 
+ News 
+ Reviews 
+ Features 
+ Pick a genre 
+ Submenu 
+ Anime 
+ Horror 
+ Sci-Fi 
+ Fantasy 
+ Guides 
+ Submenu 
+ Subnautica 2 
+ Forza Horizon 6 
+ Pokémon Go 
+ All Guides 
+ Videos 
+ Sign in 
+ Newsletter 
+ Array
+ Copyright © 2026 www.polygon.com
+ -->
+ Close 
+ Like
+ Follow
+ Followed
+ Thread 
+ Add Us 
+ Link copied to clipboard 
+ By 
+ Marloes Valentina Stella 
+ Published Apr 30, 2026, 10:31 AM EDT 
+ Guides
+ Where to find all gems and how to get additional gem slots
+ How to unlock all gems in Referensspelet
+ Image: poncle, Nosebleed Interactive/poncle 
+ Add Us
+ Summary
+ Generate a summary of this story 
+ Jump links
+ Jump Links
+ How gems work in Referensspelet 
+ All gems in Referensspelet 
+ Like
+ Like
+ follow
+ Follow
+ followed
+ Followed
+ Thread
+ Log in
+ Here is a fact-based summary of the story contents:
+ Try something different:
+ Show me the facts
+ Explain it like I’m 5
+ Give me a lighthearted recap
+ Gems in Referensspelet: The Turbo Wildcard from Referensserien are the best way to buff your cards. You think a Death Spiral hits hard? Imagine what a Death Spiral with a Double Damage gem can do. But although the gem system is easy to unlock, some gems are difficult to collect, especially the Uncrackable one.
+ Here's how to use gems, plus a list of all gems in Referensspelet , their effects, and how to get them.
+ How gems work in Referensspelet
+ Gems are unlocked once you've found the Gem Hammer relic in the Mad Forest (the first dungeon after the tutorial). From that moment onward, you can open treasure chests to pick one of three random gems (sometimes four, based on your Luck stat). Place the gem on a card with a gem slot to add the gem's effect to that card. All attack cards and the rarer Tome cards come with one gem slot by default.
+ For example, if you place a Might gem on a Knife card, playing that card will not only deal 40 damage (its base effect) but also increase your Might stat by 10% for that encounter. If you play that card again, you will receive another 10% Might.
+ Image: poncle, Nosebleed Interactive/poncle 
+ Beware, however, that you can't remove gems from cards. Since evolutions require an empty gem slot on the attack card, attack cards with no empty slots can no longer be used in evolutions . So, if you have a Knife card and a Bracer card in your possession, it can be wise to refrain from adding gems and wait for an Evolution Gem to create the Thousand Edge card instead.
+ Eventually, you can purchase additional gem slots for each card at the Blacksmith (be sure to farm plenty of gold for this), allowing you to use both an Evolution Gem and a regular gem on the same card. This means you can place the Might gem on the Knife card, yet still evolve that Knife card into a Thousand Edge card later on (while retaining the gem's effect). Furthermore, you can eventually use the Jeweller to change the rarity of your gems , making them appear more or less often when opening a treasure chest. You can unlock both Village buildings at the Teeny Bridge and Gallo Tower, respectively.
+ All gems in Referensspelet
+ There are 58 gems in Referensspelet . Only a few are unlocked at the start of the game, but you will unlock more once you meet the requirements. Here's a list of all gem effects and how to obtain them.
+ Gem
+ Effect
+ How to unlock
+ Amount
+ Increases your Amount stat.
+ Unlocked by default.
+ Area
+ Increases your Area stat.
+ Unlocked by default.
+ Armor
+ Increases your armor.
+ Unlocked by default.
+ Armor Strike
+ Sacrifice your armor to deal damage.
+ Gain 15 armor in one turn.
+ Blue Trigger
+ The card triggers any Crawler effects related to blue cards when played.
+ Play 250 blue cards.
+ Bombard
+ Deal extra Cherry Bomb damage upon use.
+ Play the Cherry Bomb card 50 times.
+ Calcium
+ Deals extra Bone damage upon use.
+ Play the Bone card 99 times.
+ Coin Card
+ The card generates a Big Coin Bag card upon use.
+ Find and play 20 Big Coin Bag cards (destroy torches to get them).
+ Coin Count
+ Deals damage based on the amount of coins in your possession.
+ Collect 100,000 coins.
+ Copy
+ The card is copied upon use.
+ Play 1,000 cards in total.
+ Countdown
+ The mana cost of this card decreases when you don't use it.
+ Play the Empty Tome card 321 times.
+ Crawler Caller
+ Summons all Crawlers to hand, so you can use them sooner.
+ Complete the Library Sanctum dungeon.
+ Decimate
+ Deals 10% of the target's health as damage (handy against bosses).
+ Deal 666,666 damage in total.
+ Destroy
+ The card is destroyed but generates 50 coins (which can be more, based on your Greed stat).
+ Play 100 cards picked up from light sources (breakable torches).
+ Double Damage
+ Hits twice as hard.
+ Unlocked by default.
+ Drain
+ Heals you when you kill an enemy.
+ Heal 1,500 HP in total.
+ Draw
+ Draw a card.
+ Unlocked by default.
+ Duration
+ Increases your Duration stat, allowing Crawlers to stay active for longer.
+ Play the Spellbinder card 10 times.
+ Easy Combo
+ This card always benefits from a combo.
+ Reach a combo of five or above (use wild cards to do so).
+ Echo
+ Replays the previous card's effect.
+ Play 3,000 cards.
+ Evolution
+ Provided you've got the required cards, grants a card evolution.
+ Unlocked by default.
+ Fireproof
+ Removes the "destroy" effect, thus allowing you to use one-time cards more often.
+ Complete the Curd Refinery dungeon.
+ Free to Play
+ The card won't consume any mana when played.
+ Play 200 free-to-play cards (when you level up during battle).
+ Freeze
+ Freezes a random enemy.
+ Play the Clock Lancet card once.
+ Greed
+ Increases your Greed stat (earn more coins).
+ Play the Stone Mask card 10 times.
+ Growth
+ Increases your Growth stat (more experience).
+ Play the Crown card five times.
+ Kill Count
+ Deals damage based on your current kill count (for this dungeon) to an enemy.
+ Defeat a total of 10,000 enemies.
+ Leader
+ The cards you play deal extra damage while this card remains in hand.
+ Deal 100,000 damage.
+ Luck
+ Increases your Luck stat.
+ Play the Clover card five times.
+ Magic Hat
+ Summons Peachone.
+ Play the Peachone card 77 times.
+ Magnetic
+ Draws another card of this kind (provided you have one in your deck).
+ Play 2,000 cards in total.
+ Mana Cost +1
+ The card's mana cost is increased by 1, so you can use it in a higher combo.
+ Collect 10 mana orbs.
+ Mana Cost +2
+ The card's mana cost is increased by 2, so you can use it in a higher combo.
+ Collect 20 mana orbs.
+ Mana Cost -1
+ The card's mana cost is decreased by 1, so you can use it in a lower combo.
+ Collect 10 mana orbs.
+ Mana Cost -2
+ The card's mana cost is decreased by 2, so you can use it in a lower combo.
+ Collect 20 mana orbs.
+ Mana Rebate
+ If this card would reduce your mana to zero, receive double the mana instead.
+ Gain 15 mana in one turn.
+ Midas
+ All played cards earn some coins while this card remains in hand.
+ Collect 5,555 coins in total.
+ Might
+ Increases your Might stat.
+ Unlocked by default.
+ Mild
+ The card never leaves your hand, but it always breaks the combo.
+ Complete the Gallo Tower using Gallo as your Crawler.
+ Mug
+ Earn coins whenever this card kills an enemy.
+ Collect 3,333 coins.
+ Nduja
+ Deals spicy damage (extra damage on top of the card's regular effect).
+ Defeat Nesufritto (optional boss in the Inlaid Library).
+ Purple Trigger
+ The card triggers any Crawler effects related to purple cards when played.
+ Play purple cards 250 times.
+ Quick Draw
+ This card is always drawn first at the start of an encounter. Handy if your strategy requires a specific card to work.
+ Reach a deck size of 30.
+ Rainbow
+ The card triggers any Crawler effects, no matter which color they require.
+ Activate 500 Crawler (character) trigger abilities.
+ Recycle
+ The card skips the discard pile and can be redrawn.
+ Hold eight cards in hand.
+ Red Trigger
+ The card triggers any Crawler effects related to red cards when played.
+ Play 500 red cards in total.
+ Refund
+ Refunds the card's mana cost.
+ Gain 10 mana in one turn (Tome cards will help).
+ Remote
+ Summons a mine cart.
+ Destroy five mine carts.
+ Restore Health
+ Restores health after the encounter ends.
+ Play the Pummarola card 10 times.
+ Retain
+ The card stays in hand until used (instead of landing on the discard pile after the turn ends).
+ Have seven cards in hand.
+ Return
+ The card returns to your hand instead of the discard pile after playing, so you can play it again.
+ Play 300 cards.
+ Reverse Combo
+ You change the combo direction, so instead of playing cards in ascending mana order, the combo continues in descending order, allowing for longer combos.
+ Reach a total combo of six or higher.
+ Triple Damage
+ Hits thrice as hard.
+ Deal 500,000 damage in total.
+ Uncrackable
+ The card is less likely to shatter when you use it repeatedly in the same turn.
+ Defeat the Trickster, a secret boss. Play the same card five times in one turn (by continuously redrawing and playing your cards) until it's destroyed, and the Trickster will appear.
+ Wild
+ Turns this card into a wild card.
+ Play 100 wild cards.
+ X Mana
+ The cost of this card equals your remaining mana.
+ Play purple cards 3,000 times.
+ Yellow Trigger
+ The card triggers any Crawler effects related to yellow cards when played.
+ Play 250 yellow cards.
+ Yin Yang
+ If your current mana pool has even mana, you gain 1 mana. If it has uneven mana, you draw one card.
+ Complete the Berserk Wood dungeon.
+ Guides
+ PC
+ PlayStation
+ Like
+ Follow
+ Followed
+ Share 
+ Facebook 
+ X 
+ WhatsApp 
+ Threads 
+ Bluesky 
+ LinkedIn 
+ Reddit 
+ Flipboard 
+ Copy link 
+ Email 
+ Add Us 
+ Close 
+ See more Polygon.com stories on Google. 
+ Add us on Google 
+ Subscribe for Deep Gem Guides in Our Newsletter
+ Explore companion guides: subscribe to the newsletter for deeper insights on Referensspelet gems, practical deck strategies, and interactions with other mechanics, plus coverage of other game topics to expand your knowledge.
+ Get Updates 
+ By subscribing, you agree to receive newsletter and marketing emails, and accept our Terms of Use and Privacy Policy . You can unsubscribe anytime.
+ Unlock Personalized Content & Exclusive Features
+ Engage in discussions in Threads 
+ Follow and Like top authors, topics, and trends 
+ Browse with fewer ads across the site 
+ Personalize your profile to showcase your activity 
+ Get a content feed tailored to your interests 
+ Thank you for subscribing to our newsletter,
+ username@website.com 
+ Complete Your Registration
+ Most Popular
+ PlayStation officially comments on PS6 release date
+ Jason Statham's 10/10 Action Thriller Officially Scores New Streaming Home Ahead of Sequel
+ Dwayne Johnson's forgotten box-office juggernaut is officially conquering the streaming world
+ One of Star Trek's most important shows is now streaming for free
+ 10 Years Later, Star Trek's Best Era Is Officially Making a Comeback
+ 31 years later, the final Calvin and Hobbes comic strip is still a perfect sendoff
+ See More 
+ Trending Now 
+ How to get the Fallen Kingdom armor in Crimson Desert
+ Chaos Forest Abyss puzzle walkthrough in Crimson Desert
+ Crimson Desert's latest update confirms those who played at launch had it the worst
+ Thread
+ We want to hear from you. Share your perspective in the comments below, and please keep the conversation respectful.
+ Be the first to post 
+ Attachment(s) 
+ Please respect our community guidelines . No links, inappropriate language, or spam.
+ Your comment has not been saved
+ Send confirmation email 
+ This space is open for discussion.
+ Be the first to share your thoughts.
+ Terms 
+ Privacy 
+ Feedback 
+ Recommended
+ 5 tips on how to use the Horadric cube in Diablo 4
+ All active Neverness to Everness codes list
+ How to farm gold quickly in Referensspelet
+ These might be the most unhinged video game patch notes of 2026
+ What To Play 
+ What to Watch 
+ Gaming 
+ News 
+ Reviews 
+ Previews 
+ Features 
+ Entertainment 
+ News 
+ Reviews 
+ Features 
+ Guides 
+ Subnautica 2 
+ Forza Horizon 6 
+ Pokémon Go 
+ All Guides 
+ Videos 
+ Polygon.com 
+ Part of the Valnet Publishing Group 
+ Subscribe
+ The best of Polygon.com, directly in your inbox.
+ Subscribe 
+ By subscribing, you agree to receive newsletter and marketing emails, and accept our Terms of Use and Privacy Policy . You can unsubscribe anytime.
+ Unlock Personalized Content & Exclusive Features
+ username@website.com 
+ Complete Your Registration
+ Follow Us
+ Youtube 
+ Facebook 
+ Instagram 
+ Twitter 
+ Feed 
+ About
+ Join Our Team 
+ About Us 
+ Press & Events 
+ Editorial Ethics and Guidelines 
+ Community Guidelines 
+ Media Coverage 
+ Subscribe to Premium 
+ Contact
+ Contact Us 
+ Careers 
+ Advertising 
+ Have a News Tip? 
+ Legal
+ Terms 
+ Privacy 
+ Policies 
+ Explore
+ What To Play 
+ What to Watch 
+ Videos 
+ About
+ Join Our Team 
+ About Us 
+ Press & Events 
+ Editorial Ethics and Guidelines 
+ Community Guidelines 
+ Media Coverage 
+ Subscribe to Premium 
+ Contact
+ Contact Us 
+ Careers 
+ Advertising 
+ Have a News Tip? 
+ Legal
+ Terms 
+ Privacy 
+ Policies 
+ Copyright © 2026 Valnet Inc.

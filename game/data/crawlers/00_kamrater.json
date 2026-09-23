@@ -1,0 +1,14 @@
+[
+  {"id": "ashhound",   "price": 1500, "passiv": {"mana": 1, "might": 0.10},
+   "text": "+1 mana varje tur, +10 % skada"},
+  {"id": "wicksister", "price": 2000, "passiv": {"max_hp": 10, "recovery": 3},
+   "text": "+10 max-HP, +3 HP läkt efter strid"},
+  {"id": "bellringer", "price": 2800, "passiv": {"hand": 1, "mana": 1},
+   "text": "+1 kort på handen, +1 mana varje tur"},
+  {"id": "tarboy",     "price": 3600, "passiv": {"armor": 2, "max_hp": 12},
+   "text": "+2 rustning vid turstart, +12 max-HP"},
+  {"id": "bonecarver", "price": 4500, "passiv": {"might": 0.20, "area": 0.10},
+   "text": "+20 % skada, +2 % skada över area"},
+  {"id": "cindernun",  "price": 6000, "passiv": {"recovery": 5, "might": 0.15},
+   "text": "+5 HP läkt efter strid, +15 % skada"}
+]

@@ -1,0 +1,215 @@
+{
+  "floor": 0,
+  "nodes": [
+    {
+      "kind": "start",
+      "pos": [
+        4,
+        5
+      ]
+    },
+    {
+      "enemy_id": "hollow_choir",
+      "kind": "boss",
+      "pos": [
+        11,
+        11
+      ]
+    },
+    {
+      "kind": "shovel",
+      "pos": [
+        11,
+        11
+      ]
+    },
+    {
+      "enemy_id": "mire_hound",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        4,
+        12
+      ],
+      "xp": 2
+    },
+    {
+      "enemy_id": "candlewisp",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        4,
+        13
+      ],
+      "xp": 3
+    },
+    {
+      "enemy_id": "mire_hound",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        3,
+        12
+      ],
+      "xp": 2
+    },
+    {
+      "enemy_id": "skitterling",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        3,
+        11
+      ],
+      "xp": 1
+    },
+    {
+      "gold": 15,
+      "kind": "chest",
+      "pos": [
+        4,
+        11
+      ]
+    },
+    {
+      "kind": "torch",
+      "pos": [
+        3,
+        13
+      ]
+    },
+    {
+      "enemy_id": "skitterling",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        10,
+        3
+      ],
+      "xp": 1
+    },
+    {
+      "enemy_id": "bone_wretch",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        10,
+        4
+      ],
+      "xp": 2
+    },
+    {
+      "enemy_id": "candlewisp",
+      "gold": 1,
+      "kind": "encounter",
+      "pos": [
+        12,
+        3
+      ],
+      "xp": 3
+    },
+    {
+      "enemy_id": "bone_wretch",
+      "gold": 2,
+      "kind": "encounter",
+      "pos": [
+        11,
+        3
+      ],
+      "xp": 2
+    },
+    {
+      "gold": 15,
+      "kind": "chest",
+      "pos": [
+        12,
+        4
+      ]
+    },
+    {
+      "kind": "torch",
+      "pos": [
+        11,
+        4
+      ]
+    },
+    {
+      "gold": 15,
+      "kind": "chest",
+      "pos": [
+        14,
+        13
+      ]
+    },
+    {
+      "gold": 15,
+      "kind": "chest",
+      "pos": [
+        8,
+        8
+      ]
+    },
+    {
+      "gold": 15,
+      "kind": "chest",
+      "pos": [
+        8,
+        13
+      ]
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        12,
+        8
+      ]
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        11,
+        13
+      ]
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        8,
+        10
+      ]
+    },
+    {
+      "gold": 3,
+      "kind": "torch",
+      "pos": [
+        2,
+        4
+      ]
+    }
+  ],
+  "stage_id": "stage_02",
+  "theme": "grotta",
+  "tiles": [
+    "####........#####",
+    "####.######.#####",
+    "##....###.....###",
+    "##....###.....###",
+    "##..............#",
+    "##....###.....#.#",
+    "##....#####.###.#",
+    "##....#####.###.#",
+    "####.###........#",
+    "####.###.......##",
+    "##....##.......##",
+    "##....##.......##",
+    "##.............##",
+    "##....##.......##",
+    "##....###########",
+    "#################",
+    "#################"
+  ],
+  "ytor": {}
+}

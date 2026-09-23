@@ -1,0 +1,29 @@
+{
+  "id": "stage_34",
+  "name": "Dova kammaren",
+  "theme": "krypta",
+  "floor_themes": [
+    "krypta",
+    "krypta",
+    "krypta",
+    "krypta",
+    "krypta",
+    "krypta",
+    "asklunden"
+  ],
+  "difficulty": 9,
+  "floors": 7,
+  "tiers": [
+    3
+  ],
+  "encounters_per_floor": 8,
+  "boss": "bellmother",
+  "bosses": [
+    "bellmother",
+    "bellmother",
+    "ash_sovereign"
+  ],
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.8,
+  "xp_bonus": 1.2
+}

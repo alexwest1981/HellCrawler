@@ -1,0 +1,128 @@
+{
+ "bild": "res://assets/ui/varldskarta.png",
+ "zoom": 1.9,
+ "komprimering": 0.82,
+ "lutning": 0.18,
+ "noder": [
+  {
+   "plats": "Nedre porten",
+   "x": 50.0,
+   "y": 88.0,
+   "sektion": 1,
+   "nivåer": [
+    "stage_01",
+    "stage_02",
+    "stage_03",
+    "stage_04"
+   ]
+  },
+  {
+   "plats": "Glaciärsjön",
+   "x": 50.0,
+   "y": 72.0,
+   "sektion": 1,
+   "nivåer": [
+    "stage_05",
+    "stage_06",
+    "stage_07",
+    "stage_08"
+   ]
+  },
+  {
+   "plats": "Is-sjön",
+   "x": 26.0,
+   "y": 34.0,
+   "sektion": 2,
+   "nivåer": [
+    "stage_09",
+    "stage_10",
+    "stage_11",
+    "stage_12"
+   ]
+  },
+  {
+   "plats": "Döda skogen",
+   "x": 15.0,
+   "y": 29.0,
+   "sektion": 2,
+   "nivåer": [
+    "stage_13",
+    "stage_14",
+    "stage_15",
+    "stage_16"
+   ]
+  },
+  {
+   "plats": "Grottöppningen",
+   "x": 8.0,
+   "y": 12.0,
+   "sektion": 2,
+   "nivåer": [
+    "stage_17",
+    "stage_18",
+    "stage_19",
+    "stage_20"
+   ]
+  },
+  {
+   "plats": "Fornruinerna",
+   "x": 46.0,
+   "y": 20.0,
+   "sektion": 3,
+   "nivåer": [
+    "stage_21",
+    "stage_22",
+    "stage_23",
+    "stage_24"
+   ]
+  },
+  {
+   "plats": "Lavafallen",
+   "x": 74.0,
+   "y": 32.0,
+   "sektion": 3,
+   "nivåer": [
+    "stage_25",
+    "stage_26",
+    "stage_27",
+    "stage_28"
+   ]
+  },
+  {
+   "plats": "Brinnande byn",
+   "x": 86.0,
+   "y": 44.0,
+   "sektion": 3,
+   "nivåer": [
+    "stage_29",
+    "stage_30",
+    "stage_31",
+    "stage_32"
+   ]
+  },
+  {
+   "plats": "Labyrinten",
+   "x": 70.0,
+   "y": 66.0,
+   "sektion": 4,
+   "nivåer": [
+    "stage_33",
+    "stage_34",
+    "stage_35",
+    "stage_36"
+   ]
+  },
+  {
+   "plats": "Demonfästningen",
+   "x": 50.0,
+   "y": 46.0,
+   "sektion": 4,
+   "nivåer": [
+    "stage_37",
+    "stage_38",
+    "stage_39",
+    "stage_40"
+   ]
+  }
+ ]
+}

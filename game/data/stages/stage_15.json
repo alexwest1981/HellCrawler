@@ -1,0 +1,22 @@
+{
+  "id": "stage_15",
+  "name": "Myrens tystnad",
+  "theme": "bro",
+  "floor_themes": [
+    "bro",
+    "bro",
+    "bro",
+    "grotta"
+  ],
+  "difficulty": 4,
+  "floors": 4,
+  "tiers": [
+    1,
+    2
+  ],
+  "encounters_per_floor": 6,
+  "boss": "copper_warden",
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.3,
+  "xp_bonus": 0.45
+}

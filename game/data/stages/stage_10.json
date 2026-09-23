@@ -1,0 +1,22 @@
+{
+  "id": "stage_10",
+  "name": "Gruvans hjärta",
+  "theme": "grotta",
+  "floor_themes": [
+    "grotta",
+    "grotta",
+    "grotta",
+    "bro"
+  ],
+  "difficulty": 3,
+  "floors": 4,
+  "tiers": [
+    1,
+    2
+  ],
+  "encounters_per_floor": 5,
+  "boss": "hollow_choir",
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.2,
+  "xp_bonus": 0.3
+}

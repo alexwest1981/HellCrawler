@@ -1,0 +1,31 @@
+[
+  {"id": "cinder_toss",   "name": "Cinder Toss",   "cost": 0, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 10, "hits": 1}]},
+  {"id": "twitch",        "name": "Twitch",        "cost": 0, "type": "item",   "rarity": "common",    "effects": [{"op": "draw", "amount": 1}]},
+  {"id": "buckle",        "name": "Buckle",        "cost": 0, "type": "item",   "rarity": "common",    "effects": [{"op": "armor", "amount": 3}]},
+
+  {"id": "pebble",        "name": "Pebble",        "cost": 1, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 14, "hits": 2}]},
+  {"id": "brass_knuckles","name": "Brass Knuckles","cost": 1, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 22, "hits": 1}]},
+  {"id": "salve",         "name": "Salve",         "cost": 1, "type": "item",   "rarity": "common",    "keywords": ["Destroy"], "effects": [{"op": "heal", "amount": 4}]},
+  {"id": "lantern",       "name": "Lantern",       "cost": 1, "type": "item",   "rarity": "common",    "effects": [{"op": "armor", "amount": 4}]},
+  {"id": "hook",          "name": "Hook",          "cost": 1, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 18, "hits": 1}, {"op": "armor", "amount": 2}]},
+
+  {"id": "broad_axe",     "name": "Broad Axe",     "cost": 2, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 40, "hits": 2}]},
+  {"id": "warding_ring",  "name": "Warding Ring",  "cost": 2, "type": "item",   "rarity": "common",    "effects": [{"op": "armor", "amount": 8}]},
+  {"id": "bone_flail",    "name": "Bone Flail",    "cost": 2, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 30, "hits": 3}]},
+  {"id": "steady_hand",   "name": "Steady Hand",   "cost": 2, "type": "item",   "rarity": "common",    "effects": [{"op": "draw", "amount": 2}]},
+  {"id": "marrow_draught","name": "Marrow Draught", "cost": 2, "type": "item",   "rarity": "common",   "keywords": ["Destroy"], "effects": [{"op": "heal", "amount": 8}]},
+
+  {"id": "glass_dagger",  "name": "Glass Dagger",  "cost": 1, "type": "attack", "rarity": "uncommon",  "effects": [{"op": "damage", "damage": 26, "hits": 1}]},
+  {"id": "rat_king",      "name": "Rat King",      "cost": 1, "type": "crawler","rarity": "uncommon",  "effects": [{"op": "damage", "damage": 12, "hits": 1}, {"op": "armor", "amount": 2}], "text": "Companion"},
+  {"id": "toll_bell",     "name": "Toll Bell",     "cost": 2, "type": "attack", "rarity": "uncommon",  "effects": [{"op": "damage", "damage": 34, "hits": 4}]},
+  {"id": "ash_veil",      "name": "Ash Veil",      "cost": 2, "type": "item",   "rarity": "uncommon",  "effects": [{"op": "armor", "amount": 12}]},
+  {"id": "seam_ripper",   "name": "Seam Ripper",   "cost": 3, "type": "attack", "rarity": "uncommon",  "effects": [{"op": "damage", "damage": 70, "hits": 1}]},
+  {"id": "arc_jump",      "name": "Arc Jump",      "cost": 3, "type": "attack", "rarity": "uncommon",  "effects": [{"op": "damage", "damage": 45, "hits": 3}]},
+  {"id": "hoarfrost",     "name": "Hoarfrost",     "cost": 3, "type": "attack", "rarity": "uncommon",  "effects": [{"op": "damage", "damage": 55, "hits": 2}, {"op": "freeze", "amount": 1, "hits": 2}]},
+  {"id": "wild_chalk",    "name": "Wild Chalk",    "cost": -1, "type": "wild",  "rarity": "uncommon",  "keywords": ["Destroy", "Wild"], "effects": [{"op": "mana", "amount": 2}, {"op": "draw", "amount": 1}], "text": "Add 2 Mana. Draw 1. Destroy. Wild."},
+
+  {"id": "hourglass",     "name": "Hourglass",     "cost": 3, "type": "mana",   "rarity": "rare",      "effects": [{"op": "mana", "amount": 5}, {"op": "draw", "amount": 2}]},
+  {"id": "black_lantern", "name": "Black Lantern", "cost": 3, "type": "item",   "rarity": "rare",      "effects": [{"op": "armor", "amount": 20}, {"op": "heal", "amount": 10}]},
+  {"id": "grave_choir",   "name": "Grave Choir",   "cost": 4, "type": "attack", "rarity": "rare",      "effects": [{"op": "damage", "damage": 90, "hits": 3}]},
+  {"id": "the_long_winter","name": "The Long Winter","cost": 4,"type": "attack","rarity": "rare",      "keywords": ["Evolved"], "effects": [{"op": "damage", "damage": 120, "hits": 2}, {"op": "freeze", "amount": 2, "hits": 3}]}
+]

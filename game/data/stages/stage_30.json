@@ -1,0 +1,24 @@
+{
+  "id": "stage_30",
+  "name": "Saltets dom",
+  "theme": "krypta",
+  "floor_themes": [
+    "krypta",
+    "krypta",
+    "krypta",
+    "krypta",
+    "krypta",
+    "asklunden"
+  ],
+  "difficulty": 8,
+  "floors": 6,
+  "tiers": [
+    2,
+    3
+  ],
+  "encounters_per_floor": 8,
+  "boss": "bellmother",
+  "final_boss": "pale_reaper",
+  "gold_bonus": 0.7,
+  "xp_bonus": 1.05
+}

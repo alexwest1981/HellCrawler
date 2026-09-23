@@ -1,0 +1,26 @@
+[
+  {"id": "shove",         "name": "Shove",         "cost": 1, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 8, "hits": 1}, {"op": "knockback", "amount": 1, "hits": 1}]},
+  {"id": "twin_fang",     "name": "Twin Fang",     "cost": 1, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 11, "hits": 2}]},
+  {"id": "flurry",        "name": "Flurry",        "cost": 2, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 7, "hits": 3}]},
+  {"id": "icicle",        "name": "Icicle",        "cost": 1, "type": "attack", "rarity": "common",    "effects": [{"op": "damage", "damage": 10, "hits": 1}, {"op": "freeze", "amount": 1, "hits": 1}]},
+  {"id": "bulwark",       "name": "Bulwark",       "cost": 2, "type": "item",   "rarity": "common",    "effects": [{"op": "armor", "amount": 7}]},
+  {"id": "tallow_candle", "name": "Tallow Candle", "cost": 0, "type": "item",   "rarity": "common",    "effects": [{"op": "heal", "amount": 4}, {"op": "armor", "amount": 2}]},
+  {"id": "wellspring",    "name": "Wellspring",    "cost": 1, "type": "mana",   "rarity": "common",    "effects": [{"op": "mana", "amount": 2}]},
+  {"id": "scry",          "name": "Scry",          "cost": 1, "type": "item",   "rarity": "common",    "effects": [{"op": "draw", "amount": 2}]},
+
+  {"id": "repulse",       "name": "Repulse",       "cost": 2, "type": "attack", "rarity": "uncommon",  "effects": [{"op": "knockback", "amount": 2, "hits": 2}]},
+  {"id": "frost_nail",    "name": "Frost Nail",    "cost": 2, "type": "attack", "rarity": "uncommon",  "effects": [{"op": "damage", "damage": 14, "hits": 1}, {"op": "freeze", "amount": 2, "hits": 1}]},
+  {"id": "nailstorm",     "name": "Nailstorm",     "cost": 3, "type": "attack", "rarity": "uncommon",  "effects": [{"op": "damage", "damage": 22, "hits": 4}]},
+  {"id": "plated_stance", "name": "Plated Stance", "cost": 1, "type": "item",   "rarity": "uncommon",  "effects": [{"op": "armor", "amount": 8}, {"op": "draw", "amount": 1}]},
+  {"id": "last_rites",    "name": "Last Rites",    "cost": 2, "type": "item",   "rarity": "uncommon",  "effects": [{"op": "heal", "amount": 14}, {"op": "damage", "damage": 12, "hits": 1}]},
+  {"id": "second_wind",   "name": "Second Wind",   "cost": 0, "type": "item",   "rarity": "uncommon",  "effects": [{"op": "draw", "amount": 1}, {"op": "heal", "amount": 6}]},
+  {"id": "final_bell",    "name": "Final Bell",    "cost": 2, "type": "attack", "rarity": "uncommon",  "keywords": ["Destroy"], "effects": [{"op": "damage", "damage": 45, "hits": 1}], "text": "45. Destroy."},
+  {"id": "wild_ember",    "name": "Wild Ember",    "cost": -1, "type": "wild",  "rarity": "uncommon",  "effects": [{"op": "damage", "damage": 20, "hits": 1}], "text": "20. Wild."},
+
+  {"id": "gale_wall",     "name": "Gale Wall",     "cost": 3, "type": "attack", "rarity": "rare",      "effects": [{"op": "damage", "damage": 30, "hits": 3}, {"op": "knockback", "amount": 2, "hits": 2}]},
+  {"id": "whiteout",      "name": "Whiteout",      "cost": 3, "type": "attack", "rarity": "rare",      "effects": [{"op": "freeze", "amount": 2, "hits": 3}]},
+  {"id": "swarm_lance",   "name": "Swarm Lance",   "cost": 2, "type": "attack", "rarity": "rare",      "effects": [{"op": "damage", "damage": 22, "hits": 5}]},
+  {"id": "deep_draught",  "name": "Deep Draught",  "cost": 2, "type": "mana",   "rarity": "rare",      "effects": [{"op": "mana", "amount": 3}, {"op": "draw", "amount": 2}]},
+  {"id": "pyre",          "name": "Pyre",          "cost": 3, "type": "attack", "rarity": "rare",      "keywords": ["Destroy"], "effects": [{"op": "damage", "damage": 60, "hits": 2}], "text": "60 to two. Destroy."},
+  {"id": "wild_aegis",    "name": "Wild Aegis",    "cost": -1, "type": "wild",  "rarity": "rare",      "effects": [{"op": "armor", "amount": 12}, {"op": "heal", "amount": 8}], "text": "+12 Armor. +8 HP. Wild."}
+]
