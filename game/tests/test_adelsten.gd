@@ -53,30 +53,33 @@ func _initialize() -> void:
 	var m := _met()
 	check(m.gem_defs.size() == 5, "fem stenfamiljer i datat", "%d" % m.gem_defs.size())
 	m.gold = 200000
-	m.shards = 40
+	m.souls = 40
 	var låst := m.buy("iron_5")
-	check(not låst.ok, "en splitter-nod med kravet ogjort går inte att köpa", str(låst.reason))
+	check(not låst.ok, "en trädgren med kravet ogjort går inte att köpa", str(låst.reason))
 	m.ranks["iron_4"] = 3
 	var guld_före := m.gold
+	var cs_pris := m.next_soul_cost("iron_5")
 	var köpt := m.buy("iron_5")
-	check(köpt.ok, "splitter-noden köps")
-	check(m.shards == 40 - 8, "…och splittret drogs", "40 -> %d" % m.shards)
+	check(köpt.ok, "trädgrenen köps")
+	# TRÄDET KOSTAR CS (M95, Alex: *"Skills i skill tree skall inte kosta guld, de skall kosta CS"*).
+	check(m.souls == 40 - cs_pris, "…och CS drogs", "40 -> %d (pris %d)" % [m.souls, cs_pris])
 	check(m.gold == guld_före, "…och guldet står orört", "%d" % m.gold)
-	# En guld-nod ska inte röra splittret: valutan är bara unik om den inte blandas.
+	# Fickorna är bara unika om de inte blandas: en guld-nod (uppgraderingen might) rör inte CS.
 	var m2 := _met()
 	m2.gold = 1000
-	m2.shards = 40
-	check(m2.buy("iron_1").ok, "guld-noden köps för guld")
-	check(m2.shards == 40, "…och splittret står orört", "%d" % m2.shards)
-	check(m2.gold == 1000 - 40, "…och guldet drogs", "%d" % m2.gold)
-	# Utan splitter går det inte, hur mycket guld som helst.
+	m2.souls = 40
+	var guld_pris := m2.next_cost("might")
+	check(m2.buy("might").ok, "guld-noden köps för guld")
+	check(m2.souls == 40, "…och CS står orört", "%d" % m2.souls)
+	check(m2.gold == 1000 - guld_pris, "…och guldet drogs", "%d (pris %d)" % [m2.gold, guld_pris])
+	# Utan CS går trädet inte, hur mycket guld som helst.
 	var m3 := _met()
 	m3.gold = 999999
-	m3.shards = 7
 	m3.ranks["iron_4"] = 3
+	m3.souls = maxi(0, m3.next_soul_cost("iron_5") - 1)     # en CS för lite, inte ett gissat tal
 	var fattig := m3.buy("iron_5")
-	check(not fattig.ok and str(fattig.reason) == "for_lite_splitter",
-		"guld köper INTE en splitter-nod", str(fattig.reason))
+	check(not fattig.ok and str(fattig.reason) == "for_lite_cs",
+		"guld köper INTE en trädgren", str(fattig.reason))
 
 	# --- 2. facken ------------------------------------------------------------------------------
 	print("— facken —")

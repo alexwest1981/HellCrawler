@@ -32,6 +32,9 @@ var gold := 0
 ## trädets permanenta noder (mana, hälsa, rustning) kostar den. Guldet räcker alltså inte till allt:
 ## de köp som gäller för all framtid kräver att man går ner och hämtar dem.
 var shards := 0
+## Corrupted Souls (CS): trädets valuta. Skild från guldet med flit — trädet ska inte kunna köpas
+## med pengar man råkar ha i fickan, utan bara med sådant som bossar släpper ifrån sig.
+var souls := 0
 ## ÄDELSTENARNA (M58): fickan, facken och det som sitter i korten.
 ##   gems:     familj -> [antal per grad 0..4]   (0 = simpel, 4 = utsökt)
 ##   gem_slots: kort-id -> antal öppnade fack (0-4, köps hos juveleraren)
@@ -207,6 +210,26 @@ func next_shard_cost(id: String) -> int:
 func kostar_splitter(id: String) -> bool:
 	return def_for(id).has("shard_cost")
 
+## Trädets noder betalas med CS. Grenen är kännetecknet — samma som village_lines() använder för att
+## skilja trädet från uppgraderingarna, så en nod kan inte hamna i två fickor — och CS-priset måste
+## FINNAS i datat. Utan det kravet blev en nod utan soul_cost gratis i stället för dyr, vilket är
+## den värsta sortens tysta fel: provet visade "0 CS ✓" på en nod som skulle kosta.
+func kostar_sjal(id: String) -> bool:
+	var def := def_for(id)
+	return not str(def.get("branch", "")).is_empty() and def.has("soul_cost")
+
+## Priset i CS för nästa rang. Saknas raden i datat kostar nästa rang ingenting — då är noden
+## billigare än tänkt, inte oåtkomlig.
+func next_soul_cost(id: String) -> int:
+	if is_maxed(id):
+		return -1
+	var costs: Array = def_for(id).get("soul_cost", [])
+	var r := rank(id)
+	return int(costs[r]) if r < costs.size() else 0
+
+func add_souls(n: int) -> void:
+	souls = max(0, souls + n)
+
 ## Kan den köpas? Skälet i klartext, så UI:t aldrig behöver gissa varför knappen inte gör något.
 func can_buy(id: String) -> Dictionary:
 	if def_for(id).is_empty():
@@ -215,7 +238,10 @@ func can_buy(id: String) -> Dictionary:
 		return {"ok": false, "reason": "full"}
 	if not requires_met(id):
 		return {"ok": false, "reason": "kraver", "krav": missing_requirement(id)}
-	if kostar_splitter(id):
+	if kostar_sjal(id):
+		if souls < next_soul_cost(id):
+			return {"ok": false, "reason": "for_lite_cs", "pris": next_soul_cost(id)}
+	elif kostar_splitter(id):
 		if shards < next_shard_cost(id):
 			return {"ok": false, "reason": "for_lite_splitter", "pris": next_shard_cost(id)}
 	else:
@@ -263,7 +289,9 @@ func buy(id: String) -> Dictionary:
 		return v
 	# Priset dras ur RÄTT ficka: splitter för de permanenta noderna, guld för resten. Mätt i provet
 	# test_meta: en splitter-nod lämnar guldet orört och tvärtom.
-	if kostar_splitter(id):
+	if kostar_sjal(id):
+		souls -= next_soul_cost(id)
+	elif kostar_splitter(id):
 		shards -= next_shard_cost(id)
 	else:
 		gold -= next_cost(id)

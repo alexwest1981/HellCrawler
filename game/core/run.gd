@@ -139,6 +139,13 @@ func _check_level() -> void:
 func _boss_draft() -> void:
 	if card_db.is_empty():
 		return
+	# CORRUPTED SOULS (M95): bossen är den enda källan. Siffran följer svårighetsgraden, samma kurva
+	# som fiende-HP och guld — summan för hela spelet landar på trädets 1 638 CS kring trettio
+	# körningar, vilket är takten Alex beställde ("spela spelet typ 20ggr"). Ingen särskild rad för
+	# slutbossen: kurvan gör den redan till den största, och en fast summa ovanpå hade varit ett tal
+	# att hålla i synk med svårighetsgraden för hand.
+	if meta != null:
+		meta.add_souls(5 + stage.difficulty * 2)
 	var choices := Progress.draft(rng_draft, card_db, 3, level / 4)
 	if choices.is_empty():
 		return

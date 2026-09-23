@@ -232,12 +232,15 @@ func _tree_checks() -> void:
 	check(not spärr.ok and spärr.reason == "kraver", "och går inte att köpa förbi",
 		"%s (%s)" % [spärr.reason, spärr.get("krav", "")])
 
-	mt.add_gold(1000)
+	mt.add_souls(1000)
+	var cs_pris := mt.next_soul_cost("iron_1")
 	check(mt.buy("iron_1").ok, "första noden går att köpa")
 	check(mt.rank("iron_1") == 1, "och får rang 1", "%d" % mt.rank("iron_1"))
 	check(is_equal_approx(mt.stat("might"), 0.02), "noden höjer skadan med sitt lilla steg",
 		"%.3f" % mt.stat("might"))
-	check(mt.gold == 960, "priset drogs", "%d guld" % mt.gold)
+	# TRÄDET KOSTAR CS (M95): guld räcker inte, hur mycket man än har.
+	check(mt.souls == 1000 - cs_pris, "CS-priset drogs", "%d CS (pris %d)" % [mt.souls, cs_pris])
+	check(mt.gold == 0, "och guldet stod orört", "%d guld" % mt.gold)
 	# REGELN (Alex): nästa nod öppnas först när noden innan är FULLT uppgraderad. Att den är köpt en
 	# gång räcker inte — det var den gamla regeln, och det här paret provar att den är borta.
 	check(bool(mt.tree_lines("Järnvägen")[1]["låst"]), "nästa nod är låst efter ett köp")

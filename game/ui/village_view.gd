@@ -36,21 +36,36 @@ signal vald(skepp: String)
 const BILD := "res://assets/ui/byn.png"
 
 ## Platserna i gatuordning (vänster → höger, som bilden visar dem): `x` är platsens mitt på BILDEN i
-## procent av bredden, och `färg` är märkets ton ur paletten. Porten ligger i mitten av bilden — där
-## går man ut — och ligger därför mellan värdshuset och butiken i gatuordningen.
+## procent av bredden, och `färg` är märkets ton ur paletten.
 ##
-## Siffrorna är LÄSTA ur panoramabilden (3232x1312): väveriet, smedjan, krogen, porten, juveleraren,
-## EXIT-skylten och fårhagen i den ordningen. Mätt mot bilden, inte gissat — märkena ska stå på husen.
+## NAMNEN ÄR ENGELSKA EFTERSOM SKYLTARNA I BILDEN ÄR DET. Alex: *"Döp det till Thread of Destiny, Sen
+## kommer Blacksmith, Sen The Tavern, sen The Gate, sen Jeweler, och sist Exit."* Bilden bär redan
+## sina skyltar målade (BLACKSMITH, THE TAVERN, JEWELER, EXIT ➔, och porten utan text) — svenska namn
+## ovanpå engelska skyltar vore två språk på samma hus. Texten är data här och ingen i18n-nyckel: den
+## beskriver bilden.
+##
+## X-POSITIONERNA KOM UR ETT SAMTAL MED BILDEN, EFTER ATT HA VARIT FEL. Den förra listan påstod i en
+## kommentar att siffrorna var "LÄSTA ur panoramabilden", men de höll inte: Alex såg att Butiken
+## pekade på juvelerarhuset (*"Det står Butiken, men det pekar vid juveleraren på bilden"*), och han
+## hade rätt — Butiken stod på 69 %, vilket är inne i JEWELER (63–75 %), och JUVELERAREN stod på
+## 31 %, vilket är inne i THE TAVERN (32–48 %). En kommentar är inte en mätning.
+##
+## Husen ligger nu på: väveriet utan skylt 2–15 % (trädet), Blacksmith 14–31 %, The Tavern 32–48 %,
+## stadsporten 45–62 %, Jeweler 63–75 %, EXIT ➔ 75–86 %.
+##
+## BUTIKEN HAR INGEN DÖRR I BILDEN. Den är inte med i Alex' lista och det finns inget hus kvar till
+## den, så platsen är borta härifrån — skärmen finns kvar i skalet (och nås av skalsvepet). Ska
+## kortköpet ha en egen dörr får han säga vilket hus den ska bo i.
 const PLATSER := [
-	{"id": "smed", "namn": "SMEDEN", "skepp": "smed", "x": 23.0, "färg": 12},
-	{"id": "juvelerare", "namn": "JUVELERAREN", "skepp": "juvelerare", "x": 31.0, "färg": 30},
-	{"id": "vardshus", "namn": "VÄRDSHUSET", "skepp": "vardshus", "x": 38.5, "färg": 13},
-	{"id": "karta", "namn": "VÄRLDSKARTAN", "skepp": "karta", "x": 53.5, "färg": 25},
-	{"id": "butik", "namn": "BUTIKEN", "skepp": "butik", "x": 69.0, "färg": 15},
+	{"id": "tradet", "namn": "THREAD OF DESTINY", "skepp": "trad", "x": 8.5, "färg": 1},
+	{"id": "smed", "namn": "BLACKSMITH", "skepp": "smed", "x": 22.5, "färg": 12},
+	{"id": "vardshus", "namn": "THE TAVERN", "skepp": "vardshus", "x": 40.0, "färg": 13},
+	{"id": "karta", "namn": "THE GATE", "skepp": "karta", "x": 53.5, "färg": 25},
+	{"id": "juvelerare", "namn": "JEWELER", "skepp": "juvelerare", "x": 69.0, "färg": 30},
 	# EXIT-skylten i bilden (längst till höger) stänger spelet. Alex: "Exit på bilden behöver vara
 	# till att avsluta spelet." Den är ingen skärm i skalet — `_på_plats` i main.gd känner igen
 	# "avsluta" och avslutar, och provet mot SKAL_LÄGEN hoppar över just den här platsen.
-	{"id": "avsluta", "namn": "AVSLUTA", "skepp": "avsluta", "x": 80.5, "färg": 14},
+	{"id": "avsluta", "namn": "EXIT", "skepp": "avsluta", "x": 80.5, "färg": 14},
 ]
 const MÄRKE := Vector2(20.0, 26.0)   ## märkets ruta: klickytan, och den ruta provet mäter krockar med
 const DJUP := 6.0                    ## märkets skugga i sidled (provet räknar in den i krockmåttet)
@@ -102,32 +117,33 @@ func visa(meta: Meta, antal_banor: int) -> void:
 	# valda platsen, annars står markeringen snett i vyn.
 	_pan = _mål_pan(_vald)
 	_pan_mål = _pan
-	var köp := 0
-	for rad in meta.village_lines():
-		if int(rad["cost"]) >= 0 and bool(rad["affordable"]):
-			köp += 1
-	var smed := 0
+	var tree_buyable := 0
 	for gren in meta.branches():
 		for rad in meta.tree_lines(str(gren)):
-			if int(rad["cost"]) >= 0 and bool(rad["affordable"]) and not bool(rad["låst"]):
-				smed += 1
+			# Räknat med can_buy, inte med radens pris: trädets noder betalas i CS (M95), och radens
+			# "cost" är guldpriset som inte längre gäller. can_buy vet vilken ficka som gäller, så
+			# siffran i byn och krysset i vyn kan inte säga olika saker.
+			if not bool(rad.get("låst", false)) \
+					and bool(meta.can_buy(str(rad.get("id", ""))).get("ok", false)):
+				tree_buyable += 1
 	var upplåsta: int = meta.unlocked.size()
-	# Rader och siffror: FORMEN är översatt, SIFFRAN kommer ur läget. Ordningen följer PLATSER
-	# (smed, värdshus, karta, butik) — stod den kvar i den gamla ordningen hamnade smedens siffra
-	# under värdshusets namn.
+	# Rader och siffror: FORMEN är översatt, SIFFRAN kommer ur läget. En rad per plats och i SAMMA
+	# ordning som PLATSER (Thread of Destiny, Blacksmith, The Tavern, The Gate, Jeweler, Exit) — en
+	# rad som hamnar under fel skylt är samma fel som Alex såg på husen.
+	# Butikens rad är borta med butikens dörr: uthyrningens "i leken" hör till värdshuset, och
+	# uppgraderingarnas antal hörde till butiken som inte längre har ett hus.
 	_status = [
-		{"text": Tr.t("ui.by.status.buy", "%d att köpa") % smed if smed > 0
-			else Tr.t("ui.by.status.none", "inget att köpa"), "ljus": smed > 0},
-		{"text": Tr.t("ui.by.status.gems", "%d stenar i fickan") % meta.gem_bag().size()
-			if not meta.gem_bag().is_empty() else Tr.t("ui.by.status.nogems", "inga stenar"),
-			"ljus": not meta.gem_bag().is_empty()},
+		{"text": Tr.t("ui.by.status.buy", "%d att köpa") % tree_buyable if tree_buyable > 0
+			else Tr.t("ui.by.status.none", "inget att köpa"), "ljus": tree_buyable > 0},
+		{"text": Tr.t("ui.by.status.smith", "ingen verkstad än"), "ljus": false},
 		{"text": Tr.t("ui.by.status.deck", "%d i leken") % meta.hired.size()
 			if not meta.hired.is_empty() else Tr.t("ui.by.status.nodeck", "inga hyrda"),
 			"ljus": not meta.hired.is_empty()},
 		{"text": Tr.t("ui.by.status.unlocked", "%d av %d upplåsta") % [upplåsta, antal_banor],
 			"ljus": upplåsta > 1},
-		{"text": Tr.t("ui.by.status.buy", "%d att köpa") % köp if köp > 0
-			else Tr.t("ui.by.status.none", "inget att köpa"), "ljus": köp > 0},
+		{"text": Tr.t("ui.by.status.gems", "%d stenar i fickan") % meta.gem_bag().size()
+			if not meta.gem_bag().is_empty() else Tr.t("ui.by.status.nogems", "inga stenar"),
+			"ljus": not meta.gem_bag().is_empty()},
 		# EXIT-skylten: ingen siffra, bara vad platsen gör. Den ligger sist, som i bilden.
 		{"text": Tr.t("ui.by.status.quit", "lämna spelet"), "ljus": false},
 	]

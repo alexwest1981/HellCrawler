@@ -2687,11 +2687,11 @@ func _refresh_shell() -> void:
 	var i_körning: bool = shell == "körning"
 	by_view.visible = shell == "hem"
 	karta_view.visible = shell == "karta"
-	trad_view.visible = shell == "trad" or shell == "smed"
+	trad_view.visible = shell == "trad"
 	butik_panel.visible = shell == "butik"
 	album_panel.visible = shell == "album"
 	inn_panel.visible = shell == "vardshus"
-	smed_panel.visible = false          # trädet ritas av TreeView, inte som textrader (M94)
+	smed_panel.visible = shell == "smed"
 	jewel_panel.visible = shell == "juvelerare"
 	verk_panel.visible = shell == "banverkstad"
 	map_view.visible = i_körning
@@ -2715,11 +2715,13 @@ func _refresh_shell() -> void:
 	if shell == "hem":
 		# Byn och kartan ritar sig själva: de får metat och ordningen, inte en färdig textrad.
 		by_view.visa(meta, _stage_order.size())
-	elif shell == "trad" or shell == "smed":
-		# Smeden visar trädet som vy nu. Raden med köpstatus (M61) räknas ändå ut: provet läser den i
-		# smed_label, och skulle panelen komma tillbaka ska den visa något som är räknat, inte sparat.
-		if shell == "smed":
-			smed_label.text = _smed_text()
+	elif shell == "smed":
+		# Trädet bor inte här (M95). Alex: *"Smeden har inget att göra med Skill Tree — Smeden skall
+		# skärpa de vapen man samlat in på kort."* Tills verkstaden finns står det rakt ut här i
+		# stället för en tom panel eller, värre, trädets rader under en skylt det inte är.
+		smed_label.text = Tr.t("ui.smith.oppet", "Smeden skärper vapnen du hittat på korten.\n\nVerkstaden är inte öppen än.")
+	elif shell == "trad":
+		# Trädet är sin egen plats i byn nu (M95) och betalas med CS (se meta.buy).
 		trad_view.visa(meta, Tr.t("ui.tree.title", "TRÄDET"))
 	elif shell == "album":
 		_show_album()
@@ -2741,14 +2743,17 @@ func _refresh_shell() -> void:
 	# att veta om man har råd eller ej."* Raden fylldes förut men etiketten var `visible = false` och
 	# sattes aldrig på — den syntes alltså ingenstans (mätt: byn har ingen text om guld alls).
 	#
-	# Panelskärmarna (butik, smed, värdshus, juveleraren) bär saldot i sin EGEN rubrik, så där vore
-	# raden en dubblering över en panel som redan fyller vyn. Byn, kartan och albumet har ingen
-	# rubrik — där står den i spelvyns överkant, som är tom.
-	top_label.visible = shell == "hem" or shell == "karta" or shell == "album"
-	top_label.text = "%s · %s" % [
+	# Valutaraden. Den visar guld, splitter och CS, och den står framme på varje skärm UTOM under
+	# körningen — där bär stridshuden samma tal själv (ui.hud.status), och två rader med samma siffra
+	# är en lögn om vilken av dem som gäller. Alex: *"Guld, Splitter och andra valutor inte visas.
+	# Det måste de."* Raden låg förut bara på hem/karta/album — alltså var den borta i butiken, i
+	# världshuset, hos smeden och hos juveleraren: exakt de skärmar där man handlar.
+	top_label.visible = shell != "körning"
+	top_label.text = "%s · %s · %s" % [
 		Tr.t("ui.shell.status", "HellCrawler · %d guld · %d/%d banor upplåsta")
 			% [meta.gold, meta.unlocked.size(), _stage_order.size()],
-		Tr.t("ui.shell.splitter", "%d splitter") % meta.shards]
+		Tr.t("ui.shell.splitter", "%d splitter") % meta.shards,
+		Tr.t("ui.shell.cs", "%d CS") % meta.souls]
 	# Tipsen och korträknaren hör till KÖRNINGEN. Byn och kartan ritar sin egen text, och en
 	# kvarglömd hand över byn vore en lögn om var man är.
 	hint_label.text = ""

@@ -572,12 +572,19 @@ func _initialize() -> void:
 	check(main.top_label.visible, "saldot SYNS i byn (den var osynlig förut)")
 	check(saldo.contains(str(main.meta.gold)), "och raden säger samma guld som metat", saldo)
 	check(saldo.contains(str(main.meta.shards)), "…och samma splitter", saldo)
+	# VALUTARADEN SYNS ÖVERALLT UTOM I KÖRNINGEN (M95, Alex: *"Guld, Splitter och andra valutor inte
+	# visas. Det måste de."*). Den låg förut bara på hem/karta/album — alltså var den borta i butiken,
+	# i världshuset, hos smeden och hos juveleraren: exakt de skärmar där man handlar.
 	main.shell = "smed"
 	main._refresh_shell()
-	check(not main.top_label.visible, "men inte över smeden (panelen bär saldot själv)")
+	check(main.top_label.visible, "saldot syns även hos smeden")
 	main.shell = "juvelerare"
 	main._refresh_shell()
-	check(not main.top_label.visible, "och inte över juveleraren")
+	check(main.top_label.visible, "och hos juveleraren")
+	main.shell = "trad"
+	main._refresh_shell()
+	check(main.top_label.visible, "och i trädet")
+	check(main.top_label.text.contains("CS"), "och raden visar CS också", main.top_label.text)
 	# JUVELERAREN (M58) ryms i vyn. Texten växte från sex rader till nio när facken och fickan byggdes
 	# ut, men panelen centreras i spelvyn — blev den högre än 270 px klipptes rubriken (guld och fack)
 	# i överkant och kortraden i underkant. Mätt på Alex' skärmbild 23 sep. Måttet står här så en
@@ -603,18 +610,23 @@ func _initialize() -> void:
 
 	# RÅDFRÅGAN (M61): priset stod där förut, men svaret fanns bara att få genom att jämföra talet med
 	# saldot högst upp. Nu står ✓ eller ✗ bredvid priset, räknat ur samma `affordable` som köpet.
+	# M61:s rad flyttade med trädet (M95): svaret står i vyns hovringstext i stället för i en
+	# textlista hos smeden, och priset är CS — trädet köps inte för guld.
 	main.meta.gold = 0
 	main.meta.shards = 0
-	main.shell = "smed"
+	main.meta.souls = 0
+	main.shell = "trad"
 	main._refresh_shell()
-	var utan: String = main.smed_label.text
-	check(utan.contains(" X "), "utan guld står X vid priset", utan.substr(0, 70).replace("\n", " | "))
-	check(not utan.contains(" OK "), "…och inget OK (man har inte råd med något)")
-	main.meta.gold = 100000
+	main.trad_view._peka("iron_1")
+	var utan: String = main.trad_view._info.text
+	check(utan.contains("✗"), "utan CS står ett kryss vid priset", utan)
+	main.meta.souls = 100000
 	main._refresh_shell()
-	var med: String = main.smed_label.text
-	check(med.contains(" OK "), "med guld står OK vid det man har råd med",
-		med.substr(0, 60).replace("\n", " | "))
+	main.trad_view._peka("iron_1")
+	var med: String = main.trad_view._info.text
+	check(med.contains("✓"), "med CS står en bock vid priset", med)
+	check(med.contains("CS"), "och priset står i CS, inte i guld", med)
+	main.meta.souls = 0
 	main.meta.gold = 0
 	main.meta.shards = 0
 	main.shell = "hem"

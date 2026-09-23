@@ -148,7 +148,11 @@ func _peka(id: String) -> void:
 	else:
 		text += "  ·  %d/%d" % [rang, max_rank]
 		if _meta.requires_met(id):
-			text += "  ·  %d guld" % _meta.next_cost(id)
+			# Priset i trädets EGEN valuta, och svaret på om man har råd — M61:s rad från smedens
+			# textlista, flyttad med trädet. Ett kryss säger att knappen inte gör något, vilket är
+			# hela poängen: svaret ska stå där, inte räknas ut genom att jämföra två tal.
+			var pris: int = _meta.next_soul_cost(id)
+			text += "  ·  %d CS %s" % [pris, "✓" if _meta.souls >= pris else "✗"]
 		else:
 			text += "  ·  %s" % _meta.missing_requirement(id)
 	_info.text = text

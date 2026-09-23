@@ -342,6 +342,10 @@ func _tree_in_run(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, 
 	var bas_mana := ren.base_mana
 	var bas_hand := ren.base_hand
 	m.gold = 60000
+	# Trädet köps med CS (M95). Provet maxar tre grenar och mäter vad rangerna gör med körningen —
+	# med bara guld i fickan stod noderna still och statistiken blev 0, vilket är precis vad felet
+	# såg ut som. Båda fickorna fylls här, för provet handlar om rangernas verkan, inte om priset.
+	m.souls = 60000
 	# REGELN (Alex, M88): en nod öppnas först när föräldern är FULLT uppgraderad. Provet köpte förut
 	# varje nod en gång och väntade sig barnet på det — den gamla regeln, som `requires_met` inte
 	# längre följer. `maxa` köper en nod till dess högsta rang, så provet beskriver den regel som
