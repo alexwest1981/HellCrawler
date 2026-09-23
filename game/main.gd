@@ -300,6 +300,9 @@ var _verk_rad := ""        ## kvittot ("banan sparad")
 var smed_panel: PanelContainer
 var smed_label: Label
 var _smed_vald := 0
+## Smedens två avdelningar (M95). Alex: *"Kortköpen kan ligga som en egen sektion inne hos smeden,
+## att smeden har två avdelningar — Shop och Sharpen."* Trädet bor inte här; det har egen plats.
+var _smed_läge := "shop"
 ## Temat för våningen som ritas just nu. Rutorna är samma pixelkonst, men ljuset skiljer platserna åt.
 ## Temats ljus: bakgrund (tomrummet utanför väggarna), omgivningsljus (det som lyser där lyktan inte
 ## når) och dimma. Rutorna är inte längre ostrukturerade — våningen är mörk och det man ser är
@@ -2517,6 +2520,11 @@ func _show_jewel() -> void:
 	var lek := _start_lek()
 	jewel_kort = clampi(jewel_kort, 0, maxi(0, lek.size() - 1))
 	for barn in jewel_box.get_children():
+		# remove_child FÖRST: queue_free friställer barnet först i slutet av bildrutan, och en andra
+		# omritning i samma bildruta mätte då de gamla raderna också — juvelerarpanelen blev 884 px
+		# bred i en 480 px vy när skalet ritades om två gånger i rad (fångat av ESC-provet, som
+		# går igenom varje skärm). Att ta bort barnet ur trädet direkt gör storleken sann på en gång.
+		jewel_box.remove_child(barn)
 		barn.queue_free()
 	jewel_panel.visible = true
 	if lek.is_empty():
@@ -2688,10 +2696,10 @@ func _refresh_shell() -> void:
 	by_view.visible = shell == "hem"
 	karta_view.visible = shell == "karta"
 	trad_view.visible = shell == "trad"
-	butik_panel.visible = shell == "butik"
+	butik_panel.visible = shell == "butik" or (shell == "smed" and _smed_läge == "shop")
 	album_panel.visible = shell == "album"
 	inn_panel.visible = shell == "vardshus"
-	smed_panel.visible = shell == "smed"
+	smed_panel.visible = shell == "smed" and _smed_läge == "sharpen"
 	jewel_panel.visible = shell == "juvelerare"
 	verk_panel.visible = shell == "banverkstad"
 	map_view.visible = i_körning
@@ -2719,7 +2727,7 @@ func _refresh_shell() -> void:
 		# Trädet bor inte här (M95). Alex: *"Smeden har inget att göra med Skill Tree — Smeden skall
 		# skärpa de vapen man samlat in på kort."* Tills verkstaden finns står det rakt ut här i
 		# stället för en tom panel eller, värre, trädets rader under en skylt det inte är.
-		smed_label.text = Tr.t("ui.smith.oppet", "Smeden skärper vapnen du hittat på korten.\n\nVerkstaden är inte öppen än.")
+		smed_label.text = Tr.t("ui.smith.oppet", "SMEDEN · SHARPEN\n\nVapnen du hittat på korten skärps här.\nVerkstaden är inte öppen än.\n\nT = SHOP")
 	elif shell == "trad":
 		# Trädet är sin egen plats i byn nu (M95) och betalas med CS (se meta.buy).
 		trad_view.visa(meta, Tr.t("ui.tree.title", "TRÄDET"))
@@ -3344,6 +3352,16 @@ func _build_empty_view() -> void:
 ## Tangenterna i skalet. Egen väg in i stället för att hänga på körningens: en meny som delar
 ## tangentbord med spelet bakom sig tappar en tangent så fort någon lägger till en i spelet.
 func _input_shell(key: int) -> void:
+	# ESC = tillbaka till byn, från VARJE skärm. Alex: *"Varje del måste gå att backa ur tillbaka
+	# till byn med antingen en knapp för exit, eller med esc-knappen."*
+	#
+	# Grinden ligger först i funktionen i stället för som en gren per skärm: en ny skärm får vägen
+	# tillbaka utan att någon kommer ihåg att lägga in den, och en skärm som glömt sin egen ESC kan
+	# inte bli en återvändsgränd. Körningen är undantagen — ESC betyder paus/meny där, och den grenen
+	# står kvar längre ner — och i byn finns ingenting att backa ur.
+	if key == KEY_ESCAPE and shell != "hem" and shell != "körning":
+		_show_home()
+		return
 	if shell == "album":
 		match key:
 			KEY_LEFT, KEY_A:
@@ -3394,6 +3412,11 @@ func _input_shell(key: int) -> void:
 					_show_inn()
 	elif shell == "smed":
 		match key:
+			# Smedens två avdelningar (M95): Shop (kortköpen) och Sharpen (vapnen). Trädet har egen
+			# plats i byn och blandas inte in här.
+			KEY_T:
+				_smed_läge = "sharpen" if _smed_läge == "shop" else "shop"
+				_refresh_shell()
 			KEY_LEFT, KEY_A:
 				_smed_vald = (_smed_vald - 1 + maxi(1, meta.branches().size())) % maxi(1, meta.branches().size())
 			KEY_RIGHT, KEY_D:

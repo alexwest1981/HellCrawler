@@ -38,6 +38,10 @@ static func _släckt() -> Color:
 static func _köpbar() -> Color:
 	return Color(1, 1, 1)
 
+## Köpt men inte maxad: inre glöd, ljuset hålls innanför ramen. Steg 2 i Alex' bild.
+static func _köpt() -> Color:
+	return Color(0.92, 0.72, 0.42)
+
 static func _mättad() -> Color:
 	return Color(1.0, 0.88, 0.62)     # varm: grenen är fylld
 
@@ -96,6 +100,9 @@ func visa(meta: Meta, titel: String) -> void:
 	_meta = meta
 	_rubrik.text = titel
 	for barn in _ikoner.values():
+		# remove_child FÖRST — samma fälla som hos juveleraren: en andra visa() i samma bildruta
+		# mätte annars de gamla ikonerna också och rutnätet växte för varje omritning.
+		_rutnät.remove_child(barn)
 		barn.queue_free()
 	_ikoner.clear()
 	_rader.clear()
@@ -125,16 +132,22 @@ func visa(meta: Meta, titel: String) -> void:
 	uppdatera()
 
 
-## Tillståndet är färgen. Allt annat (namn, pris, skäl) kommer ur metan.
+## Tillstånden är fyra, inte tre. Alex' stegbild visar dem i ordning: låst (död metall), köpt (inre
+## glöd, ljuset hålls innanför ramen), maxad (energin BRYTER ramen — aura utanför) och kronan
+## (störst, högst upp). Färgen bär tillståndet; texten kommer vid hovring.
 func uppdatera() -> void:
 	for id in _ikoner:
 		var ikon: TextureRect = _ikoner[id]
-		if _meta.is_maxed(id):
-			ikon.modulate = _mättad()
+		var rank: int = _meta.rank(id)
+		var max_rank: int = int(_meta.def_for(id).get("max_rank", 1))
+		if rank > 0 and rank >= max_rank:
+			ikon.modulate = _mättad()          # maxad: varm, och rutan runt om lyser i vyn
+		elif rank > 0:
+			ikon.modulate = _köpt()            # köpt: inre glöd, ingen aura
 		elif _meta.requires_met(id):
-			ikon.modulate = _köpbar()
+			ikon.modulate = _köpbar()          # öppen men orörd
 		else:
-			ikon.modulate = _släckt()
+			ikon.modulate = _släckt()          # låst: död metall
 
 
 func _peka(id: String) -> void:

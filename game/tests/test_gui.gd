@@ -585,6 +585,23 @@ func _initialize() -> void:
 	main._refresh_shell()
 	check(main.top_label.visible, "och i trädet")
 	check(main.top_label.text.contains("CS"), "och raden visar CS också", main.top_label.text)
+	# ESC TILLBAKA TILL BYN FRÅN VARJE SKÄRM (M95). Alex: *"Varje del måste gå att backa ur tillbaka
+	# till byn med antingen en knapp för exit, eller med esc-knappen."* Provet går igenom skalets
+	# alla lägen i stället för att lita på att någon lade in en gren per skärm — det är precis den
+	# sortens glömska som gör en skärm till en återvändsgränd. Körningen är undantagen (ESC = meny).
+	var utan_väg_tillbaka := []
+	for läge in main.SKAL_LÄGEN:
+		main.shell = str(läge)
+		main._refresh_shell()
+		main._input_shell(KEY_ESCAPE)
+		if main.shell != "hem" and str(läge) != "körning":
+			utan_väg_tillbaka.append(str(läge))
+	check(utan_väg_tillbaka.is_empty(), "ESC leder tillbaka till byn från varje skärm",
+		"fastnade i: %s" % str(utan_väg_tillbaka))
+	# Provet lämnar skalet i byn igen: nästa kontroll mäter juvelerarpanelen i spelvyn, och stod
+	# skalet kvar i ett annat läge mättes fel skärm (panelen var 884 px i en 480 px vy).
+	main.shell = "hem"
+	main._refresh_shell()
 	# JUVELERAREN (M58) ryms i vyn. Texten växte från sex rader till nio när facken och fickan byggdes
 	# ut, men panelen centreras i spelvyn — blev den högre än 270 px klipptes rubriken (guld och fack)
 	# i överkant och kortraden i underkant. Mätt på Alex' skärmbild 23 sep. Måttet står här så en
