@@ -14,7 +14,7 @@ Kräver **Godot 4** (byggt och testat på 4.7.2) och **Linux**. Inget mer: GDScr
 byggnad. Spelkoden är källkoden — det du hämtar är det som körs.
 
 ```bash
-git clone https://github.com/alexwest1981/HellCrawlers.git hellcrawler
+git clone https://github.com/alexwest1981/HellCrawler.git hellcrawler
 cd hellcrawler
 ./install.sh      # startikon i startmenyn
 ```
