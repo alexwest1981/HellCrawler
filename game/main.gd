@@ -6607,7 +6607,7 @@ func _refresh() -> void:
 	# betyder olika saker: guldet i körningen försvinner när körningen tar slut och går då in i banken
 	# (se _banked nedan). Utan banken ser spelaren bara vad han bär, och undrar varför butikens priser
 	# inte går ihop med siffran i toppen.
-	top_label.text = Tr.t("ui.hud.status", "%s %d/%d · nivå %d · HP %.0f/%.0f · bank %d · omgången %d · %d xp") % [
+	top_label.text = Tr.t("ui.hud.status", "%s %d/%d · nivå %d · HP %.0f/%.0f · bank %d · %d guld · %d xp") % [
 		Tr.name_of("stage", run.stage.id, run.stage.name), run.floor_index + 1, run.stage.floors,
 		run.level, hp_nu, run.max_hp, meta.gold, run.gold, run.xp]
 	_hud_sätt(hp_nu, i_strid)

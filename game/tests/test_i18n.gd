@@ -266,7 +266,10 @@ func _init() -> void:
 		# ui.end.summary: två tal sedan M48 — dödade fiender och guld in. Raden hade fyra förut
 		# (våningar, strider, guld, xp) och Alex ville ha bara de två: *"Här skall man bara få
 		# information om hur många man dödat, hur mycket guld man fick in."*
-		"ui.hud.status": 8, "ui.end.summary": 2, "ui.draft.title": 1, "ui.draft.prompt": 1,
+		# ui.hud.status: nio sedan M91 — raden visar BÅDE banken och omgångens guld (Alex: "I strid
+		# skall ens totala, och det man dragit in på den omgången visas"). Kontraktet räknade kvar
+		# åtta och fällde alla 13 språk i samma rad.
+		"ui.hud.status": 9, "ui.end.summary": 2, "ui.draft.title": 1, "ui.draft.prompt": 1,
 		"ui.stats.mana": 2, "ui.village.title": 1, "ui.village.hint": 1, "ui.village.price": 1,
 		"ui.settings.coverage": 2, "ui.battle.enemy_row": 2, "ui.battle.player_row": 3,
 		"ui.hud.rust": 1, "ui.hud.kort": 1, "ui.shell.status": 3,
