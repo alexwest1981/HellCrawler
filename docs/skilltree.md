@@ -75,6 +75,38 @@ Sista banan tunas mot trädet och mäts, inte tycks:
 
 Det provet är hela poängen med planen: "på gränsen till omöjlig" ska vara ett tal, inte ett omdöme.
 
+## Banorna: 90 i stället för 40, och större
+
+Mätt i dag: 40 banor, svårighetsgrad **1–9**, 3–7 våningar, 4–8 möten per våning. En bana är 12–56
+strider, hela spelet 1 352. Det finns **ingen generator** för banorna — `tools/` har `gen_*` för konst,
+brickor, rekvisita, HUD, meny och i18n, men banfilerna är handskrivna. Nittio filer för hand är nittio
+chanser att skriva samma fel två gånger, så de genereras ur en kurva precis som allt annat:
+`tools/gen_stages.py`.
+
+| Band | Svårighetsgrad | Våningar | Möten/våning | Strider | Kräver i trädet |
+|---|---|---|---|---|---|
+| 1–15 | 1–4 | 5 | 6 | 30 | inget |
+| 16–35 | 5–9 | 6–8 | 7 | 42–56 | nivå 2 |
+| 36–55 | 10–14 | 8–10 | 8 | 64–80 | nivå 3 |
+| 56–72 | 15–19 | 9–11 | 9 | 81–99 | nivå 4 |
+| 73–84 | 20–24 | 10–12 | 10 | 100–120 | nivå 5 |
+| 85–90 | 25–30 | 12 | 10 | 120 | hela trädet |
+
+En sen bana blir alltså ~120 strider mot dagens 56, och hela spelet ~5 000 i stället för 1 352. Räknat
+på tjugo sekunder per strid — det är en gissning jag inte mätt, säg till om den känns fel — blir en sen
+bana fyrtio minuter. Det tar tid att gå genom en bana, som du vill, och det är samma längd som en riktig
+nedstigning i genren.
+
+**Frustrationen kopplas till trädet, inte till slumptal.** Varje band har ett träkrav, och kravet mäts:
+`test_grind.gd` spelar bandets sista bana headless med trädet på bandets nivå (ska vinna med 5–10 %
+marginal) och med nivån under (ska förlora). Fem grindar i stället för en: bana 20, 40, 60, 78 och 88.
+Det ger frustrationen en lösning — du dör fem gånger, köper nästa nivå i trädet, och går igenom — och
+det är skillnaden mellan svårt och orättvist.
+
+Svårighetsskalan behöver samtidigt bli längre: `difficulty` går till **30** i stället för 9. Formlerna är
+redan linjära (`run.gd:17–19`), så det kostar ingenting — +10 % HP per steg ger +290 % vid 30, och
+`hp_per_floor` lägger på mer ju djupare man går.
+
 ## Byggordning
 
 1. `souls`-kassan i `Meta` + droppen där bossen dör (`run.gd:101–109`) — efter formeln ovan.
@@ -82,7 +114,9 @@ Det provet är hela poängen med planen: "på gränsen till omöjlig" ska vara e
    sina ark ur en form). ~90 noder för hand är 90 chanser att skriva fel samma sak två gånger.
 3. Priserna och kronorna, med ett prov som räknar summan: **180 inköp, ~180 CS**.
 4. Glöden i vyn: alla noder syns, upplåsta lyser starkare per rang, olåsta står släckta.
-5. `test_grind.gd` och tuning av `stage_40` mot det.
+5. `tools/gen_stages.py` (90 banor ur kurvan ovan, difficulty till 30) och `test_grind.gd` med de fem
+   grindarna. Trädets ~180 inköp blir ~180 CS även med den längre banlistan: fler banor ger högre
+   svårighetsgrad, och `1 + svårighetsgrad/2` ger fler CS per boss i samma takt som priserna stiger.
 
 ## Prestige (efter allt ovan)
 
