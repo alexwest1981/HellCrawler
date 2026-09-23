@@ -1,4 +1,5 @@
-## Stages som data: en JSON-fil per bana. Målet är ~40 banor — det ska vara 40 filer, inte 40 scener.
+## Stages som data: en JSON-fil per bana. Målet är 90 banor (genereras av tools/gen_stages.py ur
+## kurvan i docs/skilltree.md) — det ska vara 90 filer, inte 90 scener.
 class_name Stages
 extends RefCounted
 
@@ -11,7 +12,7 @@ class StageDef extends RefCounted:
 	var floor_themes: Array = []      ## tema per våning: våning N tar floor_themes[N % storlek].
 	                                  ## Utan listan används `theme` på varje våning. Gör att en
 	                                  ## bana kan börja i en grotta och sluta i en krypta.
-	var difficulty: int = 1           ## 1..9, som referensens stages
+	var difficulty: int = 1           ## 1..30 (var 1..9; skalan förlängdes när banlistan blev 90)
 	var floors: int = 3
 	var tiers: Array = [1]            ## vilka fiende-tiers som får dyka upp
 	var encounters_per_floor: int = 4

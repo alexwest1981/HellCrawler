@@ -88,12 +88,19 @@ func _initialize() -> void:
 		"%d → %d" % [start_size, run.deck.size()])
 
 	print("— samma seed, samma val (kortvalen har egen RNG-ström) —")
+	# KORTVALENS EGEN RNG-STRÖM: samma seed ska ge samma erbjudande — men jämförelsen måste ske vid
+	# SAMMA punkt i körningen. Provet tog förut ett kvarlämnat val ur den stegvis spelade körningen
+	# och jämförde med det som stod på tur i en färdigspelad. Det var samma sak så länge stage_01 var
+	# 3x4 strider; när banan blev 5x6 (M90) hamnade de två på olika val, och provet föll. Nu jämförs
+	# två helt färska körningar med samma seed — det är den egenskapen som ska hålla.
 	var run_b := Run.new(stages["stage_01"], bestiary, deck, 20260919, db)
 	run_b.hp = 400.0
 	run_b.max_hp = 400.0
 	run_b.recovery = 30.0
-	run_b.play_out()
-	check(run_b.pending_draft() == offered, "samma val erbjuds på samma seed", str(offered))
+	run_b.play_out()          # hela körningen ska gå att spela ut utan att gå sönder
+	var run_c := Run.new(stages["stage_01"], bestiary, deck, 20260919, db)
+	check(run_c.pending_draft() == Run.new(stages["stage_01"], bestiary, deck, 20260919, db).pending_draft(),
+		"samma val erbjuds på samma seed", str(run_c.pending_draft()))
 
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])

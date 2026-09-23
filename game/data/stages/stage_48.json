@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 13,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.94,
+ "id": "stage_48",
+ "name": "Dova svalget",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

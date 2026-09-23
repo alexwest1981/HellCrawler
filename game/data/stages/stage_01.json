@@ -2,14 +2,16 @@
  "boss": "hollow_choir",
  "bosses": [],
  "difficulty": 1,
- "encounters_per_floor": 4,
- "final_boss": "pale_reaper",
+ "encounters_per_floor": 6,
+ "final_boss": "",
  "floor_themes": [
-  "asklunden",
-  "asklunden",
-  "grotta"
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
  ],
- "floors": 3,
+ "floors": 5,
  "gold_bonus": 0.0,
  "id": "stage_01",
  "name": "Asklunden",

@@ -1,29 +1,31 @@
 {
-  "id": "stage_40",
-  "name": "Första ugnen",
-  "theme": "tunnel",
-  "floor_themes": [
-    "tunnel",
-    "tunnel",
-    "tunnel",
-    "tunnel",
-    "tunnel",
-    "tunnel",
-    "grotta"
-  ],
-  "difficulty": 9,
-  "floors": 7,
-  "tiers": [
-    3
-  ],
-  "encounters_per_floor": 8,
-  "boss": "bellmother",
-  "bosses": [
-    "bellmother",
-    "bellmother",
-    "ash_sovereign"
-  ],
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.8,
-  "xp_bonus": 1.2
+ "boss": "bellmother",
+ "bosses": [
+  "bellmother",
+  "bellmother",
+  "ash_sovereign"
+ ],
+ "difficulty": 11,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 8,
+ "gold_bonus": 0.78,
+ "id": "stage_40",
+ "name": "Askans djuphålet",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
 }

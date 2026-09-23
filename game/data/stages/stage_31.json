@@ -1,24 +1,27 @@
 {
-  "id": "stage_31",
-  "name": "Klocktornet",
-  "theme": "asklunden",
-  "floor_themes": [
-    "asklunden",
-    "asklunden",
-    "asklunden",
-    "asklunden",
-    "asklunden",
-    "grotta"
-  ],
-  "difficulty": 8,
-  "floors": 6,
-  "tiers": [
-    2,
-    3
-  ],
-  "encounters_per_floor": 8,
-  "boss": "bellmother",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.7,
-  "xp_bonus": 1.05
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 8,
+ "encounters_per_floor": 7,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta"
+ ],
+ "floors": 8,
+ "gold_bonus": 0.6,
+ "id": "stage_31",
+ "name": "Klocktornet",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
 }

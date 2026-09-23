@@ -1,0 +1,29 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 13,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.0,
+ "id": "stage_51",
+ "name": "Andra salen",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

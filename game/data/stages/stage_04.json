@@ -1,20 +1,24 @@
 {
-  "id": "stage_04",
-  "name": "Kolstybben",
-  "theme": "asklunden",
-  "floor_themes": [
-    "asklunden",
-    "asklunden",
-    "grotta"
-  ],
-  "difficulty": 1,
-  "floors": 3,
-  "tiers": [
-    1
-  ],
-  "encounters_per_floor": 4,
-  "boss": "hollow_choir",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.0,
-  "xp_bonus": 0.0
+ "boss": "hollow_choir",
+ "bosses": [],
+ "difficulty": 2,
+ "encounters_per_floor": 6,
+ "final_boss": "",
+ "floor_themes": [
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta"
+ ],
+ "floors": 5,
+ "gold_bonus": 0.06,
+ "id": "stage_04",
+ "name": "Kolstybben",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  1
+ ],
+ "xp_bonus": 0.0
 }

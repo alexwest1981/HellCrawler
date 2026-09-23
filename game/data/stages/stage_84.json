@@ -1,0 +1,31 @@
+{
+ "boss": "ash_sovereign",
+ "bosses": [],
+ "difficulty": 24,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 12,
+ "gold_bonus": 1.66,
+ "id": "stage_84",
+ "name": "Glömda djuphålet",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

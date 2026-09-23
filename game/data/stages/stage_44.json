@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 12,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.86,
+ "id": "stage_44",
+ "name": "Glömda ugnen",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
+}

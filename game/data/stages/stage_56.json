@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 15,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 9,
+ "gold_bonus": 1.1,
+ "id": "stage_56",
+ "name": "Svala röken",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

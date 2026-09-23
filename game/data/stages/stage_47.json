@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 12,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.92,
+ "id": "stage_47",
+ "name": "Märgens spegeln",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

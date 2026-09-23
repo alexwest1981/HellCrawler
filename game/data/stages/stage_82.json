@@ -1,0 +1,31 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 23,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta"
+ ],
+ "floors": 12,
+ "gold_bonus": 1.62,
+ "id": "stage_82",
+ "name": "Klockornas skuggan",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

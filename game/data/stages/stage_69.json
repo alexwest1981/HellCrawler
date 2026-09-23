@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 18,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.36,
+ "id": "stage_69",
+ "name": "Kalkens branten",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

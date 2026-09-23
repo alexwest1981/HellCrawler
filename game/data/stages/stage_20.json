@@ -1,23 +1,25 @@
 {
-  "id": "stage_20",
-  "name": "Kalkens tår",
-  "theme": "grotta",
-  "floor_themes": [
-    "grotta",
-    "grotta",
-    "grotta",
-    "grotta",
-    "bro"
-  ],
-  "difficulty": 5,
-  "floors": 5,
-  "tiers": [
-    1,
-    2
-  ],
-  "encounters_per_floor": 6,
-  "boss": "copper_warden",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.4,
-  "xp_bonus": 0.6
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 6,
+ "encounters_per_floor": 7,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 6,
+ "gold_bonus": 0.38,
+ "id": "stage_20",
+ "name": "Kalkens tår",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  2
+ ],
+ "xp_bonus": 0.0
 }

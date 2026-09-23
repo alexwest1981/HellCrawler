@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 13,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.96,
+ "id": "stage_49",
+ "name": "Yttre leran",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

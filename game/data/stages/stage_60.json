@@ -1,0 +1,28 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 16,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta"
+ ],
+ "floors": 9,
+ "gold_bonus": 1.18,
+ "id": "stage_60",
+ "name": "Blåsterns munnen",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

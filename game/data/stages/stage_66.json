@@ -1,0 +1,29 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 17,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.3,
+ "id": "stage_66",
+ "name": "Sista vinden",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

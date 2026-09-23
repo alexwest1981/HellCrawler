@@ -1,0 +1,29 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 21,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.48,
+ "id": "stage_75",
+ "name": "Blekta gjutningen",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

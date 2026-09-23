@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 18,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.34,
+ "id": "stage_68",
+ "name": "Första valvet",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

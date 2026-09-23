@@ -1,24 +1,27 @@
 {
-  "id": "stage_32",
-  "name": "Ringmursvalvet",
-  "theme": "krypta",
-  "floor_themes": [
-    "krypta",
-    "krypta",
-    "krypta",
-    "krypta",
-    "krypta",
-    "asklunden"
-  ],
-  "difficulty": 8,
-  "floors": 6,
-  "tiers": [
-    2,
-    3
-  ],
-  "encounters_per_floor": 8,
-  "boss": "bellmother",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.7,
-  "xp_bonus": 1.05
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 8,
+ "encounters_per_floor": 7,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 8,
+ "gold_bonus": 0.62,
+ "id": "stage_32",
+ "name": "Ringmursvalvet",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
 }

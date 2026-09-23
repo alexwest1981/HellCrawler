@@ -1,20 +1,24 @@
 {
-  "id": "stage_06",
-  "name": "Koppargruvans mun",
-  "theme": "tunnel",
-  "floor_themes": [
-    "tunnel",
-    "tunnel",
-    "grotta"
-  ],
-  "difficulty": 2,
-  "floors": 3,
-  "tiers": [
-    1
-  ],
-  "encounters_per_floor": 5,
-  "boss": "hollow_choir",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.1,
-  "xp_bonus": 0.15
+ "boss": "hollow_choir",
+ "bosses": [],
+ "difficulty": 2,
+ "encounters_per_floor": 6,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 5,
+ "gold_bonus": 0.1,
+ "id": "stage_06",
+ "name": "Koppargruvans mun",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  1
+ ],
+ "xp_bonus": 0.0
 }

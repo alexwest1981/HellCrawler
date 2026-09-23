@@ -1,22 +1,24 @@
 {
-  "id": "stage_15",
-  "name": "Myrens tystnad",
-  "theme": "bro",
-  "floor_themes": [
-    "bro",
-    "bro",
-    "bro",
-    "grotta"
-  ],
-  "difficulty": 4,
-  "floors": 4,
-  "tiers": [
-    1,
-    2
-  ],
-  "encounters_per_floor": 6,
-  "boss": "copper_warden",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.3,
-  "xp_bonus": 0.45
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 4,
+ "encounters_per_floor": 6,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 5,
+ "gold_bonus": 0.28,
+ "id": "stage_15",
+ "name": "Myrens tystnad",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  1
+ ],
+ "xp_bonus": 0.0
 }

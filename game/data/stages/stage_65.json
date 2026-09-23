@@ -1,0 +1,29 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 17,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.28,
+ "id": "stage_65",
+ "name": "Ringmurens porten",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

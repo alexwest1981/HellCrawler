@@ -1,0 +1,29 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 14,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.04,
+ "id": "stage_53",
+ "name": "Saltets klyftan",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

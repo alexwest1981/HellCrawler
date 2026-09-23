@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 12,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.88,
+ "id": "stage_45",
+ "name": "Kalla lagen",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
+}

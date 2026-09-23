@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 19,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.42,
+ "id": "stage_72",
+ "name": "Inre hålan",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

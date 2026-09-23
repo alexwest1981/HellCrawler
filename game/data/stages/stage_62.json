@@ -1,0 +1,29 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 17,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.22,
+ "id": "stage_62",
+ "name": "Brända kanten",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

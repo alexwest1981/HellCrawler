@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 21,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.52,
+ "id": "stage_77",
+ "name": "Smältans glaskupan",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 11,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.84,
+ "id": "stage_43",
+ "name": "Kupolens kammaren",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
+}

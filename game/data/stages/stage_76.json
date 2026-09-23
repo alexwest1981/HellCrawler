@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 21,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.5,
+ "id": "stage_76",
+ "name": "Torkade gapet",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

@@ -1,29 +1,31 @@
 {
-  "id": "stage_35",
-  "name": "Klockmoderns kor",
-  "theme": "asklunden",
-  "floor_themes": [
-    "asklunden",
-    "asklunden",
-    "asklunden",
-    "asklunden",
-    "asklunden",
-    "asklunden",
-    "grotta"
-  ],
-  "difficulty": 9,
-  "floors": 7,
-  "tiers": [
-    3
-  ],
-  "encounters_per_floor": 8,
-  "boss": "bellmother",
-  "bosses": [
-    "bellmother",
-    "bellmother",
-    "ash_sovereign"
-  ],
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.8,
-  "xp_bonus": 1.2
+ "boss": "bellmother",
+ "bosses": [
+  "bellmother",
+  "bellmother",
+  "ash_sovereign"
+ ],
+ "difficulty": 9,
+ "encounters_per_floor": 7,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 8,
+ "gold_bonus": 0.68,
+ "id": "stage_35",
+ "name": "Klockmoderns kor",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
 }

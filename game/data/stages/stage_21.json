@@ -1,23 +1,26 @@
 {
-  "id": "stage_21",
-  "name": "Benkammaren",
-  "theme": "krypta",
-  "floor_themes": [
-    "krypta",
-    "krypta",
-    "krypta",
-    "krypta",
-    "asklunden"
-  ],
-  "difficulty": 6,
-  "floors": 5,
-  "tiers": [
-    2,
-    3
-  ],
-  "encounters_per_floor": 7,
-  "boss": "copper_warden",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.5,
-  "xp_bonus": 0.75
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 6,
+ "encounters_per_floor": 7,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 7,
+ "gold_bonus": 0.4,
+ "id": "stage_21",
+ "name": "Benkammaren",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  2
+ ],
+ "xp_bonus": 0.0
 }

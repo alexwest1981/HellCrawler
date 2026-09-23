@@ -1,23 +1,25 @@
 {
-  "id": "stage_17",
-  "name": "Kalkbrottet",
-  "theme": "krypta",
-  "floor_themes": [
-    "krypta",
-    "krypta",
-    "krypta",
-    "krypta",
-    "asklunden"
-  ],
-  "difficulty": 5,
-  "floors": 5,
-  "tiers": [
-    1,
-    2
-  ],
-  "encounters_per_floor": 6,
-  "boss": "copper_warden",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.4,
-  "xp_bonus": 0.6
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 5,
+ "encounters_per_floor": 7,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 6,
+ "gold_bonus": 0.32,
+ "id": "stage_17",
+ "name": "Kalkbrottet",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  2
+ ],
+ "xp_bonus": 0.0
 }

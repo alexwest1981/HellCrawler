@@ -1,0 +1,29 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 20,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.44,
+ "id": "stage_73",
+ "name": "Svarta valen",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

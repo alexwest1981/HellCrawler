@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 23,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.6,
+ "id": "stage_81",
+ "name": "Ribbgångens tåren",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

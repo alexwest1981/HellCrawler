@@ -1,0 +1,29 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 17,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.24,
+ "id": "stage_63",
+ "name": "Myrens slagg",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

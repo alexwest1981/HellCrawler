@@ -1,22 +1,25 @@
 {
-  "id": "stage_16",
-  "name": "Vitkalken",
-  "theme": "krypta",
-  "floor_themes": [
-    "krypta",
-    "krypta",
-    "krypta",
-    "asklunden"
-  ],
-  "difficulty": 4,
-  "floors": 4,
-  "tiers": [
-    1,
-    2
-  ],
-  "encounters_per_floor": 6,
-  "boss": "copper_warden",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.3,
-  "xp_bonus": 0.45
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 5,
+ "encounters_per_floor": 7,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro"
+ ],
+ "floors": 6,
+ "gold_bonus": 0.3,
+ "id": "stage_16",
+ "name": "Vitkalken",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  2
+ ],
+ "xp_bonus": 0.0
 }

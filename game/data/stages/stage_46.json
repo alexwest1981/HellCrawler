@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 12,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.9,
+ "id": "stage_46",
+ "name": "Kärrets vreten",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

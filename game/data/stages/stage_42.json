@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 11,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.82,
+ "id": "stage_42",
+ "name": "Klockornas sanden",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
+}

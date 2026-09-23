@@ -1,0 +1,29 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 20,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.46,
+ "id": "stage_74",
+ "name": "Koppargruvans tystnaden",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  5
+ ],
+ "xp_bonus": 0.0
+}

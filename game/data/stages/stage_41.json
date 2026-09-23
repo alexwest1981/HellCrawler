@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 11,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 9,
+ "gold_bonus": 0.8,
+ "id": "stage_41",
+ "name": "Ribbgångens askan",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
+}

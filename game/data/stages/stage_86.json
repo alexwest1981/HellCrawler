@@ -1,0 +1,31 @@
+{
+ "boss": "ash_sovereign",
+ "bosses": [],
+ "difficulty": 26,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta"
+ ],
+ "floors": 12,
+ "gold_bonus": 1.7,
+ "id": "stage_86",
+ "name": "Kärrets askan",
+ "regel": "",
+ "theme": "asklunden",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

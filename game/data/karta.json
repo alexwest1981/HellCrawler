@@ -13,7 +13,21 @@
     "stage_01",
     "stage_02",
     "stage_03",
-    "stage_04"
+    "stage_04",
+    "stage_05"
+   ]
+  },
+  {
+   "plats": "Askskogen",
+   "x": 50.0,
+   "y": 80.0,
+   "sektion": 1,
+   "nivåer": [
+    "stage_06",
+    "stage_07",
+    "stage_08",
+    "stage_09",
+    "stage_10"
    ]
   },
   {
@@ -22,10 +36,24 @@
    "y": 72.0,
    "sektion": 1,
    "nivåer": [
-    "stage_05",
-    "stage_06",
-    "stage_07",
-    "stage_08"
+    "stage_11",
+    "stage_12",
+    "stage_13",
+    "stage_14",
+    "stage_15"
+   ]
+  },
+  {
+   "plats": "Kalkbranten",
+   "x": 38.0,
+   "y": 53.0,
+   "sektion": 1,
+   "nivåer": [
+    "stage_16",
+    "stage_17",
+    "stage_18",
+    "stage_19",
+    "stage_20"
    ]
   },
   {
@@ -34,10 +62,24 @@
    "y": 34.0,
    "sektion": 2,
    "nivåer": [
-    "stage_09",
-    "stage_10",
-    "stage_11",
-    "stage_12"
+    "stage_21",
+    "stage_22",
+    "stage_23",
+    "stage_24",
+    "stage_25"
+   ]
+  },
+  {
+   "plats": "Benfältet",
+   "x": 20.5,
+   "y": 31.5,
+   "sektion": 2,
+   "nivåer": [
+    "stage_26",
+    "stage_27",
+    "stage_28",
+    "stage_29",
+    "stage_30"
    ]
   },
   {
@@ -46,10 +88,24 @@
    "y": 29.0,
    "sektion": 2,
    "nivåer": [
-    "stage_13",
-    "stage_14",
-    "stage_15",
-    "stage_16"
+    "stage_31",
+    "stage_32",
+    "stage_33",
+    "stage_34",
+    "stage_35"
+   ]
+  },
+  {
+   "plats": "Saltängen",
+   "x": 11.5,
+   "y": 20.5,
+   "sektion": 2,
+   "nivåer": [
+    "stage_36",
+    "stage_37",
+    "stage_38",
+    "stage_39",
+    "stage_40"
    ]
   },
   {
@@ -58,10 +114,24 @@
    "y": 12.0,
    "sektion": 2,
    "nivåer": [
-    "stage_17",
-    "stage_18",
-    "stage_19",
-    "stage_20"
+    "stage_41",
+    "stage_42",
+    "stage_43",
+    "stage_44",
+    "stage_45"
+   ]
+  },
+  {
+   "plats": "Klockgraven",
+   "x": 27.0,
+   "y": 16.0,
+   "sektion": 2,
+   "nivåer": [
+    "stage_46",
+    "stage_47",
+    "stage_48",
+    "stage_49",
+    "stage_50"
    ]
   },
   {
@@ -70,10 +140,24 @@
    "y": 20.0,
    "sektion": 3,
    "nivåer": [
-    "stage_21",
-    "stage_22",
-    "stage_23",
-    "stage_24"
+    "stage_51",
+    "stage_52",
+    "stage_53",
+    "stage_54",
+    "stage_55"
+   ]
+  },
+  {
+   "plats": "Glasöknen",
+   "x": 60.0,
+   "y": 26.0,
+   "sektion": 3,
+   "nivåer": [
+    "stage_56",
+    "stage_57",
+    "stage_58",
+    "stage_59",
+    "stage_60"
    ]
   },
   {
@@ -82,10 +166,24 @@
    "y": 32.0,
    "sektion": 3,
    "nivåer": [
-    "stage_25",
-    "stage_26",
-    "stage_27",
-    "stage_28"
+    "stage_61",
+    "stage_62",
+    "stage_63",
+    "stage_64",
+    "stage_65"
+   ]
+  },
+  {
+   "plats": "Slaggfälten",
+   "x": 80.0,
+   "y": 38.0,
+   "sektion": 3,
+   "nivåer": [
+    "stage_66",
+    "stage_67",
+    "stage_68",
+    "stage_69",
+    "stage_70"
    ]
   },
   {
@@ -94,10 +192,24 @@
    "y": 44.0,
    "sektion": 3,
    "nivåer": [
-    "stage_29",
-    "stage_30",
-    "stage_31",
-    "stage_32"
+    "stage_71",
+    "stage_72",
+    "stage_73",
+    "stage_74",
+    "stage_75"
+   ]
+  },
+  {
+   "plats": "Ugnsbranten",
+   "x": 78.0,
+   "y": 55.0,
+   "sektion": 3,
+   "nivåer": [
+    "stage_76",
+    "stage_77",
+    "stage_78",
+    "stage_79",
+    "stage_80"
    ]
   },
   {
@@ -106,10 +218,11 @@
    "y": 66.0,
    "sektion": 4,
    "nivåer": [
-    "stage_33",
-    "stage_34",
-    "stage_35",
-    "stage_36"
+    "stage_81",
+    "stage_82",
+    "stage_83",
+    "stage_84",
+    "stage_85"
    ]
   },
   {
@@ -118,10 +231,11 @@
    "y": 46.0,
    "sektion": 4,
    "nivåer": [
-    "stage_37",
-    "stage_38",
-    "stage_39",
-    "stage_40"
+    "stage_86",
+    "stage_87",
+    "stage_88",
+    "stage_89",
+    "stage_90"
    ]
   }
  ]

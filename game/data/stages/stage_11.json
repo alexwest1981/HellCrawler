@@ -1,22 +1,24 @@
 {
-  "id": "stage_11",
-  "name": "Myrmarken",
-  "theme": "grotta",
-  "floor_themes": [
-    "grotta",
-    "grotta",
-    "grotta",
-    "bro"
-  ],
-  "difficulty": 3,
-  "floors": 4,
-  "tiers": [
-    1,
-    2
-  ],
-  "encounters_per_floor": 5,
-  "boss": "hollow_choir",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.2,
-  "xp_bonus": 0.3
+ "boss": "hollow_choir",
+ "bosses": [],
+ "difficulty": 3,
+ "encounters_per_floor": 6,
+ "final_boss": "",
+ "floor_themes": [
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 5,
+ "gold_bonus": 0.2,
+ "id": "stage_11",
+ "name": "Myrmarken",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  1
+ ],
+ "xp_bonus": 0.0
 }

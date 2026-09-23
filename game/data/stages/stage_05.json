@@ -1,20 +1,24 @@
 {
-  "id": "stage_05",
-  "name": "Första klyftan",
-  "theme": "grotta",
-  "floor_themes": [
-    "grotta",
-    "grotta",
-    "bro"
-  ],
-  "difficulty": 2,
-  "floors": 3,
-  "tiers": [
-    1
-  ],
-  "encounters_per_floor": 5,
-  "boss": "hollow_choir",
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.1,
-  "xp_bonus": 0.15
+ "boss": "hollow_choir",
+ "bosses": [],
+ "difficulty": 2,
+ "encounters_per_floor": 6,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 5,
+ "gold_bonus": 0.08,
+ "id": "stage_05",
+ "name": "Första klyftan",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  1
+ ],
+ "xp_bonus": 0.0
 }

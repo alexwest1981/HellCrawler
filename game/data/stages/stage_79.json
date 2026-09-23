@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 22,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.56,
+ "id": "stage_79",
+ "name": "Askans glöden",
+ "regel": "",
+ "theme": "krypta",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

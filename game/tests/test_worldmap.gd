@@ -53,7 +53,7 @@ func _init() -> void:
 		if sa.difficulty != sb.difficulty:
 			return sa.difficulty < sb.difficulty
 		return str(a) < str(b))
-	check(order.size() == 40, "fyrtio banor i ordningen", "%d" % order.size())
+	check(order.size() >= 40, "banorna kommer i svårighetsordning", "%d" % order.size())
 	check(Palett.antal() == 27, "paletten läses ur assets/palette.json", "%d färger" % Palett.antal())
 	_clean()
 
@@ -61,7 +61,7 @@ func _init() -> void:
 	print("— kartfilen: bilden, vinkeln och platsernas läge —")
 	var karta := Karta.ladda()
 	check(karta.fel.is_empty(), "kartfilen är hel och ren", ", ".join(karta.fel))
-	check(karta.antal() == 10, "kartan har tio platser (en per nod)", "%d" % karta.antal())
+	check(karta.antal() >= 10, "kartan har platser nog för banorna", "%d platser" % karta.antal())
 	check(karta.antal() < order.size(), "och fler banor än platser: en plats bär flera nivåer",
 		"%d platser, %d banor" % [karta.antal(), order.size()])
 	check(ResourceLoader.exists(karta.bild), "kartans bild finns på disken", karta.bild)
@@ -128,9 +128,11 @@ func _init() -> void:
 		"nod %d" % v.valt_index())
 	check(v.flytta(Vector2i(0, 1)) and v.valt_index() == 0, "och ned tillbaka till porten",
 		"nod %d" % v.valt_index())
-	# Kartan är fri: "vänster" betyder vänster inom ±60 grader, så närmaste plats dit är is-sjön
-	# (52 grader upp till vänster) — inte ett "nej" för att ingen ligger rakt västerut.
-	check(v.flytta(Vector2i(-1, 0)) and v.valt_index() == 2, "vänster går till is-sjön",
+	# Kartan är fri: "vänster" betyder vänster inom ±60 grader, så närmaste plats dit vinner — inte
+	# ett "nej" för att ingen ligger rakt västerut. Vilken plats det blir beror på kartans lägen, så
+	# provet kräver att flytten GÅR och landar någon annanstans (M93: med 18 platser är grannen en
+	# annan än den var med tio).
+	check(v.flytta(Vector2i(-1, 0)) and v.valt_index() != 0, "vänster går till en plats, inte ett nej",
 		"nod %d" % v.valt_index())
 	# Hela kartan ska gå att nå med de fyra riktningarna: kartan är fri, så ingen plats får bli en ö.
 	var nådda := {0: true}
@@ -157,8 +159,18 @@ func _init() -> void:
 	# Klar = man NÅDDE sista våningen (samma regel som meta.note_run): Pale Reaper dödar dig där.
 	meta.best_floor[str(noll[0])] = stages[str(noll[0])].floors
 	v.visa(stages, order, meta)
+	# Provet pekade förut på plats 9: med tio platser låg den i sektion 4 och skulle vara låst. Med
+	# 18 platser ligger 9 i sektion 2 (mätt i karta.json: nod 0-3 är sektion 1, 4-9 är 2, 10-15 är 3,
+	# 16-17 är 4), alltså ÖPPEN — och då föll kontrollen trots att regeln fungerade. Sektionen läses
+	# ur kartan i stället för ur ett fast index.
+	var senare := -1
+	for i in karta.antal():
+		if karta.sektion(i) >= 3:
+			senare = i
+			break
 	check(v.läge(0) == "påbörjad", "en plats med en klar nivå är påbörjad, inte klar", v.läge(0))
-	check(v.läge(9) == "låst", "den sista platsen är fortfarande låst", v.läge(9))
+	check(senare >= 0 and v.läge(senare) == "låst",
+		"en plats i en senare sektion är fortfarande låst", v.läge(senare))
 	meta.best_floor[str(ett[0])] = 1
 	v.visa(stages, order, meta)
 	check(v.läge(1) == "påbörjad", "en bana man varit på men inte klarat är påbörjad", v.läge(1))
@@ -171,7 +183,7 @@ func _init() -> void:
 	check(v.läge(0) == "klar", "alla nivåer klara = platsen är klar", v.läge(0))
 	var öppen := v.stil(1)
 	var klar := v.stil(0)
-	var låst := v.stil(9)
+	var låst := v.stil(senare)
 	check(öppen != klar and öppen != låst and klar != låst, "de tre lägena ritas olika")
 	check(bool(låst["lås"]) and not bool(öppen["lås"]) and not bool(klar["lås"]),
 		"hänglåset sitter bara på den låsta")
@@ -316,7 +328,8 @@ func _init() -> void:
 	check(red.karta.plats(2) == Vector2(40.0, 40.0), "och den går att sätta exakt",
 		str(red.karta.plats(2)))
 	check(red.nod_text(2).contains("40.0"), "editorns rad säger samma tal som filen", red.nod_text(2))
-	check(red.nod_text(2).contains("S2"), "och visar vilken sektion noden ligger i", red.nod_text(2))
+	check(red.nod_text(2).contains("S%d" % red.karta.sektion(2)),
+		"och visar vilken sektion noden ligger i", red.nod_text(2))
 	check(red.sätt_sektion(3), "editorn flyttar den valda noden till en annan sektion")
 	check(red.karta.sektion(2) == 3, "och noden ligger i sektion 3", str(red.karta.sektion(2)))
 	check(not red.sätt_sektion(3), "att sätta samma sektion igen gör ingenting")
@@ -385,9 +398,14 @@ func _init() -> void:
 	_clean()
 	var ny := Karta.ladda()
 	check(ny.sektioner() == [1, 2, 3, 4], "kartan har sektionerna 1..4 i ordning", str(ny.sektioner()))
-	check(ny.sektion_noder(1).size() == 2 and ny.sektion_noder(4).size() == 2,
-		"varje sektion bär sina noder", "%d + %d" % [ny.sektion_noder(1).size(),
-			ny.sektion_noder(4).size()])
+	# Varje sektion bär sina EGNA noder, och tillsammans bär de hela kartan. Provet krävde förut
+	# exakt två noder i sektion 1 och två i sektion 4 — den gamla fördelningen. Med 18 noder är den
+	# 4 + 6 + 6 + 2, så det som mäts är att ingen nod är föräldralös och ingen räknas två gånger.
+	var summa := 0
+	for s in ny.sektioner():
+		summa += ny.sektion_noder(s).size()
+	check(summa == ny.antal(), "varje sektion bär sina noder",
+		"%d noder i %d sektioner" % [summa, ny.sektioner().size()])
 	var färsk := Meta.load_or_new(SEKT)
 	var kvy := WorldMapView.new()
 	kvy.karta = ny
@@ -403,19 +421,37 @@ func _init() -> void:
 	kvy.visa(stages, order, färsk)
 	check(ny.sektion_klar(1, färsk) == 1, "en bana i sektion 1 är klarad",
 		str(ny.sektion_klar(1, färsk)))
-	check(kvy.läge(2) != "låst" and kvy.läge(4) != "låst", "och det öppnar hela sektion 2",
-		"%s / %s" % [kvy.läge(2), kvy.läge(4)])
-	check(kvy.läge(5) == "låst" and kvy.läge(9) == "låst", "men inte sektion 3 och 4",
-		"%s / %s" % [kvy.läge(5), kvy.läge(9)])
+	# SEKTIONERNA LÄSES UR KARTAN, INTE UR FASTA INDEX (M93). Provet pekade på nod 5 och 9 därför
+	# att de låg i sektion 3 och 4 när kartan hade tio platser. Med 18 platser ligger de i 2 och 3,
+	# och då föll kontrollerna — trots att själva regeln fungerade. Regeln är att sektion N öppnar på
+	# EN klarad bana i sektion N-1, så provet frågar kartan vilka noder som hör till vilken sektion i
+	# stället för att räkna med den gamla fördelningen.
+	var sista_i_sek2 := -1
+	var första_i_sek3 := -1
+	var första_i_sek4 := -1
+	for i in ny.antal():
+		var sek := ny.sektion(i)
+		if sek == 2:
+			sista_i_sek2 = i
+		elif sek == 3 and första_i_sek3 < 0:
+			första_i_sek3 = i
+		elif sek == 4 and första_i_sek4 < 0:
+			första_i_sek4 = i
+	check(sista_i_sek2 >= 0 and kvy.läge(sista_i_sek2) != "låst", "och det öppnar hela sektion 2",
+		kvy.läge(sista_i_sek2))
+	check(första_i_sek3 >= 0 and första_i_sek4 >= 0
+			and kvy.läge(första_i_sek3) == "låst" and kvy.läge(första_i_sek4) == "låst",
+		"men inte sektion 3 och 4", "%s / %s" % [kvy.läge(första_i_sek3), kvy.läge(första_i_sek4)])
 	# Beskedet ska namnge SEKTIONEN, inte banan strax före i svårighetsordningen.
-	kvy.gå_till(9)
+	kvy.gå_till(första_i_sek4)
 	var rlåst := kvy.försök_gå_in()
-	check(not bool(rlåst["ok"]) and str(rlåst["text"]).contains("4"),
+	check(not bool(rlåst["ok"]) and str(rlåst["text"]).contains(str(ny.sektion(första_i_sek4))),
 		"en plats i en låst sektion nekas med sektionens nummer", str(rlåst["text"]))
 	# Sektionen bestämmer åt båda håll: en upplåst bana i en låst sektion är ändå låst ...
-	färsk.unlock(str(ny.nivåer(9)[0]))
+	färsk.unlock(str(ny.nivåer(första_i_sek4)[0]))
 	kvy.visa(stages, order, färsk)
-	check(kvy.läge(9) == "låst", "en upplåst bana i en låst sektion är ändå låst", kvy.läge(9))
+	check(kvy.läge(första_i_sek4) == "låst", "en upplåst bana i en låst sektion är ändå låst",
+		kvy.läge(första_i_sek4))
 	# ... och i en öppen sektion är banan spelbar utan att meta har låst upp den.
 	check(not färsk.is_unlocked(str(ny.nivåer(2)[0])), "banan i sektion 2 är inte upplåst i meta")
 	kvy.gå_till(2)

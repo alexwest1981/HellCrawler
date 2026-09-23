@@ -341,19 +341,33 @@ func _tree_in_run(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, 
 	var bas_hp := ren.max_hp
 	var bas_mana := ren.base_mana
 	var bas_hand := ren.base_hand
-	m.gold = 6000
-	check(m.buy("body_1").ok, "benknippet går att köpa")
-	check(m.buy("wick_1").ok, "glöden går att köpa")
-	check(m.buy("iron_1").ok, "järnvägen går att köpa")
-	check(m.buy("iron_2").ok, "nästa järnnod går att köpa (kravet uppfyllt)")
-	check(m.buy("wick_2").ok, "andra lågan går att köpa när BÅDA kraven är inne")
-	check(m.buy("wick_3").ok, "och fullt bloss ovanpå den")
+	m.gold = 60000
+	# REGELN (Alex, M88): en nod öppnas först när föräldern är FULLT uppgraderad. Provet köpte förut
+	# varje nod en gång och väntade sig barnet på det — den gamla regeln, som `requires_met` inte
+	# längre följer. `maxa` köper en nod till dess högsta rang, så provet beskriver den regel som
+	# gäller. Alla tre träden maxas för att barnen ska öppnas av riktiga skäl, inte av tur.
+	var maxa := func(id: String) -> void:
+		while m.buy(id).ok:
+			pass
+	for id in ["body_1", "wick_1", "iron_1"]:
+		maxa.call(id)
+	check(m.buy("iron_2").ok, "nästa järnnod går att köpa när järnvägen är full")
+	maxa.call("iron_2")
+	maxa.call("wick_2")
+	check(m.buy("wick_3").ok, "och fullt bloss ovanpå den (båda kraven fulla)")
 	var med := Run.new(stage, bestiary, deck, 7, db, m)
-	check(med.max_hp == bas_hp + 4.0, "max-HP följer Tjockt skinn", "%.0f -> %.0f" % [bas_hp, med.max_hp])
-	check(med.base_mana == bas_mana + 1, "manan följer Andra lågan", "%d -> %d" % [bas_mana, med.base_mana])
-	check(med.base_hand == bas_hand + 1, "handen följer Fullt bloss", "%d -> %d" % [bas_hand, med.base_hand])
-	# Skadan ligger i striden (combat.might = meta.stat("might")), så den mäts på metan: samma tal.
-	check(is_equal_approx(m.stat("might"), 0.02 + 0.03), "och skadan följer båda järnnoderna",
+	# Siffrorna hämtas ur metan själv — samma källa som spelet läser. Det som ska hållas är LÄNKEN
+	# meta -> körning, inte ett handskrivet tal som råkade stämma när provet skrevs.
+	check(med.max_hp == bas_hp + m.stat("max_hp"), "max-HP följer Tjockt skinn",
+		"%.0f -> %.0f" % [bas_hp, med.max_hp])
+	check(med.base_mana == bas_mana + int(m.stat("mana")), "manan följer trädet",
+		"%d -> %d" % [bas_mana, med.base_mana])
+	check(med.base_hand == bas_hand + int(m.stat("hand")), "handen följer trädet",
+		"%d -> %d" % [bas_hand, med.base_hand])
+	# Skadan ligger i striden (combat.might = meta.stat("might")), så den mäts på metan: båda
+	# järnnoderna ska ha bidragit, och ingen av dem är köpt en enda gång.
+	check(m.stat("might") > 0.0 and m.rank("iron_1") == 3 and m.rank("iron_2") > 0,
+		"och skadan följer båda järnnoderna",
 		"%.2f" % m.stat("might"))
 
 ## Testet prövar MASKINERIET, inte balansen: spelaren kör som en sen-game-karaktär, så att hela

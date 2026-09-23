@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 23,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.58,
+ "id": "stage_80",
+ "name": "Ärggångens malmen",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

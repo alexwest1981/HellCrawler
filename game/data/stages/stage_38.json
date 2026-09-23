@@ -1,29 +1,31 @@
 {
-  "id": "stage_38",
-  "name": "Blåsterns sal",
-  "theme": "bro",
-  "floor_themes": [
-    "bro",
-    "bro",
-    "bro",
-    "bro",
-    "bro",
-    "bro",
-    "grotta"
-  ],
-  "difficulty": 9,
-  "floors": 7,
-  "tiers": [
-    3
-  ],
-  "encounters_per_floor": 8,
-  "boss": "bellmother",
-  "bosses": [
-    "bellmother",
-    "bellmother",
-    "ash_sovereign"
-  ],
-  "final_boss": "pale_reaper",
-  "gold_bonus": 0.8,
-  "xp_bonus": 1.2
+ "boss": "bellmother",
+ "bosses": [
+  "bellmother",
+  "bellmother",
+  "ash_sovereign"
+ ],
+ "difficulty": 10,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 8,
+ "gold_bonus": 0.74,
+ "id": "stage_38",
+ "name": "Blåsterns sal",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  3
+ ],
+ "xp_bonus": 0.0
 }

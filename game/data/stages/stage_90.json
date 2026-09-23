@@ -1,0 +1,31 @@
+{
+ "boss": "ash_sovereign",
+ "bosses": [],
+ "difficulty": 30,
+ "encounters_per_floor": 10,
+ "final_boss": "pale_reaper",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro"
+ ],
+ "floors": 12,
+ "gold_bonus": 1.78,
+ "id": "stage_90",
+ "name": "Första ugnen",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

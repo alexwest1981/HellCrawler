@@ -1,0 +1,30 @@
+{
+ "boss": "bellmother",
+ "bosses": [],
+ "difficulty": 22,
+ "encounters_per_floor": 10,
+ "final_boss": "",
+ "floor_themes": [
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta"
+ ],
+ "floors": 11,
+ "gold_bonus": 1.54,
+ "id": "stage_78",
+ "name": "Övre hallen",
+ "regel": "",
+ "theme": "grotta",
+ "tiers": [
+  6
+ ],
+ "xp_bonus": 0.0
+}

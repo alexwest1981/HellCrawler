@@ -1,0 +1,29 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 14,
+ "encounters_per_floor": 8,
+ "final_boss": "",
+ "floor_themes": [
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel"
+ ],
+ "floors": 10,
+ "gold_bonus": 1.08,
+ "id": "stage_55",
+ "name": "Nedre mörkret",
+ "regel": "",
+ "theme": "tunnel",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}

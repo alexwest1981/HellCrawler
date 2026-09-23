@@ -1,0 +1,28 @@
+{
+ "boss": "copper_warden",
+ "bosses": [],
+ "difficulty": 15,
+ "encounters_per_floor": 9,
+ "final_boss": "",
+ "floor_themes": [
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden",
+  "bro",
+  "grotta",
+  "krypta",
+  "tunnel",
+  "asklunden"
+ ],
+ "floors": 9,
+ "gold_bonus": 1.12,
+ "id": "stage_57",
+ "name": "Gruvgångens kryptan",
+ "regel": "",
+ "theme": "bro",
+ "tiers": [
+  4
+ ],
+ "xp_bonus": 0.0
+}
