@@ -611,7 +611,7 @@ func _initialize() -> void:
 		"trädvyn är en Control (en Container äger sin storlek och krympte rutnätet till en rad)")
 	check(main.trad_view._rutnät is VBoxContainer,
 		"trädvyns rutor ligger i rader (ett rutnät lägger ut efter sin egen bredd)")
-	var rader := main.trad_view._rutnät.get_children()
+	var rader: Array = main.trad_view._rutnät.get_children()
 	check(rader.size() == 6, "sex nivå-rader (en per nivå)", "%d rader" % rader.size())
 	var celler := 0
 	for rad in rader:
