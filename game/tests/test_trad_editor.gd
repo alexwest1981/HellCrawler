@@ -208,6 +208,22 @@ func _initialize() -> void:
 		"och går att köpa när föräldern är köpt",
 		"%s, %d CS kvar" % [m_ny.requires_met(nytt), m_ny.souls])
 
+	# EGNA IKONER: lägg en PNG i game/assets/tree/ och den skall gå att välja med G — ingen kodändring.
+	# Provet lägger dit en fil och tar bort den igen, så mappen är som den var.
+	var egen := "prov_ikon_egenskapad"
+	var bild := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	bild.fill(Color(0.9, 0.2, 0.6, 1.0))
+	var ikonväg: String = "%s/%s.png" % [TreeSockets.ICON_DIR, egen]
+	var skrev: bool = bild.save_png(ikonväg) == OK
+	var lista: Array = TreeSockets.icon_list()
+	check(skrev and lista.has(egen), "en egen PNG i assets/tree blir en ikon att välja",
+		"%d ikoner, egen med: %s" % [lista.size(), skrev])
+	check(not lista.has("jarnvagen_krona") and lista.has("jarnvagen"),
+		"kronringarna är inte valbara ikoner", str(lista))
+	var borta: int = DirAccess.remove_absolute(ProjectSettings.globalize_path(ikonväg))
+	check(borta == OK and not TreeSockets.icon_list().has(egen),
+		"och listan följer mappen (provet städar efter sig)", "bort=%d" % borta)
+
 	var tillbaka_fil := FileAccess.open(TreeSockets.PATH, FileAccess.WRITE)
 	tillbaka_fil.store_string(original)
 	tillbaka_fil.close()

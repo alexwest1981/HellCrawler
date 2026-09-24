@@ -48,7 +48,11 @@ const VALUES := {
 }
 
 const STEPS_MAX := 3                       ## flest steg ett kryss kan ges
-const ICONS := ["eld", "is", "magi"]       ## grafiken man väljer fritt (grenarnas egna ikoner finns också)
+## IKONLISTAN ÄR FILERNA PÅ DISKEN, inte en lista i koden. Alex: "jag kanske skapar egna ikoner, då
+## dessa är rätt platta och inte matchar stilen på spelet än." Då skall han kunna lägga sin PNG i
+## game/assets/tree/ och trycka G — ingen kodändring, ingen lista att hålla i takt. Kronringarna
+## (namn_krona.png) hoppas över: de är grenens slut, inte en ikon att välja.
+const ICON_DIR := "res://assets/tree"
 const NAME_SV := {"eld": "Eld", "is": "Is", "magi": "Magi"}
 
 ## Vad en nod av klassen kostar i Corrupted Souls. Ett rimligt förval, ärligt utskrivet: en stor nod är
@@ -165,6 +169,26 @@ static func size_index(klass: String) -> int:
 static func next_size(klass: String) -> String:
 	var namn: Array = SIZES.keys()
 	return str(namn[(size_index(klass) + 1) % namn.size()])
+
+
+## Alla ikoner i game/assets/tree/, sorterade. Ett eget verk läggs i mappen och dyker upp här.
+static func icon_list() -> Array:
+	var ut: Array = []
+	var dir := DirAccess.open(ICON_DIR)
+	if dir == null:
+		return ICONS_FALLBACK.duplicate()
+	for fil in dir.get_files():
+		# I ett körande spel är filnamnen ".png.import"; i källträdet ".png". Båda duger.
+		var namn := str(fil).trim_suffix(".import")
+		if not namn.ends_with(".png") or namn.ends_with("_krona.png"):
+			continue
+		ut.append(namn.trim_suffix(".png"))
+	ut.sort()
+	return ut if not ut.is_empty() else ICONS_FALLBACK.duplicate()
+
+
+## Om mappen inte går att läsa (ett paketerat spel) finns de här som sista utväg.
+const ICONS_FALLBACK := ["eld", "is", "magi"]
 
 
 ## Grafiken: nodens egen om den valt en, annars grenens ikon.

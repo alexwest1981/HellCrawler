@@ -197,7 +197,7 @@ func draw_overlay(du: CanvasItem) -> void:
 			"arrows        nudge",
 			"+             add a node here",
 			"L             node size (4 steps)",
-			"G             next icon",
+			"G             next icon (%d in assets/tree)" % TreeSockets.icon_list().size(),
 			"1-9 / click   tick upgrade x1-x3",
 			"X             remove a node you added",
 			"SHIFT + drag  draw a link",
@@ -494,15 +494,23 @@ func next_graphics() -> void:
 	if not records.has(selected):
 		return
 	var post: Dictionary = records[selected]
-	var val: Array = [str(view.FILNAMN.get(str(post.get("branch", "")), "jarnvagen"))]
-	val.append_array(TreeSockets.ICONS)
-	var nu: int = val.find(TreeSockets.graphics_of(post, str(val[0])))
+	# Grenens egen ikon först (den är nodens förval), sedan ALLA filer i assets/tree — lägger du dit en
+	# egen PNG finns den här utan att någon kod ändras.
+	var förval: String = str(view.FILNAMN.get(str(post.get("branch", "")), "jarnvagen"))
+	var val: Array = [förval]
+	for namn in TreeSockets.icon_list():
+		if str(namn) != förval:
+			val.append(str(namn))
+	if val.is_empty():
+		return
+	var nu: int = val.find(TreeSockets.graphics_of(post, förval))
 	post["graphics"] = str(val[(nu + 1) % val.size()])
 	records[selected] = post
 	for d in meta.defs:
 		if str(d.get("id", "")) == selected:
 			d["graphics"] = post["graphics"]
-	status = "%s gets the %s icon" % [selected, post["graphics"]]
+	status = "%s gets the %s icon  (%d icons in %s)" % [
+		selected, post["graphics"], val.size(), TreeSockets.ICON_DIR]
 	view.visa(meta, "TRADEDITOR", false)
 	overlay.queue_redraw()
 
