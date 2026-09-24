@@ -51,6 +51,7 @@ const NOD_PX := [26, 24, 20, 18, 15, 14]
 var _ikoner := {}                  ## id -> TextureRect
 var _rader := {}                   ## id -> Dictionary (gren, nivå, def)
 var _rubrik: Label
+var _snäpp := {}                   ## id -> {x, y, r} ur game/data/trad_sockets.json (mätta sockets)
 var _platta: TextureRect
 var _nodplan: Control
 var _info: Label
@@ -112,6 +113,17 @@ func _bygg() -> void:
 	_rubrik = rubrik
 	box.add_child(rubrik)
 
+	# SOCKETDATA. Filen skrivs av tools/gen_tree_sockets.py, som letar rätt på varje socket i bilden
+	# och snäpper varje nod till den närmaste. Vyn läser den i stället för att räkna ut något eget:
+	# en socket sitter där bilden har sin, inte i ett rutnät.
+	var rå := FileAccess.get_file_as_string("res://data/trad_sockets.json")
+	if not rå.is_empty():
+		var data: Variant = JSON.parse_string(rå)
+		if data is Dictionary:
+			for rad in data.get("sockets", []):
+				if rad is Dictionary and rad.has("id"):
+					_snäpp[str(rad["id"])] = rad
+
 	# PLATTAN. Bilden ligger i sin egen ruta och fyller panelen med rätt proportioner (bilden är
 	# kvadratisk, vyn är bred — den skalas efter höjden och centreras, och slot-talen nedan räknas i
 	# samma proportioner, annars hamnar kloten vid sidan av sina sockets).
@@ -144,6 +156,14 @@ func _bygg() -> void:
 
 ## Var en slot ligger i pixlar. Plattan är kvadratisk och skalas efter höjden, så en andel av bildens
 ## bredd är samma andel av höjden — därför räknas x ur höjden och centreras.
+## En punkt i bildens andelar till vyns pixlar. Plattan är kvadratisk och ritas i vyhöjden, centrerad.
+func _ur_bild(x: float, y: float) -> Vector2:
+	var yta: Vector2 = size
+	if yta.x < 8.0 or yta.y < 8.0:
+		yta = Vector2(480, 270)
+	return Vector2(yta.x * 0.5 + (x - 0.5) * yta.y, y * yta.y)
+
+
 func _slot(x: float, y: float) -> Vector2:
 	var yta: Vector2 = size
 	if yta.x < 8.0 or yta.y < 8.0:
@@ -220,6 +240,11 @@ func visa(meta: Meta, titel: String) -> void:
 		var x: float = float(kol[maxi(0, mini(kol.size() - 1, gren_nr))])
 		x += (float(plats) - 0.0) * (float(stl) / maxi(1, size.y)) * 1.2
 		var mitt: Vector2 = _slot(x, float(SLOTT_Y[mini(HÖGSTA, maxi(1, nivå)) - 1]))
+		# MÄTT SOCKET SLÅR RUTNÄTET: har verktyget hittat en socket åt den här noden sitter den där.
+		var sock: Dictionary = _snäpp.get(id, {})
+		if sock.has("x"):
+			mitt = _ur_bild(float(sock["x"]), float(sock["y"]))
+			stl = int(clampf(float(sock.get("r", 0.02)) * 2.0 * maxf(60.0, size.y) * 0.80, 12.0, 30.0))
 		ikon.position = mitt - Vector2(stl, stl) * 0.5
 		ikon.size = Vector2(stl, stl)
 		_nodplan.add_child(ikon)

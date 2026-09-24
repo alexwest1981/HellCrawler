@@ -609,6 +609,10 @@ func _initialize() -> void:
 	main._refresh_shell()
 	check(not (main.trad_view is PanelContainer),
 		"trädvyn är en Control (en Container äger sin storlek och krympte rutnätet till en rad)")
+	check(not main.trad_view._snäpp.is_empty(),
+		"socketdatan från tools/gen_tree_sockets.py är läst (25 mätta sockets)", "%d" % main.trad_view._snäpp.size())
+	check(main.trad_view._snäpp.has("iron_1") and float(main.trad_view._snäpp["iron_1"].get("score", 0)) > 0.0,
+		"varje socket bär sitt mått (poängen ring minus grop)")
 	check(main.trad_view._platta is TextureRect and main.trad_view._platta.texture != null,
 		"trädvyn har referensbilden som platta (socketsen sitter i den)")
 	check(main.trad_view._nodplan is Control and not (main.trad_view._nodplan is Container),
