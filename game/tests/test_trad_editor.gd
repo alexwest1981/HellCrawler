@@ -63,6 +63,53 @@ func _initialize() -> void:
 	for id in editor.ids:
 		if editor.records.has(id):
 			poster.append(editor.records[id])
+	# TVÅ KLASSER OCH KRYSSEN. Klasserna är plattans egna mått, och värdet halveras på en liten nod —
+	# det är hela poängen med små noder: "de skall bidra med små inkrementeringar".
+	var liten := {"size": "liten", "effekt": ["might"]}
+	var stor := {"size": "stor", "effekt": ["might"]}
+	check(is_equal_approx(float(TreeSockets.effect_of(liten)["might"]), 0.02)
+		and is_equal_approx(float(TreeSockets.effect_of(stor)["might"]), 0.05),
+		"liten nod ger litet steg, stor nod stort",
+		"%.2f mot %.2f" % [TreeSockets.effect_of(liten)["might"], TreeSockets.effect_of(stor)["might"]])
+	check(TreeSockets.radius_of(liten) < TreeSockets.radius_of(stor),
+		"och den lilla noden ritas mindre", "%.3f mot %.3f" % [TreeSockets.radius_of(liten), TreeSockets.radius_of(stor)])
+	check(TreeSockets.size_of({"r": 0.018}) == "stor" and TreeSockets.size_of({"r": 0.009}) == "liten",
+		"klassen följer plattans grop när ingen valt", TreeSockets.size_of({"r": 0.009}))
+
+	# MÄT ATT KRYSSET NÅR SPELET: lägg en skada på wick_2 i den RIKTIGA socketfilen, läs metan och se
+	# att nodens effekt är utbytt (inte adderade). Utan metans sammanslagning står summan still.
+	var original := FileAccess.get_file_as_string(TreeSockets.PATH)
+	var m_före := Meta.load_or_new()
+	m_före.ranks["wick_2"] = 1        # stat() räknar bara KÖPTA noder, så noden måste vara köpt
+	var skada_före: float = m_före.stat("might")
+	var hand_före: float = m_före.stat("hand")
+	var kryssad: Array = []
+	for id in editor.ids:
+		var post: Dictionary = (editor.records[id] as Dictionary).duplicate(true)
+		post["effekt"] = ["might"] if str(id) == "wick_2" else []
+		kryssad.append(post)
+	check(TreeSockets.write(kryssad), "socketfilen med krysset går att skriva")
+	var m_efter := Meta.load_or_new()
+	m_efter.ranks["wick_2"] = 1
+	# 0,02 och inte 0,05: wick_2 ligger i en LITEN grop, alltså är det en liten nod, och en liten nod
+	# ger halva steget. Det är hela poängen — provet mäter att halveringen följer med ut i spelet.
+	check(is_equal_approx(m_efter.stat("might") - skada_före, 0.02),
+		"krysset i socketfilen blir nodens effekt i spelet (0,02 skada på en liten wick_2)",
+		"%.3f -> %.3f" % [skada_före, m_efter.stat("might")])
+	check(m_efter.stat("hand") < hand_före,
+		"och den genererade effekten är BORTA, inte adderad",
+		"hand %.2f -> %.2f" % [hand_före, m_efter.stat("hand")])
+	var wick_post: Dictionary = {}
+	for post in kryssad:
+		if str((post as Dictionary).get("id", "")) == "wick_2":
+			wick_post = post
+	check(m_efter.def_for("wick_2").has("edited") and not TreeSockets.text_of(wick_post).is_empty(),
+		"och noden är märkt som redigerad och bär sin egen text",
+		TreeSockets.text_of(wick_post))
+	var tillbaka_fil := FileAccess.open(TreeSockets.PATH, FileAccess.WRITE)
+	tillbaka_fil.store_string(original)
+	tillbaka_fil.close()
+
 	check(TreeSockets.write(poster, "user://prov_sockets.json"), "socketfilen skrivs (atomiskt)")
 	var läst: Dictionary = TreeSockets.load_all("user://prov_sockets.json")
 	check(läst.size() == poster.size(), "lika många poster tillbaka som skickades",

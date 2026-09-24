@@ -163,6 +163,18 @@ func _load_defs() -> void:
 	defs = parsed
 	var träd = JSON.parse_string(FileAccess.get_file_as_string(TREE_PATH))
 	if typeof(träd) == TYPE_ARRAY:
+		# TRÄDEDITORNS VAL GÅR FÖRE DEN GENERERADE NODEN. Noden har redan en `effect` från
+		# tools/gen_tree.py; kryssar man egna uppgraderingar i editorn ligger de i socketfilen, och då
+		# ersätter de den genererade effekten helt (inte en blandning — det vore två sanningar om
+		# samma nod). Är inget ikryssat är noden orörd.
+		var sockets: Dictionary = TreeSockets.load_all()
+		for def in träd:
+			var post: Dictionary = sockets.get(str(def.get("id", "")), {})
+			var effekt: Dictionary = TreeSockets.effect_of(post)
+			if not effekt.is_empty():
+				def["effect"] = effekt
+				def["text"] = TreeSockets.text_of(post)
+				def["edited"] = true
 		defs += träd
 	else:
 		push_error("kunde inte läsa %s" % TREE_PATH)

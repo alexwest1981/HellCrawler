@@ -285,6 +285,10 @@ func visa(meta: Meta, titel: String) -> void:
 		post["x"] = fx
 		post["y"] = fy
 		post["r"] = r_kvar
+		# KLASSEN följer plattans grop: en nod i en liten grop är en liten nod, och den som står i en
+		# medaljong är en stor. Trädeditorn kan ändra klassen; då vinner människan över mätningen.
+		if not post.has("size"):
+			post["size"] = TreeSockets.size_of({"r": r_kvar}, nivå)
 		_snäpp[id] = post
 		_nodplan.add_child(ikon)
 		_ikoner[id] = ikon
@@ -412,7 +416,11 @@ func _rita(du: CanvasItem) -> void:
 func _peka(id: String) -> void:
 	var def: Dictionary = _meta.def_for(id)
 	var rad: Dictionary = _rader[id]
-	var text: String = "%s — %s" % [_meta.def_name(id), String(def.get("text", ""))]
+	# Är uppgraderingarna ikryssade i trädeditorn gäller DE, inte den genererade raden: annars visar
+	# hovringen en effekt noden inte har (och i18n-värdet för texten vore dessutom fel).
+	var egen: String = TreeSockets.text_of(_snäpp.get(id, {}))
+	var text: String = "%s — %s" % [_meta.def_name(id),
+		egen if not egen.is_empty() else String(def.get("text", ""))]
 	var rang: int = _meta.rank(id)
 	var max_rank: int = int(def.get("max_rank", 1))
 	if _meta.is_maxed(id):
@@ -491,7 +499,7 @@ func sätt_radie(id: String, r: float) -> void:
 	var ikon: Control = _ikoner.get(id, null)
 	if ikon == null:
 		return
-	var size_px: int = int(clampf(r * 2.0 * maxf(60.0, size.y) * 0.80, 12.0, 30.0))
+	var size_px: int = TreeSockets.size_px(r, size.y, minf(size.x, size.y))
 	var mitt: Vector2 = ikon.position + ikon.size * 0.5
 	ikon.size = Vector2(size_px, size_px)
 	ikon.position = mitt - ikon.size * 0.5
@@ -512,8 +520,8 @@ func placera_om() -> void:
 		if not post.has("x"):
 			continue
 		var ikon: Control = _ikoner[id]
-		var r: float = float(post.get("r", 0.03))
-		var size_px: int = int(clampf(r * 2.0 * size.y * 0.80, 12.0, 40.0))
+		var r: float = TreeSockets.radius_of(post)
+		var size_px: int = TreeSockets.size_px(r, size.y, minf(size.x, size.y))
 		if size_px != int(ikon.size.x):
 			ikon.size = Vector2(size_px, size_px)
 			post["r"] = r

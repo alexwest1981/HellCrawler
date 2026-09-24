@@ -12,17 +12,24 @@
 ## layer on top of it, so the plate, the orbs, the socket rings and the scaling are exactly what gets
 ## played. What differs is the mouse (drag a node) and the keys (S saves the same file the view reads).
 ##
-## Keys, also listed in the side panel: click or drag = move, arrow keys = nudge, [ ] = size,
-## T = next node, R = reset to the measured guess, S = save, M = menu, ESC or Q = quit.
+## Keys, also listed in the side panel: click or drag = move, arrow keys = nudge, L = small/large
+## node, 1-9 = tick an upgrade (or click its row), T = next node, R = reset to the measured guess,
+## S = save, M = menu, ESC or Q = quit.
+##
+## TWO KINDS OF NODE, TWO KINDS OF PIT. The plate has small pits (radius 0.009, measured) and three
+## large medallions (0.018). L picks which one the node is aimed at, and the ticked upgrades are worth
+## half as much on a small node — Alex: "it has to be possible to have small nodes too ... they should
+## contribute small increments. I need the editor to pick small or large node as the graphical target,
+## and then to tick which upgrades they do." The ticks and the class are written into the socket file
+## (TreeSockets), and Meta folds them into the node's effects when it loads the tree.
 ##
 ## The save is the whole point, so it is written through TreeSockets (one home for the format) and it
 ## says in the panel how many nodes were written and to where. A save that says nothing is
 ## indistinguishable from a broken key.
 extends Control
 
-const PANEL_WIDTH := 196.0
+const PANEL_WIDTH := 232.0
 const STEP := 0.002                    ## one arrow-key nudge, in image fractions
-const RADIUS_STEP := 0.002
 const GRAB_PIXELS := 22.0              ## how close the pointer has to be to grab a node
 
 var view: TreeView
@@ -33,6 +40,7 @@ var records: Dictionary = {}           ## id -> the record that will be written
 var selected := ""
 var dragging := false
 var status := ""
+var effekt_ytor: Dictionary = {}       ## typ -> Rect2, så panelens rader går att klicka
 
 
 ## The layer above the view: it takes the mouse (so a click selects instead of buying) and draws both
@@ -84,6 +92,13 @@ func _ready() -> void:
 			# A node the file does not know: take where the view put it (its lattice) as the start.
 			var frac: Vector2 = view.till_bild(view.nod_punkt(str(id)))
 			records[id] = TreeSockets.blank(str(id), frac.x, frac.y, 0.018)
+		var post: Dictionary = records[id]
+		if not post.has("size"):
+			# Plattans grop bestämmer utgångsklassen; grenens huvudnod är stor oavsett gropen.
+			post["size"] = TreeSockets.size_of(post, int(view._rader.get(str(id), {}).get("nivå", 0)))
+		if not post.has("effekt"):
+			post["effekt"] = []
+		records[id] = post
 	if not ids.is_empty():
 		selected = str(ids[0])
 	status = "%d nodes, %d in the file" % [ids.size(), TreeSockets.load_all().size()]
@@ -126,10 +141,11 @@ func draw_overlay(du: CanvasItem) -> void:
 	y += 16.0
 	if records.has(selected):
 		var record: Dictionary = records[selected]
+		var klass: String = TreeSockets.size_of(record)
 		var lines := [
 			"node: %s" % selected,
 			"x %.1f %%   y %.1f %%" % [float(record.get("x", 0.0)) * 100.0, float(record.get("y", 0.0)) * 100.0],
-			"r %.1f %% (socket)" % (float(record.get("r", 0.0)) * 100.0),
+			"node size: %s (r %.1f %%)" % [klass, TreeSockets.radius_of(record) * 100.0],
 			"pit %.2f (0 = none found)" % float(record.get("score", 0.0)),
 			"tier %d, rank %d/%d" % [
 				int(view._rader.get(selected, {}).get("nivå", 0)), meta.rank(selected),
@@ -137,16 +153,33 @@ func draw_overlay(du: CanvasItem) -> void:
 			"",
 			"click / drag  move",
 			"arrows        nudge",
-			"[ ]           socket size",
+			"L             small / large node",
+			"1-9 / click   tick upgrade",
 			"T             next node",
 			"R             reset to measured",
 			"S             SAVE",
 			"M             menu",
 			"ESC / Q       quit",
+			"",
+			"UPGRADES (%s node)" % klass,
 		]
 		for line in lines:
 			du.draw_string(font, Vector2(x, y), str(line), HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
 				Color(0.86, 0.86, 0.9))
+			y += 13.0
+		# Kryssraderna. Ytan för varje rad sparas, så ett klick vet vad det träffade — panelen är ett
+		# formulär, och en rad som ser klickbar ut men inte är det är värre än ingen rad.
+		effekt_ytor.clear()
+		var ikryssade: Array = record.get("effekt", [])
+		for typ in TreeSockets.VALUES:
+			var rad := Rect2(x, y - 11.0, PANEL_WIDTH - 16.0, 13.0)
+			var på: bool = ikryssade.has(typ)
+			du.draw_rect(rad, Color(0.2, 0.5, 0.3, 0.35) if på else Color(0.2, 0.2, 0.25, 0.35), true)
+			du.draw_string(font, Vector2(x + 4.0, y), "%s %s  (%s, rank %d)" % [
+				"[x]" if på else "[ ]", str(TreeSockets.WORDS.get(typ, typ)),
+				TreeSockets.effect_preview(typ, klass), meta.rank(selected)], HORIZONTAL_ALIGNMENT_LEFT,
+				-1, 11, Color(0.95, 0.95, 0.85) if på else Color(0.7, 0.7, 0.75))
+			effekt_ytor[typ] = rad
 			y += 13.0
 	du.draw_string(font, Vector2(x, size.y - 10.0), status, HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
 		Color(0.6, 0.95, 0.7))
@@ -170,6 +203,14 @@ func mouse_event(event: InputEvent) -> void:
 		if button.button_index == MOUSE_BUTTON_LEFT:
 			dragging = button.pressed
 			if button.pressed:
+				# Ett klick i panelen är ett kryss, aldrig en förflyttning: noderna bor till vänster
+				# om panelen, så en träff här kan bara vara en rad.
+				if button.position.x >= view.size.x:
+					dragging = false
+					for typ in effekt_ytor:
+						if (effekt_ytor[typ] as Rect2).has_point(button.position):
+							toggle_upgrade(str(typ))
+					return
 				var hit := node_at(button.position)
 				if not hit.is_empty():
 					selected = hit
@@ -204,7 +245,7 @@ func apply() -> void:
 		return
 	var record: Dictionary = records[selected]
 	view.flytta(selected, float(record["x"]), float(record["y"]))
-	view.sätt_radie(selected, float(record.get("r", 0.018)))
+	view.sätt_radie(selected, TreeSockets.radius_of(record))
 	view.rita_om()
 
 
@@ -219,13 +260,35 @@ func step_selected(dx: float, dy: float) -> void:
 	overlay.queue_redraw()
 
 
-func step_radius(step: float) -> void:
+## Byt mellan plattans två nodstorlekar. Klasserna är mätta ur bilden (0,009 och 0,018), inte
+## påhittade: en liten nod skall hamna i en liten grop.
+func toggle_size() -> void:
 	if not records.has(selected):
 		return
 	var record: Dictionary = records[selected]
-	record["r"] = clampf(float(record.get("r", 0.018)) + step, 0.006, 0.12)
+	record["size"] = "liten" if TreeSockets.size_of(record) == "stor" else "stor"
+	record["r"] = TreeSockets.radius_of(record)
 	records[selected] = record
+	status = "%s is now a %s node" % [selected, record["size"]]
 	apply()
+	overlay.queue_redraw()
+
+
+## Kryssa uppgraderingar. Ett kryss per typ; värdet följer storleken och räknas fram i TreeSockets,
+## så panelen och spelet visar samma siffra. Spara (S) skriver dem till socketfilen.
+func toggle_upgrade(typ: String) -> void:
+	if not records.has(selected) or not TreeSockets.VALUES.has(typ):
+		return
+	var record: Dictionary = records[selected]
+	var lista: Array = record.get("effekt", [])
+	if lista.has(typ):
+		lista.erase(typ)
+	else:
+		lista.append(typ)
+	record["effekt"] = lista
+	records[selected] = record
+	var text: String = TreeSockets.text_of(record)
+	status = "%s: %s" % [selected, text if not text.is_empty() else "no upgrades ticked"]
 	overlay.queue_redraw()
 
 
@@ -280,10 +343,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			step_selected(0.0, -fine)
 		KEY_DOWN:
 			step_selected(0.0, fine)
-		KEY_BRACKETLEFT:
-			step_radius(-RADIUS_STEP)
-		KEY_BRACKETRIGHT:
-			step_radius(RADIUS_STEP)
+		KEY_L:
+			toggle_size()
+		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
+			var typen: Array = TreeSockets.VALUES.keys()
+			var nr: int = key - KEY_1
+			if nr < typen.size():
+				toggle_upgrade(str(typen[nr]))
 		KEY_T:
 			next_node()
 		KEY_R:
