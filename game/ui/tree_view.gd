@@ -37,6 +37,7 @@ var _rubrik: Label
 var _rutnät: VBoxContainer
 var _celler := {}                  ## "gren_nivå" -> HBox, fylld i _bygg (ingen sökväg, en referens)
 var _info: Label
+var _ritare: Control
 var _meta: Meta
 
 static func _släckt() -> Color:
@@ -48,6 +49,18 @@ static func _köpbar() -> Color:
 ## Köpt men inte maxad: inre glöd, ljuset hålls innanför ramen. Steg 2 i Alex' bild.
 static func _köpt() -> Color:
 	return Color(0.92, 0.72, 0.42)
+
+## GRENFÄRGERNAS METALL (M95). Referensbilden har grenar i koppar, guld och stål; våra fyra får var
+## sin metall, så en gren går att känna igen på färgen och inte bara på ikonen.
+const GREN_FÄRG := {
+	"Järnvägen": Color(0.62, 0.68, 0.78),      # stål
+	"Benknippet": Color(0.80, 0.76, 0.66),     # ben
+	"Glöden": Color(0.85, 0.42, 0.24),         # glöd
+	"Girigheten": Color(0.86, 0.70, 0.28),     # guld
+}
+const JÄRN := Color(0.16, 0.15, 0.17)          ## kall gjutjärn: låst nod
+const JÄRN_LJUS := Color(0.42, 0.40, 0.44)     ## öppen men orörd
+const GULD := Color(0.98, 0.84, 0.44)          ## full uppgraderad, som referensens gyllene kedja
 
 static func _mättad() -> Color:
 	return Color(1.0, 0.88, 0.62)     # varm: grenen är fylld
@@ -98,6 +111,10 @@ func _bygg() -> void:
 			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			rad.add_child(cell)
 			_celler["%s_%d" % [FILNAMN[gren], nivå]] = cell
+
+	_ritare = Ritar.new()
+	_ritare.vy = self
+	add_child(_ritare)
 
 	_info = Label.new()
 	_info.name = "Info"
@@ -168,6 +185,13 @@ func visa(meta: Meta, titel: String) -> void:
 		_rader[id] = {"gren": gren, "nivå": nivå, "def": def}
 
 	uppdatera()
+	# Ramarna och rören ritas i _draw och behöver rutornas VERKLIGA läge: containrarna lägger ut sina
+	# barn först i slutet av bildrutan, och en ritning som sker innan dess lägger alla ramar i hörnet
+	# (mätt: inga ramar och inga rör syntes alls). En bildruta väntas därför in, och ritningen begärs
+	# om — samma skäl som gör att ett prov inte kan mäta layouten.
+	await get_tree().process_frame
+	if _ritare != null:
+		_ritare.queue_redraw()
 
 
 ## Tillstånden är fyra, inte tre. Alex' stegbild visar dem i ordning: låst (död metall), köpt (inre
@@ -186,6 +210,80 @@ func uppdatera() -> void:
 			ikon.modulate = _köpbar()          # öppen men orörd
 		else:
 			ikon.modulate = _släckt()          # låst: död metall
+
+
+## Ritaren (M95): en tunn Control som ligger ÖVERST i vyn och ritar ramar och rör.
+##
+## Varför en egen klass: en Controls _draw hamnar UNDER dess barn, och panelen inuti vyn har en nästan
+## opak bakgrund — ramarna ritades alltså och försvann bakom den (mätt: inga ramar och inga rör syntes
+## trots att koden körde). Den här läggs som sista barn och ritar ovanpå allt, och den ritar samma sak
+## som vyn räknar ut.
+class Ritar:
+	extends Control
+
+	var vy: TreeView
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE     # klick går till ikonerna under
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+
+	func _draw() -> void:
+		if vy != null:
+			vy._rita(self)
+
+
+## RAMAR OCH RÖR (M95). Referensbilden är byggd av två saker: en gjutjärnsram runt varje nod och
+## massiva rör mellan dem. Båda ritas i stället för att läggas som bilder — en ram per nod hade varit
+## 88 bilder för samma form, och rören måste följa rutornas verkliga läge (som bara containrarna
+## känner). Färgen bär tillståndet: mörk kall metall när noden är låst, grenens metallfärg när den är
+## köpt, och guld när den är full.
+func _rita(du: CanvasItem) -> void:
+	if _meta == null or _celler.is_empty():
+		return
+	# Rör mellan nivåerna, ett per gren: nedre kanten av en ruta till övre kanten av nästa. Ett rör
+	# lyser i grenens metall när det finns minst en köpt rang i grenen på den nivån eller ovanför —
+	# alltså när kraften faktiskt har letts dit, samma läsning som referensens glödande ledningar.
+	for gren in GRENAR:
+		var f := str(FILNAMN[gren])
+		var köpta := {}
+		for id in _rader:
+			var rad: Dictionary = _rader[id]
+			if str(rad.get("gren", "")) == gren and _meta.rank(id) > 0:
+				köpta[int(rad.get("nivå", 0))] = true
+		for nivå in range(1, HÖGSTA + 1):
+			var upp: Control = _celler.get("%s_%d" % [f, nivå], null)
+			var ned: Control = _celler.get("%s_%d" % [f, nivå + 1], null)
+			if upp == null or ned == null:
+				continue
+			var x: float = upp.global_position.x - global_position.x + upp.size.x * 0.5
+			var y1: float = upp.global_position.y - global_position.y + upp.size.y
+			var y2: float = ned.global_position.y - global_position.y
+			if y2 <= y1:
+				continue
+			var tänd: bool = köpta.has(nivå) or köpta.has(nivå + 1)
+			var rör: Color = GREN_FÄRG.get(gren, JÄRN_LJUS) if tänd else JÄRN
+			du.draw_line(Vector2(x, y1), Vector2(x, y2), rör, 3.0)
+			du.draw_line(Vector2(x, y1), Vector2(x, y2), JÄRN_LJUS, 1.0)
+	# Ram runt varje nodruta: mörk gjutjärn med en ljusare inre kant, och guld när rutan är full.
+	for id in _ikoner:
+		var ikon: Control = _ikoner[id]
+		var rad: Dictionary = _rader[id]
+		var gren: String = str(rad.get("gren", ""))
+		var rank: int = _meta.rank(id)
+		var maks: int = int(_meta.def_for(id).get("max_rank", 1))
+		var färg := JÄRN
+		if rank > 0 and rank >= maks:
+			färg = GULD
+		elif rank > 0:
+			färg = GREN_FÄRG.get(gren, JÄRN_LJUS)
+		elif _meta.requires_met(id):
+			färg = JÄRN_LJUS
+		var r := Rect2(ikon.global_position - global_position - Vector2(2, 2),
+			ikon.size + Vector2(4, 4))
+		du.draw_rect(r, färg, false, 2.0)
+		# Nitar i hörnen: fyra punkter som gör ramen till metall i stället för en grå ruta.
+		for hörn in [r.position, Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), r.end]:
+			du.draw_rect(Rect2(hörn - Vector2(1, 1), Vector2(2, 2)), färg)
 
 
 func _peka(id: String) -> void:
