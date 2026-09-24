@@ -628,13 +628,22 @@ func _initialize() -> void:
 			"noden %s ligger inne i vyn" % tnid, "%s" % tnod.position)
 	check(ytor.size() == 11, "elva nivåer har noder (huvudnod + 20 undernoder = 10 rader)",
 		"%d" % ytor.size())
-	var nivåer: Array = ytor.keys()
-	nivåer.sort()
-	var stigande := true
-	for i in range(1, nivåer.size()):
-		if float(ytor[nivåer[i]]) <= float(ytor[nivåer[i - 1]]):
-			stigande = false
-	check(stigande, "nivå 1 ligger ovanför den sista nivån (nivån bestämmer höjden, inte ordningen)")
+	# Nivåerna skall läsa uppifrån och ner, MÄTT PÅ HUVUDNODERNA: de är grenens topp och skall ligga
+	# ovanför sina egna sista undernoder. Rutnätets rader håller samma ordning, men när noderna är
+	# placerade för hand (trädeditorn) får de sitta var de vill — det är placeringen, inte lagen.
+	for id in main.trad_view._ikoner:
+		if not str(id).ends_with("_main"):
+			continue
+		var topp: Control = main.trad_view._ikoner[id]
+		var gren: String = str(main.trad_view._rader[id].get("gren", ""))
+		var lägst := -1.0
+		for annat in main.trad_view._rader:
+			var rad: Dictionary = main.trad_view._rader[annat]
+			if str(rad.get("gren", "")) == gren:
+				var annan: Control = main.trad_view._ikoner[annat]
+				lägst = maxf(lägst, annan.position.y)
+		check(topp.position.y < lägst, "huvudnoden i %s ligger ovanför grenens sista nod" % gren,
+			"%.0f mot %.0f" % [topp.position.y, lägst])
 	check(main.trad_view._ikoner.size() > 0, "och ikonerna hamnade i dem",
 		"%d ikoner" % main.trad_view._ikoner.size())
 	# Ingen kontroll för flaggan -- skarm=<namn>: den läser SKAL_LÄGEN nu, och att kontrollera att en
