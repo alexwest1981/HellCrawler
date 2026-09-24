@@ -1,8 +1,14 @@
 class_name TreeView
-extends PanelContainer
+extends Control
 
 ## Trädet som EGEN VY (M94). Alex: *"Trädet skall vara en egen vy, och det skall vara ikoner, med text
 ## när man hovrar över en ikon."*
+##
+## CONTROL, INTE PANELCONTAINER (M95). Första versionen ärvde PanelContainer, och en Container ÄGER
+## sin storlek — den krymper till sitt innehåll och struntar i den size som skalet sätter. Följden
+## syntes på Alex' skärmbild: rutnätet hade ingen bredd, så de fjorton ikonerna lade sig på EN rad
+## högst upp i en svart ruta. Byns och kartans vyer ärver Control och sätter sin size själva; trädet
+## gör nu samma sak, och panelen inuti fyller den ytan.
 ##
 ## Formen är grenarna lodrätt och nivåerna vågrätt: fyra kolumner (Järnvägen, Benknippet, Glöden,
 ## Girigheten) och sex rader (nivå 1 längst upp, kronan nederst). Inuti en ruta står den grenens
@@ -56,9 +62,13 @@ func _bygg() -> void:
 	if _info != null:
 		return
 	custom_minimum_size = Vector2(456, 0)
-	add_theme_stylebox_override("panel", _panel_stil())
+	var ram := PanelContainer.new()
+	ram.name = "Ram"
+	ram.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ram.add_theme_stylebox_override("panel", _panel_stil())
+	add_child(ram)
 	var box := VBoxContainer.new()
-	add_child(box)
+	ram.add_child(box)
 
 	var rubrik := Label.new()
 	rubrik.name = "Rubrik"
@@ -69,6 +79,9 @@ func _bygg() -> void:
 	rutnät.name = "Rutnät"
 	_rutnät = rutnät
 	rutnät.columns = GRENAR.size()
+	rutnät.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rutnät.add_theme_constant_override("h_separation", 6)
+	rutnät.add_theme_constant_override("v_separation", 2)
 	box.add_child(rutnät)
 
 	for nivå in range(1, HÖGSTA + 1):

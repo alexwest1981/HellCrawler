@@ -2723,10 +2723,11 @@ func _refresh_shell() -> void:
 	if shell == "hem":
 		# Byn och kartan ritar sig själva: de får metat och ordningen, inte en färdig textrad.
 		by_view.visa(meta, _stage_order.size())
-	elif shell == "smed":
+	elif shell == "smed" and _smed_läge == "sharpen":
 		# Trädet bor inte här (M95). Alex: *"Smeden har inget att göra med Skill Tree — Smeden skall
 		# skärpa de vapen man samlat in på kort."* Tills verkstaden finns står det rakt ut här i
 		# stället för en tom panel eller, värre, trädets rader under en skylt det inte är.
+		# Shop-avdelningen går i butikens gren nedan: samma text, samma panel, en dörr mindre.
 		smed_label.text = Tr.t("ui.smith.oppet", "SMEDEN · SHARPEN\n\nVapnen du hittat på korten skärps här.\nVerkstaden är inte öppen än.\n\nT = SHOP")
 	elif shell == "trad":
 		# Trädet är sin egen plats i byn nu (M95) och betalas med CS (se meta.buy).
@@ -2735,12 +2736,10 @@ func _refresh_shell() -> void:
 		_show_album()
 	elif shell == "karta":
 		karta_view.visa(stages, _stage_order, meta)
-	elif shell == "butik":
+	elif shell == "butik" or (shell == "smed" and _smed_läge == "shop"):
 		butik_label.text = _village_text("by")
 	elif shell == "vardshus":
 		_show_inn()
-	elif shell == "smed":
-		smed_label.text = _smed_text()
 	elif shell == "juvelerare":
 		_show_jewel()
 	elif shell == "banverkstad":
@@ -6839,7 +6838,15 @@ const BENCH_TEXTURE := "res://assets/ui/bench.png"
 func _bench_style() -> StyleBoxTexture:
 	var sb := StyleBoxTexture.new()
 	sb.texture = load(BENCH_TEXTURE)
-	sb.modulate_color = Color(0.32, 0.27, 0.23, 0.96)
+	# PLATTORNA LIGGER PLATT (M95). Alex: *"Bordsytan för tavernan är alldeles för inzoomad och
+	# mörk."* StyleBoxTexture STRÄCKER sin textur som standard, och 512x288 utdraget över en panel
+	# på ~450x200 px blir plankor i fel skala — mittpartiet såg ut som en enda suddig planka. Med
+	# TILE läggs texturen i sin egen storlek i stället, som en bänkskiva man ser uppifrån.
+	#
+	# Ljummet också: den gamla tonen (0,32 0,27 0,23) var mörk nog att texten försvann i träet.
+	sb.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+	sb.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+	sb.modulate_color = Color(0.72, 0.64, 0.55, 0.97)
 	sb.set_content_margin_all(4)
 	return sb
 

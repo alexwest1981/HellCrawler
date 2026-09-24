@@ -598,6 +598,25 @@ func _initialize() -> void:
 			utan_väg_tillbaka.append(str(läge))
 	check(utan_väg_tillbaka.is_empty(), "ESC leder tillbaka till byn från varje skärm",
 		"fastnade i: %s" % str(utan_väg_tillbaka))
+	# TRÄDETS RUTNÄT HAR FLER ÄN EN RAD (M95). Alex' skärmbild visade fjorton ikoner på EN rad högst
+	# upp i en svart ruta: vyn ärvde PanelContainer, och en Container äger sin storlek — den krympte
+	# till sitt innehåll och struntade i den size skalet satte, så rutnätet fick ingen bredd. Nu mäts
+	# det i stället för att tros: ikonernas globala rutor skall spänna över både höjd och bredd.
+	# Vyns form mäts, inte ikonernas pixelpositioner: containrar lägger ut sina barn först i nästa
+	# bildruta, och provet kör i samma. Det som avgör om rutnätet får en bredd är VILKEN KLASS vyn
+	# är — en Container äger sin storlek och krympte till en rad, en Control tar den size skalet ger.
+	main.shell = "trad"
+	main._refresh_shell()
+	check(not (main.trad_view is PanelContainer),
+		"trädvyn är en Control (en Container äger sin storlek och krympte rutnätet till en rad)")
+	check(main.trad_view._rutnät.columns == 4, "rutnätet har fyra kolumner (en per gren)",
+		"%d" % main.trad_view._rutnät.columns)
+	var celler := 0
+	for barn in main.trad_view._rutnät.get_children():
+		celler += 1
+	check(celler == 24, "och sex nivåer x fyra grenar rutor att sätta ikoner i", "%d rutor" % celler)
+	check(main.trad_view._ikoner.size() > 0, "och ikonerna hamnade i dem",
+		"%d ikoner" % main.trad_view._ikoner.size())
 	# Provet lämnar skalet i byn igen: nästa kontroll mäter juvelerarpanelen i spelvyn, och stod
 	# skalet kvar i ett annat läge mättes fel skärm (panelen var 884 px i en 480 px vy).
 	main.shell = "hem"
