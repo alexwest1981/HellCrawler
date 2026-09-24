@@ -2660,7 +2660,11 @@ func _välj_skarm(skarm: String) -> void:
 		shell = "karta"
 		_refresh_shell()
 		return
-	if skarm == "butik" or skarm == "vardshus" or skarm == "smed" or skarm == "album" or skarm == "juvelerare" or skarm == "banverkstad":
+	# SKAL_LÄGEN ÄR LISTAN (M95). Här stod en egen uppräkning av giltiga skärmar, och den glömde
+	# "trad": flaggan avvisades, spelet startade i byn, och skärmbilden jag tog för att verifiera
+	# trädet visade byn i stället — byte-identisk varje gång, vilket är precis vad en skärmbild av
+	# fel skärm gör. En lista, inte två.
+	if SKAL_LÄGEN.has(skarm) or skarm == "hem":
 		shell = skarm
 		_refresh_shell()
 		return

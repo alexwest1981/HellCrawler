@@ -617,6 +617,9 @@ func _initialize() -> void:
 	check(celler == 24, "och sex nivåer x fyra grenar rutor att sätta ikoner i", "%d rutor" % celler)
 	check(main.trad_view._ikoner.size() > 0, "och ikonerna hamnade i dem",
 		"%d ikoner" % main.trad_view._ikoner.size())
+	# Ingen kontroll för flaggan -- skarm=<namn>: den läser SKAL_LÄGEN nu, och att kontrollera att en
+	# lista innehåller sig själv är ingen kontroll. Felet den avskaffade var att listan fanns i två
+	# exemplar, varav det ena glömde trädet.
 	# Provet lämnar skalet i byn igen: nästa kontroll mäter juvelerarpanelen i spelvyn, och stod
 	# skalet kvar i ett annat läge mättes fel skärm (panelen var 884 px i en 480 px vy).
 	main.shell = "hem"
