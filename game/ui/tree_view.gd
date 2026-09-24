@@ -29,7 +29,7 @@ const FILNAMN := {
 	"Glöden": "gloden", "Girigheten": "girigheten",
 }
 const HÖGSTA := 6
-const IKON_PX := 22
+const IKON_PX := 16
 
 var _ikoner := {}                  ## id -> TextureRect
 var _rader := {}                   ## id -> Dictionary (gren, nivå, def)
@@ -58,6 +58,12 @@ const GREN_FÄRG := {
 	"Glöden": Color(0.85, 0.42, 0.24),         # glöd
 	"Girigheten": Color(0.86, 0.70, 0.28),     # guld
 }
+const SOCKET_R := 11.0                        ## socketens radie: klotet ar 22 px i diameter
+const SOCKET := Color(0.21, 0.20, 0.22)         ## fattningens kropp: aldrad metall
+const SOCKET_SKUGGA := Color(0.08, 0.08, 0.09)   ## urgravd insida, skuggan nedtill
+const KARNA := Color(0.11, 0.11, 0.13)           ## klotet nar noden ar last
+const LJUSBLANK := Color(0.60, 0.58, 0.64)       ## blanken i overkant
+const NIT := Color(0.34, 0.32, 0.36)             ## nitarna runt ringen
 const JÄRN := Color(0.16, 0.15, 0.17)          ## kall gjutjärn: låst nod
 const JÄRN_LJUS := Color(0.42, 0.40, 0.44)     ## öppen men orörd
 const GULD := Color(0.98, 0.84, 0.44)          ## full uppgraderad, som referensens gyllene kedja
@@ -102,12 +108,13 @@ func _bygg() -> void:
 	for nivå in range(1, HÖGSTA + 1):
 		var rad := HBoxContainer.new()
 		rad.name = "rad_%d" % nivå
+		rad.custom_minimum_size = Vector2(0, 40 if nivå == 1 else 34)   # socketarna ar 22 px: glipan mellan dem ar roret
 		rad.add_theme_constant_override("separation", 6)
 		_rutnät.add_child(rad)
 		for gren in GRENAR:
 			var cell := HBoxContainer.new()
 			cell.name = "%s_%d" % [FILNAMN[gren], nivå]
-			cell.add_theme_constant_override("separation", 1)
+			cell.add_theme_constant_override("separation", 8)
 			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			rad.add_child(cell)
 			_celler["%s_%d" % [FILNAMN[gren], nivå]] = cell
@@ -176,6 +183,9 @@ func visa(meta: Meta, titel: String) -> void:
 		ikon.texture = load("res://assets/tree/%s%s.png" % [FILNAMN[gren],
 			"_krona" if nivå >= HÖGSTA else ""])
 		ikon.custom_minimum_size = Vector2(IKON_PX, IKON_PX)
+		# Utan detta vinner texturEN:s egen storlek (32 px) över custom_minimum_size, och ikonen
+		# blev större än sin socket — mätt: 32 px ikon i en 22 px socket. Noden skall vara klotet.
+		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ikon.mouse_filter = Control.MOUSE_FILTER_STOP
 		ikon.mouse_entered.connect(_peka.bind(id))
@@ -240,50 +250,69 @@ class Ritar:
 func _rita(du: CanvasItem) -> void:
 	if _meta == null or _celler.is_empty():
 		return
-	# Rör mellan nivåerna, ett per gren: nedre kanten av en ruta till övre kanten av nästa. Ett rör
-	# lyser i grenens metall när det finns minst en köpt rang i grenen på den nivån eller ovanför —
-	# alltså när kraften faktiskt har letts dit, samma läsning som referensens glödande ledningar.
+	# Nodernas mittpunkter per gren och nivå. Röret skall gå rakt genom noden, och en nivå kan ha
+	# flera noder i samma gren — då är deras medelvärde grenens ryggrad. (Förut räknades röret ur
+	# RUTANS mitt, och rutan är bredare än sina ikoner: stängerna hamnade vid sidan av noderna.)
+	var noder := {}
+	var köpta := {}
+	for id in _ikoner:
+		var rad: Dictionary = _rader[id]
+		var ikon: Control = _ikoner[id]
+		var nyckel: String = "%s|%d" % [str(rad.get("gren", "")), int(rad.get("nivå", 0))]
+		var c: Vector2 = ikon.global_position - global_position + ikon.size * 0.5
+		if not noder.has(nyckel):
+			noder[nyckel] = []
+		noder[nyckel].append(c)
+		if _meta.rank(id) > 0:
+			köpta[nyckel] = true
+	# RÖREN: en stång per gren mellan nivåerna, tänd i grenens metall när det finns en köpt rang där.
 	for gren in GRENAR:
-		var f := str(FILNAMN[gren])
-		var köpta := {}
-		for id in _rader:
-			var rad: Dictionary = _rader[id]
-			if str(rad.get("gren", "")) == gren and _meta.rank(id) > 0:
-				köpta[int(rad.get("nivå", 0))] = true
-		for nivå in range(1, HÖGSTA + 1):
-			var upp: Control = _celler.get("%s_%d" % [f, nivå], null)
-			var ned: Control = _celler.get("%s_%d" % [f, nivå + 1], null)
-			if upp == null or ned == null:
+		for nivå in range(1, HÖGSTA):
+			var upp: Array = noder.get("%s|%d" % [gren, nivå], [])
+			var ned: Array = noder.get("%s|%d" % [gren, nivå + 1], [])
+			if upp.is_empty() or ned.is_empty():
 				continue
-			var x: float = upp.global_position.x - global_position.x + upp.size.x * 0.5
-			var y1: float = upp.global_position.y - global_position.y + upp.size.y
-			var y2: float = ned.global_position.y - global_position.y
+			var summa: float = 0.0
+			for i in upp.size():
+				var punkt: Vector2 = upp[i]
+				summa += punkt.x
+			var x: float = summa / float(upp.size())
+			var övre: Vector2 = upp[0]
+			var undre: Vector2 = ned[0]
+			var y1: float = övre.y + SOCKET_R
+			var y2: float = undre.y - SOCKET_R
 			if y2 <= y1:
 				continue
-			var tänd: bool = köpta.has(nivå) or köpta.has(nivå + 1)
+			var tänd: bool = köpta.has("%s|%d" % [gren, nivå]) or köpta.has("%s|%d" % [gren, nivå + 1])
 			var rör: Color = GREN_FÄRG.get(gren, JÄRN_LJUS) if tänd else JÄRN
 			du.draw_line(Vector2(x, y1), Vector2(x, y2), rör, 3.0)
 			du.draw_line(Vector2(x, y1), Vector2(x, y2), JÄRN_LJUS, 1.0)
-	# Ram runt varje nodruta: mörk gjutjärn med en ljusare inre kant, och guld när rutan är full.
+	# SOCKETRINGARNA. Bara ringar, inga fyllda skivor: den här ritaren ligger ÖVERST i vyn (en Controls
+	# egen _draw hamnar under barnen, och panelen är nästan opak), så en fylld skiva hade målat över
+	# ikonerna — mätt: socketarna syntes och var alldeles tomma. Ringens innerkant hamnar på 9 px och
+	# ikonen är 8 px radie, så klotet syns genom fattningen. Ringen bär tillståndet: mörk metall =
+	# låst, grenens metall = köpt, guldlåga = full.
 	for id in _ikoner:
 		var ikon: Control = _ikoner[id]
 		var rad: Dictionary = _rader[id]
 		var gren: String = str(rad.get("gren", ""))
 		var rank: int = _meta.rank(id)
 		var maks: int = int(_meta.def_for(id).get("max_rank", 1))
-		var färg := JÄRN
+		var färg: Color = JÄRN
 		if rank > 0 and rank >= maks:
 			färg = GULD
 		elif rank > 0:
 			färg = GREN_FÄRG.get(gren, JÄRN_LJUS)
 		elif _meta.requires_met(id):
 			färg = JÄRN_LJUS
-		var r := Rect2(ikon.global_position - global_position - Vector2(2, 2),
-			ikon.size + Vector2(4, 4))
-		du.draw_rect(r, färg, false, 2.0)
-		# Nitar i hörnen: fyra punkter som gör ramen till metall i stället för en grå ruta.
-		for hörn in [r.position, Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), r.end]:
-			du.draw_rect(Rect2(hörn - Vector2(1, 1), Vector2(2, 2)), färg)
+		var c: Vector2 = ikon.global_position - global_position + ikon.size * 0.5
+		du.draw_arc(c, SOCKET_R - 1.0, 0.0, TAU, 28, färg, 3.0, true)
+		du.draw_arc(c, SOCKET_R - 1.0, -PI * 0.85, -PI * 0.15, 10, LJUSBLANK, 1.5, true)
+		for i in 4:
+			var vinkel: float = PI * 0.25 + i * PI * 0.5
+			du.draw_circle(c + Vector2(cos(vinkel), sin(vinkel)) * (SOCKET_R - 1.0), 1.0, NIT)
+		if rank > 0 and rank >= maks:
+			du.draw_arc(c, SOCKET_R + 3.0, 0.0, TAU, 28, GULD, 1.5, true)
 
 
 func _peka(id: String) -> void:
