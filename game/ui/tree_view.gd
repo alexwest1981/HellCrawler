@@ -113,16 +113,10 @@ func _bygg() -> void:
 	_rubrik = rubrik
 	box.add_child(rubrik)
 
-	# SOCKETDATA. Filen skrivs av tools/gen_tree_sockets.py, som letar rätt på varje socket i bilden
-	# och snäpper varje nod till den närmaste. Vyn läser den i stället för att räkna ut något eget:
-	# en socket sitter där bilden har sin, inte i ett rutnät.
-	var rå := FileAccess.get_file_as_string("res://data/trad_sockets.json")
-	if not rå.is_empty():
-		var data: Variant = JSON.parse_string(rå)
-		if data is Dictionary:
-			for rad in data.get("sockets", []):
-				if rad is Dictionary and rad.has("id"):
-					_snäpp[str(rad["id"])] = rad
+	# SOCKETDATA. Filen skrivs av tools/gen_tree_sockets.py (mätt) eller av trädeditorn (för hand, se
+	# game/editor/trad_editor.gd) och läses här. Formatet ägs av TreeSockets, så vyn och editorn kan
+	# inte glida ifrån varandra. En socket sitter där bilden har sin, inte i ett rutnät.
+	_snäpp = TreeSockets.load_all()
 
 	# PLATTAN. Bilden ligger i sin egen ruta och fyller panelen med rätt proportioner (bilden är
 	# kvadratisk, vyn är bred — den skalas efter höjden och centreras, och slot-talen nedan räknas i
@@ -233,32 +227,41 @@ func visa(meta: Meta, titel: String) -> void:
 		ikon.mouse_filter = Control.MOUSE_FILTER_STOP
 		ikon.mouse_entered.connect(_peka.bind(id))
 		ikon.gui_input.connect(_klick.bind(id))
-		# Klotet sätts i sin socket: två noder på samma nivå i samma gren står sida vid sida, som
-		# paren i bilden (plattan är kvadratisk, så x och y mäts i samma enhet).
-		var gren_nr: int = GRENAR.find(gren)
+		# NODEN SOM EN PLATS I BILDEN, inte som en pixel. Att räkna pixelpositioner en gång och
+		# behålla dem var felet: vyn får sin storlek EFTER att noderna skapats, och i ett annat fönster
+		# låg varje klot kvar där det räknades för den gamla storleken (mätt av provet: en nod gav
+		# bildandel -0,39 i stället för 0,05). Nu sparas andelen, och pixlarna räknas om varje gång
+		# vyn får en ny storlek — av placera_om(), på ett ställe.
 		var kol: Array = SLOTT_X_TOP if nivå <= 2 else SLOTT_X
-		var x: float = float(kol[maxi(0, mini(kol.size() - 1, gren_nr))])
-		x += (float(plats) - 0.0) * (float(stl) / maxi(1, size.y)) * 1.2
-		var mitt: Vector2 = _slot(x, float(SLOTT_Y[mini(HÖGSTA, maxi(1, nivå)) - 1]))
-		# MÄTT SOCKET SLÅR RUTNÄTET: har verktyget hittat en socket åt den här noden sitter den där.
+		var gren_nr: int = GRENAR.find(gren)
+		var r_kvar: float = float(stl) / (2.0 * 0.80 * maxf(60.0, size.y))
+		var fx: float = float(kol[maxi(0, mini(kol.size() - 1, gren_nr))])
+		fx += float(plats) * r_kvar * 1.9
+		var fy: float = float(SLOTT_Y[mini(HÖGSTA, maxi(1, nivå)) - 1])
 		var sock: Dictionary = _snäpp.get(id, {})
 		if sock.has("x"):
-			mitt = _ur_bild(float(sock["x"]), float(sock["y"]))
-			stl = int(clampf(float(sock.get("r", 0.02)) * 2.0 * maxf(60.0, size.y) * 0.80, 12.0, 30.0))
-		ikon.position = mitt - Vector2(stl, stl) * 0.5
-		ikon.size = Vector2(stl, stl)
+			# MÄTT SOCKET SLÅR RUTNÄTET, och storleken följer socketens radie.
+			fx = float(sock["x"])
+			fy = float(sock["y"])
+			r_kvar = float(sock.get("r", r_kvar))
+		var post: Dictionary = _snäpp.get(id, {})
+		post["id"] = id
+		post["x"] = fx
+		post["y"] = fy
+		post["r"] = r_kvar
+		_snäpp[id] = post
 		_nodplan.add_child(ikon)
 		_ikoner[id] = ikon
 		_rader[id] = {"gren": gren, "nivå": nivå, "def": def}
 
+	placera_om()
 	uppdatera()
 	# Ramarna och rören ritas i _draw och behöver rutornas VERKLIGA läge: containrarna lägger ut sina
 	# barn först i slutet av bildrutan, och en ritning som sker innan dess lägger alla ramar i hörnet
 	# (mätt: inga ramar och inga rör syntes alls). En bildruta väntas därför in, och ritningen begärs
 	# om — samma skäl som gör att ett prov inte kan mäta layouten.
 	await get_tree().process_frame
-	if _ritare != null:
-		_ritare.queue_redraw()
+	placera_om()
 
 
 ## Tillstånden är fyra, inte tre. Alex' stegbild visar dem i ordning: låst (död metall), köpt (inre
@@ -392,8 +395,104 @@ func _peka(id: String) -> void:
 
 
 func _klick(event: InputEvent, id: String) -> void:
+	if redigering:
+		return          # i editorn betyder ett klick "välj den här noden", inte "köp den"
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		# Samma väg som butiken: metan avgör om det går, och vyn ritar om det som blev.
 		_meta.buy(id)
 		uppdatera()
 		_peka(id)
+
+
+## ------------------------------------------------------------------------------------------------
+## Ytan utåt, för trädeditorn (M95). Editorn ritar spelets EGEN vy och behöver flytta noder i den —
+## inte en kopia av den, som skulle glida ifrån spelets utseende. Tre funktioner: var en nod ligger,
+## hur en skärmpunkt blir bildandelar, och hur en nod flyttas.
+## ------------------------------------------------------------------------------------------------
+
+## Peka-läget stängs: ett klick i vyn köper ingenting.
+var redigering := false
+
+
+## Nodernas id, i den ordning vyn ritade dem. Frågan "vilka noder finns i trädet" har ett svar, och
+## det står här — editorn bygger sin lista på den i stället för att gissa ur metan.
+func nod_ids() -> Array:
+	return _ikoner.keys()
+
+
+## Nodens mitt i vyns pixlar.
+func nod_punkt(id: String) -> Vector2:
+	var ikon: Control = _ikoner.get(id, null)
+	if ikon == null:
+		return Vector2.ZERO
+	return ikon.position + ikon.size * 0.5
+
+
+## Vyns pixlar -> bildandelar. Samma räkning som _ur_bild, baklänges — och bara på ett ställe, så
+## editorn och vyn alltid menar samma punkt.
+func till_bild(punkt: Vector2) -> Vector2:
+	var yta: Vector2 = size
+	if yta.x < 8.0 or yta.y < 8.0:
+		yta = Vector2(480, 270)
+	return Vector2((punkt.x - yta.x * 0.5) / yta.y + 0.5, punkt.y / yta.y)
+
+
+## Flytta en nod till en plats i bilden.
+func flytta(id: String, x: float, y: float) -> void:
+	var ikon: Control = _ikoner.get(id, null)
+	if ikon == null:
+		return
+	ikon.position = _ur_bild(x, y) - ikon.size * 0.5
+	var record: Dictionary = _snäpp.get(id, {})
+	record["id"] = id
+	record["x"] = x
+	record["y"] = y
+	_snäpp[id] = record
+
+
+## Sätt nodens storlek. Socketens radie är i bildandelar, samma enhet som x och y.
+func sätt_radie(id: String, r: float) -> void:
+	var ikon: Control = _ikoner.get(id, null)
+	if ikon == null:
+		return
+	var size_px: int = int(clampf(r * 2.0 * maxf(60.0, size.y) * 0.80, 12.0, 30.0))
+	var mitt: Vector2 = ikon.position + ikon.size * 0.5
+	ikon.size = Vector2(size_px, size_px)
+	ikon.position = mitt - ikon.size * 0.5
+	var record: Dictionary = _snäpp.get(id, {})
+	record["id"] = id
+	record["r"] = r
+	_snäpp[id] = record
+
+
+## Lägg varje nod där socketdatan säger, i vyns NUVARANDE storlek. EN platsräkning: både visa() och
+## en storleksändring går genom den här. Utan den låg noderna kvar på positioner räknade för en annan
+## storlek — och spelet ritar i riktiga pixlar, så fönstrets storlek ÄR ytans storlek.
+func placera_om() -> void:
+	if _ikoner.is_empty() or size.x < 8.0 or size.y < 8.0:
+		return
+	for id in _ikoner:
+		var post: Dictionary = _snäpp.get(id, {})
+		if not post.has("x"):
+			continue
+		var ikon: Control = _ikoner[id]
+		var r: float = float(post.get("r", 0.03))
+		var size_px: int = int(clampf(r * 2.0 * size.y * 0.80, 12.0, 40.0))
+		if size_px != int(ikon.size.x):
+			ikon.size = Vector2(size_px, size_px)
+			post["r"] = r
+			_snäpp[id] = post
+		ikon.position = _ur_bild(float(post["x"]), float(post["y"])) - ikon.size * 0.5
+	if _ritare != null:
+		_ritare.queue_redraw()
+
+
+## Vyn byter storlek: noderna skall följa med, inte ligga kvar.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		placera_om()
+
+
+## Rita om ramarna och ringarna (de ligger i ritaren ovanpå allt).
+func rita_om() -> void:
+	placera_om()

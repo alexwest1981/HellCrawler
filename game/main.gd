@@ -2811,7 +2811,7 @@ func _meny_rubriker() -> Array:
 	return [Tr.t("ui.meny.nytt", "NYTT SPEL"), Tr.t("ui.meny.spara", "SPARA SPEL"),
 		Tr.t("ui.meny.ladda", "LADDA SPEL"),
 		Tr.t("ui.meny.alternativ", "ALTERNATIV"), Tr.t("ui.meny.avsluta", "AVSLUTA"),
-		"BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)"]
+		"BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)"]
 
 ## Bottenraden: tipset överst, version och copyright under. Finns en sparad körning står det i tipset
 ## vad LADDA SPEL gör — en rad som säger "fortsätt på våning 3" är ett svar, "LADDA SPEL" är en fråga.
@@ -2895,6 +2895,9 @@ func _meny_val(i: int) -> void:
 		6:
 			# Fiendeeditorn har samma standard som tools/fiendeeditor.sh: första fienden i listan.
 			get_tree().change_scene_to_file("res://editor/fiendeeditor.tscn")
+		7:
+			# Trädeditorn: plattan med noderna i, och S sparar data/trad_sockets.json.
+			get_tree().change_scene_to_file("res://editor/trad_editor.tscn")
 
 ## SPARA SPEL i menyn. Körningen sparar sig visserligen själv så fort något ändras (M39), men den som
 ## ska stänga spelet vill kunna VÄLJA att spara — och se att det blev gjort. `tvinga` skriver filen
