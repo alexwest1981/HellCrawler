@@ -2781,6 +2781,18 @@ func _shot_skarm(skarm: String) -> void:
 	for i in 3:
 		await get_tree().process_frame
 	await get_tree().create_timer(0.6).timeout
+	# TILLFÄLLIG MÄTNING (M95): trädets ikoner hamnade på en rad i en svart ruta, och strukturen är
+	# rättad (sex rader, fyra rutor i varandra) utan att skärmbilden ändrades. Då måste siffrorna ut
+	# ur spelet i stället för ut ur en bild: deras globala rutor säger om containrarna har lagt ut
+	# dem. Raden tas bort när layouten är bevisad.
+	if skarm == "trad" and trad_view != null:
+		var rutor := trad_view._ikoner.values()
+		if not rutor.is_empty():
+			var första: Control = rutor[0]
+			var sista: Control = rutor[rutor.size() - 1]
+			print("trädprov: %d ikoner, första %s storlek %s, sista %s storlek %s, vyn %s" % [
+				rutor.size(), första.global_position, första.size,
+				sista.global_position, sista.size, trad_view.size])
 	_spara_bild("user://shot.png")
 	print("skärmbild (%s): %s" % [skarm if not skarm.is_empty() else "by",
 		ProjectSettings.globalize_path("user://shot.png")])

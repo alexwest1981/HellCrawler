@@ -34,7 +34,8 @@ const IKON_PX := 22
 var _ikoner := {}                  ## id -> TextureRect
 var _rader := {}                   ## id -> Dictionary (gren, nivå, def)
 var _rubrik: Label
-var _rutnät: GridContainer
+var _rutnät: VBoxContainer
+var _celler := {}                  ## "gren_nivå" -> HBox, fylld i _bygg (ingen sökväg, en referens)
 var _info: Label
 var _meta: Meta
 
@@ -75,21 +76,28 @@ func _bygg() -> void:
 	_rubrik = rubrik
 	box.add_child(rubrik)
 
-	var rutnät := GridContainer.new()
-	rutnät.name = "Rutnät"
-	_rutnät = rutnät
-	rutnät.columns = GRENAR.size()
-	rutnät.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rutnät.add_theme_constant_override("h_separation", 6)
-	rutnät.add_theme_constant_override("v_separation", 2)
-	box.add_child(rutnät)
-
+	# RADER AV RUTOR, INTE ETT RUTNÄT (M95). Först ett GridContainer med fyra kolumner — men ett
+	# rutnät lägger ut sina barn efter SIN EGEN bredd, och bredden kom inifrån en panel som mätte sig
+	# själv. Följden stod på Alex' skärmbild: alla ikoner på en rad i en svart ruta. En VBox med sex
+	# HBox-rader (en per nivå, fyra grenrutor i varje) behöver ingen bredd för att veta var sakerna
+	# skall ligga — den lägger ut dem i den ordning de kommer, och raderna kan inte hamna ovanpå
+	# varandra. Samma rutor, samma namn, samma uppslag i visa().
+	_rutnät = VBoxContainer.new()
+	_rutnät.name = "Rutnät"
+	_rutnät.add_theme_constant_override("separation", 2)
+	box.add_child(_rutnät)
 	for nivå in range(1, HÖGSTA + 1):
+		var rad := HBoxContainer.new()
+		rad.name = "rad_%d" % nivå
+		rad.add_theme_constant_override("separation", 6)
+		_rutnät.add_child(rad)
 		for gren in GRENAR:
 			var cell := HBoxContainer.new()
 			cell.name = "%s_%d" % [FILNAMN[gren], nivå]
 			cell.add_theme_constant_override("separation", 1)
-			rutnät.add_child(cell)
+			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			rad.add_child(cell)
+			_celler["%s_%d" % [FILNAMN[gren], nivå]] = cell
 
 	_info = Label.new()
 	_info.name = "Info"
@@ -120,12 +128,29 @@ func visa(meta: Meta, titel: String) -> void:
 	_ikoner.clear()
 	_rader.clear()
 
+	# NIVÅN UR DATAT, MED EN RESERVVÄG (M95). De 88 noderna från generatorn bär `tier`. De 25 äldre
+	# noderna gör inte det — och `def.get("tier", 1)` gjorde då ALLA till nivå 1, vilket är exakt vad
+	# mätningen visade: 25 ikoner på samma y (31 px) i en rad 811 px bred i en 480 px vy.
+	# Reservvägen räknar nodens plats i sin egen gren: datat står i kedjeordning (requires pekar
+	# bakåt), så den nionde noden i en gren är grenens nionde steg. Samma tal, ur samma källa som
+	# låsningen — den som lägger noder i fel ordning får fel nivå, och det syns direkt.
+	var räknare := {}
+	var steg := {}
+	for d in meta.defs:
+		var g := str(d.get("branch", ""))
+		if g.is_empty():
+			continue
+		räknare[g] = int(räknare.get(g, 0)) + 1
+		steg[str(d.get("id", ""))] = mini(HÖGSTA, räknare[g])
+
 	for def in meta.defs:
 		var gren: String = def.get("branch", "")
 		if not FILNAMN.has(gren):
 			continue
-		var nivå: int = int(def.get("tier", 1))
-		var cell := _rutnät.get_node_or_null("%s_%d" % [FILNAMN[gren], nivå]) as HBoxContainer
+		var nivå: int = int(def.get("tier", 0))
+		if nivå < 1 or nivå > HÖGSTA:
+			nivå = int(steg.get(str(def.get("id", "")), 1))
+		var cell: HBoxContainer = _celler.get("%s_%d" % [FILNAMN[gren], nivå], null)
 		if cell == null:
 			continue
 		var id: String = def["id"]

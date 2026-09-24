@@ -609,12 +609,14 @@ func _initialize() -> void:
 	main._refresh_shell()
 	check(not (main.trad_view is PanelContainer),
 		"trädvyn är en Control (en Container äger sin storlek och krympte rutnätet till en rad)")
-	check(main.trad_view._rutnät.columns == 4, "rutnätet har fyra kolumner (en per gren)",
-		"%d" % main.trad_view._rutnät.columns)
+	check(main.trad_view._rutnät is VBoxContainer,
+		"trädvyns rutor ligger i rader (ett rutnät lägger ut efter sin egen bredd)")
+	var rader := main.trad_view._rutnät.get_children()
+	check(rader.size() == 6, "sex nivå-rader (en per nivå)", "%d rader" % rader.size())
 	var celler := 0
-	for barn in main.trad_view._rutnät.get_children():
-		celler += 1
-	check(celler == 24, "och sex nivåer x fyra grenar rutor att sätta ikoner i", "%d rutor" % celler)
+	for rad in rader:
+		celler += rad.get_children().size()
+	check(celler == 24, "och fyra grenrutor i varje rad (sex x fyra)", "%d rutor" % celler)
 	check(main.trad_view._ikoner.size() > 0, "och ikonerna hamnade i dem",
 		"%d ikoner" % main.trad_view._ikoner.size())
 	# Ingen kontroll för flaggan -- skarm=<namn>: den läser SKAL_LÄGEN nu, och att kontrollera att en
