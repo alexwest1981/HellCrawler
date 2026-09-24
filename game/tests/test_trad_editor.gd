@@ -143,6 +143,71 @@ func _initialize() -> void:
 	check((not väntar_före) and m_kedja.requires_met("wick_3"),
 		"kopplingen i socketfilen blir nodens låsordning i spelet",
 		"före köp %s, efter köp %s" % [väntar_före, m_kedja.requires_met("wick_3")])
+	# LÄGG TILL EN NOD (+), fyra storlekar, grafik och steg - och att noden blir en riktig nod i spelet.
+	editor.selected = "iron_1"
+	var antal_före: int = editor.ids.size()
+	editor.add_node()
+	var nytt: String = str(editor.selected)
+	check(editor.ids.size() == antal_före + 1 and nytt.begins_with("iron_"),
+		"+ lägger till en nod i den valda nodens gren", nytt)
+	check(nytt != "iron_1" and editor.records.has(nytt), "med ett eget id i grenens serie", nytt)
+	check((editor.records[nytt] as Dictionary)["requires"] == ["iron_1"],
+		"och den väntar på noden man tryckte + på (Stor -> Medelstor -> Liten)",
+		str(editor.records[nytt]["requires"]))
+
+	var klass_före: String = TreeSockets.size_of(editor.records[nytt])
+	var klasser: Array = [klass_före]
+	for i in 4:
+		editor.toggle_size()
+		klasser.append(TreeSockets.size_of(editor.records[nytt]))
+	var trappan: Array = []
+	for i in 5:
+		trappan.append(str(TreeSockets.SIZES.keys()[(TreeSockets.size_index(klass_före) + i) % 4]))
+	check(klasser == trappan and klasser.slice(0, 4).size() == 4,
+		"L går genom de fyra storlekarna i trappans ordning och tillbaka",
+		"%s (från %s)" % [str(klasser), klass_före])
+
+	var ikon_före: String = TreeSockets.graphics_of(editor.records[nytt])
+	editor.next_graphics()
+	var ikon_nu: String = TreeSockets.graphics_of(editor.records[nytt])
+	check(ikon_nu != ikon_före, "G byter grafik på noden", "%s -> %s" % [ikon_före, ikon_nu])
+	# Och vyn ritar den nya grafiken, inte grenens: texturens sökväg är beviset (en nod med rätt id men
+	# fel bild såg rätt ut i datat och tom ut på skärmen).
+	var ritad: Texture2D = (editor.view._ikoner[nytt] as TextureRect).texture
+	check(ritad != null and ritad.resource_path.ends_with("%s.png" % ikon_nu),
+		"och vyn ritar just den grafik noden pekar på",
+		ritad.resource_path if ritad != null else "ingen textur")
+
+	# Krysset har TRE steg: av -> x1 -> x2 -> x3 -> av. "hur mycket" är samma knapp.
+	editor.selected = nytt
+	(editor.records[nytt] as Dictionary)["size"] = "stor"
+	for i in 3:
+		editor.toggle_upgrade("might")
+	check(TreeSockets.step_of(editor.records[nytt], "might") == 3,
+		"krysset går att ge tre steg", str(TreeSockets.step_of(editor.records[nytt], "might")))
+	check(is_equal_approx(float(TreeSockets.effect_of(editor.records[nytt])["might"]), 0.15),
+		"och tre steg på en stor nod är 3 x 0,05", str(TreeSockets.effect_of(editor.records[nytt])["might"]))
+	editor.toggle_upgrade("might")
+	check(TreeSockets.step_of(editor.records[nytt], "might") == 0, "och varvet slutar på av")
+	editor.toggle_upgrade("might")
+
+	# NODEN I SPELET: skriv filen och läs metan - den nya noden skall finnas med gren, kostnad och krav.
+	var med_ny: Array = []
+	for id in editor.ids:
+		med_ny.append((editor.records[id] as Dictionary).duplicate(true))
+	TreeSockets.write(med_ny)
+	var m_ny := Meta.load_or_new()
+	var def_ny: Dictionary = m_ny.def_for(nytt)
+	check(not def_ny.is_empty() and str(def_ny.get("branch", "")) == "Järnvägen"
+		and def_ny.has("soul_cost"),
+		"noden blir en riktig trädnod i spelet (gren, kostnad)", str(def_ny.get("id", "SAKNAS")))
+	check(not m_ny.requires_met(nytt), "och den är låst så länge föräldern inte är köpt")
+	m_ny.add_souls(200)
+	m_ny.ranks["iron_1"] = 1
+	check(m_ny.requires_met(nytt) and m_ny.buy(nytt).ok,
+		"och går att köpa när föräldern är köpt",
+		"%s, %d CS kvar" % [m_ny.requires_met(nytt), m_ny.souls])
+
 	var tillbaka_fil := FileAccess.open(TreeSockets.PATH, FileAccess.WRITE)
 	tillbaka_fil.store_string(original)
 	tillbaka_fil.close()

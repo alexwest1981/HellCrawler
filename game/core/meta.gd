@@ -168,8 +168,11 @@ func _load_defs() -> void:
 		# ersätter de den genererade effekten helt (inte en blandning — det vore två sanningar om
 		# samma nod). Är inget ikryssat är noden orörd.
 		var sockets: Dictionary = TreeSockets.load_all()
+		var kända := {}
 		for def in träd:
-			var post: Dictionary = sockets.get(str(def.get("id", "")), {})
+			var id := str(def.get("id", ""))
+			kända[id] = true
+			var post: Dictionary = sockets.get(id, {})
 			var effekt: Dictionary = TreeSockets.effect_of(post)
 			if not effekt.is_empty():
 				def["effect"] = effekt
@@ -180,6 +183,20 @@ func _load_defs() -> void:
 			if post.has("requires"):
 				def["requires"] = post["requires"]
 				def["edited"] = true
+			# Grafiken vald i editorn (eld, is, magi) följer med noden in i vyn.
+			if not str(post.get("graphics", "")).is_empty():
+				def["graphics"] = post["graphics"]
+		# NODER SOM LAGTS TILL I EDITORN (+): de finns bara i socketfilen, och blir noder i trädet när
+		# filen säger det — med sin egen gren, nivå, kostnad och sina egna uppgraderingar. Utan det här
+		# syntes de i editorn men inte i spelet, och "+" hade varit en knapp som inte gjorde något.
+		for id in sockets:
+			var post: Dictionary = sockets[id]
+			if kända.has(str(id)) or not bool(post.get("added", false)):
+				continue
+			var ny: Dictionary = TreeSockets.def_of(post)
+			if str(ny.get("branch", "")).is_empty():
+				continue
+			träd.append(ny)
 		defs += träd
 	else:
 		push_error("kunde inte läsa %s" % TREE_PATH)

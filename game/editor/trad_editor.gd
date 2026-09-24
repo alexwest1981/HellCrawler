@@ -12,10 +12,18 @@
 ## layer on top of it, so the plate, the orbs, the socket rings and the scaling are exactly what gets
 ## played. What differs is the mouse (drag a node) and the keys (S saves the same file the view reads).
 ##
-## Keys, also listed in the side panel: click or drag = move, arrow keys = nudge, L = small/large
-## node, 1-9 = tick an upgrade (or click its row), SHIFT + drag between two nodes = draw which node
-## the second one waits for, C = clear that node's links, T = next node, R = reset to the measured
-## guess, S = save, M = menu, ESC or Q = quit.
+## Keys, also listed in the side panel: click or drag = move, arrow keys = nudge, + = add a node
+## (under and in the branch of the selected one), L = node size (stor, medelstor, liten, pytteliten),
+## G = next icon (the branch's own, eld, is, magi), 1-9 = tick an upgrade and give it 1-3 steps,
+## SHIFT + drag between two nodes = draw which node the second one waits for, C = clear that node's
+## links, X = remove a node you added, T = next node, R = reset to the measured guess, S = save,
+## M = menu, ESC or Q = quit.
+##
+## NODES YOU ADD LIVE IN THE SOCKET FILE, not in data/tree.json (that one is generated and would eat
+## them on the next run). The record carries the whole definition — branch, tier, icon, size, effects,
+## what it waits for — and Meta makes it a real node when it reads the tree. Alex: "can I add nodes as
+## needed, or have you locked something? ... I want to press + on a node, put graphics on them (fire,
+## ice, magic), pick a size and tick what goes up and by how much."
 ##
 ## THE LINKS ARE A DEVELOPMENT TOOL ONLY. They are drawn in the editor and nowhere else — the game
 ## keeps painting its own rods — but they are what the game LIVES by: the link is written as the
@@ -177,6 +185,8 @@ func draw_overlay(du: CanvasItem) -> void:
 			"node: %s" % selected,
 			"x %.1f %%   y %.1f %%" % [float(record.get("x", 0.0)) * 100.0, float(record.get("y", 0.0)) * 100.0],
 			"node size: %s (r %.1f %%)" % [klass, TreeSockets.radius_of(record) * 100.0],
+			"icon: %s" % TreeSockets.graphics_of(record, str(view.FILNAMN.get(str(record.get("branch", "")), ""))),
+			"branch: %s" % str(record.get("branch", "-")),
 			"pit %.2f (0 = none found)" % float(record.get("score", 0.0)),
 			"waits for: %s" % (", ".join(PackedStringArray(record.get("requires", []))) if not record.get("requires", []).is_empty() else "-"),
 			"tier %d, rank %d/%d" % [
@@ -185,8 +195,11 @@ func draw_overlay(du: CanvasItem) -> void:
 			"",
 			"click / drag  move",
 			"arrows        nudge",
-			"L             small / large node",
-			"1-9 / click   tick upgrade",
+			"+             add a node here",
+			"L             node size (4 steps)",
+			"G             next icon",
+			"1-9 / click   tick upgrade x1-x3",
+			"X             remove a node you added",
 			"SHIFT + drag  draw a link",
 			"C             clear this node's links",
 			"T             next node",
@@ -204,15 +217,16 @@ func draw_overlay(du: CanvasItem) -> void:
 		# Kryssraderna. Ytan för varje rad sparas, så ett klick vet vad det träffade — panelen är ett
 		# formulär, och en rad som ser klickbar ut men inte är det är värre än ingen rad.
 		effekt_ytor.clear()
-		var ikryssade: Array = record.get("effects", [])
 		for typ in TreeSockets.VALUES:
 			var rad := Rect2(x, y - 11.0, PANEL_WIDTH - 16.0, 13.0)
-			var på: bool = ikryssade.has(typ)
+			var på: bool = TreeSockets.step_of(record, typ) > 0
 			du.draw_rect(rad, Color(0.2, 0.5, 0.3, 0.35) if på else Color(0.2, 0.2, 0.25, 0.35), true)
-			du.draw_string(font, Vector2(x + 4.0, y), "%s %s  (%s, rank %d)" % [
-				"[x]" if på else "[ ]", str(TreeSockets.WORDS.get(typ, typ)),
-				TreeSockets.effect_preview(typ, klass), meta.rank(selected)], HORIZONTAL_ALIGNMENT_LEFT,
-				-1, 11, Color(0.95, 0.95, 0.85) if på else Color(0.7, 0.7, 0.75))
+			var steg: int = TreeSockets.step_of(record, typ)
+			du.draw_string(font, Vector2(x + 4.0, y), "%s %sx%d %s  (%s)" % [
+				"[x]" if på else "[ ]", str(TreeSockets.WORDS.get(typ, typ)), maxi(1, steg),
+				"steg" if steg > 0 else "", TreeSockets.effect_preview(typ, klass, steg)],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
+				Color(0.95, 0.95, 0.85) if på else Color(0.7, 0.7, 0.75))
 			effekt_ytor[typ] = rad
 			y += 13.0
 	du.draw_string(font, Vector2(x, size.y - 10.0), status, HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
@@ -320,7 +334,7 @@ func toggle_size() -> void:
 	if not records.has(selected):
 		return
 	var record: Dictionary = records[selected]
-	record["size"] = "liten" if TreeSockets.size_of(record) == "stor" else "stor"
+	record["size"] = TreeSockets.next_size(TreeSockets.size_of(record))
 	record["r"] = TreeSockets.radius_of(record)
 	records[selected] = record
 	status = "%s is now a %s node" % [selected, record["size"]]
@@ -334,12 +348,17 @@ func toggle_upgrade(typ: String) -> void:
 	if not records.has(selected) or not TreeSockets.VALUES.has(typ):
 		return
 	var record: Dictionary = records[selected]
-	var lista: Array = record.get("effects", [])
-	if lista.has(typ):
-		lista.erase(typ)
+	if not (record.get("effects", {}) is Dictionary):
+		record["effects"] = {}
+	var effekt: Dictionary = record["effects"]
+	# Varvet: av -> x1 -> x2 -> x3 -> av. Ett kryss per klick, och "hur mycket" är samma knapp - Alex:
+	# "bocka i vad som skall ökas, och hur mycket".
+	var steg: int = (TreeSockets.step_of(record, typ) + 1) % (TreeSockets.STEPS_MAX + 1)
+	if steg == 0:
+		effekt.erase(typ)
 	else:
-		lista.append(typ)
-	record["effects"] = lista
+		effekt[typ] = steg
+	record["effects"] = effekt
 	records[selected] = record
 	var text: String = TreeSockets.text_of(record)
 	status = "%s: %s" % [selected, text if not text.is_empty() else "no upgrades ticked"]
@@ -410,6 +429,84 @@ func clear_requirements() -> void:
 	overlay.queue_redraw()
 
 
+## LÄGG TILL EN NOD (+). Den hamnar i den valda nodens gren, ett steg under den och med den som krav —
+## det är så trädet byggs: Stor -> Medelstor -> Liten -> Pytteliten. Id:t följer grenens egen serie
+## (iron_main -> iron_21), så nya och genererade noder hör ihop utan en tabell någonstans.
+func add_node() -> void:
+	if selected.is_empty() or not view._rader.has(selected):
+		status = "select a node first: the new one joins its branch"
+		overlay.queue_redraw()
+		return
+	var rad: Dictionary = view._rader[selected]
+	var gren := str(rad.get("gren", ""))
+	var förälder: Vector2 = view.till_bild(view.nod_punkt(selected))
+	var rot: String = selected.trim_suffix(selected.split("_")[-1])
+	var högst := 0
+	for id in records:
+		var namn := str(id)
+		if namn.begins_with(rot):
+			högst = maxi(högst, int(namn.trim_prefix(rot)) if namn.trim_prefix(rot).is_valid_int() else 0)
+	var nytt := "%s%d" % [rot, högst + 1]
+	var ikon: String = str(view.FILNAMN.get(gren, "jarnvagen"))
+	var post: Dictionary = TreeSockets.added_node(nytt, förälder.x + 0.04, förälder.y + 0.03, gren,
+		int(rad.get("nivå", 1)) + 1, ikon, "liten", [selected])
+	records[nytt] = post
+	ids.append(nytt)
+	selected = nytt
+	# Noden in i metan och vyn: den skall synas direkt, inte först efter en omstart.
+	meta.defs.append(TreeSockets.def_of(post))
+	view.visa(meta, "TRADEDITOR", false)
+	status = "added %s (%s, %s) - it waits for %s" % [nytt, post["name"], post["size"], förälder]
+	overlay.queue_redraw()
+
+
+## Ta bort en nod du lagt till (X). Genererade noder går inte att ta bort härifrån — de kommer tillbaka
+## nästa gång trädet byggs om, och en borttagen nod som återuppstår är värre än en som står kvar.
+func remove_added() -> void:
+	if not records.has(selected):
+		return
+	var post: Dictionary = records[selected]
+	if not bool(post.get("added", false)):
+		status = "%s comes from data/tree.json and cannot be removed here" % selected
+		overlay.queue_redraw()
+		return
+	records.erase(selected)
+	ids.erase(selected)
+	if view._ikoner.has(selected):
+		var ikon: Node = view._ikoner[selected]
+		ikon.queue_free()
+		view._ikoner.erase(selected)
+		view._rader.erase(selected)
+	# Bort ur metan också: annars ritar vyn kvar en nod som inte finns i filen.
+	var kvar: Array = []
+	for d in meta.defs:
+		if str(d.get("id", "")) != str(post.get("id", "")):
+			kvar.append(d)
+	meta.defs = kvar
+	selected = str(ids[0]) if not ids.is_empty() else ""
+	status = "removed %s" % post.get("id", "?")
+	view.visa(meta, "TRADEDITOR", false)
+	overlay.queue_redraw()
+
+
+## Nästa grafik: grenens egen ikon först, sedan eld, is, magi.
+func next_graphics() -> void:
+	if not records.has(selected):
+		return
+	var post: Dictionary = records[selected]
+	var val: Array = [str(view.FILNAMN.get(str(post.get("branch", "")), "jarnvagen"))]
+	val.append_array(TreeSockets.ICONS)
+	var nu: int = val.find(TreeSockets.graphics_of(post, str(val[0])))
+	post["graphics"] = str(val[(nu + 1) % val.size()])
+	records[selected] = post
+	for d in meta.defs:
+		if str(d.get("id", "")) == selected:
+			d["graphics"] = post["graphics"]
+	status = "%s gets the %s icon" % [selected, post["graphics"]]
+	view.visa(meta, "TRADEDITOR", false)
+	overlay.queue_redraw()
+
+
 func next_node() -> void:
 	if ids.is_empty():
 		return
@@ -463,6 +560,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			step_selected(0.0, fine)
 		KEY_L:
 			toggle_size()
+		KEY_PLUS, KEY_KP_ADD, KEY_EQUAL:
+			add_node()
+		KEY_G:
+			next_graphics()
+		KEY_X:
+			remove_added()
 		KEY_C:
 			clear_requirements()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:

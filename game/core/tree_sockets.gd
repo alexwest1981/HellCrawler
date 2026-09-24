@@ -24,22 +24,36 @@ extends RefCounted
 ## Alex: "det måste gå att ha små noder med ... de skall bidra med små inkrementeringar. Jag behöver
 ## ha i editorn så jag kan välja liten eller stor nod som grafiskt mål." Klasserna ÄR plattans mått,
 ## så en liten nod hamnar i en liten grop.
-const SIZES := {"liten": 0.009, "stor": 0.018}
+## FYRA klasser, i den ordning Alex bygger trädet: "3 stora, 3 medelstora, 15 små, och 48 små" — alltså
+## en trappa Stor -> Medelstor -> Liten -> Pytteliten. Måttet är plattans egna gropar: den vanligaste
+## gropen mättes till 0,009 (den ligger på "liten"), medaljongerna till 0,018 ("stor"), och de två
+## mittersta är stegen däremellan.
+const SIZES := {"stor": 0.018, "medelstor": 0.013, "liten": 0.009, "pytteliten": 0.007}
 
 ## Vad en uppgradering ger på en LITEN respektive STOR nod. Ett enda hem för siffrorna: editorn visar
 ## dem när man kryssar, metan lägger in dem i noden, och vyn skriver dem i hovringstexten. Stegen är
 ## hälften så stora på en liten nod, för det är vad en liten grop får plats med.
+## Ett steg per klass, i samma ordning som SIZES (stor först). Ett kryss kan ges 1-3 steg - Alex:
+## "bocka i vad som skall ökas, och hur mycket" - så en stor nod med tre steg är grenens tunga nod.
 const VALUES := {
-	"might": [0.02, 0.05],
-	"area": [0.05, 0.12],
-	"max_hp": [4.0, 10.0],
-	"armor": [1.0, 2.0],
-	"mana": [1.0, 2.0],
-	"hand": [1.0, 1.0],
-	"gold": [0.05, 0.15],
-	"revive": [1.0, 2.0],
-	"draw_first": [1.0, 2.0],
+	"might": [0.05, 0.035, 0.02, 0.01],
+	"area": [0.12, 0.08, 0.05, 0.02],
+	"max_hp": [10.0, 7.0, 4.0, 2.0],
+	"armor": [2.0, 2.0, 1.0, 1.0],
+	"mana": [2.0, 1.0, 1.0, 1.0],
+	"hand": [1.0, 1.0, 1.0, 1.0],
+	"gold": [0.15, 0.10, 0.05, 0.02],
+	"revive": [2.0, 1.0, 1.0, 1.0],
+	"draw_first": [2.0, 1.0, 1.0, 1.0],
 }
+
+const STEPS_MAX := 3                       ## flest steg ett kryss kan ges
+const ICONS := ["eld", "is", "magi"]       ## grafiken man väljer fritt (grenarnas egna ikoner finns också)
+const NAME_SV := {"eld": "Eld", "is": "Is", "magi": "Magi"}
+
+## Vad en nod av klassen kostar i Corrupted Souls. Ett rimligt förval, ärligt utskrivet: en stor nod är
+## grenens dyrbara, en pytteliten är billig.
+const COST := {"stor": 40, "medelstor": 20, "liten": 8, "pytteliten": 4}
 
 ## Statistikorden i klartext, svenska som resten av datat. Används till hovringstexten och till
 ## editorns rader, så samma kryss beskrivs likadant på båda ställena.
@@ -92,17 +106,71 @@ static func blank(id: String, x: float, y: float, r: float) -> Dictionary:
 	return {"id": id, "x": x, "y": y, "r": r, "score": 0.0, "guess_x": x, "guess_y": y}
 
 
+## EN NOD SOM LAGTS TILL I EDITORN (+). Den finns inte i data/tree.json — den finns bara i socketfilen,
+## och blir en riktig nod i spelet när metan läser filen. Därför bär posten hela definitionen.
+static func added_node(id: String, x: float, y: float, branch: String, tier: int,
+		graphics: String, klass: String, requires: Array) -> Dictionary:
+	var namn: String = "%s %s" % [str(NAME_SV.get(graphics, graphics)), id.split("_")[-1]]
+	return {
+		"id": id, "x": x, "y": y, "r": float(SIZES.get(klass, SIZES["liten"])),
+		"size": klass, "graphics": graphics, "effects": {}, "requires": requires,
+		"added": true, "name": namn, "branch": branch, "tier": tier,
+		"score": 0.0, "guess_x": x, "guess_y": y,
+	}
+
+
+## Posten som en färdig definition åt metan (samma form som tools/gen_tree.py skriver).
+static func def_of(record: Dictionary) -> Dictionary:
+	var id := str(record.get("id", ""))
+	var klass := size_of(record)
+	return {
+		"id": id,
+		"name": str(record.get("name", id)),
+		"branch": str(record.get("branch", "")),
+		"tier": int(record.get("tier", 1)),
+		"effect": effect_of(record),
+		"text": text_of(record),
+		"graphics": str(record.get("graphics", "")),
+		"cost": [0],
+		"soul_cost": [int(COST.get(klass, COST["liten"]))],
+		"max_rank": 1,
+		"requires": record.get("requires", []),
+		"added": true,
+	}
+
+
 ## Nodens klass, "liten" eller "stor". Är klassen inte satt gäller den MÄTTA radien: plattans stora
 ## sockets är dubbelt så stora som de små, och en nod som ligger i en stor grop skall vara en stor nod.
 static func size_of(record: Dictionary, nivå: int = 0) -> String:
 	var klass := str(record.get("size", ""))
-	if klass == "liten" or klass == "stor":
+	if SIZES.has(klass):
 		return klass
 	# Grenens HUVUDNOD står i en medaljong, hur liten gropen än mättes som: den är trädets topp och
 	# skall se ut som en sådan. Nivån kommer från vyn eller editorn, som båda vet den.
 	if nivå == 1:
 		return "stor"
-	return "stor" if float(record.get("r", 0.0)) >= 0.015 else "liten"
+	# Gropen avgör: ju större mätt socket, desto större klass.
+	var r: float = float(record.get("r", 0.0))
+	for namn in SIZES:
+		if r >= float(SIZES[namn]) - 0.0015:
+			return namn
+	return "pytteliten"
+
+
+## Klassens plats i trappan (0 = störst), för stegtabellen och för L-tangentens vandring.
+static func size_index(klass: String) -> int:
+	return maxi(0, SIZES.keys().find(klass))
+
+
+static func next_size(klass: String) -> String:
+	var namn: Array = SIZES.keys()
+	return str(namn[(size_index(klass) + 1) % namn.size()])
+
+
+## Grafiken: nodens egen om den valt en, annars grenens ikon.
+static func graphics_of(record: Dictionary, branch_icon: String = "") -> String:
+	var g := str(record.get("graphics", ""))
+	return g if not g.is_empty() else branch_icon
 
 
 ## Radien som hör till klassen (bildandelar). Fri radie finns inte längre i editorn — den valde
@@ -121,33 +189,44 @@ static func size_px(r: float, view_height: float, platta_sida: float) -> int:
 ## Tomt när inget är ikryssat — då gäller nodens egen `effect` ur data/tree.json orörd.
 static func effect_of(record: Dictionary) -> Dictionary:
 	var ut := {}
-	var klass := size_of(record)
-	var spår: int = 0 if klass == "liten" else 1
-	for typ in record.get("effects", []):
+	var spår: int = size_index(size_of(record))
+	for typ in record.get("effects", {}):
 		var par: Array = VALUES.get(str(typ), [])
-		if par.size() == 2:
-			ut[str(typ)] = float(par[spår])
+		if par.size() == SIZES.size():
+			ut[str(typ)] = float(par[spår]) * float(step_of(record, str(typ)))
 	return ut
+
+
+## Hur många steg ett kryss är satt till (1-3), eller 0 när det inte är ikryssat. Ett tal i
+## `effects` är stegen; en gammal fil med en lista betyder ett steg per typ.
+static func step_of(record: Dictionary, typ: String) -> int:
+	var effekt = record.get("effects", {})
+	if effekt is Array:
+		return 1 if (effekt as Array).has(typ) else 0
+	if effekt is Dictionary:
+		return clampi(int((effekt as Dictionary).get(typ, 0)), 0, STEPS_MAX)
+	return 0
 
 
 ## Värdet för ett enskilt kryss på en liten eller stor nod, som "3" eller "1 (% skada)"-färdig text
 ## för panelraden. Samma tabell som spelet räknar med.
-static func effect_preview(typ: String, klass: String) -> String:
+static func effect_preview(typ: String, klass: String, steg: int = 1) -> String:
 	var par: Array = VALUES.get(typ, [])
-	if par.size() != 2:
+	if par.size() != SIZES.size():
 		return "?"
-	var värde: float = float(par[0 if klass == "liten" else 1])
+	var värde: float = float(par[size_index(klass)]) * float(maxi(1, steg))
 	return ("+%d %%" % roundi(värde * 100.0)) if värde < 1.0 else ("+%d" % roundi(värde))
 
 
 ## Kryssen som en läsbar rad, samma ord och samma formatering som hovringen visar.
 static func text_of(record: Dictionary) -> String:
 	var bitar: Array = []
-	for typ in record.get("effects", []):
+	var spår: int = size_index(size_of(record))
+	for typ in record.get("effects", {}):
 		var par: Array = VALUES.get(str(typ), [])
-		if par.size() != 2:
+		if par.size() != SIZES.size():
 			continue
-		var värde: float = float(par[0 if size_of(record) == "liten" else 1])
+		var värde: float = float(par[spår]) * float(step_of(record, str(typ)))
 		var ord: String = str(WORDS.get(str(typ), str(typ)))
 		# Procenttecknet är ESCAPAT (%%): strängen går genom "%%"-formatering, och ett ensamt % där
 		# hade tystat resten av raden.

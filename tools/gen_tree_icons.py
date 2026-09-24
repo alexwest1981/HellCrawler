@@ -123,7 +123,35 @@ def gloria(im, f):
     return ut
 
 
+def is_(f):
+    """Is: en sexarmad kristall med ljus kärna. Färgen är palettens blåaste (stålet)."""
+    im = Image.new("RGBA", (SIDA, SIDA), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    for dx, dy in ((0, -12), (0, 12), (12, 0), (-12, 0), (9, -9), (-9, 9), (9, 9), (-9, -9)):
+        d.line([(16, 16), (16 + dx, 16 + dy)], fill=f["outline"], width=3)
+    for dx, dy in ((0, -11), (0, 11), (11, 0), (-11, 0), (8, -8), (-8, 8), (8, 8), (-8, -8)):
+        d.line([(16, 16), (16 + dx, 16 + dy)], fill=f["stål"], width=1)
+    d.ellipse([10, 10, 22, 22], fill=f["stål"], outline=f["outline"])
+    d.ellipse([13, 13, 19, 19], fill=f["ljust"])
+    return im
+
+
+def magi(f):
+    """Magi: en femuddig stjärna över en glöd, i guld och eld."""
+    im = Image.new("RGBA", (SIDA, SIDA), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    stjärna = [(16, 2), (19, 11), (28, 11), (21, 17), (24, 26), (16, 21), (8, 26), (11, 17), (4, 11), (13, 11)]
+    kant(d, stjärna, f["guld"], f["outline"])
+    d.ellipse([13, 27, 19, 31], fill=f["eld"], outline=f["outline"])
+    return im
+
+
 GRENAR = {"jarnvagen": svärd, "benknippet": ben, "gloden": låga, "girigheten": mynt}
+
+# EXTRA IKONER, till noder man väljer grafik på i trädeditorn (Alex: "sätta grafik på dem (eld, is,
+# magi)"). De hör inte till en gren och får därför ingen krona — kransen är grenens slut, inte en
+# ikonstil.
+EXTRA = {"eld": låga, "is": is_, "magi": magi}
 # Filnamnen är ASCII: en resursväg med å/ä/ö är samma fälla som ett variabelnamn med å/ä/ö (Alex'
 # regel: kod ska tåla att köras hos någon som inte har svensk locale). Grenens NAMN i spelet är
 # förstås kvar som det är — det är text, inte en identifierare.
@@ -137,7 +165,10 @@ def skriv():
         bas.save(UT / ("%s.png" % namn))
         gloria(bas, f).save(UT / ("%s_krona.png" % namn))
         print("  %-16s %s" % (namn, "krona + bas"))
-    print("%d ikoner -> %s" % (len(GRENAR) * 2, UT))
+    for namn, ritare in EXTRA.items():
+        ritare(f).save(UT / ("%s.png" % namn))
+        print("  %-16s %s" % (namn, "nodikon"))
+    print("%d ikoner -> %s" % (len(GRENAR) * 2 + len(EXTRA), UT))
 
 
 def checka():
@@ -150,7 +181,13 @@ def checka():
                 continue
             if Image.open(p).size != (SIDA, SIDA):
                 fel.append("%s är %s" % (fil, Image.open(p).size))
-    print("%d ikoner, %d fel" % (len(GRENAR) * 2, len(fel)))
+    for namn in EXTRA:
+        p = UT / ("%s.png" % namn)
+        if not p.exists():
+            fel.append("%s.png saknas" % namn)
+        elif Image.open(p).size != (SIDA, SIDA):
+            fel.append("%s.png är %s" % (namn, Image.open(p).size))
+    print("%d ikoner, %d fel" % (len(GRENAR) * 2 + len(EXTRA), len(fel)))
     for f in fel:
         print("  %s" % f)
     return 1 if fel else 0

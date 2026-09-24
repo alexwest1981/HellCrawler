@@ -122,7 +122,7 @@ func _ready() -> void:
 
 ## Byggs på ett ställe och kan kallas om: _refresh_shell kan köra innan barnets _ready har hunnit
 ## (skalet sätter sin vy under sin egen uppstart), och då finns ingen Rubrik att sätta text i.
-func _bygg() -> void:
+func _bygg(läs_fil: bool = true) -> void:
 	if _info != null:
 		return
 	custom_minimum_size = Vector2(456, 0)
@@ -142,7 +142,8 @@ func _bygg() -> void:
 	# SOCKETDATA. Filen skrivs av tools/gen_tree_sockets.py (mätt) eller av trädeditorn (för hand, se
 	# game/editor/trad_editor.gd) och läses här. Formatet ägs av TreeSockets, så vyn och editorn kan
 	# inte glida ifrån varandra. En socket sitter där bilden har sin, inte i ett rutnät.
-	_snäpp = TreeSockets.load_all()
+	if läs_fil:
+		_snäpp = TreeSockets.load_all()
 
 	# PLATTAN. Bilden ligger i sin egen ruta och fyller panelen med rätt proportioner (bilden är
 	# kvadratisk, vyn är bred — den skalas efter höjden och centreras, och slot-talen nedan räknas i
@@ -202,8 +203,11 @@ func _panel_stil() -> StyleBoxFlat:
 
 ## Bygger om rutan ur metan. Anropas när vyn öppnas och efter varje köp — allt som visas kommer
 ## därifrån, så vyn kan inte hamna i otakt med sparfilen.
-func visa(meta: Meta, titel: String) -> void:
-	_bygg()
+## `läs_fil = false` behåller socketposterna som redan ligger i minnet. Trädeditorn använder det: den
+## bygger om vyn efter att ha lagt till eller tagit bort en nod, och får inte tappa de placeringar som
+## ännu inte sparats (filen är sanningen för spelaren, minnet för den som redigerar).
+func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
+	_bygg(läs_fil)
 	_meta = meta
 	_rubrik.text = titel
 	for barn in _ikoner.values():
@@ -244,8 +248,14 @@ func visa(meta: Meta, titel: String) -> void:
 		var id: String = def["id"]
 		var ikon := TextureRect.new()
 		ikon.name = id
-		ikon.texture = load("res://assets/tree/%s%s.png" % [FILNAMN[gren],
-			"_krona" if nivå >= _högsta else ""])
+		# Grafiken: nodens egen (vald i editorn) om den har en, annars grenens ikon. Kronringen hör
+		# till grenens slut och finns bara för grenikonerna — en iskristall blir inte krona av att
+		# ligga sist, så filen måste finnas först.
+		var ikonnamn: String = TreeSockets.graphics_of(def, FILNAMN[gren])
+		var med_krona: String = "%s_krona" % ikonnamn
+		if nivå >= _högsta and ResourceLoader.exists("res://assets/tree/%s.png" % med_krona):
+			ikonnamn = med_krona
+		ikon.texture = load("res://assets/tree/%s.png" % ikonnamn)
 		var stl: int = _nod_px(nivå)
 		ikon.custom_minimum_size = Vector2(stl, stl)
 		# Utan detta vinner texturEN:s egen storlek (32 px) över custom_minimum_size, och ikonen
