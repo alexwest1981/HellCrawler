@@ -132,7 +132,7 @@ func draw_overlay(du: CanvasItem) -> void:
 			"r %.1f %% (socket)" % (float(record.get("r", 0.0)) * 100.0),
 			"pit %.2f (0 = none found)" % float(record.get("score", 0.0)),
 			"tier %d, rank %d/%d" % [
-				int(meta.def_for(selected).get("tier", 0)), meta.rank(selected),
+				int(view._rader.get(selected, {}).get("nivå", 0)), meta.rank(selected),
 				int(meta.def_for(selected).get("max_rank", 1))],
 			"",
 			"click / drag  move",
