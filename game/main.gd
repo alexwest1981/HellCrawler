@@ -2788,11 +2788,11 @@ func _shot_skarm(skarm: String) -> void:
 	if skarm == "trad" and trad_view != null:
 		var rutor := trad_view._ikoner.values()
 		if not rutor.is_empty():
-			var första: Control = rutor[0]
-			var sista: Control = rutor[rutor.size() - 1]
-			print("trädprov: %d ikoner, första %s storlek %s, sista %s storlek %s, vyn %s" % [
-				rutor.size(), första.global_position, första.size,
-				sista.global_position, sista.size, trad_view.size])
+			var delar: Array = []
+			for r in rutor:
+				var k: Control = r
+				delar.append("%s=%.1f,%.1f,%.0f" % [k.name, k.global_position.x, k.global_position.y, k.size.x])
+			print("trädprov: %d ikoner vyn %s :: %s" % [rutor.size(), trad_view.size, " ".join(delar)])
 	_spara_bild("user://shot.png")
 	print("skärmbild (%s): %s" % [skarm if not skarm.is_empty() else "by",
 		ProjectSettings.globalize_path("user://shot.png")])

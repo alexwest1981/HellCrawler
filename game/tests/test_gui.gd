@@ -609,14 +609,28 @@ func _initialize() -> void:
 	main._refresh_shell()
 	check(not (main.trad_view is PanelContainer),
 		"trädvyn är en Control (en Container äger sin storlek och krympte rutnätet till en rad)")
-	check(main.trad_view._rutnät is VBoxContainer,
-		"trädvyns rutor ligger i rader (ett rutnät lägger ut efter sin egen bredd)")
-	var rader: Array = main.trad_view._rutnät.get_children()
-	check(rader.size() == 6, "sex nivå-rader (en per nivå)", "%d rader" % rader.size())
-	var celler := 0
-	for rad in rader:
-		celler += rad.get_children().size()
-	check(celler == 24, "och fyra grenrutor i varje rad (sex x fyra)", "%d rutor" % celler)
+	check(main.trad_view._platta is TextureRect and main.trad_view._platta.texture != null,
+		"trädvyn har referensbilden som platta (socketsen sitter i den)")
+	check(main.trad_view._nodplan is Control and not (main.trad_view._nodplan is Container),
+		"noderna ligger på en fri yta, inte i en container (de ska sitta i bildens sockets)")
+	# Varje nod skall ha en plats i plattan, och nivåerna skall ligga i ordning uppifrån och ner.
+	var ytor := {}
+	for tnid in main.trad_view._ikoner:
+		var tnod: Control = main.trad_view._ikoner[tnid]
+		var trad_rad: Dictionary = main.trad_view._rader[tnid]
+		ytor[int(trad_rad.get("nivå", 0))] = tnod.position.y
+		check(tnod.position.x >= 0.0 and tnod.position.y >= 0.0
+			and tnod.position.x + tnod.size.x <= main.trad_view.size.x
+			and tnod.position.y + tnod.size.y <= main.trad_view.size.y,
+			"noden %s ligger inne i vyn" % tnid, "%s" % tnod.position)
+	check(ytor.size() == 6, "sex nivåer har noder", "%d" % ytor.size())
+	var nivåer: Array = ytor.keys()
+	nivåer.sort()
+	var stigande := true
+	for i in range(1, nivåer.size()):
+		if float(ytor[nivåer[i]]) <= float(ytor[nivåer[i - 1]]):
+			stigande = false
+	check(stigande, "nivå 1 ligger ovanför nivå 6 (nivån bestämmer höjden, inte ordningen i datat)")
 	check(main.trad_view._ikoner.size() > 0, "och ikonerna hamnade i dem",
 		"%d ikoner" % main.trad_view._ikoner.size())
 	# Ingen kontroll för flaggan -- skarm=<namn>: den läser SKAL_LÄGEN nu, och att kontrollera att en

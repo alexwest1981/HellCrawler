@@ -31,11 +31,28 @@ const FILNAMN := {
 const HÖGSTA := 6
 const IKON_PX := 16
 
+## PLATTAN (M95). Alex: "Använder du bilden jag gav dig som sockets skall sitta i?" — nej, det gjorde
+## jag inte: bilden låg oanvänd och allt var ritat för hand. Nu ÄR bilden trädvyns bottenplatta, och
+## noderna placeras i de sockets som är målade i den. Socketsen mättes fram ur bilden med ett rutnät
+## över den (bilden är 2048x2048): raderna ligger på 12,5 %, 28,0 %, 44,5 %, 57,0 %, 69,0 % och 80,0 %
+## av höjden — sex nivåer, precis som trädet har — och grenarna står i kolumner mellan 15 % och 85 %
+## av bredden. Talen nedan är de mätta procenttalen, inga påhitt.
+const PLATTA := "res://images/Gemini_Generated_Image_68qy7x68qy7x68qy.jpeg"
+const SLOTT_Y := [0.129, 0.286, 0.427, 0.557, 0.700, 0.800]   ## nivå 1..6, ur bildens rader
+## Grenarnas kolumner. De två ÖVERSTA nivåerna har bara tre stora medaljonger i bilden (vid
+## grenarnas ryggrad, 23,5 / 50,0 / 76,5 %), medan plattraderna nedanför har fyra kolumner på
+## 15,6 / 41,7 / 57,3 / 83,9 %. Mätt med nodernas egna rutor över bilden: med plattradernas kolumner
+## ända upp satt toppnoderna 8 % fel i sidled. Alltså två uppsättningar, en per nivåpar.
+const SLOTT_X := [0.156, 0.417, 0.573, 0.839]                     ## nivå 3..6
+const SLOTT_X_TOP := [0.235, 0.410, 0.590, 0.765]                 ## nivå 1..2 (bildens medaljonger)
+## Nodens storlek följer bildens trappa: medaljonger högst upp, ringar nederst.
+const NOD_PX := [26, 24, 20, 18, 15, 14]
+
 var _ikoner := {}                  ## id -> TextureRect
 var _rader := {}                   ## id -> Dictionary (gren, nivå, def)
 var _rubrik: Label
-var _rutnät: VBoxContainer
-var _celler := {}                  ## "gren_nivå" -> HBox, fylld i _bygg (ingen sökväg, en referens)
+var _platta: TextureRect
+var _nodplan: Control
 var _info: Label
 var _ritare: Control
 var _meta: Meta
@@ -95,29 +112,25 @@ func _bygg() -> void:
 	_rubrik = rubrik
 	box.add_child(rubrik)
 
-	# RADER AV RUTOR, INTE ETT RUTNÄT (M95). Först ett GridContainer med fyra kolumner — men ett
-	# rutnät lägger ut sina barn efter SIN EGEN bredd, och bredden kom inifrån en panel som mätte sig
-	# själv. Följden stod på Alex' skärmbild: alla ikoner på en rad i en svart ruta. En VBox med sex
-	# HBox-rader (en per nivå, fyra grenrutor i varje) behöver ingen bredd för att veta var sakerna
-	# skall ligga — den lägger ut dem i den ordning de kommer, och raderna kan inte hamna ovanpå
-	# varandra. Samma rutor, samma namn, samma uppslag i visa().
-	_rutnät = VBoxContainer.new()
-	_rutnät.name = "Rutnät"
-	_rutnät.add_theme_constant_override("separation", 2)
-	box.add_child(_rutnät)
-	for nivå in range(1, HÖGSTA + 1):
-		var rad := HBoxContainer.new()
-		rad.name = "rad_%d" % nivå
-		rad.custom_minimum_size = Vector2(0, 40 if nivå == 1 else 34)   # socketarna ar 22 px: glipan mellan dem ar roret
-		rad.add_theme_constant_override("separation", 6)
-		_rutnät.add_child(rad)
-		for gren in GRENAR:
-			var cell := HBoxContainer.new()
-			cell.name = "%s_%d" % [FILNAMN[gren], nivå]
-			cell.add_theme_constant_override("separation", 8)
-			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			rad.add_child(cell)
-			_celler["%s_%d" % [FILNAMN[gren], nivå]] = cell
+	# PLATTAN. Bilden ligger i sin egen ruta och fyller panelen med rätt proportioner (bilden är
+	# kvadratisk, vyn är bred — den skalas efter höjden och centreras, och slot-talen nedan räknas i
+	# samma proportioner, annars hamnar kloten vid sidan av sina sockets).
+	_platta = TextureRect.new()
+	_platta.name = "Platta"
+	_platta.texture = load(PLATTA)
+	_platta.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_platta.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_platta.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_platta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_platta)
+
+	# Nodlagret: en fri yta (INTE en container) — kloten sitter i bildens sockets, alltså på mätta
+	# positioner, och en container hade lagt dem i sin egen ordning i stället.
+	_nodplan = Control.new()
+	_nodplan.name = "Noder"
+	_nodplan.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_nodplan.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_nodplan)
 
 	_ritare = Ritar.new()
 	_ritare.vy = self
@@ -127,6 +140,15 @@ func _bygg() -> void:
 	_info.name = "Info"
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_info)
+
+
+## Var en slot ligger i pixlar. Plattan är kvadratisk och skalas efter höjden, så en andel av bildens
+## bredd är samma andel av höjden — därför räknas x ur höjden och centreras.
+func _slot(x: float, y: float) -> Vector2:
+	var yta: Vector2 = size
+	if yta.x < 8.0 or yta.y < 8.0:
+		yta = Vector2(480, 270)
+	return Vector2(yta.x * 0.5 + (x - 0.5) * yta.y, y * yta.y)
 
 
 func _panel_stil() -> StyleBoxFlat:
@@ -146,8 +168,8 @@ func visa(meta: Meta, titel: String) -> void:
 	_rubrik.text = titel
 	for barn in _ikoner.values():
 		# remove_child FÖRST — samma fälla som hos juveleraren: en andra visa() i samma bildruta
-		# mätte annars de gamla ikonerna också och rutnätet växte för varje omritning.
-		_rutnät.remove_child(barn)
+		# mätte annars de gamla ikonerna också och nodlagret växte för varje omritning.
+		_nodplan.remove_child(barn)
 		barn.queue_free()
 	_ikoner.clear()
 	_rader.clear()
@@ -158,6 +180,7 @@ func visa(meta: Meta, titel: String) -> void:
 	# Reservvägen räknar nodens plats i sin egen gren: datat står i kedjeordning (requires pekar
 	# bakåt), så den nionde noden i en gren är grenens nionde steg. Samma tal, ur samma källa som
 	# låsningen — den som lägger noder i fel ordning får fel nivå, och det syns direkt.
+	var sloträknare := {}
 	var räknare := {}
 	var steg := {}
 	for d in meta.defs:
@@ -174,15 +197,15 @@ func visa(meta: Meta, titel: String) -> void:
 		var nivå: int = int(def.get("tier", 0))
 		if nivå < 1 or nivå > HÖGSTA:
 			nivå = int(steg.get(str(def.get("id", "")), 1))
-		var cell: HBoxContainer = _celler.get("%s_%d" % [FILNAMN[gren], nivå], null)
-		if cell == null:
-			continue
+		var plats: int = int(sloträknare.get("%s|%d" % [gren, nivå], 0))
+		sloträknare["%s|%d" % [gren, nivå]] = plats + 1
 		var id: String = def["id"]
 		var ikon := TextureRect.new()
 		ikon.name = id
 		ikon.texture = load("res://assets/tree/%s%s.png" % [FILNAMN[gren],
 			"_krona" if nivå >= HÖGSTA else ""])
-		ikon.custom_minimum_size = Vector2(IKON_PX, IKON_PX)
+		var stl: int = int(NOD_PX[mini(HÖGSTA, maxi(1, nivå)) - 1])
+		ikon.custom_minimum_size = Vector2(stl, stl)
 		# Utan detta vinner texturEN:s egen storlek (32 px) över custom_minimum_size, och ikonen
 		# blev större än sin socket — mätt: 32 px ikon i en 22 px socket. Noden skall vara klotet.
 		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -190,7 +213,16 @@ func visa(meta: Meta, titel: String) -> void:
 		ikon.mouse_filter = Control.MOUSE_FILTER_STOP
 		ikon.mouse_entered.connect(_peka.bind(id))
 		ikon.gui_input.connect(_klick.bind(id))
-		cell.add_child(ikon)
+		# Klotet sätts i sin socket: två noder på samma nivå i samma gren står sida vid sida, som
+		# paren i bilden (plattan är kvadratisk, så x och y mäts i samma enhet).
+		var gren_nr: int = GRENAR.find(gren)
+		var kol: Array = SLOTT_X_TOP if nivå <= 2 else SLOTT_X
+		var x: float = float(kol[maxi(0, mini(kol.size() - 1, gren_nr))])
+		x += (float(plats) - 0.0) * (float(stl) / maxi(1, size.y)) * 1.2
+		var mitt: Vector2 = _slot(x, float(SLOTT_Y[mini(HÖGSTA, maxi(1, nivå)) - 1]))
+		ikon.position = mitt - Vector2(stl, stl) * 0.5
+		ikon.size = Vector2(stl, stl)
+		_nodplan.add_child(ikon)
 		_ikoner[id] = ikon
 		_rader[id] = {"gren": gren, "nivå": nivå, "def": def}
 
@@ -248,7 +280,7 @@ class Ritar:
 ## känner). Färgen bär tillståndet: mörk kall metall när noden är låst, grenens metallfärg när den är
 ## köpt, och guld när den är full.
 func _rita(du: CanvasItem) -> void:
-	if _meta == null or _celler.is_empty():
+	if _meta == null or _ikoner.is_empty():
 		return
 	# Nodernas mittpunkter per gren och nivå. Röret skall gå rakt genom noden, och en nivå kan ha
 	# flera noder i samma gren — då är deras medelvärde grenens ryggrad. (Förut räknades röret ur
@@ -259,7 +291,7 @@ func _rita(du: CanvasItem) -> void:
 		var rad: Dictionary = _rader[id]
 		var ikon: Control = _ikoner[id]
 		var nyckel: String = "%s|%d" % [str(rad.get("gren", "")), int(rad.get("nivå", 0))]
-		var c: Vector2 = ikon.global_position - global_position + ikon.size * 0.5
+		var c: Vector2 = ikon.position + ikon.size * 0.5
 		if not noder.has(nyckel):
 			noder[nyckel] = []
 		noder[nyckel].append(c)
@@ -279,8 +311,8 @@ func _rita(du: CanvasItem) -> void:
 			var x: float = summa / float(upp.size())
 			var övre: Vector2 = upp[0]
 			var undre: Vector2 = ned[0]
-			var y1: float = övre.y + SOCKET_R
-			var y2: float = undre.y - SOCKET_R
+			var y1: float = övre.y + 14.0
+			var y2: float = undre.y - 14.0
 			if y2 <= y1:
 				continue
 			var tänd: bool = köpta.has("%s|%d" % [gren, nivå]) or köpta.has("%s|%d" % [gren, nivå + 1])
@@ -305,14 +337,12 @@ func _rita(du: CanvasItem) -> void:
 			färg = GREN_FÄRG.get(gren, JÄRN_LJUS)
 		elif _meta.requires_met(id):
 			färg = JÄRN_LJUS
-		var c: Vector2 = ikon.global_position - global_position + ikon.size * 0.5
-		du.draw_arc(c, SOCKET_R - 1.0, 0.0, TAU, 28, färg, 3.0, true)
-		du.draw_arc(c, SOCKET_R - 1.0, -PI * 0.85, -PI * 0.15, 10, LJUSBLANK, 1.5, true)
-		for i in 4:
-			var vinkel: float = PI * 0.25 + i * PI * 0.5
-			du.draw_circle(c + Vector2(cos(vinkel), sin(vinkel)) * (SOCKET_R - 1.0), 1.0, NIT)
+		var c: Vector2 = ikon.position + ikon.size * 0.5
+		var rr: float = ikon.size.x * 0.5 + 1.5
+		du.draw_arc(c, rr, 0.0, TAU, 28, färg, 2.5, true)
+		du.draw_arc(c, rr, -PI * 0.85, -PI * 0.15, 10, LJUSBLANK, 1.5, true)
 		if rank > 0 and rank >= maks:
-			du.draw_arc(c, SOCKET_R + 3.0, 0.0, TAU, 28, GULD, 1.5, true)
+			du.draw_arc(c, rr + 3.0, 0.0, TAU, 28, GULD, 1.5, true)
 
 
 func _peka(id: String) -> void:
