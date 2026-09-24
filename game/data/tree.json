@@ -1,27 +1,1270 @@
 [
-  {"id": "iron_1", "name": "Slipad egg", "branch": "Järnvägen", "effect": {"might": 0.02}, "cost": [40, 90, 180], "max_rank": 3, "requires": [], "text": "+2 % skada", "soul_cost": [1, 1, 2]},
-  {"id": "iron_2", "name": "Härdat stål", "branch": "Järnvägen", "effect": {"might": 0.03}, "cost": [220, 420, 700], "max_rank": 3, "requires": ["iron_1"], "text": "+3 % skada", "soul_cost": [2, 4, 7]},
-  {"id": "iron_3", "name": "Blodvittring", "branch": "Järnvägen", "effect": {"might": 0.04}, "cost": [900, 1400, 2100], "max_rank": 3, "requires": ["iron_2"], "text": "+4 % skada", "soul_cost": [9, 14, 21]},
-  {"id": "iron_4", "name": "Kallhamrad klinga", "branch": "Järnvägen", "effect": {"might": 0.05}, "cost": [2500, 4200, 6800], "max_rank": 3, "requires": ["iron_3"], "text": "+5 % skada", "soul_cost": [25, 42, 68]},
-  {"id": "iron_5", "name": "Huggormens tand", "branch": "Järnvägen", "effect": {"might": 0.08}, "cost": [0, 0], "shard_cost": [8, 20], "max_rank": 2, "requires": ["iron_4"], "text": "+8 % skada", "soul_cost": [1, 1]},
-  {"id": "body_1", "name": "Tjockt skinn", "branch": "Benknippet", "effect": {"max_hp": 4}, "cost": [50, 110, 240], "max_rank": 3, "requires": [], "text": "+4 max-HP", "soul_cost": [1, 1, 2]},
-  {"id": "body_2", "name": "Bentaggar", "branch": "Benknippet", "effect": {"armor": 1}, "cost": [300, 750], "max_rank": 2, "requires": ["body_1"], "text": "+1 rustning vid turstart", "soul_cost": [3, 8]},
-  {"id": "body_3", "name": "Märg i såret", "branch": "Benknippet", "effect": {"recovery": 1}, "cost": [260, 620], "max_rank": 2, "requires": ["body_1"], "text": "+1 HP läkt efter strid", "soul_cost": [3, 6]},
-  {"id": "body_4", "name": "Benskölden", "branch": "Benknippet", "effect": {"max_hp": 6}, "cost": [0, 0, 0], "shard_cost": [4, 10, 22], "max_rank": 3, "requires": ["body_1"], "text": "+6 max-HP", "soul_cost": [1, 1, 1]},
-  {"id": "body_5", "name": "Järnben", "branch": "Benknippet", "effect": {"armor": 1}, "cost": [0, 0, 0], "shard_cost": [7, 15, 30], "max_rank": 3, "requires": ["body_4"], "text": "+1 rustning vid turstart", "soul_cost": [1, 1, 1]},
-  {"id": "body_6", "name": "Benskäraren", "branch": "Benknippet", "effect": {"heal_kill": 1}, "cost": [1200, 2600], "max_rank": 2, "requires": ["body_3"], "text": "+1 HP per dräpt fiende", "soul_cost": [12, 26]},
-  {"id": "body_7", "name": "Livstecknet", "branch": "Benknippet", "effect": {"revive": 1}, "cost": [0], "shard_cost": [60], "max_rank": 1, "requires": ["body_5"], "text": "reser dig en gång per körning, med 1 HP", "soul_cost": [1]},
-  {"id": "wick_1", "name": "Veke i bröstet", "branch": "Glöden", "effect": {"area": 0.1}, "cost": [120, 340], "max_rank": 2, "requires": [], "text": "+2 % skada över area", "soul_cost": [1, 3]},
-  {"id": "wick_2", "name": "Andra lågan", "branch": "Glöden", "effect": {"mana": 1}, "cost": [900], "max_rank": 1, "requires": ["wick_1", "iron_2"], "text": "+1 mana varje tur", "soul_cost": [9]},
-  {"id": "wick_3", "name": "Fullt bloss", "branch": "Glöden", "effect": {"hand": 1}, "cost": [1800], "max_rank": 1, "requires": ["wick_2"], "text": "+1 kort på handen", "soul_cost": [18]},
-  {"id": "wick_4", "name": "Varmare vind", "branch": "Glöden", "effect": {"start_mana": 1}, "cost": [0, 0, 0], "shard_cost": [3, 8, 16], "max_rank": 3, "requires": ["wick_2"], "text": "+1 mana i stridens första tur", "soul_cost": [1, 1, 1]},
-  {"id": "wick_5", "name": "Tredje lågan", "branch": "Glöden", "effect": {"mana": 1}, "cost": [0], "shard_cost": [26], "max_rank": 1, "requires": ["wick_4"], "text": "+1 mana varje tur", "soul_cost": [1]},
-  {"id": "wick_6", "name": "Öppen famn", "branch": "Glöden", "effect": {"draw_first": 1}, "cost": [2200, 4800], "max_rank": 2, "requires": ["wick_3"], "text": "+1 kort i öppningshanden", "soul_cost": [22, 48]},
-  {"id": "wick_7", "name": "Stor låga", "branch": "Glöden", "effect": {"area": 0.15}, "cost": [1500, 3200], "max_rank": 2, "requires": ["wick_1"], "text": "+3 % skada över area", "soul_cost": [15, 32]},
-  {"id": "greed_1", "name": "Förbannelsens smak", "branch": "Girigheten", "effect": {"curse": 0.03}, "cost": [80, 200, 520], "max_rank": 3, "requires": [], "text": "+3 % fiende-HP och guld", "soul_cost": [1, 2, 5]},
-  {"id": "greed_2", "name": "Ränta på ränta", "branch": "Girigheten", "effect": {"curse": 0.05}, "cost": [1100, 2400], "max_rank": 2, "requires": ["greed_1"], "text": "+5 % fiende-HP och guld", "soul_cost": [11, 24]},
-  {"id": "greed_3", "name": "Girig hand", "branch": "Girigheten", "effect": {"gold": 0.04}, "cost": [600, 1300, 2800], "max_rank": 3, "requires": ["greed_1"], "text": "+4 % guld, utan tåligare fiender", "soul_cost": [6, 13, 28]},
-  {"id": "greed_4", "name": "Stenögat", "branch": "Girigheten", "effect": {"gem_find": 1}, "cost": [0, 0, 0], "shard_cost": [2, 6, 14], "max_rank": 3, "requires": ["greed_3"], "text": "+10 % chans att en kista gömmer en ädelsten", "soul_cost": [1, 1, 1]},
-  {"id": "greed_5", "name": "Vaskarens tumme", "branch": "Girigheten", "effect": {"chest_luck": 1}, "cost": [900, 1900, 3800], "max_rank": 3, "requires": ["greed_1"], "text": "+5 % chans att en kista ger guld", "soul_cost": [9, 19, 38]},
-  {"id": "greed_6", "name": "Skattkammarens tunga", "branch": "Girigheten", "effect": {"gold": 0.08}, "cost": [0, 0], "shard_cost": [12, 28], "max_rank": 2, "requires": ["greed_3"], "text": "+8 % guld, utan tåligare fiender", "soul_cost": [1, 1]}
+  {
+    "id": "iron_main",
+    "name": "Smidesmästaren",
+    "branch": "Järnvägen",
+    "tier": 1,
+    "effect": {
+      "might": 0.08,
+      "area": 0.05
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      40
+    ],
+    "max_rank": 1,
+    "requires": [],
+    "text": "+8 % skada och +5 % area"
+  },
+  {
+    "id": "iron_1",
+    "name": "Vässad egg",
+    "branch": "Järnvägen",
+    "tier": 2,
+    "effect": {
+      "might": 0.02
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      4
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_main"
+    ],
+    "text": "+2 % might"
+  },
+  {
+    "id": "iron_2",
+    "name": "Slaggvikt",
+    "branch": "Järnvägen",
+    "tier": 2,
+    "effect": {
+      "area": 0.02
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      4
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_main"
+    ],
+    "text": "+2 % area"
+  },
+  {
+    "id": "iron_3",
+    "name": "Djupt hugg",
+    "branch": "Järnvägen",
+    "tier": 3,
+    "effect": {
+      "might": 0.03
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      5
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_1"
+    ],
+    "text": "+3 % might"
+  },
+  {
+    "id": "iron_4",
+    "name": "Bredare sving",
+    "branch": "Järnvägen",
+    "tier": 3,
+    "effect": {
+      "area": 0.03
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      5
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_2"
+    ],
+    "text": "+3 % area"
+  },
+  {
+    "id": "iron_5",
+    "name": "Två händer",
+    "branch": "Järnvägen",
+    "tier": 4,
+    "effect": {
+      "might": 0.04
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      7
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_3"
+    ],
+    "text": "+4 % might"
+  },
+  {
+    "id": "iron_6",
+    "name": "Genomträngande",
+    "branch": "Järnvägen",
+    "tier": 4,
+    "effect": {
+      "area": 0.04
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      7
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_4"
+    ],
+    "text": "+4 % area"
+  },
+  {
+    "id": "iron_7",
+    "name": "Klyvning",
+    "branch": "Järnvägen",
+    "tier": 5,
+    "effect": {
+      "might": 0.05
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      9
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_5"
+    ],
+    "text": "+5 % might"
+  },
+  {
+    "id": "iron_8",
+    "name": "Skärvorna",
+    "branch": "Järnvägen",
+    "tier": 5,
+    "effect": {
+      "area": 0.05
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      9
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_6"
+    ],
+    "text": "+5 % area"
+  },
+  {
+    "id": "iron_9",
+    "name": "Härdat bett",
+    "branch": "Järnvägen",
+    "tier": 6,
+    "effect": {
+      "might": 0.06
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      12
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_7"
+    ],
+    "text": "+6 % might"
+  },
+  {
+    "id": "iron_10",
+    "name": "Ugnsvind",
+    "branch": "Järnvägen",
+    "tier": 6,
+    "effect": {
+      "area": 0.06
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      12
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_8"
+    ],
+    "text": "+6 % area"
+  },
+  {
+    "id": "iron_11",
+    "name": "Städets slag",
+    "branch": "Järnvägen",
+    "tier": 7,
+    "effect": {
+      "might": 0.08
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      15
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_9"
+    ],
+    "text": "+8 % might"
+  },
+  {
+    "id": "iron_12",
+    "name": "Glödgat grepp",
+    "branch": "Järnvägen",
+    "tier": 7,
+    "effect": {
+      "area": 0.08
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      15
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_10"
+    ],
+    "text": "+8 % area"
+  },
+  {
+    "id": "iron_13",
+    "name": "Malmsmidd",
+    "branch": "Järnvägen",
+    "tier": 8,
+    "effect": {
+      "might": 0.1
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      19
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_11"
+    ],
+    "text": "+10 % might"
+  },
+  {
+    "id": "iron_14",
+    "name": "Rensad fog",
+    "branch": "Järnvägen",
+    "tier": 8,
+    "effect": {
+      "area": 0.1
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      19
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_12"
+    ],
+    "text": "+10 % area"
+  },
+  {
+    "id": "iron_15",
+    "name": "Bandad klinga",
+    "branch": "Järnvägen",
+    "tier": 9,
+    "effect": {
+      "might": 0.12
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      24
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_13"
+    ],
+    "text": "+12 % might"
+  },
+  {
+    "id": "iron_16",
+    "name": "Bränd kant",
+    "branch": "Järnvägen",
+    "tier": 9,
+    "effect": {
+      "area": 0.12
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      24
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_14"
+    ],
+    "text": "+12 % area"
+  },
+  {
+    "id": "iron_17",
+    "name": "Hammarfallet",
+    "branch": "Järnvägen",
+    "tier": 10,
+    "effect": {
+      "might": 0.15
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      30
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_15"
+    ],
+    "text": "+15 % might"
+  },
+  {
+    "id": "iron_18",
+    "name": "Stålets tunga",
+    "branch": "Järnvägen",
+    "tier": 10,
+    "effect": {
+      "area": 0.15
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      30
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_16"
+    ],
+    "text": "+15 % area"
+  },
+  {
+    "id": "iron_19",
+    "name": "Ugnens gap",
+    "branch": "Järnvägen",
+    "tier": 11,
+    "effect": {
+      "might": 0.3
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      38
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_17"
+    ],
+    "text": "+30 % skada och allt du slår på brinner",
+    "crown": "burn"
+  },
+  {
+    "id": "iron_20",
+    "name": "Malmens hjärta",
+    "branch": "Järnvägen",
+    "tier": 11,
+    "effect": {
+      "might": 0.2,
+      "gold": 0.2
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      38
+    ],
+    "max_rank": 1,
+    "requires": [
+      "iron_18"
+    ],
+    "text": "+20 % skada och guld",
+    "crown": "rich_blood"
+  },
+  {
+    "id": "body_main",
+    "name": "Benbyggaren",
+    "branch": "Benknippet",
+    "tier": 1,
+    "effect": {
+      "max_hp": 10,
+      "armor": 1
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      40
+    ],
+    "max_rank": 1,
+    "requires": [],
+    "text": "+10 max-HP och +1 rustning"
+  },
+  {
+    "id": "body_1",
+    "name": "Tjockt ben",
+    "branch": "Benknippet",
+    "tier": 2,
+    "effect": {
+      "max_hp": 0.02
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      4
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_main"
+    ],
+    "text": "+2 % max_hp"
+  },
+  {
+    "id": "body_2",
+    "name": "Sparad hud",
+    "branch": "Benknippet",
+    "tier": 2,
+    "effect": {
+      "armor": 0.02
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      4
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_main"
+    ],
+    "text": "+2 % armor"
+  },
+  {
+    "id": "body_3",
+    "name": "Lappad läder",
+    "branch": "Benknippet",
+    "tier": 3,
+    "effect": {
+      "max_hp": 0.03
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      5
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_1"
+    ],
+    "text": "+3 % max_hp"
+  },
+  {
+    "id": "body_4",
+    "name": "Knytnäve",
+    "branch": "Benknippet",
+    "tier": 3,
+    "effect": {
+      "armor": 0.03
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      5
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_2"
+    ],
+    "text": "+3 % armor"
+  },
+  {
+    "id": "body_5",
+    "name": "Sammabit",
+    "branch": "Benknippet",
+    "tier": 4,
+    "effect": {
+      "max_hp": 0.04
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      7
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_3"
+    ],
+    "text": "+4 % max_hp"
+  },
+  {
+    "id": "body_6",
+    "name": "Sårskorpa",
+    "branch": "Benknippet",
+    "tier": 4,
+    "effect": {
+      "armor": 0.04
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      7
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_4"
+    ],
+    "text": "+4 % armor"
+  },
+  {
+    "id": "body_7",
+    "name": "Gamla ärr",
+    "branch": "Benknippet",
+    "tier": 5,
+    "effect": {
+      "max_hp": 0.05
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      9
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_5"
+    ],
+    "text": "+5 % max_hp"
+  },
+  {
+    "id": "body_8",
+    "name": "Benmärg",
+    "branch": "Benknippet",
+    "tier": 5,
+    "effect": {
+      "armor": 0.05
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      9
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_6"
+    ],
+    "text": "+5 % armor"
+  },
+  {
+    "id": "body_9",
+    "name": "Härdad nacke",
+    "branch": "Benknippet",
+    "tier": 6,
+    "effect": {
+      "max_hp": 0.06
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      12
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_7"
+    ],
+    "text": "+6 % max_hp"
+  },
+  {
+    "id": "body_10",
+    "name": "Rakad rygg",
+    "branch": "Benknippet",
+    "tier": 6,
+    "effect": {
+      "armor": 0.06
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      12
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_8"
+    ],
+    "text": "+6 % armor"
+  },
+  {
+    "id": "body_11",
+    "name": "Långsamt blod",
+    "branch": "Benknippet",
+    "tier": 7,
+    "effect": {
+      "max_hp": 0.08
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      15
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_9"
+    ],
+    "text": "+8 % max_hp"
+  },
+  {
+    "id": "body_12",
+    "name": "Ny hud",
+    "branch": "Benknippet",
+    "tier": 7,
+    "effect": {
+      "armor": 0.08
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      15
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_10"
+    ],
+    "text": "+8 % armor"
+  },
+  {
+    "id": "body_13",
+    "name": "Stelnad",
+    "branch": "Benknippet",
+    "tier": 8,
+    "effect": {
+      "max_hp": 0.1
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      19
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_11"
+    ],
+    "text": "+10 % max_hp"
+  },
+  {
+    "id": "body_14",
+    "name": "Andra andetaget",
+    "branch": "Benknippet",
+    "tier": 8,
+    "effect": {
+      "armor": 0.1
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      19
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_12"
+    ],
+    "text": "+10 % armor"
+  },
+  {
+    "id": "body_15",
+    "name": "Sista andetaget",
+    "branch": "Benknippet",
+    "tier": 9,
+    "effect": {
+      "max_hp": 0.12
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      24
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_13"
+    ],
+    "text": "+12 % max_hp"
+  },
+  {
+    "id": "body_16",
+    "name": "Kvarleva",
+    "branch": "Benknippet",
+    "tier": 9,
+    "effect": {
+      "armor": 0.12
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      24
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_14"
+    ],
+    "text": "+12 % armor"
+  },
+  {
+    "id": "body_17",
+    "name": "Benskölden",
+    "branch": "Benknippet",
+    "tier": 10,
+    "effect": {
+      "max_hp": 0.15
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      30
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_15"
+    ],
+    "text": "+15 % max_hp"
+  },
+  {
+    "id": "body_18",
+    "name": "Järnben",
+    "branch": "Benknippet",
+    "tier": 10,
+    "effect": {
+      "armor": 0.15
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      30
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_16"
+    ],
+    "text": "+15 % armor"
+  },
+  {
+    "id": "body_19",
+    "name": "Tre resningar",
+    "branch": "Benknippet",
+    "tier": 11,
+    "effect": {
+      "revive": 2,
+      "max_hp": 0.3
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      38
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_17"
+    ],
+    "text": "+3 resningar i stället för 1",
+    "crown": "three_revives"
+  },
+  {
+    "id": "body_20",
+    "name": "Benmur",
+    "branch": "Benknippet",
+    "tier": 11,
+    "effect": {
+      "armor": 4,
+      "max_hp": 0.2
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      38
+    ],
+    "max_rank": 1,
+    "requires": [
+      "body_18"
+    ],
+    "text": "+4 rustning vid turstart",
+    "crown": "bone_wall"
+  },
+  {
+    "id": "wick_main",
+    "name": "Väktaren av lågan",
+    "branch": "Glöden",
+    "tier": 1,
+    "effect": {
+      "mana": 1,
+      "hand": 1
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      40
+    ],
+    "max_rank": 1,
+    "requires": [],
+    "text": "+1 mana och +1 kort på handen"
+  },
+  {
+    "id": "wick_1",
+    "name": "Varm hand",
+    "branch": "Glöden",
+    "tier": 2,
+    "effect": {
+      "mana": 0.02
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      4
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_main"
+    ],
+    "text": "+2 % mana"
+  },
+  {
+    "id": "wick_2",
+    "name": "Snabb tanke",
+    "branch": "Glöden",
+    "tier": 2,
+    "effect": {
+      "hand": 0.02
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      4
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_main"
+    ],
+    "text": "+2 % hand"
+  },
+  {
+    "id": "wick_3",
+    "name": "Första draget",
+    "branch": "Glöden",
+    "tier": 3,
+    "effect": {
+      "mana": 0.03
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      5
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_1"
+    ],
+    "text": "+3 % mana"
+  },
+  {
+    "id": "wick_4",
+    "name": "Extra andetag",
+    "branch": "Glöden",
+    "tier": 3,
+    "effect": {
+      "hand": 0.03
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      5
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_2"
+    ],
+    "text": "+3 % hand"
+  },
+  {
+    "id": "wick_5",
+    "name": "Öppen hand",
+    "branch": "Glöden",
+    "tier": 4,
+    "effect": {
+      "mana": 0.04
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      7
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_3"
+    ],
+    "text": "+4 % mana"
+  },
+  {
+    "id": "wick_6",
+    "name": "Fylld näve",
+    "branch": "Glöden",
+    "tier": 4,
+    "effect": {
+      "hand": 0.04
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      7
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_4"
+    ],
+    "text": "+4 % hand"
+  },
+  {
+    "id": "wick_7",
+    "name": "Glödrök",
+    "branch": "Glöden",
+    "tier": 5,
+    "effect": {
+      "mana": 0.05
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      9
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_5"
+    ],
+    "text": "+5 % mana"
+  },
+  {
+    "id": "wick_8",
+    "name": "Skymt",
+    "branch": "Glöden",
+    "tier": 5,
+    "effect": {
+      "hand": 0.05
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      9
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_6"
+    ],
+    "text": "+5 % hand"
+  },
+  {
+    "id": "wick_9",
+    "name": "Första gnistan",
+    "branch": "Glöden",
+    "tier": 6,
+    "effect": {
+      "mana": 0.06
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      12
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_7"
+    ],
+    "text": "+6 % mana"
+  },
+  {
+    "id": "wick_10",
+    "name": "Tändved",
+    "branch": "Glöden",
+    "tier": 6,
+    "effect": {
+      "hand": 0.06
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      12
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_8"
+    ],
+    "text": "+6 % hand"
+  },
+  {
+    "id": "wick_11",
+    "name": "Lågan inne",
+    "branch": "Glöden",
+    "tier": 7,
+    "effect": {
+      "mana": 0.08
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      15
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_9"
+    ],
+    "text": "+8 % mana"
+  },
+  {
+    "id": "wick_12",
+    "name": "Brinnande kort",
+    "branch": "Glöden",
+    "tier": 7,
+    "effect": {
+      "hand": 0.08
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      15
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_10"
+    ],
+    "text": "+8 % hand"
+  },
+  {
+    "id": "wick_13",
+    "name": "Rykande drag",
+    "branch": "Glöden",
+    "tier": 8,
+    "effect": {
+      "mana": 0.1
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      19
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_11"
+    ],
+    "text": "+10 % mana"
+  },
+  {
+    "id": "wick_14",
+    "name": "Gnistregn",
+    "branch": "Glöden",
+    "tier": 8,
+    "effect": {
+      "hand": 0.1
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      19
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_12"
+    ],
+    "text": "+10 % hand"
+  },
+  {
+    "id": "wick_15",
+    "name": "Eldens rytm",
+    "branch": "Glöden",
+    "tier": 9,
+    "effect": {
+      "mana": 0.12
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      24
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_13"
+    ],
+    "text": "+12 % mana"
+  },
+  {
+    "id": "wick_16",
+    "name": "Andra handen",
+    "branch": "Glöden",
+    "tier": 9,
+    "effect": {
+      "hand": 0.12
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      24
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_14"
+    ],
+    "text": "+12 % hand"
+  },
+  {
+    "id": "wick_17",
+    "name": "Återtändning",
+    "branch": "Glöden",
+    "tier": 10,
+    "effect": {
+      "mana": 0.15
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      30
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_15"
+    ],
+    "text": "+15 % mana"
+  },
+  {
+    "id": "wick_18",
+    "name": "Fylld hand",
+    "branch": "Glöden",
+    "tier": 10,
+    "effect": {
+      "hand": 0.15
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      30
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_16"
+    ],
+    "text": "+15 % hand"
+  },
+  {
+    "id": "wick_19",
+    "name": "Full hand varje tur",
+    "branch": "Glöden",
+    "tier": 11,
+    "effect": {
+      "hand": 3,
+      "draw_first": 2
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      38
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_17"
+    ],
+    "text": "Handen fylls till fullt varje tur",
+    "crown": "full_hand"
+  },
+  {
+    "id": "wick_20",
+    "name": "Evig glöd",
+    "branch": "Glöden",
+    "tier": 11,
+    "effect": {
+      "mana": 3,
+      "gold": 0.15
+    },
+    "cost": [
+      0
+    ],
+    "soul_cost": [
+      38
+    ],
+    "max_rank": 1,
+    "requires": [
+      "wick_18"
+    ],
+    "text": "+3 mana varje tur och +15 % guld",
+    "crown": "eternal_ember"
+  }
 ]

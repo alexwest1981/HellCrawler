@@ -156,6 +156,7 @@ def snap(nodes_path: str) -> int:
         guesses.append((name, fx, fy))
 
     sockets = []
+    tagna = set()
     for name, fx, fy in guesses:
         best, best_x, best_y, best_r = -9.0, fx, fy, 0.02
         for radius in RADII:
@@ -167,7 +168,7 @@ def snap(nodes_path: str) -> int:
             outer_area = float((2 * r_out + 1) ** 2)
             pit_area = float((2 * pit + 1) ** 2)
             cx0, cy0 = int(fx * SIDE), int(fy * SIDE)
-            window = int(min(0.05, 2.2 * radius) * SIDE)      # leta bara i närheten av gissningen
+            window = int(0.12 * SIDE)     # vidare fönster: plattans sockets sitter inte i gissningens rad
             for cy in range(max(r_out + 1, cy0 - window), min(SIDE - r_out - 1, cy0 + window), 2):
                 for cx in range(max(r_out + 1, cx0 - window), min(SIDE - r_out - 1, cx0 + window), 2):
                     outer_mean = box_mean(I, cy, cx, r_out, SIDE)
@@ -175,7 +176,12 @@ def snap(nodes_path: str) -> int:
                     band = (outer_mean * outer_area - pit_mean * pit_area) / max(1.0, outer_area - pit_area)
                     score = band - pit_mean
                     if score > best:
+                        # Ta bara en ledig socket: två noder i samma grop syns som en klump.
+                        nyckel = (round(cx / SIDE, 2), round(cy / SIDE, 2))
+                        if nyckel in tagna:
+                            continue
                         best, best_x, best_y, best_r = score, cx / SIDE, cy / SIDE, radius
+        tagna.add((round(best_x, 2), round(best_y, 2)))
         sockets.append({"id": name, "x": round(best_x, 4), "y": round(best_y, 4), "r": round(best_r, 4),
                         "score": round(best, 3), "guess_x": round(fx, 4), "guess_y": round(fy, 4)})
 

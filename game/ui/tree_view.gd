@@ -23,11 +23,15 @@ extends Control
 ## Texten kommer när muspekaren vilar på en ikon: namn, vad den ger, rang och pris — och när den inte
 ## går att köpa står skälet där, från metan (samma rad som butiken hade).
 
-const GRENAR := ["Järnvägen", "Benknippet", "Glöden", "Girigheten"]
+## TRE GRENAR, SOM BILDEN (M95). Alex: "det är 3 kolumner, 3 huvudnoder, sen 20 undernoder per
+## huvudnod, som du ser på bilden". Girigheten är borta som egen gren — bilden har tre — och dess
+## karaktär lever kvar som effekter inne i de tre (guld och byte finns på noder i alla grenar).
+const GRENAR := ["Järnvägen", "Benknippet", "Glöden"]
 const FILNAMN := {
-	"Järnvägen": "jarnvagen", "Benknippet": "benknippet",
-	"Glöden": "gloden", "Girigheten": "girigheten",
+	"Järnvägen": "jarnvagen", "Benknippet": "benknippet", "Glöden": "gloden",
 }
+## Nivåerna kommer ur DATAT, inte ur en konstant: trädet har 1 huvudnod + 20 undernoder per gren, alltså
+## elva nivåer. Konstanten nedan är bara ett golv för en tom fil.
 const HÖGSTA := 6
 const IKON_PX := 16
 
@@ -47,10 +51,32 @@ const SLOTT_X := [0.156, 0.417, 0.573, 0.839]                     ## nivå 3..6
 const SLOTT_X_TOP := [0.235, 0.410, 0.590, 0.765]                 ## nivå 1..2 (bildens medaljonger)
 ## Nodens storlek följer bildens trappa: medaljonger högst upp, ringar nederst.
 const NOD_PX := [26, 24, 20, 18, 15, 14]
+## Nodens storlek och radens höjd när trädet har fler nivåer än de sex som mättes i bilden: trappan
+## och raderna sprids då jämnt i stället för att någon nivå hamnar utanför. Editorns fil bestämmer
+## ändå var noderna sitter — det här är reservvägen för en nod som ännu inte är placerad.
+const NOD_TOPP := 26
+const NOD_BOTTEN := 13
+const RAD_TOPP := 0.105
+const RAD_BOTTEN := 0.860
+
+func _nod_px(nivå: int) -> int:
+	var n: int = maxi(1, _högsta)
+	if n <= NOD_PX.size():
+		return int(NOD_PX[mini(n, maxi(1, nivå)) - 1])
+	var t: float = float(nivå - 1) / float(n - 1)
+	return int(round(lerpf(float(NOD_TOPP), float(NOD_BOTTEN), t)))
+
+func _slot_y(nivå: int) -> float:
+	var n: int = maxi(1, _högsta)
+	if n <= SLOTT_Y.size():
+		return float(SLOTT_Y[mini(n, maxi(1, nivå)) - 1])
+	var t: float = float(nivå - 1) / float(n - 1)
+	return lerpf(RAD_TOPP, RAD_BOTTEN, t)
 
 var _ikoner := {}                  ## id -> TextureRect
 var _rader := {}                   ## id -> Dictionary (gren, nivå, def)
 var _rubrik: Label
+var _högsta := HÖGSTA               ## antal nivåer i datat, räknat i visa()
 var _snäpp := {}                   ## id -> {x, y, r} ur game/data/trad_sockets.json (mätta sockets)
 var _platta: TextureRect
 var _nodplan: Control
@@ -188,6 +214,7 @@ func visa(meta: Meta, titel: String) -> void:
 	_ikoner.clear()
 	_rader.clear()
 
+	_högsta = HÖGSTA
 	# NIVÅN UR DATAT, MED EN RESERVVÄG (M95). De 88 noderna från generatorn bär `tier`. De 25 äldre
 	# noderna gör inte det — och `def.get("tier", 1)` gjorde då ALLA till nivå 1, vilket är exakt vad
 	# mätningen visade: 25 ikoner på samma y (31 px) i en rad 811 px bred i en 480 px vy.
@@ -202,14 +229,15 @@ func visa(meta: Meta, titel: String) -> void:
 		if g.is_empty():
 			continue
 		räknare[g] = int(räknare.get(g, 0)) + 1
-		steg[str(d.get("id", ""))] = mini(HÖGSTA, räknare[g])
+		_högsta = maxi(_högsta, int(d.get("tier", räknare[g])))
+		steg[str(d.get("id", ""))] = mini(_högsta, räknare[g])
 
 	for def in meta.defs:
 		var gren: String = def.get("branch", "")
 		if not FILNAMN.has(gren):
 			continue
 		var nivå: int = int(def.get("tier", 0))
-		if nivå < 1 or nivå > HÖGSTA:
+		if nivå < 1 or nivå > _högsta:
 			nivå = int(steg.get(str(def.get("id", "")), 1))
 		var plats: int = int(sloträknare.get("%s|%d" % [gren, nivå], 0))
 		sloträknare["%s|%d" % [gren, nivå]] = plats + 1
@@ -217,8 +245,8 @@ func visa(meta: Meta, titel: String) -> void:
 		var ikon := TextureRect.new()
 		ikon.name = id
 		ikon.texture = load("res://assets/tree/%s%s.png" % [FILNAMN[gren],
-			"_krona" if nivå >= HÖGSTA else ""])
-		var stl: int = int(NOD_PX[mini(HÖGSTA, maxi(1, nivå)) - 1])
+			"_krona" if nivå >= _högsta else ""])
+		var stl: int = _nod_px(nivå)
 		ikon.custom_minimum_size = Vector2(stl, stl)
 		# Utan detta vinner texturEN:s egen storlek (32 px) över custom_minimum_size, och ikonen
 		# blev större än sin socket — mätt: 32 px ikon i en 22 px socket. Noden skall vara klotet.
@@ -232,12 +260,20 @@ func visa(meta: Meta, titel: String) -> void:
 		# låg varje klot kvar där det räknades för den gamla storleken (mätt av provet: en nod gav
 		# bildandel -0,39 i stället för 0,05). Nu sparas andelen, och pixlarna räknas om varje gång
 		# vyn får en ny storlek — av placera_om(), på ett ställe.
-		var kol: Array = SLOTT_X_TOP if nivå <= 2 else SLOTT_X
+		var kol: Array = SLOTT_X_TOP if nivå <= 1 else SLOTT_X   # nivå 1 = grenens medaljong
 		var gren_nr: int = GRENAR.find(gren)
-		var r_kvar: float = float(stl) / (2.0 * 0.80 * maxf(60.0, size.y))
+		# Radien i bildandelar, räknad ur en FAST referenshöjd (plattan ritades i 270 px när raderna
+		# mättes). Att räkna den ur vyns aktuella höjd gjorde att en vy utan storlek fick sin radie ur
+		# 60 px-golvet, och då hamnade noden utanför plattan.
+		# Radien i bildandelar, räknad ur en FAST referenshöjd (plattan ritades i 270 px när raderna
+		# mättes) och KAPAD av radavståndet: elva nivåer ryms inte i samma höjd som sex, och utan
+		# kapningen lade sig grannraderna ovanpå varandra (mätt: "extrem överlappning, staplade som
+		# taktegel" i en 26 px-nod på 20 px radavstånd).
+		var radavstånd: float = (RAD_BOTTEN - RAD_TOPP) / float(maxi(1, _högsta - 1))
+		var r_kvar: float = minf(float(stl) / (2.0 * 0.80 * 270.0), radavstånd * 0.42)
 		var fx: float = float(kol[maxi(0, mini(kol.size() - 1, gren_nr))])
-		fx += float(plats) * r_kvar * 1.9
-		var fy: float = float(SLOTT_Y[mini(HÖGSTA, maxi(1, nivå)) - 1])
+		fx += float(plats) * r_kvar * 1.15   # syskonen sida vid sida, en radie isär
+		var fy: float = _slot_y(nivå)
 		var sock: Dictionary = _snäpp.get(id, {})
 		if sock.has("x"):
 			# MÄTT SOCKET SLÅR RUTNÄTET, och storleken följer socketens radie.
@@ -327,7 +363,7 @@ func _rita(du: CanvasItem) -> void:
 			köpta[nyckel] = true
 	# RÖREN: en stång per gren mellan nivåerna, tänd i grenens metall när det finns en köpt rang där.
 	for gren in GRENAR:
-		for nivå in range(1, HÖGSTA):
+		for nivå in range(1, _högsta):
 			var upp: Array = noder.get("%s|%d" % [gren, nivå], [])
 			var ned: Array = noder.get("%s|%d" % [gren, nivå + 1], [])
 			if upp.is_empty() or ned.is_empty():

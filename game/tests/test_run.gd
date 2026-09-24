@@ -353,12 +353,14 @@ func _tree_in_run(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, 
 	var maxa := func(id: String) -> void:
 		while m.buy(id).ok:
 			pass
+	# HUVUDNODERNA ÖPPNAR GRENARNA (M95): varje gren har en huvudnod, och undernoderna hänger på den.
+	for id in ["body_main", "wick_main", "iron_main"]:
+		maxa.call(id)
 	for id in ["body_1", "wick_1", "iron_1"]:
 		maxa.call(id)
-	check(m.buy("iron_2").ok, "nästa järnnod går att köpa när järnvägen är full")
-	maxa.call("iron_2")
-	maxa.call("wick_2")
-	check(m.buy("wick_3").ok, "och fullt bloss ovanpå den (båda kraven fulla)")
+	check(m.buy("iron_3").ok, "nästa järnnod går att köpa när grenen är full")
+	maxa.call("iron_3")
+	check(m.buy("wick_3").ok, "och noden ovanpå den (föräldern full)")
 	var med := Run.new(stage, bestiary, deck, 7, db, m)
 	# Siffrorna hämtas ur metan själv — samma källa som spelet läser. Det som ska hållas är LÄNKEN
 	# meta -> körning, inte ett handskrivet tal som råkade stämma när provet skrevs.
@@ -370,8 +372,8 @@ func _tree_in_run(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, 
 		"%d -> %d" % [bas_hand, med.base_hand])
 	# Skadan ligger i striden (combat.might = meta.stat("might")), så den mäts på metan: båda
 	# järnnoderna ska ha bidragit, och ingen av dem är köpt en enda gång.
-	check(m.stat("might") > 0.0 and m.rank("iron_1") == 3 and m.rank("iron_2") > 0,
-		"och skadan följer båda järnnoderna",
+	check(m.stat("might") > 0.0 and m.rank("iron_1") == 1 and m.rank("iron_3") == 1,
+		"och skadan följer alla köpta järnnoder",
 		"%.2f" % m.stat("might"))
 
 ## Testet prövar MASKINERIET, inte balansen: spelaren kör som en sen-game-karaktär, så att hela

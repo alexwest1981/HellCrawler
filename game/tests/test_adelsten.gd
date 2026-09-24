@@ -56,7 +56,7 @@ func _initialize() -> void:
 	m.souls = 40
 	var låst := m.buy("iron_5")
 	check(not låst.ok, "en trädgren med kravet ogjort går inte att köpa", str(låst.reason))
-	m.ranks["iron_4"] = 3
+	m.ranks["iron_3"] = 1          # föräldern full: trädets noder har en rang var (M95)
 	var guld_före := m.gold
 	var cs_pris := m.next_soul_cost("iron_5")
 	var köpt := m.buy("iron_5")
@@ -75,7 +75,7 @@ func _initialize() -> void:
 	# Utan CS går trädet inte, hur mycket guld som helst.
 	var m3 := _met()
 	m3.gold = 999999
-	m3.ranks["iron_4"] = 3
+	m3.ranks["iron_3"] = 1                                 # föräldern full (M95: en rang per nod)
 	m3.souls = maxi(0, m3.next_soul_cost("iron_5") - 1)     # en CS för lite, inte ett gissat tal
 	var fattig := m3.buy("iron_5")
 	check(not fattig.ok and str(fattig.reason) == "for_lite_cs",

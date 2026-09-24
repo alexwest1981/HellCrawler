@@ -1,208 +1,191 @@
 #!/usr/bin/env python3
-"""Genererar HellCrawlers träd: game/data/tree.json, 4 grenar x 6 nivåer.
+"""Generates HellCrawler's tree: game/data/tree.json - 3 branches x (1 main node + 20 sub-nodes).
 
-Alex: *"skill tree behöver vara permanent, men med så pass många noder att man måste spela spelet typ
-20ggr"* och *"bara nya namn osv, återanvänd merparten av det vi har idag, mixa och matcha"*.
+Alex: *"it is 3 columns, 3 main nodes, then 20 sub-nodes per main node, as you see in the picture,
+make it work"*. The plate's middle section carries two sockets per branch per row, so 20 = 10 rows of
+two, and the main node is the big medallion at the top of each column.
 
-De 25 noder som redan finns behåller sina id:n, namn, effekter, priser och krav ORÖRDA — de är provade
-i spel och test_meta räknar på dem. Verktyget LÄGGER TILL noder runt dem till sex nivåer per gren, och
-skriver filen med samma form som förut.
+Shape per branch:
+  tier 1        the main node (one purchase, opens the branch, 40 CS)
+  tier 2..11    two sub-nodes per tier, 20 in all - two parallel lines of ten, so a player can go deep
+                in one line or spread across both. tier 11 is the capstone pair.
 
-Kronorna (nivå 6) bär sin mekanik som en TAGG (`crown`) i datat. Siffrorna de ger fungerar i spelet
-direkt; taggen är där för att motorn ska kunna läsa dem när mekaniken byggs ("allt du slår på brinner",
-"du reser dig tre gånger"). Att bygga mekaniken utan att datat finns hade varit att bygga två saker
-samtidigt.
+Every node costs Corrupted Souls (`soul_cost`), never gold: `cost` is kept at zero so a price can never
+be read as gold by mistake (the first version of the tree left gold prices in `cost`, and a tree that
+reads the wrong field is free). Filling the whole tree costs about 1100 CS, which at 40-80 CS per run
+is the "play it about twenty times" Alex asked for.
 
-CS-priserna ligger i `soul_cost` och guldpriserna i `cost` lämnas orörda. Formen finns redan i metan:
-`shard_cost` fungerar på exakt samma sätt (se meta.gd, next_shard_cost), så köpvägen för själar kan
-läggas bredvid splitterna utan att röra guldets. Att byta `cost` till CS utan att byta köpvägen hade
-gjort hela trädet gratis — priset hade lästs som guld.
+Each capstone carries a `crown` tag so the engine can read its special mechanic later ("everything you
+hit burns", "you rise three times") without the data having to be rewritten - the numbers they give
+work in the game today.
 
-    python3 tools/gen_tree.py            skriv game/data/tree.json
-    python3 tools/gen_tree.py --check    skriv ingenting, mät bara (och visa ekonomin)
+    python3 tools/gen_tree.py            write game/data/tree.json
+    python3 tools/gen_tree.py --check    write nothing, just measure (and show the economy)
 """
 import json
 import os
 import sys
 
-ROT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TRAD = os.path.join(ROT, "game", "data", "tree.json")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TREE = os.path.join(ROOT, "game", "data", "tree.json")
 
-# Grenarna och deras statistiknycklar (metans stat() känner dem). Ordningen är grenens ordning i
-# vyn och i specen: Järnvägen (skada), Benknippet (tålighet och resning), Glöden (kort och mana),
-# Girigheten (byte).
-GRENAR = [
-    ("Järnvägen", ["might", "area"]),
-    ("Benknippet", ["max_hp", "armor", "recovery"]),
-    ("Glöden", ["mana", "hand", "draw_first"]),
-    ("Girigheten", ["gold", "gem_find", "chest_luck"]),
+# The three branches, in the order the view draws them (left to right) and in the plate's own metals:
+# Järnvägen (damage, steel), Benknippet (body, bone), Glöden (cards and mana, ember).
+BRANCHES = [
+    ("Järnvägen", "iron", ("might", "area")),
+    ("Benknippet", "body", ("max_hp", "armor")),
+    ("Glöden", "wick", ("mana", "hand")),
 ]
 
-# Nivåerna och hur många noder varje gren har på dem. 22 per gren = 88 totalt (plus att de 25
-# befintliga noderna placeras in på sin nivå i stället för att dubbleras).
-NIVÅER = [1, 4, 5, 5, 5, 2]
-
-# Priset i Corrupted Souls per RANG, ur docs/skilltree.md: nivå 1-2 kostar 1-3 CS, 3-4 kostar 4-9,
-# nivå 5 kostar 10-18 och kronan 20-30.
-PRIS = {1: [1, 2], 2: [2, 3, 3], 3: [4, 5, 6], 4: [6, 7, 9], 5: [10, 12, 15, 18], 6: [20, 30]}
-
-# Effektens storlek per nivå, också ur specen: nivå 1-2 små steg (+2-4 %), 3-4 tydliga (+5-8 %),
-# nivå 5 stora (+10-15 %), kronan ett språng.
-STYRKA = {1: 0.02, 2: 0.03, 3: 0.05, 4: 0.07, 5: 0.12, 6: 0.30}
-
-# Namnen på de nya noderna. Korta, i spelets ton: vad noden GÖR, inte vad den heter i en tabell.
-ORD = {
-    "Järnvägen": [("Vässad egg", "Slaggvikt", "Hammarfallet", "Glödgat grepp", "Stålets tunga",
-                   "Bandad klinga", "Ugnshärd", "Bränd kant", "Städets slag", "Malmsmidd", "Rensad fog"),
-                  ("Djupt hugg", "Bredare sving", "Två händer", "Genomträngande", "Klyvning",
-                   "Smält slagg", "Eldspridning", "Skärvorna", "Härdat bett", "Ugnsvind")],
-    "Benknippet": [("Tjockt ben", "Sparad hud", "Lappad läder", "Knytnäve", "Sammabit",
-                    "Sårskorpa", "Gamla ärr", "Benmärg", "Härdad nacke", "Rakad rygg", "Sluten näve"),
-                   ("Långsamt blod", "Ny hud", "Bensköld", "Stelnad", "Andra andetaget",
-                    "Sista andetaget", "Resning", "Kvarleva")],
-    "Glöden": [("Varm hand", "Snabb tanke", "Första draget", "Extra andetag", "Öppen hand",
-                "Fylld näve", "Glödrök", "Skymt", "Första gnistan", "Tändved", "Lågan inne"),
-               ("Brinnande kort", "Rykande drag", "Gnistregn", "Full hand", "Eldens rytm",
-                "Andra handen", "Återtändning")],
-    "Girigheten": [("Smal mynt", "Vass blick", "Kistlås", "Fickan", "Sprucken börs",
-                    "Guldvikt", "Glittrande grus", "Räknad vinst", "Tom kista", "Rov", "Byten"),
-                   ("Fet börs", "Ädelstenar", "Rik kista", "Dubbel fångst", "Girig hand",
-                    "Guldfeber", "Skattkammare")],
+# Main node per branch: what the branch is FOR, in one purchase. Opens the branch, so it is bought
+# first and its two sub-lines both hang from it.
+MAINS = {
+    "Järnvägen": ("Smidesmästaren", {"might": 0.08, "area": 0.05}, "+8 % skada och +5 % area"),
+    "Benknippet": ("Benbyggaren", {"max_hp": 10, "armor": 1}, "+10 max-HP och +1 rustning"),
+    "Glöden": ("Väktaren av lågan", {"mana": 1, "hand": 1}, "+1 mana och +1 kort på handen"),
 }
 
+# Ten pairs of names per branch: the first is the upper line, the second the lower one.
+NAMES = {
+    "Järnvägen": [
+        ("Vässad egg", "Slaggvikt"), ("Djupt hugg", "Bredare sving"),
+        ("Två händer", "Genomträngande"), ("Klyvning", "Skärvorna"),
+        ("Härdat bett", "Ugnsvind"), ("Städets slag", "Glödgat grepp"),
+        ("Malmsmidd", "Rensad fog"), ("Bandad klinga", "Bränd kant"),
+        ("Hammarfallet", "Stålets tunga"), ("Ugnens gap", "Malmens hjärta"),
+    ],
+    "Benknippet": [
+        ("Tjockt ben", "Sparad hud"), ("Lappad läder", "Knytnäve"),
+        ("Sammabit", "Sårskorpa"), ("Gamla ärr", "Benmärg"),
+        ("Härdad nacke", "Rakad rygg"), ("Långsamt blod", "Ny hud"),
+        ("Stelnad", "Andra andetaget"), ("Sista andetaget", "Kvarleva"),
+        ("Benskölden", "Järnben"), ("Tre resningar", "Benmur"),
+    ],
+    "Glöden": [
+        ("Varm hand", "Snabb tanke"), ("Första draget", "Extra andetag"),
+        ("Öppen hand", "Fylld näve"), ("Glödrök", "Skymt"),
+        ("Första gnistan", "Tändved"), ("Lågan inne", "Brinnande kort"),
+        ("Rykande drag", "Gnistregn"), ("Eldens rytm", "Andra handen"),
+        ("Återtändning", "Fylld hand"), ("Full hand varje tur", "Evig glöd"),
+    ],
+}
 
-def räkna_kronor():
-    """Nivå 6 är grenens krona: en effekt som ändrar hur spelet spelas, plus sin tagg."""
-    return {
-        "Järnvägen": ("Ugnens gap", {"might": 0.30, "area": 0.25}, "burn",
-                      "+30 % skada och allt du slår på brinner"),
-        "Benknippet": ("Tre resningar", {"max_hp": 0.30, "revive": 2}, "three_revives",
-                       "+3 resningar i stället för 1"),
-        "Glöden": ("Full hand varje tur", {"hand": 3, "draw_first": 2}, "full_hand",
-                   "Handen fylls till fullt varje tur"),
-        "Girigheten": ("Rikets pris", {"gold": 0.50, "curse": 0.20}, "double_reward",
-                       "Fienderna tål mer men ger dubbelt"),
-    }
+# The capstone pair of each branch: the two nodes that change how the game plays, plus their tag.
+CAPSTONES = {
+    "Järnvägen": [
+        ("Ugnens gap", {"might": 0.30}, "burn", "+30 % skada och allt du slår på brinner"),
+        ("Malmens hjärta", {"might": 0.20, "gold": 0.20}, "rich_blood", "+20 % skada och guld"),
+    ],
+    "Benknippet": [
+        ("Tre resningar", {"revive": 2, "max_hp": 0.30}, "three_revives",
+         "+3 resningar i stället för 1"),
+        ("Benmur", {"armor": 4, "max_hp": 0.20}, "bone_wall", "+4 rustning vid turstart"),
+    ],
+    "Glöden": [
+        ("Full hand varje tur", {"hand": 3, "draw_first": 2}, "full_hand",
+         "Handen fylls till fullt varje tur"),
+        ("Evig glöd", {"mana": 3, "gold": 0.15}, "eternal_ember",
+         "+3 mana varje tur och +15 % guld"),
+    ],
+}
+
+# Effect size per tier: small steps at first, a jump at the last one before the capstones.
+STRENGTH = {2: 0.02, 3: 0.03, 4: 0.04, 5: 0.05, 6: 0.06, 7: 0.08, 8: 0.10, 9: 0.12, 10: 0.15}
+# Price in Corrupted Souls per node. Per branch: 2 x 163 for the sub-nodes plus 40 for the main node.
+PRICE = {2: 4, 3: 5, 4: 7, 5: 9, 6: 12, 7: 15, 8: 19, 9: 24, 10: 30, 11: 38}
+MAIN_PRICE = 40
+TIERS = 11                      ## tier 1 = the main node, tier 2..11 = the 20 sub-nodes
 
 
-def nivå_av(nod, defs):
-    """Nivån ur kraven: rotnoden är nivå 1, barnet till en nivå-1-nod nivå 2, osv."""
-    if not nod.get("requires"):
-        return 1
-    for rid in nod["requires"]:
-        if rid in defs and rid != nod["id"]:
-            return nivå_av(defs[rid], defs) + 1
-    return 1
-
-
-def bygg(befintliga):
-    """Behåller de befintliga noderna och fyller ut varje gren till sex nivåer."""
-    defs = {n["id"]: n for n in befintliga}
-    kronor = räkna_kronor()
-    ut = [dict(n) for n in befintliga]        # orörda i sak, i samma ordning
-    for n in ut:
-        # Nivån är ett HÄRLETT fält: de 25 gamla noderna har det inte, och vyn behöver det för att
-        # veta var noden ska stå. Id, namn, effekt, pris och krav rörs inte.
-        n.setdefault("tier", nivå_av(n, defs))
-        # CS-priset sätts också på de gamla noderna: hela trädet prissätts i Corrupted Souls enligt
-        # specen, men deras `cost` (guld) lämnas orörd så att köpvägen kan bytas utan att något går
-        # sönder. Utan den här raden summerade ekonomimätningen guld och CS i samma tal (57 561 CS),
-        # vilket inte betyder någonting.
-        if "soul_cost" not in n:
-            rad = PRIS.get(n["tier"], PRIS[1])
-            n["soul_cost"] = list(rad[:int(n.get("max_rank", 1))])
-    per_gren = {}
-    for n in befintliga:
-        per_gren.setdefault(n["branch"], {}).setdefault(nivå_av(n, defs), []).append(n["id"])
-
-    for gren, nycklar in GRENAR:
-        kronnamn, kroneffekt, kron_tagg, krontext = kronor[gren]
-        befintlig_per_nivå = per_gren.get(gren, {})
-        for nivå in range(1, 7):
-            har = len(befintlig_per_nivå.get(nivå, []))
-            behöver = NIVÅER[nivå - 1] - har
-            for k in range(max(0, behöver)):
-                # Föräldern: rotnoden på nivå 2, annars en nod på nivån under. Tvärlänkar (en nod i
-                # en ANNAN gren) sätts på nivå 3-4, precis som specen säger — de gör grenarna till
-                # ett träd i stället för fyra staplar.
-                förälder = None
-                if nivå > 1:
-                    kandidater = (befintlig_per_nivå.get(nivå - 1, []) +
-                                  [n["id"] for n in ut if n["branch"] == gren and
-                                   nivå_av(n, {x["id"]: x for x in ut}) == nivå - 1])
-                    if kandidater:
-                        förälder = kandidater[k % len(kandidater)]
-                requires = [] if förälder is None else [förälder]
-                if nivå in (3, 4):
-                    # Tvärlänken: en nod i en annan gren på samma nivå.
-                    annan = [n["id"] for n in ut if n["branch"] != gren]
-                    if annan:
-                        requires.append(annan[(k * 3) % len(annan)])
-                i = len(ut)
-                nyckel = nycklar[k % len(nycklar)]
-                namnlista = ORD[gren][0] if nivå <= 3 else ORD[gren][1]
-                namn = namnlista[(i * 5 + nivå) % len(namnlista)]
-                if any(n["name"] == namn for n in ut):
-                    namn = "%s %d" % (namn, nivå)
-                if nivå == 6:
-                    effekt = dict(kroneffekt)
-                    text = krontext
+def build() -> list:
+    out = []
+    for branch, prefix, keys in BRANCHES:
+        main_name, main_effect, main_text = MAINS[branch]
+        out.append({
+            "id": "%s_main" % prefix,
+            "name": main_name,
+            "branch": branch,
+            "tier": 1,
+            "effect": dict(main_effect),
+            "cost": [0],
+            "soul_cost": [MAIN_PRICE],
+            "max_rank": 1,
+            "requires": [],
+            "text": main_text,
+        })
+        for step, names in enumerate(NAMES[branch]):
+            tier = step + 2
+            for side in range(2):
+                node_id = "%s_%d" % (prefix, step * 2 + side + 1)
+                parent = ("%s_main" % prefix if tier == 2
+                          else "%s_%d" % (prefix, (step - 1) * 2 + side + 1))
+                if tier == TIERS:
+                    name, effect, tag, text = CAPSTONES[branch][side]
                 else:
-                    effekt = {nyckel: STYRKA[nivå]}
-                    text = "+%d %% %s" % (round(STYRKA[nivå] * 100), nyckel)
-                pris = list(PRIS[nivå][:2]) if nivå >= 5 else list(PRIS[nivå][:3])
-                nod = {
-                    "id": "%s_%d" % (gren_id(gren), i),
-                    "name": namn,
-                    "branch": gren,
-                    "tier": nivå,
-                    "effect": effekt,
-                    "cost": [0] * len(pris),          # guldkostnaden är noll: priset är i CS
-                    "soul_cost": pris,
-                    "max_rank": len(pris),
-                    "requires": requires,
+                    name = names[side]
+                    effect = {keys[side]: STRENGTH[tier]}
+                    text = "+%d %% %s" % (round(STRENGTH[tier] * 100), keys[side])
+                    tag = ""
+                node = {
+                    "id": node_id,
+                    "name": name,
+                    "branch": branch,
+                    "tier": tier,
+                    "effect": effect,
+                    "cost": [0],
+                    "soul_cost": [PRICE[tier]],
+                    "max_rank": 1,
+                    "requires": [parent],
                     "text": text,
                 }
-                if nivå == 6:
-                    nod["crown"] = kron_tagg
-                ut.append(nod)
-                befintlig_per_nivå.setdefault(nivå, []).append(nod["id"])
-    return ut
+                if tag:
+                    node["crown"] = tag
+                out.append(node)
+    return out
 
 
-def gren_id(gren):
-    return {"Järnvägen": "iron", "Benknippet": "body", "Glöden": "wick", "Girigheten": "greed"}[gren]
+def main() -> int:
+    dry = "--check" in sys.argv
+    nodes = build()
 
+    per_branch = {}
+    for node in nodes:
+        per_branch.setdefault(node["branch"], []).append(node)
+    print("%d nodes in %d branches" % (len(nodes), len(per_branch)))
+    for branch, rows in per_branch.items():
+        tiers = sorted({int(n["tier"]) for n in rows})
+        print("  %-12s %2d nodes, %d tiers (1 main + %d sub)" % (
+            branch, len(rows), len(tiers), len(rows) - 1))
+    total = sum(sum(n["soul_cost"]) for n in nodes)
+    print("  purchases to fill it: %d" % len(nodes))
+    print("  the whole tree costs %d CS" % total)
+    print("  at 40 CS per run: %.0f runs" % (total / 40.0))
+    print("  at 80 CS per run: %.0f runs" % (total / 80.0))
 
-def main():
-    torr = "--check" in sys.argv
-    befintliga = json.load(open(TRAD, encoding="utf-8"))
-    ut = bygg(befintliga)
+    # What has to hold: every parent exists, and each branch has exactly one root (the main node).
+    # The PRICE is deliberately not checked against the parent: the main node is much more expensive
+    # than its first children because it opens the branch - that is the design, not a bug.
+    known = {n["id"]: n for n in nodes}
+    for node in nodes:
+        for parent in node["requires"]:
+            if parent not in known:
+                print("  FEL %s kräver %s som inte finns" % (node["id"], parent))
+                return 1
+    for branch in {n["branch"] for n in nodes}:
+        roots = [n for n in nodes if n["branch"] == branch and not n["requires"]]
+        if len(roots) != 1 or not str(roots[0]["id"]).endswith("_main"):
+            print("  FEL %s har %d rötter (skall ha exakt en, huvudnoden)" % (branch, len(roots)))
+            return 1
 
-    per_nivå = {}
-    totalt = 0
-    for n in ut:
-        per_nivå.setdefault(n.get("tier", 0), 0)
-        per_nivå[n.get("tier", 0)] += 1
-        totalt += sum(n.get("soul_cost", n.get("cost", [])))
-    print("%d noder (var %d)" % (len(ut), len(befintliga)))
-    for nivå in sorted(per_nivå):
-        print("  nivå %s: %d noder" % (nivå or "?", per_nivå[nivå]))
-    print("  att fylla: %d inköp" % sum(len(n.get("soul_cost", n.get("cost", []))) for n in ut))
-    print("  hela trädet kostar %d CS" % totalt)
-    # Inkomsten: en boss ger 1 + svårighet/2 CS, och en körning är en bana med 5-12 våningar — varje
-    # våning har en boss. Vid svårighet 15 blir det alltså 5-12 x 8 = 40-96 CS per körning, plus 25
-    # för den sista bossen. Talet nedan är det Alex ska bedöma mot "typ 20 gånger".
-    print("  vid 40 CS per körning: %.0f körningar" % (totalt / 40.0))
-    print("  vid 80 CS per körning: %.0f körningar" % (totalt / 80.0))
-    if torr:
-        print("  (--check: ingenting skrivet)")
-        return
-    with open(TRAD, "w", encoding="utf-8") as f:
-        json.dump(ut, f, ensure_ascii=False, indent=2)
+    if dry:
+        print("  (--check: nothing written)")
+        return 0
+    with open(TREE, "w", encoding="utf-8") as f:
+        json.dump(nodes, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    print("  skrivet: %s" % TRAD)
+    print("  written: %s" % TREE)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -221,7 +221,7 @@ func _initialize() -> void:
 func _tree_checks() -> void:
 	print("— trädet —")
 	var mt := Meta.load_or_new(TEST_PATH + ".trad")
-	check(mt.branches().size() >= 4, "trädet har flera grenar", str(mt.branches()))
+	check(mt.branches().size() == 3, "trädet har tre grenar, som plattan", str(mt.branches()))
 	var järn := mt.tree_lines("Järnvägen")
 	check(järn.size() >= 3, "Järnvägen har noder", "%d st" % järn.size())
 	check(mt.village_lines().size() == 8, "butiken visar bara de åtta basuppgraderingarna",
@@ -233,24 +233,33 @@ func _tree_checks() -> void:
 		"%s (%s)" % [spärr.reason, spärr.get("krav", "")])
 
 	mt.add_souls(1000)
+	# GRENENS HUVUDNOD FÖRST (M95): varje gren har en huvudnod som öppnar grenen, och de tjugo
+	# undernoderna hänger på den. Utan den är varje undernod låst — det är trädets form, inte ett fel.
+	check(mt.buy("iron_main").ok, "grenens huvudnod går att köpa först")
 	var cs_pris := mt.next_soul_cost("iron_1")
-	check(mt.buy("iron_1").ok, "första noden går att köpa")
+	var skada_före: float = mt.stat("might")
+	check(mt.buy("iron_1").ok, "sedan går första undernoden att köpa")
 	check(mt.rank("iron_1") == 1, "och får rang 1", "%d" % mt.rank("iron_1"))
-	check(is_equal_approx(mt.stat("might"), 0.02), "noden höjer skadan med sitt lilla steg",
-		"%.3f" % mt.stat("might"))
+	check(is_equal_approx(mt.stat("might") - skada_före, 0.02), "noden höjer skadan med sitt lilla steg",
+		"%.3f" % (mt.stat("might") - skada_före))
 	# TRÄDET KOSTAR CS (M95): guld räcker inte, hur mycket man än har.
-	check(mt.souls == 1000 - cs_pris, "CS-priset drogs", "%d CS (pris %d)" % [mt.souls, cs_pris])
+	check(mt.souls == 1000 - 40 - cs_pris, "CS-priset drogs (huvudnoden 40 + nodens eget)",
+		"%d CS (pris %d)" % [mt.souls, cs_pris])
 	check(mt.gold == 0, "och guldet stod orört", "%d guld" % mt.gold)
 	# REGELN (Alex): nästa nod öppnas först när noden innan är FULLT uppgraderad. Att den är köpt en
 	# gång räcker inte — det var den gamla regeln, och det här paret provar att den är borta.
-	check(bool(mt.tree_lines("Järnvägen")[1]["låst"]), "nästa nod är låst efter ett köp")
-	check(not mt.buy("iron_2").ok, "och går inte att köpa förrän noden innan är full")
-	# Rangen får inte gå förbi taket: tre ranger, sedan stopp.
+	# REGELN (Alex): en nod öppnas först när noden innan är FULLT uppgraderad. Trädets noder har en
+	# rang var (ett köp = full), så låsningen mäts som den faktiskt beter sig: syskonet till en köpt
+	# nod är öppet, barnet till en OKÖPT nod är låst.
+	check(not mt.requires_met("iron_4"), "barnet till en oköpt nod är låst")
+	check(mt.requires_met("iron_2"), "men huvudnodens båda barn är öppna när den är köpt")
+	# Rangen får inte gå förbi taket: taket läses ur datat, inte ur provet.
+	var tak: int = int(mt.def_for("might").get("max_rank", 1))
 	mt.add_gold(5000)
-	mt.buy("iron_1")
-	mt.buy("iron_1")
-	check(mt.rank("iron_1") == 3, "rangen stannar vid taket", "%d" % mt.rank("iron_1"))
-	check(not mt.buy("iron_1").ok, "och en full nod kan inte köpas igen", mt.buy("iron_1").reason)
+	for i in tak + 2:
+		mt.buy("might")
+	check(mt.rank("might") == tak, "rangen stannar vid taket", "%d av %d" % [mt.rank("might"), tak])
+	check(not mt.buy("might").ok, "och en full nod kan inte köpas igen", mt.buy("might").reason)
 
 ## Kamraterna: hyrda hjältar som egna kort i leken. Egen funktion för att hålla nöjet åtskilt
 ## från sparfilens egna prov — och för att variabelnamnen inte ska krocka med kurvorna ovanför.
