@@ -8,7 +8,12 @@ extends RefCounted
 ## read by game/ui/tree_view.gd. A record is:
 ##
 ##   { "id": "iron_1", "x": 0.2012, "y": 0.0986, "r": 0.018, "size": "stor",
-##     "effekt": ["might", "armor"], "score": 0.064, "guess_x": 0.2348, "guess_y": 0.1289 }
+##     "effects": ["might", "armor"], "requires": ["iron_main"], "score": 0.064,
+##     "guess_x": 0.2348, "guess_y": 0.1289 }
+##
+## `effects` are the upgrades ticked in the editor, `requires` the nodes this one has to wait for —
+## both drawn/locked by hand in tools/trad_editor.sh and folded into the node by Meta. The keys are
+## English like the rest of the data (data/tree.json uses `effect` and `requires`).
 ##
 ## x and y are fractions of the square plate image (0..1), r the socket's radius in the same unit,
 ## score how strongly the measurement found a pit there, and guess_x/guess_y where the lattice put it
@@ -118,7 +123,7 @@ static func effect_of(record: Dictionary) -> Dictionary:
 	var ut := {}
 	var klass := size_of(record)
 	var spår: int = 0 if klass == "liten" else 1
-	for typ in record.get("effekt", []):
+	for typ in record.get("effects", []):
 		var par: Array = VALUES.get(str(typ), [])
 		if par.size() == 2:
 			ut[str(typ)] = float(par[spår])
@@ -138,7 +143,7 @@ static func effect_preview(typ: String, klass: String) -> String:
 ## Kryssen som en läsbar rad, samma ord och samma formatering som hovringen visar.
 static func text_of(record: Dictionary) -> String:
 	var bitar: Array = []
-	for typ in record.get("effekt", []):
+	for typ in record.get("effects", []):
 		var par: Array = VALUES.get(str(typ), [])
 		if par.size() != 2:
 			continue

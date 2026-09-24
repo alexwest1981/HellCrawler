@@ -13,8 +13,15 @@
 ## played. What differs is the mouse (drag a node) and the keys (S saves the same file the view reads).
 ##
 ## Keys, also listed in the side panel: click or drag = move, arrow keys = nudge, L = small/large
-## node, 1-9 = tick an upgrade (or click its row), T = next node, R = reset to the measured guess,
-## S = save, M = menu, ESC or Q = quit.
+## node, 1-9 = tick an upgrade (or click its row), SHIFT + drag between two nodes = draw which node
+## the second one waits for, C = clear that node's links, T = next node, R = reset to the measured
+## guess, S = save, M = menu, ESC or Q = quit.
+##
+## THE LINKS ARE A DEVELOPMENT TOOL ONLY. They are drawn in the editor and nowhere else — the game
+## keeps painting its own rods — but they are what the game LIVES by: the link is written as the
+## node's `requires`, so the drawn order is the order the tree unlocks in. Alex: "can you make it so
+## you drag a link between nodes, in the order they have to be unlocked? They should not be visible
+## afterwards, only for development's sake."
 ##
 ## TWO KINDS OF NODE, TWO KINDS OF PIT. The plate has small pits (radius 0.009, measured) and three
 ## large medallions (0.018). L picks which one the node is aimed at, and the ticked upgrades are worth
@@ -41,6 +48,8 @@ var selected := ""
 var dragging := false
 var status := ""
 var effekt_ytor: Dictionary = {}       ## typ -> Rect2, så panelens rader går att klicka
+var link_from := ""                    ## noden en koppling dras FRÅN (shift+drag), "" annars
+var link_pekar := Vector2.ZERO         ## pekarens läge, till gummibandet medan man drar
 
 
 ## The layer above the view: it takes the mouse (so a click selects instead of buying) and draws both
@@ -96,8 +105,12 @@ func _ready() -> void:
 		if not post.has("size"):
 			# Plattans grop bestämmer utgångsklassen; grenens huvudnod är stor oavsett gropen.
 			post["size"] = TreeSockets.size_of(post, int(view._rader.get(str(id), {}).get("nivå", 0)))
-		if not post.has("effekt"):
-			post["effekt"] = []
+		# KEDJAN VISAS SOM DEN ÄR. Noden har krav ur generatorn; editorn visar dem (så ordningen syns
+		# och går att ändra) och skriver dem först när du sparar — från och med då äger filen ordningen.
+		if not post.has("requires"):
+			post["requires"] = meta.def_for(str(id)).get("requires", []).duplicate()
+		if not post.has("effects"):
+			post["effects"] = []
 		records[id] = post
 	if not ids.is_empty():
 		selected = str(ids[0])
@@ -134,6 +147,24 @@ func draw_overlay(du: CanvasItem) -> void:
 		du.draw_line(point - Vector2(9, 0), point + Vector2(9, 0), Color(0.95, 0.4, 0.3), 1.0)
 		du.draw_line(point - Vector2(0, 9), point + Vector2(0, 9), Color(0.95, 0.4, 0.3), 1.0)
 
+	# KOPPLINGARNA. Tunna, mörka linjer för hela trädet (det är så man ser ordningen man byggt) och
+	# gröna för den valda noden. De finns bara här: spelet ritar sina egna rör och vet inget om dem.
+	for id in records:
+		var post: Dictionary = records[id]
+		var till: Vector2 = view.nod_punkt(str(id))
+		for krav in post.get("requires", []):
+			if not records.has(str(krav)):
+				continue
+			var från: Vector2 = view.nod_punkt(str(krav))
+			var vald: bool = str(id) == selected or str(krav) == selected
+			du.draw_line(från, till, Color(0.35, 0.95, 0.45, 0.85) if vald else Color(0.1, 0.1, 0.14, 0.55),
+				2.0 if vald else 1.0)
+			if vald:
+				du.draw_circle(till, 3.0, Color(0.35, 0.95, 0.45, 0.8))
+	if not link_from.is_empty():
+		du.draw_line(view.nod_punkt(link_from), link_pekar, Color(0.95, 0.8, 0.3, 0.9), 2.0)
+		du.draw_circle(link_pekar, 4.0, Color(0.95, 0.8, 0.3, 0.9))
+
 	var x := view.size.x + 8.0
 	var y := 18.0
 	du.draw_string(font, Vector2(x, y), "TRADEDITOR", HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
@@ -147,6 +178,7 @@ func draw_overlay(du: CanvasItem) -> void:
 			"x %.1f %%   y %.1f %%" % [float(record.get("x", 0.0)) * 100.0, float(record.get("y", 0.0)) * 100.0],
 			"node size: %s (r %.1f %%)" % [klass, TreeSockets.radius_of(record) * 100.0],
 			"pit %.2f (0 = none found)" % float(record.get("score", 0.0)),
+			"waits for: %s" % (", ".join(PackedStringArray(record.get("requires", []))) if not record.get("requires", []).is_empty() else "-"),
 			"tier %d, rank %d/%d" % [
 				int(view._rader.get(selected, {}).get("nivå", 0)), meta.rank(selected),
 				int(meta.def_for(selected).get("max_rank", 1))],
@@ -155,6 +187,8 @@ func draw_overlay(du: CanvasItem) -> void:
 			"arrows        nudge",
 			"L             small / large node",
 			"1-9 / click   tick upgrade",
+			"SHIFT + drag  draw a link",
+			"C             clear this node's links",
 			"T             next node",
 			"R             reset to measured",
 			"S             SAVE",
@@ -170,7 +204,7 @@ func draw_overlay(du: CanvasItem) -> void:
 		# Kryssraderna. Ytan för varje rad sparas, så ett klick vet vad det träffade — panelen är ett
 		# formulär, och en rad som ser klickbar ut men inte är det är värre än ingen rad.
 		effekt_ytor.clear()
-		var ikryssade: Array = record.get("effekt", [])
+		var ikryssade: Array = record.get("effects", [])
 		for typ in TreeSockets.VALUES:
 			var rad := Rect2(x, y - 11.0, PANEL_WIDTH - 16.0, 13.0)
 			var på: bool = ikryssade.has(typ)
@@ -201,6 +235,22 @@ func mouse_event(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
+			# SHIFT + drag ritar en koppling i stället för att flytta: draget börjar på noden som
+			# skall vara FÖRST, och släpps på noden som skall vänta på den.
+			if button.shift_pressed:
+				dragging = false
+				if button.pressed:
+					link_from = node_at(button.position)
+					link_pekar = button.position
+					if link_from.is_empty():
+						status = "shift + drag FROM the node that comes first"
+				else:
+					var till := node_at(button.position)
+					if not link_from.is_empty() and not till.is_empty():
+						toggle_requirement(link_from, till)
+					link_from = ""
+				overlay.queue_redraw()
+				return
 			dragging = button.pressed
 			if button.pressed:
 				# Ett klick i panelen är ett kryss, aldrig en förflyttning: noderna bor till vänster
@@ -219,8 +269,12 @@ func mouse_event(event: InputEvent) -> void:
 					# that is faster than dragging it across an empty half.
 					place_at(button.position)
 				overlay.queue_redraw()
-	elif event is InputEventMouseMotion and dragging:
-		place_at((event as InputEventMouseMotion).position)
+	elif event is InputEventMouseMotion:
+		if dragging:
+			place_at((event as InputEventMouseMotion).position)
+		elif not link_from.is_empty():
+			link_pekar = (event as InputEventMouseMotion).position
+			overlay.queue_redraw()
 
 
 ## Put the selected node where the pointer is, in the plate's own coordinates.
@@ -280,15 +334,79 @@ func toggle_upgrade(typ: String) -> void:
 	if not records.has(selected) or not TreeSockets.VALUES.has(typ):
 		return
 	var record: Dictionary = records[selected]
-	var lista: Array = record.get("effekt", [])
+	var lista: Array = record.get("effects", [])
 	if lista.has(typ):
 		lista.erase(typ)
 	else:
 		lista.append(typ)
-	record["effekt"] = lista
+	record["effects"] = lista
 	records[selected] = record
 	var text: String = TreeSockets.text_of(record)
 	status = "%s: %s" % [selected, text if not text.is_empty() else "no upgrades ticked"]
+	overlay.queue_redraw()
+
+
+## Dra/ångra en koppling: `till` skall vänta på `från`. Ett drag mellan två noder som redan hänger
+## ihop tar bort kopplingen, så samma gest gör båda.
+func toggle_requirement(från: String, till: String) -> void:
+	if från == till or not records.has(från) or not records.has(till):
+		return
+	var post: Dictionary = records[till]
+	# FÖRSTA DRAGET LÄGGER TILL, det ersätter inte: en nod som redan väntar på något (ur generatorn)
+	# behåller sin kedja och får den nya kopplingen ovanpå. Utan det här tappade ett drag tyst den
+	# ordning som redan fanns — och ringkontrollen kunde inte se den.
+	if not post.has("requires"):
+		post["requires"] = meta.def_for(till).get("requires", []).duplicate()
+	var lista: Array = post["requires"]
+	if lista.has(från):
+		lista.erase(från)
+		status = "%s no longer waits for %s" % [till, från]
+	elif skulle_låsa(från, till):
+		# En ring skulle låsa BÅDA noderna för alltid (ingen av dem går att köpa). Vägras med besked.
+		status = "REFUSED: %s already waits for %s (a ring locks both)" % [från, till]
+		overlay.queue_redraw()
+		return
+	else:
+		lista.append(från)
+		status = "%s waits for %s" % [till, från]
+	post["requires"] = lista
+	records[till] = post
+	apply()
+	view.uppdatera()          # låsen ritas om: kopplingen är spelets regel, inte bara en linje
+	meta.def_for(till)["requires"] = lista
+	overlay.queue_redraw()
+
+
+## Skulle `från` hamna efter `till` om kopplingen drogs? Gå uppåt från `från` och se om `till` finns.
+## ponytail: enkel kedjegång, räcker för ett träd som ritats för hand; byt mot topologisk sortering om
+## trädet någonsin blir stort nog att gången märks.
+func skulle_låsa(från: String, till: String) -> bool:
+	var kö: Array = [från]
+	var sedda: Dictionary = {}
+	while not kö.is_empty():
+		var id: String = str(kö.pop_back())
+		if id == till:
+			return true
+		if sedda.has(id):
+			continue
+		sedda[id] = true
+		# Gå efter METANS kedja, inte bara editorns egna länkar: nodens genererade krav ingår också,
+		# och en ring genom dem låser lika hårt. toggle_requirement håller metans def uppdaterad, så
+		# nästa kontroll ser den nya länken.
+		for krav in meta.def_for(id).get("requires", []):
+			kö.append(str(krav))
+	return false
+
+
+## Rensa den valda nodens kopplingar (C).
+func clear_requirements() -> void:
+	if not records.has(selected):
+		return
+	var post: Dictionary = records[selected]
+	post["requires"] = []
+	records[selected] = post
+	status = "%s waits for nothing" % selected
+	view.uppdatera()
 	overlay.queue_redraw()
 
 
@@ -345,6 +463,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			step_selected(0.0, fine)
 		KEY_L:
 			toggle_size()
+		KEY_C:
+			clear_requirements()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9:
 			var typen: Array = TreeSockets.VALUES.keys()
 			var nr: int = key - KEY_1

@@ -175,6 +175,11 @@ func _load_defs() -> void:
 				def["effect"] = effekt
 				def["text"] = TreeSockets.text_of(post)
 				def["edited"] = true
+			# Kopplingen ritad i editorn bestämmer VILKA noder den här väntar på. Utan den vore
+			# låsordningen den generatorn skrev, och en handritad kedja hade bara varit en bild.
+			if post.has("requires"):
+				def["requires"] = post["requires"]
+				def["edited"] = true
 		defs += träd
 	else:
 		push_error("kunde inte läsa %s" % TREE_PATH)

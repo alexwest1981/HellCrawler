@@ -34,6 +34,28 @@ func _initialize() -> void:
 	await process_frame
 
 	check(editor.view != null, "editorn ritar spelets EGEN trädvy (inte en kopia)")
+
+	# KOPPLINGEN: shift+drag mellan två noder skriver VILKA noden väntar på, och ringar vägras.
+	editor.selected = "iron_1"
+	editor.toggle_requirement("body_main", "iron_1")
+	check((editor.records["iron_1"] as Dictionary)["requires"].has("body_main"),
+		"ett drag mellan två noder skriver kopplingen",
+		str(editor.records["iron_1"]["requires"]))
+	editor.toggle_requirement("body_main", "iron_1")
+	check(not (editor.records["iron_1"] as Dictionary)["requires"].has("body_main"),
+		"och samma drag tar bort den igen")
+	# En koppling TVÄRSÖVER grenarna är tillåten (ordningen får korsa grenar).
+	editor.toggle_requirement("body_main", "iron_1")
+	check((editor.records["iron_1"] as Dictionary)["requires"].has("body_main"),
+		"en koppling tvärs över grenarna går igenom",
+		str(editor.records["iron_1"]["requires"]))
+	editor.toggle_requirement("body_main", "iron_1")
+	# En RING vägras: iron_1 väntar redan på iron_main (genererat), så iron_main kan inte vänta på
+	# iron_1 — då kunde ingen av dem köpas, någonsin.
+	editor.toggle_requirement("iron_1", "iron_main")
+	check(not (editor.records["iron_main"] as Dictionary).get("requires", []).has("iron_1"),
+		"men en ring vägras (den skulle låsa båda noderna för alltid)",
+		str(editor.records["iron_main"]["requires"]))
 	check(editor.ids.size() > 0, "alla trädnoder är med i placeringslistan", "%d st" % editor.ids.size())
 	check(editor.records.size() >= editor.ids.size(),
 		"varje nod har en post (även de filen inte kände)", "%d poster" % editor.records.size())
@@ -65,8 +87,8 @@ func _initialize() -> void:
 			poster.append(editor.records[id])
 	# TVÅ KLASSER OCH KRYSSEN. Klasserna är plattans egna mått, och värdet halveras på en liten nod —
 	# det är hela poängen med små noder: "de skall bidra med små inkrementeringar".
-	var liten := {"size": "liten", "effekt": ["might"]}
-	var stor := {"size": "stor", "effekt": ["might"]}
+	var liten := {"size": "liten", "effects": ["might"]}
+	var stor := {"size": "stor", "effects": ["might"]}
 	check(is_equal_approx(float(TreeSockets.effect_of(liten)["might"]), 0.02)
 		and is_equal_approx(float(TreeSockets.effect_of(stor)["might"]), 0.05),
 		"liten nod ger litet steg, stor nod stort",
@@ -86,7 +108,7 @@ func _initialize() -> void:
 	var kryssad: Array = []
 	for id in editor.ids:
 		var post: Dictionary = (editor.records[id] as Dictionary).duplicate(true)
-		post["effekt"] = ["might"] if str(id) == "wick_2" else []
+		post["effects"] = ["might"] if str(id) == "wick_2" else []
 		kryssad.append(post)
 	check(TreeSockets.write(kryssad), "socketfilen med krysset går att skriva")
 	var m_efter := Meta.load_or_new()
@@ -106,6 +128,21 @@ func _initialize() -> void:
 	check(m_efter.def_for("wick_2").has("edited") and not TreeSockets.text_of(wick_post).is_empty(),
 		"och noden är märkt som redigerad och bär sin egen text",
 		TreeSockets.text_of(wick_post))
+	# KOPPLINGEN NÅR SPELET: wick_3 får vänta på iron_main i stället för på den genererade kedjan,
+	# och requires_met följer med (metans sammanslagning är det enda som gör det).
+	var kedja: Array = []
+	for id in editor.ids:
+		var post2: Dictionary = (editor.records[id] as Dictionary).duplicate(true)
+		if str(id) == "wick_3":
+			post2["requires"] = ["iron_main"]
+		kedja.append(post2)
+	TreeSockets.write(kedja)
+	var m_kedja := Meta.load_or_new()
+	var väntar_före: bool = m_kedja.requires_met("wick_3")
+	m_kedja.ranks["iron_main"] = int(m_kedja.def_for("iron_main").get("max_rank", 1))
+	check((not väntar_före) and m_kedja.requires_met("wick_3"),
+		"kopplingen i socketfilen blir nodens låsordning i spelet",
+		"före köp %s, efter köp %s" % [väntar_före, m_kedja.requires_met("wick_3")])
 	var tillbaka_fil := FileAccess.open(TreeSockets.PATH, FileAccess.WRITE)
 	tillbaka_fil.store_string(original)
 	tillbaka_fil.close()
