@@ -168,6 +168,18 @@ func _load_defs() -> void:
 		# ersätter de den genererade effekten helt (inte en blandning — det vore två sanningar om
 		# samma nod). Är inget ikryssat är noden orörd.
 		var sockets: Dictionary = TreeSockets.load_all()
+		# GRAVSTENAR: noder Alex tagit bort i trädeditorn. De ligger kvar i socketfilen (annars hade
+		# generatorn skapat dem igen) men är inga noder i spelet.
+		var bort := {}
+		for id in sockets:
+			if TreeSockets.is_removed(sockets[id]):
+				bort[str(id)] = true
+		if not bort.is_empty():
+			var kvar: Array = []
+			for d in träd:
+				if not bort.has(str(d.get("id", ""))):
+					kvar.append(d)
+			träd = kvar
 		var kända := {}
 		for def in träd:
 			var id := str(def.get("id", ""))
@@ -191,7 +203,7 @@ func _load_defs() -> void:
 		# syntes de i editorn men inte i spelet, och "+" hade varit en knapp som inte gjorde något.
 		for id in sockets:
 			var post: Dictionary = sockets[id]
-			if kända.has(str(id)) or not bool(post.get("added", false)):
+			if kända.has(str(id)) or not bool(post.get("added", false)) or TreeSockets.is_removed(post):
 				continue
 			var ny: Dictionary = TreeSockets.def_of(post)
 			if str(ny.get("branch", "")).is_empty():

@@ -257,7 +257,11 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 			ikonnamn = med_krona
 		ikon.texture = load("res://assets/tree/%s.png" % ikonnamn)
 		var stl: int = _nod_px(nivå)
-		ikon.custom_minimum_size = Vector2(stl, stl)
+		# INGEN custom_minimum_size: den pinnade ikonen. Sätts den en gång (här, vid skapandet) kan
+		# storleken aldrig bli mindre efteråt — layouten håller kvar golvet, och trädeditorns L såg ut
+		# att inte göra något alls (mätt: 22 px före och 22 px efter ett klassbyte). Storleken sätts i
+		# stället explicit i placera_om/sätt_radie, ur klassens radie.
+		ikon.custom_minimum_size = Vector2.ZERO
 		# Utan detta vinner texturEN:s egen storlek (32 px) över custom_minimum_size, och ikonen
 		# blev större än sin socket — mätt: 32 px ikon i en 22 px socket. Noden skall vara klotet.
 		ikon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -477,9 +481,14 @@ func nod_ids() -> Array:
 ## Nodens mitt i vyns pixlar.
 func nod_punkt(id: String) -> Vector2:
 	var ikon: Control = _ikoner.get(id, null)
-	if ikon == null:
-		return Vector2.ZERO
-	return ikon.position + ikon.size * 0.5
+	if ikon != null:
+		return ikon.position + ikon.size * 0.5
+	# Ingen ikon: en nod som tagits bort i trädeditorn. Räkna ur socketposten i stället, så markören
+	# står där noden LÅG och går att sätta tillbaka (annars hamnade den i hörnet).
+	var post: Dictionary = _snäpp.get(id, {})
+	if post.has("x"):
+		return _ur_bild(float(post["x"]), float(post["y"]))
+	return Vector2.ZERO
 
 
 ## Vyns pixlar -> bildandelar. Samma räkning som _ur_bild, baklänges — och bara på ett ställe, så
@@ -505,7 +514,10 @@ func flytta(id: String, x: float, y: float) -> void:
 
 
 ## Sätt nodens storlek. Socketens radie är i bildandelar, samma enhet som x och y.
-func sätt_radie(id: String, r: float) -> void:
+## Radien OCH klassen. Klassen måste med: placera_om räknar storleken ur klassens radie, så en
+## ändring som bara skrev r skulle räknas bort vid nästa omläggning (mätt: 12 px före och 12 px efter
+## ett klassbyte i editorn, eftersom _snäpp behöll den gamla klassen).
+func sätt_radie(id: String, r: float, klass: String = "") -> void:
 	var ikon: Control = _ikoner.get(id, null)
 	if ikon == null:
 		return
@@ -516,6 +528,8 @@ func sätt_radie(id: String, r: float) -> void:
 	var record: Dictionary = _snäpp.get(id, {})
 	record["id"] = id
 	record["r"] = r
+	if not klass.is_empty():
+		record["size"] = klass
 	_snäpp[id] = record
 
 

@@ -95,8 +95,11 @@ func _initialize() -> void:
 		"%.2f mot %.2f" % [TreeSockets.effect_of(liten)["might"], TreeSockets.effect_of(stor)["might"]])
 	check(TreeSockets.radius_of(liten) < TreeSockets.radius_of(stor),
 		"och den lilla noden ritas mindre", "%.3f mot %.3f" % [TreeSockets.radius_of(liten), TreeSockets.radius_of(stor)])
-	check(TreeSockets.size_of({"r": 0.018}) == "stor" and TreeSockets.size_of({"r": 0.009}) == "liten",
-		"klassen följer plattans grop när ingen valt", TreeSockets.size_of({"r": 0.009}))
+	check(TreeSockets.size_of({"r": 0.018}) == "stor" and TreeSockets.size_of({"r": 0.009}) == "liten"
+		and TreeSockets.SIZES["stor"] > TreeSockets.PLATE["stor"],
+		"klassen följer plattans grop när ingen valt, och den stora ritas större än gropen",
+		"%s / %s, ritmått %.3f mot gropmått %.3f" % [TreeSockets.size_of({"r": 0.018}),
+			TreeSockets.size_of({"r": 0.009}), TreeSockets.SIZES["stor"], TreeSockets.PLATE["stor"]])
 
 	# MÄT ATT KRYSSET NÅR SPELET: lägg en skada på wick_2 i den RIKTIGA socketfilen, läs metan och se
 	# att nodens effekt är utbytt (inte adderade). Utan metans sammanslagning står summan still.
@@ -223,6 +226,73 @@ func _initialize() -> void:
 	var borta: int = DirAccess.remove_absolute(ProjectSettings.globalize_path(ikonväg))
 	check(borta == OK and not TreeSockets.icon_list().has(egen),
 		"och listan följer mappen (provet städar efter sig)", "bort=%d" % borta)
+
+	# STORLEKARNA SYNS. Vid spelvyns höjd (270 px) klipptes förr både liten och pytteliten upp till
+	# sex pixlar - de var EXAKT lika stora, så storleksvalet syntes inte. Nu mäts fyra olika tal, och
+	# den stora klassen är dubbelt så stor som plattans medaljongmått (9 px -> 19 px).
+	var px: Array = []
+	for klass in TreeSockets.SIZES:
+		px.append(TreeSockets.size_px(TreeSockets.SIZES[klass], 270.0, 270.0))
+	check(px.size() == 4 and px[0] == px.max() and px[3] == px.min(),
+		"de fyra klasserna ger fyra olika pixelstorlekar i spelvyn", str(px))
+	check(TreeSockets.size_px(TreeSockets.SIZES["stor"], 270.0, 270.0)
+		>= 2 * TreeSockets.size_px(0.018, 270.0, 270.0),
+		"och den stora noden är dubbelt så stor som plattans medaljongmått",
+		"%d px mot %d px" % [TreeSockets.size_px(TreeSockets.SIZES["stor"], 270.0, 270.0),
+			TreeSockets.size_px(0.018, 270.0, 270.0)])
+
+	# L ÄNDRAR NODEN MAN SER, inte bara ett tal i datat: vyns ikon byter storlek på riktigt.
+	editor.size = Vector2(1280, 720)
+	editor.view.size = Vector2(1048, 720)
+	editor.selected = "wick_5"
+	var storlek_före: float = (editor.view._ikoner["wick_5"] as Control).size.x
+	editor.toggle_size()
+	editor.view.placera_om()
+	var storlek_efter: float = (editor.view._ikoner["wick_5"] as Control).size.x
+	check(storlek_före != storlek_efter, "L ändrar ikonens storlek i vyn",
+		"%.0f -> %.0f px" % [storlek_före, storlek_efter])
+	editor.toggle_size()
+
+	# DRAG TAPPAR INTE DEFINITIONEN. place_at byggde förr en NY post med bara id/x/y/r, och då försvann
+	# added, size, effects, requires och namn - mätt i Alex' fil: tolv noder han lagt till hade ingen
+	# definition kvar, och storleken han valt försvann så fort han rörde noden.
+	editor.selected = nytt
+	var behållna: Array = ["added", "size", "effects", "requires", "name", "branch", "tier", "graphics"]
+	var saknade_före: Array = []
+	for nyckel in behållna:
+		if not (editor.records[nytt] as Dictionary).has(nyckel):
+			saknade_före.append(nyckel)
+	editor.place_at(Vector2(700.0, 300.0))
+	var saknade_efter: Array = []
+	for nyckel in behållna:
+		if not (editor.records[nytt] as Dictionary).has(nyckel):
+			saknade_efter.append(nyckel)
+	check(saknade_före.is_empty() and saknade_efter.is_empty(),
+		"ett drag behåller nodens hela definition", "fattas efter draget: %s" % str(saknade_efter))
+	check((editor.records[nytt] as Dictionary)["size"] == "stor",
+		"också storleken man valt", str((editor.records[nytt] as Dictionary).get("size")))
+
+	# X TAR BORT EN GENERERAD NOD (gravsten) OCH SÄTTER TILLBAKA DEN.
+	var före_antal: int = m_ny.defs.size()
+	editor.selected = "iron_7"
+	editor.remove_added()
+	check(TreeSockets.is_removed(editor.records["iron_7"]),
+		"X lägger en gravsten på en genererad nod", str(editor.records["iron_7"].get("removed")))
+	check(editor.meta.defs.size() == före_antal - 1 and editor.meta.def_for("iron_7").is_empty(),
+		"och noden är borta ur vyn direkt (utan att spara)",
+		"%d -> %d" % [före_antal, editor.meta.defs.size()])
+	editor.save()
+	check(Meta.load_or_new().def_for("iron_7").is_empty(),
+		"och efter S är den borta ur spelet också")
+	editor.remove_added()
+	check(not TreeSockets.is_removed(editor.records["iron_7"])
+		and not editor.meta.def_for("iron_7").is_empty(),
+		"och samma tangent sätter tillbaka den")
+
+	# X TAR BORT EN EGEN NOD HELT.
+	editor.selected = nytt
+	editor.remove_added()
+	check(not editor.records.has(nytt), "X tar bort en egen nod ur filen", nytt)
 
 	var tillbaka_fil := FileAccess.open(TreeSockets.PATH, FileAccess.WRITE)
 	tillbaka_fil.store_string(original)

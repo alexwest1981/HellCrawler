@@ -56,6 +56,8 @@ var selected := ""
 var dragging := false
 var status := ""
 var effekt_ytor: Dictionary = {}       ## typ -> Rect2, så panelens rader går att klicka
+var genererade: Dictionary = {}        ## id -> true för de 63 noderna ur data/tree.json
+var alla_defs: Array = []              ## metans defs som de var vid start (originalet att bygga om ur)
 var link_from := ""                    ## noden en koppling dras FRÅN (shift+drag), "" annars
 var link_pekar := Vector2.ZERO         ## pekarens läge, till gummibandet medan man drar
 
@@ -103,7 +105,15 @@ func _ready() -> void:
 		# hörnet (mätt: noden "might", x -25 %) och "T nästa nod" vandrade in i noder som inte finns
 		# i trädet. Ett hem för frågan "vilka noder finns i trädet".
 		ids.append(str(id))
+	for id in ids:
+		genererade[str(id)] = true
+	alla_defs = meta.defs.duplicate(true)
 	records = TreeSockets.load_all()
+	# Poster som inte längre är noder i spelet (gravstenar och experiment man glömt) skall ändå gå att
+	# välja och städa bort — de ritas som en röd markör i stället för en ikon.
+	for id in records:
+		if not ids.has(str(id)):
+			ids.append(str(id))
 	for id in ids:
 		if not records.has(id):
 			# A node the file does not know: take where the view put it (its lattice) as the start.
@@ -152,6 +162,12 @@ func draw_overlay(du: CanvasItem) -> void:
 		du.draw_line(Vector2(0, point.y), Vector2(view.size.x, point.y), Color(0.3, 0.9, 0.4, 0.25), 1.0)
 		du.draw_line(Vector2(point.x, 0), Vector2(point.x, view.size.y), Color(0.3, 0.9, 0.4, 0.25), 1.0)
 		du.draw_rect(Rect2(point - Vector2(16, 16), Vector2(32, 32)), Color(0.95, 0.85, 0.3), false, 2.0)
+		if not view._ikoner.has(selected):
+			# Ingen ikon: borttagen (gravsten) eller en post utan definition. Ett rött kryss säger
+			# både var den låg och att den inte finns i spelet just nu.
+			var kryss: Color = Color(0.95, 0.35, 0.3, 0.9)
+			du.draw_line(point - Vector2(10, 10), point + Vector2(10, 10), kryss, 2.0)
+			du.draw_line(point - Vector2(10, -10), point + Vector2(10, -10), kryss, 2.0)
 		du.draw_line(point - Vector2(9, 0), point + Vector2(9, 0), Color(0.95, 0.4, 0.3), 1.0)
 		du.draw_line(point - Vector2(0, 9), point + Vector2(0, 9), Color(0.95, 0.4, 0.3), 1.0)
 
@@ -184,7 +200,11 @@ func draw_overlay(du: CanvasItem) -> void:
 		var lines := [
 			"node: %s" % selected,
 			"x %.1f %%   y %.1f %%" % [float(record.get("x", 0.0)) * 100.0, float(record.get("y", 0.0)) * 100.0],
-			"node size: %s (r %.1f %%)" % [klass, TreeSockets.radius_of(record) * 100.0],
+			"node size: %s (r %.1f %%, %d px i spelvyn)" % [klass,
+				TreeSockets.radius_of(record) * 100.0,
+				TreeSockets.size_px(TreeSockets.radius_of(record), 270.0, 270.0)],
+			"state: %s" % ("REMOVED (X brings it back)" if TreeSockets.is_removed(record)
+				else ("yours (+)" if not genererade.has(selected) else "from tree.json")),
 			"icon: %s" % TreeSockets.graphics_of(record, str(view.FILNAMN.get(str(record.get("branch", "")), ""))),
 			"branch: %s" % str(record.get("branch", "-")),
 			"pit %.2f (0 = none found)" % float(record.get("score", 0.0)),
@@ -199,7 +219,7 @@ func draw_overlay(du: CanvasItem) -> void:
 			"L             node size (4 steps)",
 			"G             next icon (%d in assets/tree)" % TreeSockets.icon_list().size(),
 			"1-9 / click   tick upgrade x1-x3",
-			"X             remove a node you added",
+			"X             remove / bring back",
 			"SHIFT + drag  draw a link",
 			"C             clear this node's links",
 			"T             next node",
@@ -296,13 +316,19 @@ func place_at(point: Vector2) -> void:
 	if selected.is_empty():
 		return
 	var frac: Vector2 = view.till_bild(point)
-	records[selected] = {
-		"id": selected, "x": frac.x, "y": frac.y,
-		"r": float(records.get(selected, {}).get("r", 0.018)),
-		"score": float(records.get(selected, {}).get("score", 0.0)),
-		"guess_x": float(records.get(selected, {}).get("guess_x", frac.x)),
-		"guess_y": float(records.get(selected, {}).get("guess_y", frac.y)),
-	}
+	# ÄNDRA POSTEN, BYGG INTE EN NY. Första versionen skrev en fräsch ordbok med bara id/x/y/r, och då
+	# tappade varje drag nodens `added`, `size`, `effects`, `requires` och namn — mätt i Alex' fil:
+	# tolv noder han lagt till med + hade ingen definition kvar, och storleken han valt försvann så
+	# fort han rörde noden. Det var därför de inte gick att ta bort eller storleksändra.
+	var post: Dictionary = records.get(selected, {})
+	post["id"] = selected
+	post["x"] = frac.x
+	post["y"] = frac.y
+	post["r"] = float(post.get("r", 0.018))
+	post["score"] = float(post.get("score", 0.0))
+	post["guess_x"] = float(post.get("guess_x", frac.x))
+	post["guess_y"] = float(post.get("guess_y", frac.y))
+	records[selected] = post
 	apply()
 	overlay.queue_redraw()
 
@@ -313,7 +339,7 @@ func apply() -> void:
 		return
 	var record: Dictionary = records[selected]
 	view.flytta(selected, float(record["x"]), float(record["y"]))
-	view.sätt_radie(selected, TreeSockets.radius_of(record))
+	view.sätt_radie(selected, TreeSockets.radius_of(record), TreeSockets.size_of(record))
 	view.rita_om()
 
 
@@ -460,33 +486,69 @@ func add_node() -> void:
 	overlay.queue_redraw()
 
 
-## Ta bort en nod du lagt till (X). Genererade noder går inte att ta bort härifrån — de kommer tillbaka
-## nästa gång trädet byggs om, och en borttagen nod som återuppstår är värre än en som står kvar.
+## TA BORT EN NOD (X), och sätt tillbaka den med samma tangent.
+##
+## En nod du lagt till själv (+) försvinner ur filen. En GENERERAD nod (någon av de 63 ur
+## data/tree.json) får en GRAVSTEN i stället: posten ligger kvar med "removed": true, och metan
+## hoppar över den. Utan gravstenen hade generatorn skapat noden igen vid nästa körning, och "bort"
+## hade betytt "tillbaka" — Alex: "jag kan inte ta bort de överflödiga".
 func remove_added() -> void:
-	if not records.has(selected):
+	if selected.is_empty() or not records.has(selected):
 		return
 	var post: Dictionary = records[selected]
-	if not bool(post.get("added", false)):
-		status = "%s comes from data/tree.json and cannot be removed here" % selected
-		overlay.queue_redraw()
-		return
-	records.erase(selected)
-	ids.erase(selected)
-	if view._ikoner.has(selected):
-		var ikon: Node = view._ikoner[selected]
-		ikon.queue_free()
-		view._ikoner.erase(selected)
-		view._rader.erase(selected)
-	# Bort ur metan också: annars ritar vyn kvar en nod som inte finns i filen.
-	var kvar: Array = []
-	for d in meta.defs:
-		if str(d.get("id", "")) != str(post.get("id", "")):
-			kvar.append(d)
-	meta.defs = kvar
-	selected = str(ids[0]) if not ids.is_empty() else ""
-	status = "removed %s" % post.get("id", "?")
+	if genererade.has(selected):
+		post["removed"] = not bool(post.get("removed", false))
+		status = "%s %s" % [selected, "removed" if post["removed"] else "back in the tree"]
+		records[selected] = post
+	else:
+		status = "removed %s (it was one of yours)" % selected
+		records.erase(selected)
+		ids.erase(selected)
+		if view._ikoner.has(selected):
+			var ikon: Node = view._ikoner[selected]
+			ikon.queue_free()
+			view._ikoner.erase(selected)
+			view._rader.erase(selected)
+	# Metan byggs om ur ORIGINALET (en kopia som togs vid start), inte ur filen: en gravsten är en
+	# ändring i vilka noder som finns, och den skall synas i vyn DIREKT — inte först när man sparat.
+	# Läste man filen här kom den borttagna noden tillbaka i vyn, såg ut som om X inte gjorde något. Editorns egen lista behåller också borttagna id, annars gick de inte att sätta tillbaka.
+	_bygg_meta()
+	ids.clear()
+	for id in view.nod_ids():
+		ids.append(str(id))
+	for id in records:
+		if not ids.has(str(id)):
+			ids.append(str(id))
+	if records.has(selected) and not genererade.has(selected):
+		selected = str(ids[0]) if not ids.is_empty() else ""
 	view.visa(meta, "TRADEDITOR", false)
 	overlay.queue_redraw()
+
+
+## Trädet som det ser ut NU: originalen (sparade vid start) minus gravstenar, plus egna noder.
+func _bygg_meta() -> void:
+	var ut: Array = []
+	for d in alla_defs:
+		var post: Dictionary = records.get(str(d.get("id", "")), {})
+		if TreeSockets.is_removed(post):
+			continue
+		var kopia: Dictionary = (d as Dictionary).duplicate(true)
+		var effekt: Dictionary = TreeSockets.effect_of(post)
+		if not effekt.is_empty():
+			kopia["effect"] = effekt
+			kopia["text"] = TreeSockets.text_of(post)
+		if not str(post.get("graphics", "")).is_empty():
+			kopia["graphics"] = post["graphics"]
+		if post.has("requires"):
+			kopia["requires"] = post["requires"]
+		ut.append(kopia)
+	for id in records:
+		var post: Dictionary = records[id]
+		if not bool(post.get("added", false)) or TreeSockets.is_removed(post):
+			continue
+		if not ut.any(func(d): return str(d.get("id", "")) == str(id)):
+			ut.append(TreeSockets.def_of(post))
+	meta.defs = ut
 
 
 ## Nästa grafik: grenens egen ikon först, sedan eld, is, magi.

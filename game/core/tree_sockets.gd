@@ -28,7 +28,16 @@ extends RefCounted
 ## en trappa Stor -> Medelstor -> Liten -> Pytteliten. Måttet är plattans egna gropar: den vanligaste
 ## gropen mättes till 0,009 (den ligger på "liten"), medaljongerna till 0,018 ("stor"), och de två
 ## mittersta är stegen däremellan.
-const SIZES := {"stor": 0.018, "medelstor": 0.013, "liten": 0.009, "pytteliten": 0.007}
+## TVÅ TABELLER, för de svarar på olika frågor:
+##
+##   PLATE  vad plattans gropar MÄTTES till. Används bara för att gissa vilken klass en nod har när
+##          ingen valt: en nod i en medaljong (0,018) är en stor nod, den vanligaste gropen (0,009)
+##          en liten.
+##   SIZES  vad vi RITAR. "stor" är dubbelt mot plattans medaljongmått (0,018 -> 0,036): Alex ville
+##          ha de stora tydligt större, och vid spelvyns höjd (270 px) blev 0,018 bara nio pixlar -
+##          samma som en liten nod.
+const PLATE := {"stor": 0.018, "medelstor": 0.013, "liten": 0.009, "pytteliten": 0.007}
+const SIZES := {"stor": 0.036, "medelstor": 0.013, "liten": 0.009, "pytteliten": 0.007}
 
 ## Vad en uppgradering ger på en LITEN respektive STOR nod. Ett enda hem för siffrorna: editorn visar
 ## dem när man kryssar, metan lägger in dem i noden, och vyn skriver dem i hovringstexten. Stegen är
@@ -153,10 +162,10 @@ static func size_of(record: Dictionary, nivå: int = 0) -> String:
 	# skall se ut som en sådan. Nivån kommer från vyn eller editorn, som båda vet den.
 	if nivå == 1:
 		return "stor"
-	# Gropen avgör: ju större mätt socket, desto större klass.
+	# Gropen avgör: ju större mätt socket, desto större klass (mot plattans mått, inte ritmåtten).
 	var r: float = float(record.get("r", 0.0))
-	for namn in SIZES:
-		if r >= float(SIZES[namn]) - 0.0015:
+	for namn in PLATE:
+		if r >= float(PLATE[namn]) - 0.0015:
 			return namn
 	return "pytteliten"
 
@@ -191,6 +200,12 @@ static func icon_list() -> Array:
 const ICONS_FALLBACK := ["eld", "is", "magi"]
 
 
+## En nod som tagits bort i editorn. Den finns kvar i socketfilen som en gravsten — trädets 63 noder
+## kommer ur generatorn och hade kommit tillbaka vid nästa körning om borttagningen inte fanns kvar.
+static func is_removed(record: Dictionary) -> bool:
+	return bool(record.get("removed", false))
+
+
 ## Grafiken: nodens egen om den valt en, annars grenens ikon.
 static func graphics_of(record: Dictionary, branch_icon: String = "") -> String:
 	var g := str(record.get("graphics", ""))
@@ -206,7 +221,10 @@ static func radius_of(record: Dictionary) -> float:
 ## Antalet pixlar för en radie, i en vy av höjden `vy_höjd`. ETT hem för räkningen: vyn ritade med
 ## `r * 2 * höjd * 0.8` och klippte till 12..40 px på två ställen, och editorn räknade på ett tredje.
 static func size_px(r: float, view_height: float, platta_sida: float) -> int:
-	return int(clampf(r * 2.0 * maxf(platta_sida, 60.0), 6.0, 40.0))
+	# Golvet är 3 px, inte 6: vid 6 blev "liten" och "pytteliten" EXAKT lika stora i spelvyn (båda
+	# klipptes upp till 6), så storleksvalet syntes inte alls. Taket är 72, för den stora klassen ritas
+	# 46 px i editorns fönster.
+	return int(clampf(r * 2.0 * maxf(platta_sida, 60.0), 3.0, 72.0))
 
 
 ## Uppgraderingarna som är ikryssade på noden, som `effect` för metan: {"might": 0.02, "armor": 1.0}.
