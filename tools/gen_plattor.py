@@ -181,11 +181,11 @@ def torrkörning() -> int:
         req = urllib.request.Request(f"{gen_art.API}/models",
             headers={"Authorization": f"Bearer {gen_art.KEY}"})
         with urllib.request.urlopen(req, timeout=10) as r:
-            print("bildrutt: svarar %s" % r.status)
+            print("nyckeln: svarar %s (modellistan — säger inget om bildkvoten)" % r.status)
     except urllib.error.HTTPError as e:
-        print("bildrutt: HTTP %s (429 = kvoten är slut just nu, 401 = nyckeln)" % e.code)
+        print("nyckeln: HTTP %s (401 = nyckeln saknas; 429 = modellistan strypt, inte bildkvoten)" % e.code)
     except Exception as e:
-        print("bildrutt: %s" % e)
+        print("nyckeln: %s" % e)
     return 0
 
 
