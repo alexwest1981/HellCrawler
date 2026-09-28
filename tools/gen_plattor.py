@@ -53,8 +53,7 @@ TEMA_PROMPT = {
     "krypta":    "crypt floor of old grey stone slabs with mortar lines, dust in the seams, faint "
                  "reddish rust stains",
     "grotta":    "cave floor, dark grey wet limestone with fine grit and small rounded pebbles",
-    "tunnel":    "packed dirt floor of a mine tunnel with scattered gravel and a few dry straw "
-                 "strands, brown and ochre",
+    "tunnel":    "packed dirt floor of a mine tunnel densely covered with coarse gravel and small sharp stones in many shades of brown",
     "bro":       "worn wooden bridge decking seen from above, boards along the length, gaps between "
                  "boards showing darkness below, splinters and nail heads",
 }
