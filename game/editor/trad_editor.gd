@@ -57,9 +57,12 @@ var dragging := false
 var status := ""
 var effekt_ytor: Dictionary = {}       ## typ -> Rect2, så panelens rader går att klicka
 var genererade: Dictionary = {}        ## id -> true för de 63 noderna ur data/tree.json
+var rensa_knapp: Rect2 = Rect2()       ## panelens knapp: rensa ALLA kopplingar
+var rensa_väntar: int = 0              ## tidsstämpel för första trycket (0 = ingen väntan)
 var alla_defs: Array = []              ## metans defs som de var vid start (originalet att bygga om ur)
 var link_from := ""                    ## noden en koppling dras FRÅN (shift+drag), "" annars
 var link_pekar := Vector2.ZERO         ## pekarens läge, till gummibandet medan man drar
+var panning := false                   ## höger (eller mitten) nere: utsnittet panoreras (M96)
 
 
 ## The layer above the view: it takes the mouse (so a click selects instead of buying) and draws both
@@ -215,6 +218,9 @@ func draw_overlay(du: CanvasItem) -> void:
 			"",
 			"click / drag  move",
 			"arrows        nudge",
+			"wheel         zoom",
+			"right-drag    pan",
+			"F             fit the whole tree",
 			"+             add a node here",
 			"L             node size (4 steps)",
 			"G             next icon (%d in assets/tree)" % TreeSockets.icon_list().size(),
@@ -249,6 +255,19 @@ func draw_overlay(du: CanvasItem) -> void:
 				Color(0.95, 0.95, 0.85) if på else Color(0.7, 0.7, 0.75))
 			effekt_ytor[typ] = rad
 			y += 13.0
+		# RENSA ALLA KOPPLINGAR. Två tryck: Alex' egen regel från anslutningspanelen ("Koppla från
+		# kräver två tryck"), och här behövs den - ett enda klick raderar ordningen för hela trädet.
+		y += 6.0
+		rensa_knapp = Rect2(x, y, PANEL_WIDTH - 18.0, 18.0)
+		du.draw_rect(rensa_knapp, Color(0.62, 0.24, 0.22, 0.75) if rensa_väntar
+			else Color(0.26, 0.24, 0.3, 0.6), true)
+		du.draw_rect(rensa_knapp, Color(0.85, 0.5, 0.45, 0.9) if rensa_väntar
+			else Color(0.5, 0.5, 0.55, 0.8), false, 1.0)
+		du.draw_string(font, Vector2(x + 5.0, y + 13.0),
+			"PRESS AGAIN: clear ALL links" if rensa_väntar else "CLEAR ALL LINKS",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
+			Color(1.0, 0.95, 0.9) if rensa_väntar else Color(0.88, 0.88, 0.92))
+		y += 22.0
 	du.draw_string(font, Vector2(x, size.y - 10.0), status, HORIZONTAL_ALIGNMENT_LEFT, -1, 11,
 		Color(0.6, 0.95, 0.7))
 
@@ -265,7 +284,32 @@ func node_at(point: Vector2) -> String:
 	return best
 
 
+## Vyns egna grepp (M96): overlayn tar VARJE musehändelse, så vyn får aldrig se dem — hjul och
+## högerdrag skickas vidare till den i stället för att dubbleras här. Returnerar true när händelsen
+## var vyns.
+func view_gesture(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		var knapp := event as InputEventMouseButton
+		if knapp.button_index == MOUSE_BUTTON_WHEEL_UP and knapp.pressed:
+			view.zooma(knapp.position, 1.15)
+			return true
+		if knapp.button_index == MOUSE_BUTTON_WHEEL_DOWN and knapp.pressed:
+			view.zooma(knapp.position, 1.0 / 1.15)
+			return true
+		if knapp.button_index == MOUSE_BUTTON_RIGHT or knapp.button_index == MOUSE_BUTTON_MIDDLE:
+			dragging = false
+			panning = knapp.pressed
+			return true
+	elif event is InputEventMouseMotion and panning:
+		view.panorera((event as InputEventMouseMotion).relative)
+		return true
+	return false
+
+
 func mouse_event(event: InputEvent) -> void:
+	if view_gesture(event):
+		overlay.queue_redraw()
+		return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
@@ -294,6 +338,8 @@ func mouse_event(event: InputEvent) -> void:
 					for typ in effekt_ytor:
 						if (effekt_ytor[typ] as Rect2).has_point(button.position):
 							toggle_upgrade(str(typ))
+					if rensa_knapp.has_point(button.position):
+						clear_all_requirements()
 					return
 				var hit := node_at(button.position)
 				if not hit.is_empty():
@@ -347,8 +393,10 @@ func step_selected(dx: float, dy: float) -> void:
 	if not records.has(selected):
 		return
 	var record: Dictionary = records[selected]
-	record["x"] = clampf(float(record["x"]) + dx, 0.0, 1.0)
-	record["y"] = clampf(float(record["y"]) + dy, 0.0, 1.0)
+	# KLÄMMAN ÄR RYMDEN, INTE PLATTAN (M96): trädet växer förbi bildens kant, så en nod skall kunna
+	# flyttas dit den hör. Gränsen står kvar som skydd mot en tangent som far iväg av misstag.
+	record["x"] = clampf(float(record["x"]) + dx, -3.0, 6.0)
+	record["y"] = clampf(float(record["y"]) + dy, -3.0, 12.0)
 	records[selected] = record
 	apply()
 	overlay.queue_redraw()
@@ -574,6 +622,30 @@ func next_graphics() -> void:
 	status = "%s gets the %s icon  (%d icons in %s)" % [
 		selected, post["graphics"], val.size(), TreeSockets.ICON_DIR]
 	view.visa(meta, "TRADEDITOR", false)
+	overlay.queue_redraw()
+
+
+## RENSA ALLA KOPPLINGAR (panelens knapp). Första trycket armar, andra trycket inom fyra sekunder
+## rensar - samma tvåtrycksregel som anslutningspanelen i GodJIRA använder. Ett enda klick som raderar
+## låsordningen för hela trädet är för lätt att göra av misstag.
+func clear_all_requirements() -> void:
+	var nu := Time.get_ticks_msec()
+	if rensa_väntar == 0 or nu - rensa_väntar > 4000:
+		rensa_väntar = nu
+		status = "press CLEAR ALL LINKS again within 4 s"
+		overlay.queue_redraw()
+		return
+	var antal := 0
+	for id in records:
+		var post: Dictionary = records[id]
+		if not (post.get("requires", []) as Array).is_empty():
+			antal += 1
+		post["requires"] = []
+		records[id] = post
+	rensa_väntar = 0
+	_bygg_meta()
+	view.uppdatera()
+	status = "cleared the links on %d nodes - draw the order again" % antal
 	overlay.queue_redraw()
 
 

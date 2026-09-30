@@ -34,7 +34,35 @@ går alltså att klara utan fullt träd — den är svår, inte en grind. Det ä
 | Sista banan utan trädet | klaras | **förloras** |
 | Sista banan med fullt träd | trivialt | **vinns med 5–10 % marginal** |
 
+## Så växer trädet: en oändlig rymd (M96)
+
+Trädet är inte längre bundet till plattans bild. En nods plats är trädets EGNA koordinater i andelar,
+där 0..1 är plattans kant — och vyn visar ett utsnitt av dem. Mätt i dag:
+
+| | Mätt |
+|---|---|
+| Noder | 63 (3 grenar × 1 huvudnod + 20 undernoder) |
+| Placerade sockets | 75 (plattans uppmätta gropar, 12 lediga) |
+| Nivåer | 11 — rad 1–6 på plattans mätta rader, därefter 0,13 per nivå nedåt |
+| Kopplingar | en linje per `requires` (~60 kanter), ritade mellan nodernas kanter |
+
+**En nod läggs till utan att koden rörs.** Skriv den i `game/data/tree.json` (eller lägg den med `+` i
+trädeditorn) och vyn ger den en plats ur rutnätet: `x` = grenens kolumn (plattans fyra mätta, därefter
+0,24 per ny gren), `y` = nivåns rad (plattans sex mätta, därefter `0,80 + (nivå − 6) × 0,13`). En
+socket i `trad_sockets.json` slår rutnätet — och en nod vars gren koden aldrig hört talas om blir en
+egen kolumn i stället för att försvinna tyst.
+
+**Utsnittet:** hjul = zoom kring pekaren, höger (eller mitten) dragen = panorering, `F` = visa hela
+trädet. Zoom och panorering bor i `_ur_bild`/`till_bild` i `game/ui/tree_view.gd`, alltså följer
+noder, ringar, kopplingar och trädeditorns markör med automatiskt.
+
+Provet `game/tests/test_trad_oandlig.gd` mäter de tre egenskaperna: en nod utanför plattan går att
+lägga dit OCH att nå, en nod som bara finns i datat får en plats, och en okänd gren blir en nod i vyn.
+
 ## Formen: 4 grenar × 6 nivåer + tvärlänkar
+
+**Läget i datat i dag: 3 grenar och 11 nivåer** (se tabellen ovan) — raderna nedan är planens form för
+priser och effekter, inte en beskrivning av hur många nivåer trädet har.
 
 Grenarna behålls (Järnvägen, Benknippet, Glöden, Girigheten) och får sex nivåer var i stället för tre
 till fem. Nivå 1 är rotnoden, nivå 6 är grenens krona.

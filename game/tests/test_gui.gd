@@ -616,18 +616,27 @@ func _initialize() -> void:
 		"trädvyn har referensbilden som platta (socketsen sitter i den)")
 	check(main.trad_view._nodplan is Control and not (main.trad_view._nodplan is Container),
 		"noderna ligger på en fri yta, inte i en container (de ska sitta i bildens sockets)")
-	# Varje nod skall ha en plats i plattan, och nivåerna skall ligga i ordning uppifrån och ner.
+	# VARJE NOD HAR EN PLATS I TRÄDRYMMEN (M96), och vyn ritar just den platsen. Kontrollen hette förut
+	# "noden ligger inne i vyn" och höll bara så länge trädet rymdes på plattan — trädet är byggt för
+	# att växa förbi den. Egenskapen som skall hålla är mappningen, inte skärmkanten.
 	var ytor := {}
 	for tnid in main.trad_view._ikoner:
 		var tnod: Control = main.trad_view._ikoner[tnid]
 		var trad_rad: Dictionary = main.trad_view._rader[tnid]
+		var post: Dictionary = main.trad_view._snäpp.get(tnid, {})
+		var väntad: Vector2 = main.trad_view._ur_bild(float(post.get("x", 0.0)), float(post.get("y", 0.0)))
+		var mitt: Vector2 = tnod.position + tnod.size * 0.5
+		check(post.has("x") and mitt.distance_to(väntad) < 0.5,
+			"noden %s ritas där trädrymden säger" % tnid, "%s mot %s" % [mitt, väntad])
 		ytor[int(trad_rad.get("nivå", 0))] = tnod.position.y
-		check(tnod.position.x >= 0.0 and tnod.position.y >= 0.0
-			and tnod.position.x + tnod.size.x <= main.trad_view.size.x
-			and tnod.position.y + tnod.size.y <= main.trad_view.size.y,
-			"noden %s ligger inne i vyn" % tnid, "%s" % tnod.position)
-	check(ytor.size() == 11, "elva nivåer har noder (huvudnod + 20 undernoder = 10 rader)",
-		"%d" % ytor.size())
+	# NIVÅERNA RÄKNAS UR DATAT (M96), inte ur ett fast tal: "elva nivåer" stod här och faller nästa
+	# gång en nod läggs till — vilket är precis vad trädet är byggt för.
+	var nivåer := {}
+	for datad in main.meta.defs:
+		if not str(datad.get("branch", "")).is_empty():
+			nivåer[int(datad.get("tier", 0))] = true
+	check(ytor.size() == nivåer.size(), "varje nivå i datat har noder i vyn",
+		"%d i vyn av %d i datat" % [ytor.size(), nivåer.size()])
 	# Nivåerna skall läsa uppifrån och ner, MÄTT PÅ HUVUDNODERNA: de är grenens topp och skall ligga
 	# ovanför sina egna sista undernoder. Rutnätets rader håller samma ordning, men när noderna är
 	# placerade för hand (trädeditorn) får de sitta var de vill — det är placeringen, inte lagen.

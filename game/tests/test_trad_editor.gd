@@ -294,6 +294,26 @@ func _initialize() -> void:
 	editor.remove_added()
 	check(not editor.records.has(nytt), "X tar bort en egen nod ur filen", nytt)
 
+	# RENSA ALLA KOPPLINGAR: första trycket armar, andra trycket rensar.
+	editor.selected = "iron_1"
+	editor.toggle_requirement("body_main", "iron_1")
+	var före_rens: bool = not (editor.records["iron_1"] as Dictionary)["requires"].is_empty()
+	editor.clear_all_requirements()
+	check(före_rens and not (editor.records["iron_1"] as Dictionary)["requires"].is_empty(),
+		"första trycket på RENSA rensar ingenting (två tryck krävs)")
+	editor.clear_all_requirements()
+	var kvarvarande: Array = []
+	for id in editor.records:
+		if not (editor.records[id] as Dictionary).get("requires", []).is_empty():
+			kvarvarande.append(str(id))
+	check(kvarvarande.is_empty(), "andra trycket rensar kopplingarna på alla noder",
+		"kvar: %s" % str(kvarvarande))
+	check(editor.meta.requires_met("iron_1") and editor.meta.requires_met("body_3"),
+		"och ingen nod är låst av en kedja längre")
+	check(editor.meta.def_for("iron_1").get("requires", []).is_empty(),
+		"vyns meta följer med direkt (ingen omläsning från filen)",
+		str(editor.meta.def_for("iron_1").get("requires")))
+
 	var tillbaka_fil := FileAccess.open(TreeSockets.PATH, FileAccess.WRITE)
 	tillbaka_fil.store_string(original)
 	tillbaka_fil.close()
