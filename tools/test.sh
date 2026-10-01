@@ -5,6 +5,21 @@
 # tester faller på "Identifier X not declared" i stället för på det man mätte.
 set -uo pipefail
 cd "$(dirname "$0")/../game" || exit 1
+# ETT SVITPASS I TAGET (M97). Två samtidiga körningar delar .godot/ och user:// — mätt: två
+# test_all.sh parallellt gav ett RÖTT svar ("korten följer efter varandra ... minsta steget 8 ms mot
+# konstanten 22 ms") på kod som är grön fem gånger av fem ensam och två av två med sex kärnor
+# lastade, alltså ett rött svar som pekade på fel sak. Låset gör kollisionen till ett tydligt besked
+# i stället, och den som kommer efter väntar i upp till tjugo minuter. (Variabelnamnet är LAS, inte
+# LÅS: bash tillåter inte Å i ett namn, och felet den ger — "L: unbound variable" — pekar på fel rad.)
+LAS=/tmp/hc_svitpass.lock
+exec 9>"$LAS"
+if ! flock -n 9; then
+	echo "väntar på ett pågående svitpass (låset $LAS) ..." >&2
+	if ! flock -w 1200 9; then
+		echo "FEL: ett annat svitpass körde klart först efter tjugo minuter (låset $LAS)." >&2
+		exit 1
+	fi
+fi
 timeout 200 godot --headless --path . --import >/dev/null 2>&1
 fail=0
 # Tillgångarna först: rutorna och ljudet är genererade av verktyg, och deras egna prov mäter
