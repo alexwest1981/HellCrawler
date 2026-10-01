@@ -78,7 +78,10 @@ def hämta(prompt: str) -> tuple:
             with urllib.request.urlopen(req, timeout=180) as r:
                 svar = json.load(r)
         except urllib.error.HTTPError as e:
-            print("      rutt %-46s HTTP %s" % (model, e.code))
+            ## Skälet, inte bara koden: Googles 429 säger "quota will reset after 41h" medan
+            ## OpenRouters 402 säger "never purchased credits". Utan raden ser båda ut som "429".
+            skäl = e.read()[:140].decode("utf-8", "replace").replace("\n", " ")
+            print("      rutt %-46s HTTP %s %s" % (model, e.code, skäl))
             continue
         except Exception as e:
             print("      rutt %-46s %s" % (model, e))
