@@ -13,6 +13,9 @@ __pycache__/
 
 # Kontaktkartor från generatorerna: provbilder som går att köra om, hör inte till spelet
 *_kontaktkarta.png
+# Felsmasker från samma körningar (provbilder som visar var en platta fallerar) — de låg kvar i
+# assets/ och importerades av Godot som spelgrafik, vilket de inte är.
+*.fel.png
 
 # Alex egna bildmaterial (41 MB JPEG): källmaterial, inte speldata. Verktygets källor kopieras
 # till research/ så att körningen kan upprepas utan mappen. Undantagen är de ark som spelets

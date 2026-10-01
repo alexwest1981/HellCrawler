@@ -612,10 +612,10 @@ func _initialize() -> void:
 	# Socketfilen kan vara TOM (den nollas när trädet byter form) — det som skall hålla är att vyn
 	# läser den och att varje nod ändå hamnar någonstans: socketdatan är ett komplement till rutnätet.
 	check(main.trad_view._snäpp is Dictionary, "socketdatan är läst (filen får vara tom)")
-	check(main.trad_view._platta is TextureRect and main.trad_view._platta.texture != null,
-		"trädvyn har referensbilden som platta (socketsen sitter i den)")
+	check(not main.trad_view.has_method("_platta") and main.trad_view.get("_platta") == null,
+		"trädvyn har INGEN bakgrundsbild (M97: ett vanligt nodträd, bilden kommer senare)")
 	check(main.trad_view._nodplan is Control and not (main.trad_view._nodplan is Container),
-		"noderna ligger på en fri yta, inte i en container (de ska sitta i bildens sockets)")
+		"noderna ligger på en fri yta, inte i en container (platsen är trädrymdens, inte en rad)")
 	# VARJE NOD HAR EN PLATS I TRÄDRYMMEN (M96), och vyn ritar just den platsen. Kontrollen hette förut
 	# "noden ligger inne i vyn" och höll bara så länge trädet rymdes på plattan — trädet är byggt för
 	# att växa förbi den. Egenskapen som skall hålla är mappningen, inte skärmkanten.

@@ -54,58 +54,29 @@ extends Control
 const FILNAMN := {
 	"Järnvägen": "jarnvagen", "Benknippet": "benknippet", "Glöden": "gloden",
 }
-## Nivåerna kommer ur DATAT, inte ur en konstant: trädet har 1 huvudnod + 20 undernoder per gren, alltså
-## elva nivåer. Konstanten nedan är bara ett golv för en tom fil.
+## Nivåerna kommer ur DATAT, inte ur en konstant: konstanten nedan är bara ett golv för en tom fil.
 const HÖGSTA := 6
 
-## PLATTAN (M95). Alex: "Använder du bilden jag gav dig som sockets skall sitta i?" — nej, det gjorde
-## jag inte: bilden låg oanvänd och allt var ritat för hand. Nu ÄR bilden trädvyns bottenplatta, och
-## noderna placeras i de sockets som är målade i den. Socketsen mättes fram ur bilden med ett rutnät
-## över den (bilden är 2048x2048): raderna ligger på 12,5 %, 28,0 %, 44,5 %, 57,0 %, 69,0 % och 80,0 %
-## av höjden — sex nivåer, precis som trädet har — och grenarna står i kolumner mellan 15 % och 85 %
-## av bredden. Talen nedan är de mätta procenttalen, inga påhitt.
+## ETT VANLIGT NODTRÄD (M97). Alex: *"Ta bort bilden i bakgrunden, vi gör ett vanligt nodträd enligt
+## länken jag skickade innan, så får vi lösa grafiken senare."* Alltså ingen målad platta och inga
+## uppmätta sockets: noderna läggs ut ur DATAT, och bilden kommer när formen sitter.
 ##
-## MEN PLATTAN ÄR INTE RYMDENS KANT (M96). Den ligger i trädrymden på 0..1 och ritas där — en nod på
-## nivå 14 behöver inte plattan, den behöver en plats.
-const PLATTA := "res://images/Gemini_Generated_Image_68qy7x68qy7x68qy.jpeg"
-const SLOTT_Y := [0.129, 0.286, 0.427, 0.557, 0.700, 0.800]   ## nivå 1..6, ur bildens rader
-## Nivå 7 och framåt fortsätter med plattans sista steg, och fortsätter förbi bildens kant: nivå 14
-## hamnar på 1,84 och ritas när man panorerar dit. Trädet tar slut där DATAT tar slut.
-const RAD_STEG := 0.13
-## Grenkolumnernas avstånd när fler grenar än plattans fyra läggs till.
-const KOL_STEG := 0.24
-## Grenarnas kolumner. De två ÖVERSTA nivåerna har bara tre stora medaljonger i bilden (vid
-## grenarnas ryggrad, 23,5 / 50,0 / 76,5 %), medan plattraderna nedanför har fyra kolumner på
-## 15,6 / 41,7 / 57,3 / 83,9 %. Mätt med nodernas egna rutor över bilden: med plattradernas kolumner
-## ända upp satt toppnoderna 8 % fel i sidled. Alltså två uppsättningar, en per nivåpar.
-const SLOTT_X := [0.156, 0.417, 0.573, 0.839]                     ## nivå 3..6
-const SLOTT_X_TOP := [0.235, 0.410, 0.590, 0.765]                 ## nivå 1..2 (bildens medaljonger)
-## Nodens storlek följer bildens trappa: medaljonger högst upp, ringar nederst. Under trappan står
-## den minsta kvar — en ny nivå långt ner ritas med samma glesa ring som nivå sex.
-const NOD_PX := [26, 24, 20, 18, 15, 14]
+## Rutnätet: grenarna blir kolumner jämnt fördelade över bredden, nivåerna rader med fast avstånd
+## nedåt. En nod vars socketpost har `pin` ligger där den ligger (handplacerad i trädeditorn) — alla
+## andra följer rutnätet. Rymden är samma som förut: andelar, oändlig, panorering och zoom.
+const RAD_TOPP := 0.06         ## nivå 1:s rad
+const RAD_STEG := 0.13         ## avståndet mellan två nivåer
+const SYSKON_AVSTÅND := 2.6    ## syskonens avstånd i sidled, räknat i nodradier
 
-## Nodens storlek i pixlar på en nivå. Reservvägen för en nod som ännu inte fått en socket: den
-## riktiga storleken kommer ur klassens radie (TreeSockets.size_px).
-func _nod_px(nivå: int) -> int:
-	return int(NOD_PX[mini(maxi(1, nivå), NOD_PX.size()) - 1])
-
-## Radens höjd i trädrymden: plattans mätta rader först, sedan SAMMA steg vidare nedåt — i det
-## oändliga. Komprimeringen är borta: det var den som trängde ihop elva nivåer på plattan och
-## lämnade en tolfte utan plats.
+## Radens höjd i trädrymden.
 func _slot_y(nivå: int) -> float:
-	var n: int = maxi(1, nivå)
-	if n <= SLOTT_Y.size():
-		return float(SLOTT_Y[n - 1])
-	return float(SLOTT_Y[SLOTT_Y.size() - 1]) + float(n - SLOTT_Y.size()) * RAD_STEG
+	return RAD_TOPP + float(maxi(1, nivå) - 1) * RAD_STEG
 
 
-## Det minsta avståndet mellan två nivåer i datat. Nodens radie kapas av det, annars ligger
-## grannraderna ovanpå varandra (mätt förut: "extrem överlappning, staplade som taktegel").
-func _radavstånd() -> float:
-	var minsta := RAD_STEG
-	for i in range(1, maxi(1, _högsta)):
-		minsta = minf(minsta, _slot_y(i + 1) - _slot_y(i))
-	return minsta
+## Kolumnen för gren nummer `nr` av `antal`, jämnt fördelade över bredden.
+func _kolumn(nr: int, antal: int) -> float:
+	var n: int = maxi(1, antal)
+	return (float(clampi(nr, 0, n - 1)) + 0.5) / float(n)
 
 
 ## Grennamnen ur DATAT, i den ordning de dyker upp. En ny gren (noder med ett nytt `branch`) blir en
@@ -137,7 +108,6 @@ var _rader := {}                   ## id -> Dictionary (gren, nivå, def)
 var _rubrik: Label
 var _högsta := HÖGSTA               ## antal nivåer i datat, räknat i visa()
 var _snäpp := {}                   ## id -> {x, y, r} ur game/data/trad_sockets.json (mätta sockets)
-var _platta: TextureRect
 var _nodplan: Control
 var _info: Label
 var _ritare: Control
@@ -147,6 +117,10 @@ var _grenlista: Array = []          ## grennamnen i datats ordning (M96)
 ## följer noderna, ringarna, kopplingarna och trädeditorns markör med utan att veta om dem.
 var _zoom := 1.0
 var _pan := Vector2.ZERO
+## Har någon själv zoomat eller panorerat? Då får vyn INTE rätta sig själv: den som valt ett utsnitt
+## skall behålla det. Är trädet orört visar visa() hela trädet på en gång — MÄTT före M97: ett träd på
+## 16 nivåer rymdes inte i vyn, och en spelare som öppnade trädet såg bara de sju översta raderna.
+var _rörd := false
 var _drar := false                  ## höger (eller mitten) nere: musen panorerar
 const ZOOM_MIN := 0.25
 const ZOOM_MAX := 3.0
@@ -210,26 +184,14 @@ func _bygg(läs_fil: bool = true) -> void:
 	_rubrik = rubrik
 	box.add_child(rubrik)
 
-	# SOCKETDATA. Filen skrivs av tools/gen_tree_sockets.py (mätt) eller av trädeditorn (för hand, se
-	# game/editor/trad_editor.gd) och läses här. Formatet ägs av TreeSockets, så vyn och editorn kan
-	# inte glida ifrån varandra. En socket sitter där bilden har sin, inte i ett rutnät.
+	# SOCKETDATA. Filen skrivs av trädeditorn (för hand: game/editor/trad_editor.gd) och läses här.
+	# Formatet ägs av TreeSockets, så vyn och editorn kan inte glida ifrån varandra. Posten bär det en
+	# människa lagt till — kryss, krav, klass, ikon — och en plats bara om noden dragits (`pin`).
 	if läs_fil:
 		_snäpp = TreeSockets.load_all()
 
-	# PLATTAN. Bilden är kvadratisk och ritas i trädrymden på 0..1 — den följer alltså med när man
-	# panorerar och zoomar, och noder bortom dess kant ligger utanför den (M96). Ankaret är satt till
-	# hörnet: rutan får sin position och storlek av placera_om, ur samma mappning som noderna.
-	_platta = TextureRect.new()
-	_platta.name = "Platta"
-	_platta.texture = load(PLATTA)
-	_platta.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_platta.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_platta.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_platta.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_platta)
-
-	# Nodlagret: en fri yta (INTE en container) — kloten sitter i bildens sockets, alltså på mätta
-	# positioner, och en container hade lagt dem i sin egen ordning i stället.
+	# Nodlagret: en fri yta (INTE en container) — noderna sitter på sina platser i trädrymden, och en
+	# container hade lagt dem i sin egen ordning i stället.
 	_nodplan = Control.new()
 	_nodplan.name = "Noder"
 	_nodplan.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -254,15 +216,15 @@ func _yta() -> Vector2:
 	return yta
 
 
-## Plattans sida i pixlar: plattan är kvadratisk och ritas i vyhöjden gånger zoomen, alltså är en
-## andel av trädrymden samma antal pixlar i x som i y.
+## En andel i pixlar: trädets enhet ritas i vyhöjden gånger zoomen. (Talet hette "plattans sida" när en
+## bild var trädets måttstock; enheten står kvar, bilden är borta sedan M97.)
 func _sida() -> float:
 	return _yta().y * _zoom
 
 
-## EN PUNKT I TRÄDRYMMEN TILL PIXLAR — den ENDA platsen som vet om zoom och panorering. x = 0 är
-## plattans vänsterkant och x = 1 dess högerkant, y räknas uppifrån. Värden utanför 0..1 är giltiga;
-## det är där ett växande träd fortsätter.
+## EN PUNKT I TRÄDRYMMEN TILL PIXLAR — den ENDA platsen som vet om zoom och panorering. x = 0 och x = 1
+## är trädets två ytterkanter (plattans, när den fanns: rutnätet lägger grenarna inom samma intervall),
+## och y räknas uppifrån. Värden utanför 0..1 är giltiga; det är där ett växande träd fortsätter.
 func _ur_bild(x: float, y: float) -> Vector2:
 	var yta: Vector2 = _yta()
 	return Vector2(yta.x * 0.5 + (x - 0.5) * _sida(), y * _sida()) + _pan
@@ -305,6 +267,7 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 	var sloträknare := {}
 	var räknare := {}
 	var steg := {}
+	var antal := {}                 ## "gren|nivå" -> antal noder, så syskonen kan fördelas jämnt
 	for d in meta.defs:
 		var g := str(d.get("branch", ""))
 		if g.is_empty():
@@ -312,6 +275,8 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 		räknare[g] = int(räknare.get(g, 0)) + 1
 		_högsta = maxi(_högsta, int(d.get("tier", räknare[g])))
 		steg[str(d.get("id", ""))] = mini(_högsta, räknare[g])
+		var n: int = int(d.get("tier", räknare[g]))
+		antal["%s|%d" % [g, n]] = int(antal.get("%s|%d" % [g, n], 0)) + 1
 
 	for def in meta.defs:
 		var gren: String = def.get("branch", "")
@@ -335,7 +300,6 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 		if nivå >= _högsta and ResourceLoader.exists("res://assets/tree/%s.png" % med_krona):
 			ikonnamn = med_krona
 		ikon.texture = load("res://assets/tree/%s.png" % ikonnamn)
-		var stl: int = _nod_px(nivå)
 		# INGEN custom_minimum_size: den pinnade ikonen. Sätts den en gång (här, vid skapandet) kan
 		# storleken aldrig bli mindre efteråt — layouten håller kvar golvet, och trädeditorns L såg ut
 		# att inte göra något alls (mätt: 22 px före och 22 px efter ett klassbyte). Storleken sätts i
@@ -348,41 +312,36 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 		ikon.mouse_filter = Control.MOUSE_FILTER_PASS
 		ikon.mouse_entered.connect(_peka.bind(id))
 		ikon.gui_input.connect(_klick.bind(id))
-		# NODEN SOM EN PLATS I BILDEN, inte som en pixel. Att räkna pixelpositioner en gång och
+		# NODEN SOM EN PLATS I RYMDEN, inte som en pixel. Att räkna pixelpositioner en gång och
 		# behålla dem var felet: vyn får sin storlek EFTER att noderna skapats, och i ett annat fönster
 		# låg varje klot kvar där det räknades för den gamla storleken (mätt av provet: en nod gav
 		# bildandel -0,39 i stället för 0,05). Nu sparas andelen, och pixlarna räknas om varje gång
 		# vyn får en ny storlek — av placera_om(), på ett ställe.
-		# KOLUMNEN: plattans mätta kolumner för de grenar den har, sedan samma steg vidare i sidled —
-		# en fjärde gren blir sin egen kolumn i stället för att hamna ovanpå den tredje.
-		var kol: Array = SLOTT_X_TOP if nivå <= 1 else SLOTT_X   # nivå 1 = grenens medaljong
-		var gren_nr: int = maxi(0, _grenlista.find(gren))
-		# Radien i trädandelar, räknad ur en FAST referenshöjd (plattan ritades i 270 px när raderna
-		# mättes) och KAPAD av radavståndet: utan kapningen lade sig grannraderna ovanpå varandra
-		# (mätt: "extrem överlappning, staplade som taktegel" i en 26 px-nod på 20 px radavstånd).
-		var r_kvar: float = minf(float(stl) / (2.0 * 0.80 * 270.0), _radavstånd() * 0.42)
-		var fx: float
-		if gren_nr < kol.size():
-			fx = float(kol[gren_nr])
-		else:
-			fx = float(SLOTT_X[SLOTT_X.size() - 1]) + float(gren_nr - SLOTT_X.size() + 1) * KOL_STEG
-		fx += float(plats) * r_kvar * 1.15   # syskonen sida vid sida, en radie isär
-		var fy: float = _slot_y(nivå)
 		var sock: Dictionary = _snäpp.get(id, {})
-		if sock.has("x"):
-			# MÄTT SOCKET SLÅR RUTNÄTET, och storleken följer socketens radie.
+		# KLASSEN: den valda om någon valt (trädeditorns L), annars nivåns egen trappa. Storleken ÄR
+		# klassens radie hela vägen — inget annat räknar pixlar.
+		var klass: String = TreeSockets.size_of(sock, nivå)
+		var r_kvar: float = TreeSockets.radius_of({"size": klass})
+		var fx: float
+		var fy: float
+		if TreeSockets.pinned(sock):
+			# HANDPLACERAD (trädeditorn): människan slår rutnätet, annars vore drag meningslöst.
 			fx = float(sock["x"])
 			fy = float(sock["y"])
-			r_kvar = float(sock.get("r", r_kvar))
-		var post: Dictionary = _snäpp.get(id, {})
+		else:
+			# RUTNÄTET: grenens kolumn, nivåns rad, och syskonen sida vid sida kring kolumnen.
+			var gren_nr: int = maxi(0, _grenlista.find(gren))
+			var nyckel: String = "%s|%d" % [gren, nivå]
+			var syskon: int = maxi(1, int(antal.get(nyckel, 1)))
+			fx = _kolumn(gren_nr, _grenlista.size())
+			fx += (float(plats) - float(syskon - 1) * 0.5) * r_kvar * SYSKON_AVSTÅND
+			fy = _slot_y(nivå)
+		var post: Dictionary = sock
 		post["id"] = id
 		post["x"] = fx
 		post["y"] = fy
 		post["r"] = r_kvar
-		# KLASSEN följer plattans grop: en nod i en liten grop är en liten nod, och den som står i en
-		# medaljong är en stor. Trädeditorn kan ändra klassen; då vinner människan över mätningen.
-		if not post.has("size"):
-			post["size"] = TreeSockets.size_of({"r": r_kvar}, nivå)
+		post["size"] = klass
 		_snäpp[id] = post
 		_nodplan.add_child(ikon)
 		_ikoner[id] = ikon
@@ -396,6 +355,9 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 	# om — samma skäl som gör att ett prov inte kan mäta layouten.
 	await get_tree().process_frame
 	placera_om()
+	# HELA TRÄDET FRÅN BÖRJAN, så länge ingen valt ett utsnitt själv (F gör samma sak när som helst).
+	if not _rörd:
+		centrera()
 
 
 ## Tillstånden är fyra, inte tre. Alex' stegbild visar dem i ordning: låst (död metall), köpt (inre
@@ -568,7 +530,8 @@ func till_bild(punkt: Vector2) -> Vector2:
 	return Vector2((p.x - yta.x * 0.5) / _sida() + 0.5, p.y / _sida())
 
 
-## Flytta en nod till en plats i bilden.
+## Flytta en nod till en plats i bilden. Nu skriver den också `pin`: en nod som FLYTTATS skall ligga
+## kvar där någon lade den, även när vyn byggs om — rutnätet gäller bara de orörda noderna (M97).
 func flytta(id: String, x: float, y: float) -> void:
 	var ikon: Control = _ikoner.get(id, null)
 	if ikon == null:
@@ -578,6 +541,7 @@ func flytta(id: String, x: float, y: float) -> void:
 	record["id"] = id
 	record["x"] = x
 	record["y"] = y
+	record["pin"] = true
 	_snäpp[id] = record
 
 
@@ -606,11 +570,6 @@ func sätt_radie(id: String, r: float, klass: String = "") -> void:
 ## den låg noderna kvar på positioner räknade för en annan storlek — och spelet ritar i riktiga
 ## pixlar, så fönstrets storlek ÄR ytans storlek.
 func placera_om() -> void:
-	# PLATTAN FÖRST: den ligger i SAMMA rymd som noderna (0..1) och följer därför med i utsnittet.
-	# Den ritas även när trädet är tomt — en tom platta är trädets botten, inte ett fel.
-	if _platta != null:
-		_platta.position = _ur_bild(0.0, 0.0)
-		_platta.size = Vector2(_sida(), _sida())
 	if _ikoner.is_empty() or size.x < 8.0 or size.y < 8.0:
 		return
 	for id in _ikoner:
@@ -675,6 +634,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 ## Panorera utsnittet, i vyns pixlar.
 func panorera(delta: Vector2) -> void:
+	_rörd = true
 	_pan += delta
 	placera_om()
 
@@ -683,6 +643,7 @@ func panorera(delta: Vector2) -> void:
 ## utan det far trädet iväg åt sidan när man zoomar, och man tappar bort sig.
 func zooma(punkt: Vector2, faktor: float) -> void:
 	var före: Vector2 = till_bild(punkt)
+	_rörd = true
 	_zoom = clampf(_zoom * faktor, ZOOM_MIN, ZOOM_MAX)
 	_pan += punkt - _ur_bild(före.x, före.y)
 	placera_om()
@@ -718,7 +679,7 @@ func centrera() -> void:
 	placera_om()
 
 
-## Tillbaka till plattans egen skala: zoom 1, ingen panorering.
+## Tillbaka till utgångsläget: zoom 1, ingen panorering — alltså en andel = vyhöjden i pixlar.
 func nollställ() -> void:
 	_zoom = 1.0
 	_pan = Vector2.ZERO

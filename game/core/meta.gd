@@ -185,10 +185,14 @@ func _load_defs() -> void:
 			var id := str(def.get("id", ""))
 			kända[id] = true
 			var post: Dictionary = sockets.get(id, {})
-			var effekt: Dictionary = TreeSockets.effect_of(post)
+			# NIVÅN MED I RÄKNINGEN: ett krycks värde följer nodens klass, och klassen följer nivån när
+			# ingen valt en (M97). Utan nivån hade en djup nod fått den stora nodens steg — och först
+			# när bilden försvann blev det synligt, för förr kom klassen ur plattans grop.
+			var nivå: int = int(def.get("tier", 1))
+			var effekt: Dictionary = TreeSockets.effect_of(post, nivå)
 			if not effekt.is_empty():
 				def["effect"] = effekt
-				def["text"] = TreeSockets.text_of(post)
+				def["text"] = TreeSockets.text_of(post, nivå)
 				def["edited"] = true
 			# Kopplingen ritad i editorn bestämmer VILKA noder den här väntar på. Utan den vore
 			# låsordningen den generatorn skrev, och en handritad kedja hade bara varit en bild.

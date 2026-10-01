@@ -140,10 +140,11 @@ func _boss_draft() -> void:
 	if card_db.is_empty():
 		return
 	# CORRUPTED SOULS (M95): bossen är den enda källan. Siffran följer svårighetsgraden, samma kurva
-	# som fiende-HP och guld — summan för hela spelet landar på trädets 1 638 CS kring trettio
-	# körningar, vilket är takten Alex beställde ("spela spelet typ 20ggr"). Ingen särskild rad för
-	# slutbossen: kurvan gör den redan till den största, och en fast summa ovanpå hade varit ett tal
-	# att hålla i synk med svårighetsgraden för hand.
+	# som fiende-HP och guld. MÄTT (M97, tools/gen_tree.py --check): hela spelet ger 2 722 CS och
+	# trädet kostar 3 468 CS — trädet är alltså fullt först efter 1,27 genomspelningar, inte innan
+	# spelet är halvkört. Ändrar någon kurvan där eller här står de två talen sida vid sida i --check.
+	# Ingen särskild rad för slutbossen: kurvan gör den redan till den största, och en fast summa ovanpå
+	# hade varit ett tal att hålla i synk med svårighetsgraden för hand.
 	if meta != null:
 		meta.add_souls(5 + stage.difficulty * 2)
 	var choices := Progress.draft(rng_draft, card_db, 3, level / 4)

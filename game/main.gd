@@ -2736,6 +2736,10 @@ func _refresh_shell() -> void:
 	elif shell == "trad":
 		# Trädet är sin egen plats i byn nu (M95) och betalas med CS (se meta.buy).
 		trad_view.visa(meta, Tr.t("ui.tree.title", "TRÄDET"))
+		# HELA TRÄDET NÄR MAN ÖPPNAR DET (M97): 16 nivåer ryms inte i vyn på zoom 1, och en öppnad vy
+		# som bara visar de sju översta raderna ser ut som ett avklippt träd. Vyn kommer ihåg ett eget
+		# utsnitt under tiden man är där; hit kommer man för att se hela.
+		trad_view.centrera()
 	elif shell == "album":
 		_show_album()
 	elif shell == "karta":

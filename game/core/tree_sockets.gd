@@ -1,42 +1,29 @@
 class_name TreeSockets
 extends RefCounted
 
-## The socket file: where every tree node sits on the plate image. One home for the format, so the
-## view that draws the nodes and the editor that places them can never disagree about it.
+## The socket file: what a human has AUTHORED about the tree's nodes — which upgrades are ticked, which
+## nodes a node waits for, its size class, its icon, and (if it was dragged) where it sits. One home for
+## the format, so the view that draws the nodes and the editor that places them can never disagree.
 ##
-## Written by tools/gen_tree_sockets.py (machine measurement) and by the tree editor (a human hand),
-## read by game/ui/tree_view.gd. A record is:
+## Written by game/editor/trad_editor.gd (a human hand) and read by game/ui/tree_view.gd. A record is:
 ##
-##   { "id": "iron_1", "x": 0.2012, "y": 0.0986, "r": 0.018, "size": "stor",
-##     "effects": ["might", "armor"], "requires": ["iron_main"], "score": 0.064,
-##     "guess_x": 0.2348, "guess_y": 0.1289 }
+##   { "id": "iron_1", "size": "liten", "effects": {"might": 2}, "requires": ["iron_main"],
+##     "tier": 2, "branch": "Järnvägen" }
 ##
-## `effects` are the upgrades ticked in the editor, `requires` the nodes this one has to wait for —
-## both drawn/locked by hand in tools/trad_editor.sh and folded into the node by Meta. The keys are
-## English like the rest of the data (data/tree.json uses `effect` and `requires`).
+## `effects` are the upgrades ticked in the editor (typ -> steg, 1-3), `requires` the nodes this one has
+## to wait for — both drawn/locked by hand in tools/trad_editor.sh and folded into the node by Meta. The
+## keys are English like the rest of the data (data/tree.json uses `effect` and `requires`).
 ##
-## x and y are fractions of the square plate image (0..1), r the socket's radius in the same unit,
-## score how strongly the measurement found a pit there, and guess_x/guess_y where the lattice put it
-## before measuring — kept so the editor can reset a node.
+## WHERE a node sits is no longer in this file: the tree is a plain node tree laid out from the data
+## (branch -> column, tier -> row), and only a node someone dragged carries `pin` with its x/y. The old
+## measured plate coordinates wrote a picture we no longer draw (M97).
 
-## Nodens storlek i TVÅ klasser, inte en fri radie. Plattan har två slags sockets — små gropar
-## (radie 0,009, mätta) för små steg och tre stora medaljonger (0,018) för grenarnas huvudnoder — och
-## Alex: "det måste gå att ha små noder med ... de skall bidra med små inkrementeringar. Jag behöver
-## ha i editorn så jag kan välja liten eller stor nod som grafiskt mål." Klasserna ÄR plattans mått,
-## så en liten nod hamnar i en liten grop.
-## FYRA klasser, i den ordning Alex bygger trädet: "3 stora, 3 medelstora, 15 små, och 48 små" — alltså
-## en trappa Stor -> Medelstor -> Liten -> Pytteliten. Måttet är plattans egna gropar: den vanligaste
-## gropen mättes till 0,009 (den ligger på "liten"), medaljongerna till 0,018 ("stor"), och de två
-## mittersta är stegen däremellan.
-## TVÅ TABELLER, för de svarar på olika frågor:
+## Nodens storlek i FYRA klasser, i den ordning Alex bygger trädet: "3 stora, 3 medelstora, 15 små,
+## och 48 små" — alltså en trappa Stor -> Medelstor -> Liten -> Pytteliten.
 ##
-##   PLATE  vad plattans gropar MÄTTES till. Används bara för att gissa vilken klass en nod har när
-##          ingen valt: en nod i en medaljong (0,018) är en stor nod, den vanligaste gropen (0,009)
-##          en liten.
-##   SIZES  vad vi RITAR. "stor" är dubbelt mot plattans medaljongmått (0,018 -> 0,036): Alex ville
-##          ha de stora tydligt större, och vid spelvyns höjd (270 px) blev 0,018 bara nio pixlar -
-##          samma som en liten nod.
-const PLATE := {"stor": 0.018, "medelstor": 0.013, "liten": 0.009, "pytteliten": 0.007}
+## SIZES är vad vi RITAR, i trädandelar (bildandelen är samma mått som nodernas platser). Siffrorna är
+## kvar från plattan: "stor" var dubbelt mot plattans medaljong (0,018 -> 0,036) eftersom Alex ville ha
+## de stora tydligt större, och vid spelvyns höjd (270 px) blev 0,018 bara nio pixlar.
 const SIZES := {"stor": 0.036, "medelstor": 0.013, "liten": 0.009, "pytteliten": 0.007}
 
 ## Vad en uppgradering ger på en LITEN respektive STOR nod. Ett enda hem för siffrorna: editorn visar
@@ -76,8 +63,6 @@ const WORDS := {
 }
 
 const PATH := "res://data/trad_sockets.json"
-const IMAGE := "res://images/Gemini_Generated_Image_68qy7x68qy7x68qy.jpeg"
-const SIDE := 1024
 
 
 ## id -> record. An empty dictionary means the file is missing or broken; the view then falls back to
@@ -105,30 +90,27 @@ static func write(records: Array, path: String = PATH) -> bool:
 	if file == null:
 		return false
 	file.store_string(JSON.stringify({
-		"image": IMAGE,
-		"side": SIDE,
-		"method": "placed by hand in game/editor/trad_editor.gd, or measured by tools/gen_tree_sockets.py",
+		"method": "authored in game/editor/trad_editor.gd: effects, requires, size, graphics, and pin+x/y for a dragged node",
 		"sockets": records,
 	}, " ", false) + "\n")
 	file.close()
 	return DirAccess.rename_absolute(temp, path) == OK
 
 
-## A fresh record for a node the file does not know about yet.
-static func blank(id: String, x: float, y: float, r: float) -> Dictionary:
-	return {"id": id, "x": x, "y": y, "r": r, "score": 0.0, "guess_x": x, "guess_y": y}
+## A fresh record for a node the file does not know about yet. No position and no class: the lattice and
+## the tier decide those, and only what a human changes ends up in the file (M97).
+static func blank(id: String) -> Dictionary:
+	return {"id": id, "effects": {}}
 
 
 ## EN NOD SOM LAGTS TILL I EDITORN (+). Den finns inte i data/tree.json — den finns bara i socketfilen,
 ## och blir en riktig nod i spelet när metan läser filen. Därför bär posten hela definitionen.
-static func added_node(id: String, x: float, y: float, branch: String, tier: int,
-		graphics: String, klass: String, requires: Array) -> Dictionary:
+static func added_node(id: String, branch: String, tier: int, graphics: String, klass: String,
+		requires: Array) -> Dictionary:
 	var namn: String = "%s %s" % [str(NAME_SV.get(graphics, graphics)), id.split("_")[-1]]
 	return {
-		"id": id, "x": x, "y": y, "r": float(SIZES.get(klass, SIZES["liten"])),
-		"size": klass, "graphics": graphics, "effects": {}, "requires": requires,
+		"id": id, "size": klass, "graphics": graphics, "effects": {}, "requires": requires,
 		"added": true, "name": namn, "branch": branch, "tier": tier,
-		"score": 0.0, "guess_x": x, "guess_y": y,
 	}
 
 
@@ -152,21 +134,24 @@ static func def_of(record: Dictionary) -> Dictionary:
 	}
 
 
-## Nodens klass, "liten" eller "stor". Är klassen inte satt gäller den MÄTTA radien: plattans stora
-## sockets är dubbelt så stora som de små, och en nod som ligger i en stor grop skall vara en stor nod.
+## Nodens klass. Klassen är vald (trädeditorns L) eller följer NIVÅNS trappa: grenens huvudnod är
+## störst, och ju längre ned i grenen noden står, desto mindre. Trappan ÄR den gamla tabellen
+## (stor/medelstor/liten/pytteliten) — men räknad ur datat i stället för ur plattans gropar, som inte
+## finns längre (M97: bilden bort, ett vanligt nodträd).
+##
+## Nivån kommer från den som frågar (vyn och metan vet den ur `tier`); en post i socketfilen bär den
+## själv när editorn sparat. Utan nivå gäller postens `tier`, och utan den nivå 1.
 static func size_of(record: Dictionary, nivå: int = 0) -> String:
 	var klass := str(record.get("size", ""))
 	if SIZES.has(klass):
 		return klass
-	# Grenens HUVUDNOD står i en medaljong, hur liten gropen än mättes som: den är trädets topp och
-	# skall se ut som en sådan. Nivån kommer från vyn eller editorn, som båda vet den.
-	if nivå == 1:
+	var n: int = nivå if nivå > 0 else int(record.get("tier", 1))
+	if n <= 1:
 		return "stor"
-	# Gropen avgör: ju större mätt socket, desto större klass (mot plattans mått, inte ritmåtten).
-	var r: float = float(record.get("r", 0.0))
-	for namn in PLATE:
-		if r >= float(PLATE[namn]) - 0.0015:
-			return namn
+	if n <= 4:
+		return "medelstor"
+	if n <= 9:
+		return "liten"
 	return "pytteliten"
 
 
@@ -200,7 +185,7 @@ static func icon_list() -> Array:
 const ICONS_FALLBACK := ["eld", "is", "magi"]
 
 
-## En nod som tagits bort i editorn. Den finns kvar i socketfilen som en gravsten — trädets 63 noder
+## En nod som tagits bort i editorn. Den finns kvar i socketfilen som en gravsten — trädets 93 noder
 ## kommer ur generatorn och hade kommit tillbaka vid nästa körning om borttagningen inte fanns kvar.
 static func is_removed(record: Dictionary) -> bool:
 	return bool(record.get("removed", false))
@@ -213,25 +198,34 @@ static func graphics_of(record: Dictionary, branch_icon: String = "") -> String:
 
 
 ## Radien som hör till klassen (bildandelar). Fri radie finns inte längre i editorn — den valde
-## klassen är sanningen, och den följer plattans egna mått.
-static func radius_of(record: Dictionary) -> float:
-	return float(SIZES.get(size_of(record), SIZES["stor"]))
+## klassen är sanningen. Nivån behövs för den nod som ingen valt klass för: trappan är nivåns.
+static func radius_of(record: Dictionary, nivå: int = 0) -> float:
+	return float(SIZES.get(size_of(record, nivå), SIZES["stor"]))
+
+
+## Är noden HANDPLACERAD (dragen i trädeditorn)? Då ligger den där människan lade den och följer inte
+## rutnätet. Utan flaggan gäller rutnätet — det var hela poängen med M97: ett vanligt nodträd ur datat.
+static func pinned(record: Dictionary) -> bool:
+	return bool(record.get("pin", false)) and record.has("x") and record.has("y")
 
 
 ## Antalet pixlar för en radie, i en vy av höjden `vy_höjd`. ETT hem för räkningen: vyn ritade med
 ## `r * 2 * höjd * 0.8` och klippte till 12..40 px på två ställen, och editorn räknade på ett tredje.
-static func size_px(r: float, view_height: float, platta_sida: float) -> int:
+## `enhets_px` är hur många pixlar EN andel (en trädenhet) är i den vyn — vyhöjden gånger zoomen.
+static func size_px(r: float, view_height: float, enhets_px: float) -> int:
 	# Golvet är 3 px, inte 6: vid 6 blev "liten" och "pytteliten" EXAKT lika stora i spelvyn (båda
 	# klipptes upp till 6), så storleksvalet syntes inte alls. Taket är 72, för den stora klassen ritas
 	# 46 px i editorns fönster.
-	return int(clampf(r * 2.0 * maxf(platta_sida, 60.0), 3.0, 72.0))
+	return int(clampf(r * 2.0 * maxf(enhets_px, 60.0), 3.0, 72.0))
 
 
 ## Uppgraderingarna som är ikryssade på noden, som `effect` för metan: {"might": 0.02, "armor": 1.0}.
-## Tomt när inget är ikryssat — då gäller nodens egen `effect` ur data/tree.json orörd.
-static func effect_of(record: Dictionary) -> Dictionary:
+## Tomt när inget är ikryssat — då gäller nodens egen `effect` ur data/tree.json orörd. Nivån styr hur
+## stort ETT steg är (klassens trappsteg), så den som vet nivån måste säga den: annars gäller postens
+## egen `tier`, och en djup nod hade fått den stora nodens steg.
+static func effect_of(record: Dictionary, nivå: int = 0) -> Dictionary:
 	var ut := {}
-	var spår: int = size_index(size_of(record))
+	var spår: int = size_index(size_of(record, nivå))
 	for typ in record.get("effects", {}):
 		var par: Array = VALUES.get(str(typ), [])
 		if par.size() == SIZES.size():
@@ -261,17 +255,36 @@ static func effect_preview(typ: String, klass: String, steg: int = 1) -> String:
 
 
 ## Kryssen som en läsbar rad, samma ord och samma formatering som hovringen visar.
-static func text_of(record: Dictionary) -> String:
+static func text_of(record: Dictionary, nivå: int = 0) -> String:
 	var bitar: Array = []
-	var spår: int = size_index(size_of(record))
+	var spår: int = size_index(size_of(record, nivå))
 	for typ in record.get("effects", {}):
 		var par: Array = VALUES.get(str(typ), [])
 		if par.size() != SIZES.size():
 			continue
 		var värde: float = float(par[spår]) * float(step_of(record, str(typ)))
 		var ord: String = str(WORDS.get(str(typ), str(typ)))
+		# ETT KRYSS GER EN SAK, MEN KAN HA FLERA STEG ("x3"). Stegen står i raden så man ser hur många
+		# gånger något är uppgraderingsbart — Alex: "någon indikation på att tick upgrade har körts, så
+		# man vet hur många gånger något är uppgraderingsbart."
+		var steg: int = step_of(record, str(typ))
+		var markering: String = " x%d" % steg if steg > 1 else ""
 		# Procenttecknet är ESCAPAT (%%): strängen går genom "%%"-formatering, och ett ensamt % där
 		# hade tystat resten av raden.
 		var tal: int = roundi(värde * 100.0) if värde < 1.0 else roundi(värde)
-		bitar.append("+%d %% %s" % [tal, ord])
+		bitar.append("+%d %% %s%s" % [tal, ord, markering])
 	return ", ".join(bitar)
+
+
+## Stegen på en nod som en läsbar summering, till editorns panelrad: "3 kryss, 5 steg".
+static func ticks_text(record: Dictionary, nivå: int = 0) -> String:
+	var kryss: int = 0
+	var steg: int = 0
+	for typ in record.get("effects", {}):
+		var s: int = step_of(record, str(typ))
+		if s > 0:
+			kryss += 1
+			steg += s
+	if kryss == 0:
+		return "inga kryss"
+	return "%d kryss, %d steg (%s)" % [kryss, steg, text_of(record, nivå)]
