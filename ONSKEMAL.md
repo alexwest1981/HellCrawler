@@ -148,8 +148,20 @@ Byggläget (F1) finns: man står i våningen som den ser ut när man spelar och 
 ## 16. Hjältarnas kort och deras ikoner
 > "Där skall korten på alla hjältar radas upp, så man kan välja dem, läsa om dem innan man köper dem, och sedan läggs de till i ens kortlek."
 
-Kamraterna hyrs i byn (tio i `data/crawlers/00_kamrater.json`, egna kort i leken) och deras kort använder kortikonerna. Men tio hjälteikoner klipptes ur `heroes.jpeg` (M75, `game/assets/heroes/*.png`) och **används inte av någon rad kod** — mätt: noll träffar på `hero` i `game/**/*.gd` och i `game/data/`.
-**Status:** öppen. Närmaste steg: koppla varje hjälteikon till sin kamrat (samma id som kortet) och visa den i hyrvyn, eller stryk ikonerna om kortikonerna ska gälla.
+Hjältarna är hyrbara kort nu: de tio ikonerna ur `heroes.jpeg` (M75, `game/assets/heroes/*.png`) är deras
+kortbilder, och `_card_icon` letar kortikonen (`assets/cards/<id>.png`) och faller tillbaka på hjälteikonen
+(`assets/heroes/<id>.png`) — samma väg som `tools/gen_hero_icons.py` pekar ut. Sexton hyrbara (sex kamrater
++ tio hjältar, 1200–12000 guld) ritas av samma CardView som leken: det valda kortet stort, raden under.
+
+**MÄTT** (`tests/test_hud.gd`, 59 kontroller): raden visar ett fönster av sex tumnaglar kring det valda;
+panelen ligger innanför spelvyn 480x270 vid alla sexton val, högst 267 px hög. Tre fel som fanns FÖRE
+hjältarna hittades av mätningen och är rättade: etiketten gjorde panelen 608 px bred (76 tecken i en rad —
+texten skars av i båda ändar även med de sex gamla korten), `queue_free` lämnade kvar de gamla korten i
+raden en ram så panelen växte till 616 px och aldrig krympte, och `_place_panel`s cache hoppade över
+placeringen när måttet var detsamma. Tangenterna står nu i marginalens tipsrad.
+
+**Status:** klar. Passiverna och priserna är ett första utkast (två saker i passiven och två i kortet, som
+`tests/test_meta.gd` kräver); siffrorna är Alex' att justera.
 
 ## 17. Kortens pixeltäthet i kortvalet
 > "När man gått upp i level och får välja kort, så behöver pixeltätheten på korten dubbleras eller mer, för de är suddiga idag."

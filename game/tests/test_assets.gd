@@ -49,6 +49,13 @@ func _initialize() -> void:
 	var all_colors := {}
 	for id in db:
 		var path := "res://assets/cards/%s.png" % id
+		# HJÄLTARNAS BILD LIGGER NÅGON ANNANSTANS (M56). Kortikonerna klipps ur Alex' ark
+		# (tools/gen_card_icons.py) och bor i assets/cards/. Hjältarna har ingen egen kortikon: deras
+		# bild är hjälteikonen ur hjältearket (tools/gen_hero_icons.py, assets/heroes/), och samma väg
+		# tar main.gd:s _card_icon. Provet mäter den vägen i stället för att kräva en ikon som inte
+		# finns — en saknad bild i BÅDA är fortfarande ett fel.
+		if not FileAccess.file_exists(path):
+			path = "res://assets/heroes/%s.png" % id
 		# KÄLLFILEN, inte bara den importerade: .godot/imported/ behåller sin .ctex när en png tas bort,
 		# så ResourceLoader.exists() svarar ja på en ikon som inte finns på disken längre (mätt
 		# 2026-09-20: elva borttagna ikoner passerade kontrollen och lästes ur cachen).

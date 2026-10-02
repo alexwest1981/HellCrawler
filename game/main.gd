@@ -271,11 +271,18 @@ var inn_label: Label
 var inn_stor: CenterContainer
 var inn_box: HBoxContainer
 var inn_index := 0
+## Första kortet i raden som ritas. Raden är mätt för sex tumnaglar (se inn_box), så med sexton
+## hjältar ritas ett fönster kring det valda kortet i stället för alla på en gång.
+var inn_first := 0
 ## Skalorna för värdshusets kortvägg. Tre rader text + stort kort + rad + panelens kanter måste
 ## rymmas i spelvyns 270 px. Mätt i två omgångar: originalet (1.0/0.62) klippte RADEN, och 0.72/0.5
 ## klippte TITELRADEN — panelen blev 280 px med kanterna. 0.66/0.45 ger 255 px med marginal.
 const INN_SKALA := 0.66
 const INN_RAD := 0.45
+## Hur många tumnaglar raden visar. MÄTT: 16 kort i INN_RAD blir 16 x 89 x 0,45 + mellanrum = 640 px
+## i en 480 px-vy — korten försvinner ut på båda sidor. Sex ryms i radens 240 px, och det valda
+## kortet står ändå stort ovanför, så raden är för att välja och bläddra.
+const INN_SYNLIGA := 6
 ## JUVELERAREN (M58): samma kortvägg som värdshuset, men raden är LEKEN och raderna ovanför är
 ## facken och fickan. Skalan är mätt mot spelvyns 480x270: hela leken ska rymmas i EN rad, och
 ## måttet kommer ur vyn, inte ur ögat (M93). Vid 0,5 blev raden 1236 px i en 480 px vy — panelen
@@ -2389,9 +2396,18 @@ func _buy_node(i: int) -> void:
 func _show_inn() -> void:
 	var linjer := meta.crawler_lines()
 	inn_index = clampi(inn_index, 0, maxi(0, linjer.size() - 1))
+	# BARNEN UR TRÄDET FÖRST (M56). `queue_free` lämnar kvar korten i containern under resten av
+	# ramen, så raden bar BÅDE de gamla och de nya: sexton kort i stället för sex, 12 x 47,8 + 11
+	# mellanrum ≈ 616 px. Godot tvingar en Control till minst sin minsta storlek, så panelen växte
+	# till 616 px i en 480 px-vy — och krympte aldrig tillbaka, för _place_panel:s cache såg samma
+	# mått och hoppade över placeringen. Mätt i tests/test_hud.gd. Att lyfta ur barnet ur trädet
+	# först och frigöra det efteråt behåller queue_free:s trygghet: en nod som frigörs medan den
+	# skickar sin egen signal är ett kraschläge, och klicket på ett kort går just den vägen.
 	for barn in inn_stor.get_children():
+		inn_stor.remove_child(barn)
 		barn.queue_free()
 	for barn in inn_box.get_children():
+		inn_box.remove_child(barn)
 		barn.queue_free()
 	inn_panel.visible = true
 	if linjer.is_empty():
@@ -2402,20 +2418,26 @@ func _show_inn() -> void:
 	var id := str(vald["id"])
 	var c: Cards.Card = db.get(id)
 	# Priset står i guld — samma nyckel som byns prislappar, så en hjälte och en butiks­vara inte kan
-	# säga olika saker om samma mynt. Nycklarna för väljandet är menyns egna ("W/S välj · Enter
-	# bekräfta") och gäller ordagrant här: piltangenterna och W/S gör samma sak.
-	inn_label.text = "%s\n%s — %s\n%s · %s · %s" % [
+	# säga olika saker om samma mynt. Tangenterna (W/S, piltangenterna och siffrorna) står i
+	# marginalens tipsrad: se _refresh_shell.
+	# TRE RADER, INGA TIPS (M56). Panelen mäts mot sin bredaste rad: med tangenttipsen i etiketten
+	# blev raden 76 tecken = 608 px i en 480 px-vy, och texten skars av i båda ändar (mätt; felet
+	# fanns med de sex gamla korten också, 75 tecken). Tipsen står nu i marginalens tipsrad där
+	# körningen skriver sina tangenter (se _refresh_shell) — panelen har kvar titel, namn, verkan
+	# och pris, och ingen rad är längre än 53 tecken (~424 px).
+	inn_label.text = "%s\n%s — %s\n%s" % [
 		Tr.t("ui.inn.title", "VÄRDSHUSET — guld i banken: %d") % meta.gold,
 		str(vald["name"]), str(vald["text"]),
 		(Tr.t("ui.inn.hired", "I LEEK") if bool(vald["hired"])
-			else Tr.t("ui.village.price", "%d guld") % int(vald["price"])),
-		Tr.t("ui.meny.hint", "W/S välj · Enter bekräfta"),
-		Tr.t("ui.inn.hint", "1-%d = hyr · Esc = tillbaka till byn") % linjer.size()]
+			else Tr.t("ui.village.price", "%d guld") % int(vald["price"]))]
 	# Det valda kortet stort, och hela raden under. Kortet är hjältens EGET kort (samma id som
 	# kamraten), så det man läser om är exakt det som hamnar i leken.
 	if c != null:
 		inn_stor.add_child(CardView.make(c, inn_index, _card_icon(id), true, INN_SKALA))
-	for i in linjer.size():
+	# Raden ritar ett fönster av INN_SYNLIGA kort kring det valda. Klicket bär det ABSOLUTA numret
+	# (i), inte platsen i fönstret, så _inn_klick och hyrandet pekar på samma rad som förut.
+	inn_first = clampi(inn_index - INN_SYNLIGA / 2, 0, maxi(0, linjer.size() - INN_SYNLIGA))
+	for i in range(inn_first, mini(inn_first + INN_SYNLIGA, linjer.size())):
 		var kid := str(linjer[i]["id"])
 		var k: CardView = CardView.make(db.get(kid), i, _card_icon(kid), false, INN_RAD)
 		k.set_forward(i == inn_index)
@@ -2724,6 +2746,10 @@ func _refresh_shell() -> void:
 	# TEXTEN FÖRST, placeringen efter: panelen mäts mot sitt innehåll, och den som placerades medan
 	# etiketten var tom blev en liten ruta som texten flöt ut ur (sett på bild: raden om
 	# tangenterna skars av vid skärmkanten).
+	# TIPSEN FÖR SKALET (M56). Marginalens tipsrad är till för tangenterna — körningen skriver sina
+	# där — och i skalet stod den tom. Värdshusets tangenter låg förut i panelens etikett, och en rad
+	# på 76 tecken gjorde panelen 608 px i en 480 px-vy. Här är utrymmet fönstret, inte vyn.
+	var skal_hint := ""
 	if shell == "hem":
 		# Byn och kartan ritar sig själva: de får metat och ordningen, inte en färdig textrad.
 		by_view.visa(meta, _stage_order.size())
@@ -2748,6 +2774,12 @@ func _refresh_shell() -> void:
 		butik_label.text = _village_text("by")
 	elif shell == "vardshus":
 		_show_inn()
+		# Tangenterna: samma ord som förut, men i marginalen. Siffrorna gäller det SYNLIGA fönstret
+		# i raden (se tangenthanteringen), så tipset säger samma sak som koden gör.
+		skal_hint = "%s · %s" % [
+			Tr.t("ui.meny.hint", "W/S välj · Enter bekräfta"),
+			Tr.t("ui.inn.hint", "1-%d = hyr · Esc = tillbaka till byn")
+				% mini(meta.crawler_lines().size(), INN_SYNLIGA)]
 	elif shell == "juvelerare":
 		_show_jewel()
 	elif shell == "banverkstad":
@@ -2770,8 +2802,9 @@ func _refresh_shell() -> void:
 		Tr.t("ui.shell.splitter", "%d splitter") % meta.shards,
 		Tr.t("ui.shell.cs", "%d CS") % meta.souls]
 	# Tipsen och korträknaren hör till KÖRNINGEN. Byn och kartan ritar sin egen text, och en
-	# kvarglömd hand över byn vore en lögn om var man är.
-	hint_label.text = ""
+	# kvarglömd hand över byn vore en lögn om var man är. Värdshuset är undantaget som bekräftar
+	# regeln: dess tangenter står där körningens står, för panelen har ingen plats för dem (M56).
+	hint_label.text = skal_hint
 	kort_label.text = ""
 
 func _show_home() -> void:
@@ -3428,9 +3461,13 @@ func _input_shell(key: int) -> void:
 			KEY_ESCAPE:
 				shell = "hem"
 			_:
-				if key >= KEY_1 and key <= KEY_9:
-					inn_index = key - KEY_1
-					_hire(key - KEY_0)
+				# Siffrorna hyr inom det SYNLIGA fönstret: "1" är kortet längst till vänster i raden,
+				# precis som raden ser ut. Är listan sex kort eller kortare är fönstret hela listan,
+				# så siffran pekar på samma kort som förut.
+				var nr := inn_first + key - KEY_1
+				if key >= KEY_1 and key <= KEY_9 and nr < meta.crawler_lines().size():
+					inn_index = nr
+					_hire(nr + 1)
 					_show_inn()
 	elif shell == "smed":
 		match key:
@@ -5955,7 +5992,12 @@ func _sfx(name: String) -> void:
 	p.play()
 
 func _card_icon(id: String) -> Texture2D:
+	# Kortikonen om den finns. En hjälte har ingen egen kortikon: hans bild ÄR hjälteikonen som
+	# klipptes ur hjältearket (tools/gen_hero_icons.py: "Ska de bli tavernans hjältar pekar koden
+	# på res://assets/heroes/<id>.png"), och den ritas av samma CardView på samma plats.
 	var path := "res://assets/cards/%s.png" % id
+	if not ResourceLoader.exists(path):
+		path = "res://assets/heroes/%s.png" % id
 	return load(path) if ResourceLoader.exists(path) else null
 
 # --- HUD --------------------------------------------------------------------
@@ -6822,7 +6864,11 @@ func _place_panel(panel: Control, at_top: bool) -> void:
 	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	var s := panel.get_combined_minimum_size()
 	var nyckel := panel.get_instance_id()
-	if _panel_last_size.get(nyckel) == s:
+	# MÅTTET RÄCKER INTE SOM BEVIS (M56): en Control som växt (t.ex. av en tillfällig minsta storlek
+	# medan gamla och nya barn låg i raden samtidigt) behåller sin storlek när minimum sjunker igen.
+	# Cachen såg samma mått som förut och hoppade över placeringen, så panelen låg kvar på 616 px i
+	# en 480 px-vy. Storleken själv måste stämma också.
+	if _panel_last_size.get(nyckel) == s and panel.size == s:
 		return
 	_panel_last_size[nyckel] = s
 	panel.size = s

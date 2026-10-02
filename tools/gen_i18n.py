@@ -1380,6 +1380,19 @@ DATA_EN = {
     "crawler.bonecarver.text": "+20 % damage, +2 % damage across the area",
     "crawler.tarboy.text": "+2 armour at turn start, +12 max HP",
     "crawler.cindernun.text": "+5 HP healed after a fight, +15 % damage",
+    # Hjältarna (M56): tio köpbara kort, samma bygge som kamraterna, med sina egna ikoner ur
+    # hjältearket (game/assets/heroes/). Raden här är engelskan; de elva andra språken faller
+    # tillbaka på den tills de har egna rader i tools/i18n_content.json.
+    "crawler.aeon_guardian.text": "+1 armour at turn start, +8 max HP",
+    "crawler.sylvan_ranger.text": "+15 % damage across the area, +6 max HP",
+    "crawler.arcane_mage.text": "+2 mana every turn, +5 % damage",
+    "crawler.cleric_of_light.text": "+3 HP healed after a fight, +6 max HP",
+    "crawler.shadowblade_rogue.text": "+15 % damage, +1 card in hand",
+    "crawler.fury_barbarian.text": "+20 % damage, +10 max HP",
+    "crawler.druidic_sage.text": "+2 cards in hand, +1 mana every turn",
+    "crawler.auric_paladin.text": "+2 armour, +4 HP healed after a fight",
+    "crawler.solar_seraph.text": "+6 HP healed after a fight, +10 % damage",
+    "crawler.runic_guardian.text": "+3 armour at turn start, +20 max HP",
     "tree.iron_1": "Whetstone Edge",
     "tree.iron_1.text": "+2 % damage",
     "tree.iron_2": "Slag Weight",

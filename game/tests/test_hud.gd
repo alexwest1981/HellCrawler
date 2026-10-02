@@ -207,6 +207,86 @@ func _initialize() -> void:
 	# Att behålla en ritad komponent som ingen ritar vore att lämna kvar en bild av hur HUD:en SÅG ut.
 
 	print("")
+	print("— värdshuset: kortväggen ryms i vyn, också med sexton hjältar (M56) —")
+	# Raden mättes för sex kort (se inn_box i _build_hud). Med sexton blev den 16 x 89 x 0,45 +
+	# mellanrum = 640 px i en 480 px-vy, och korten försvann ut på båda sidor. Provet mäter
+	# geometrin vid VARJE val och inte bara vid det första: fönstret flyttar sig med markeringen,
+	# och det är i ändlägena raden kan hamna utanför.
+	main.meta.gold = 999999
+	main.shell = "vardshus"
+	main._refresh_shell()          # samma väg som tangenterna tar: panelen OCH marginalens tipsrad
+	await process_frame
+	# Tipsen flyttade ut ur panelen (M56) eftersom de gjorde den 608 px bred. Att de står NÅNSTANS
+	# är en kontroll, inte en detalj: en tangent man inte ser är en tangent man inte vet om.
+	check(not main.hint_label.text.is_empty() and main.hint_label.text.contains("Esc"),
+		"tangenterna står i marginalens tipsrad", "tips: %s" % main.hint_label.text)
+	var linjer: Array = main.meta.crawler_lines()
+	check(linjer.size() > main.INN_SYNLIGA, "fler hjältar än raden visar på en gång",
+		"%d hyrbara mot %d platser" % [linjer.size(), main.INN_SYNLIGA])
+	# Panelen ligger i vyn (barn till `hud`, som är ett barn till SubViewporten), så dess
+	# globala rektangel är i VYNS eget rum: 0,0-480,270. Att mäta mot fönstret hade jämfört två
+	# olika rum och gett rätt svar av fel skäl (eller tvärtom).
+	var vy_rect := Rect2(Vector2.ZERO, Vector2(main.VY))
+	var utanför := 0
+	var för_hög := 0
+	var tumme_ute := 0
+	var fel_antal := 0
+	var utan_markering := 0
+	var min_panel := 1e9
+	var max_panel := -1e9
+	var max_höjd := 0.0
+	for i in linjer.size():
+		main.inn_index = i
+		main._show_inn()
+		await process_frame
+		await process_frame          # queue_free: barnen är kvar till ramens slut
+		# PANELEN, inte raden: panelen mäts mot sin bredaste rad, och en lång rad (etiketten) gör
+		# panelen bredare än vyn. Raden är ett barn som följer med — mäts den i stället ser felet
+		# mindre ut än det är (mätt: raden var 302 px medan panelen var 608).
+		var panel: Rect2 = main.inn_panel.get_global_rect()
+		min_panel = minf(min_panel, panel.position.x)
+		max_panel = maxf(max_panel, panel.end.x)
+		max_höjd = maxf(max_höjd, panel.size.y)
+		if panel.position.x < vy_rect.position.x - 0.5 or panel.end.x > vy_rect.end.x + 0.5:
+			utanför += 1
+		if panel.position.y < vy_rect.position.y - 0.5 or panel.end.y > vy_rect.end.y + 0.5:
+			för_hög += 1
+		# Varje tumnagel, inte bara raden som ruta: ett kort kan sticka ut trots att raden ryms.
+		for barn in main.inn_box.get_children():
+			var tumme: Rect2 = (barn as Control).get_global_rect()
+			if tumme.position.x < vy_rect.position.x - 0.5 or tumme.end.x > vy_rect.end.x + 0.5:
+				tumme_ute += 1
+		if main.inn_box.get_child_count() != mini(main.INN_SYNLIGA, linjer.size()):
+			fel_antal += 1
+		if not (main.inn_first <= i and i < main.inn_first + main.INN_SYNLIGA):
+			utan_markering += 1
+	check(utanför == 0, "kortväggen ligger innanför spelvyn på bredden vid varje val",
+		"%d av %d val stack ut (panel %.0f..%.0f mot vyn %.0f..%.0f)"
+			% [utanför, linjer.size(), min_panel, max_panel, vy_rect.position.x, vy_rect.end.x])
+	# Höjden är den andra kanten på samma mynt: en fjärde textrad är 12 px, och panelen hade 15 px
+	# kvar till vyns 270. Fyra rader ryms — fem gör det inte.
+	check(för_hög == 0, "kortväggen ryms på höjden (270 px)", "högsta panelen %.0f px" % max_höjd)
+	check(tumme_ute == 0, "varje tumnagel ligger inne i vyn", "%d kort stack ut" % tumme_ute)
+	check(fel_antal == 0, "raden ritar INN_SYNLIGA tumnaglar (hela listan om den är kortare)",
+		"%d val ritade fel antal" % fel_antal)
+	check(utan_markering == 0, "det valda kortet är alltid med i raden",
+		"%d val hamnade utanför" % utan_markering)
+	# Änden: sista valet ska visa de SISTA korten, inte ett fönster med tomrum efter sig.
+	main.inn_index = linjer.size() - 1
+	main._show_inn()
+	await process_frame
+	check(main.inn_first == linjer.size() - main.INN_SYNLIGA,
+		"sista valet visar de sista korten, inte tomrum",
+		"först %d av %d" % [main.inn_first, linjer.size()])
+	# Varje hyrbar har ett kort att visa: raden är meningslös om ett kort saknas i data.
+	var utan_kort := []
+	for rad_l in linjer:
+		if main.db.get(str(rad_l["id"])) == null:
+			utan_kort.append(str(rad_l["id"]))
+	check(utan_kort.is_empty(), "varje hyrbar har sitt kort i data/cards",
+		"%d hyrbara, saknas: %s" % [linjer.size(), str(utan_kort)])
+
+	print("")
 	print("— %d kontroller, %d fel —" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 
