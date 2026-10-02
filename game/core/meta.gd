@@ -12,7 +12,7 @@
 class_name Meta
 extends RefCounted
 
-const SAVE_VERSION := 5
+const SAVE_VERSION := 6
 ## Fotoläget (`-- shot`, `-- skarmar` m.fl.) får en EGEN fil. En skärmbilds- eller demokörning
 ## får aldrig kunna skriva i spelarens profil: mätt innan den här raden fanns gick guldet
 ## 1852 -> 237 av en körning som bara skulle fotografera kartan.
@@ -49,6 +49,8 @@ var unlocked: Array = [FIRST_STAGE]   ## upplåsta banor. En lista, inte ett tr�
                                       ## i svårighetsordning, så nästa bana är alltid nästa i listan.
 var best_floor: Dictionary = {}   ## bana -> högsta våning man nått (1-baserat, 0 = aldrig varit där)
 var runs := 0                     ## avslutade körningar, för byn och framtida prestationer
+## Boxar utan stor vinst i rad (önskemål 24). Garantin: efter BOX_GARANTI tvingas en fram.
+var boxar_utan_stor := 0
 var hired: Array = []             ## hyrda kamrater (samma id som deras kort i data/cards)
 ## Den PERMANENTA kortsamlingen (M45): kort man vunnit av en boss. Id:n, inte kortobjekt, av samma
 ## skäl som allt annat i sparfilen — datat kan ändras utan att filen börjar ljuga. Samlingen är
@@ -125,6 +127,9 @@ static func load_or_new(path: String = PATH) -> Meta:
 	m.musik_på = bool(parsed.get("musik", true))
 	var sparad = parsed.get("korning", {})
 	m.korning = sparad if typeof(sparad) == TYPE_DICTIONARY else {}
+	# Boxens garanti kom i version 6 (önskemål 24). En äldre fil har inga boxar räknade, och noll
+	# boxar utan stor vinst är samma sak som en ny spelare.
+	m.boxar_utan_stor = int(parsed.get("boxar_utan_stor", 0))
 	if m.unlocked.is_empty():
 		m.unlocked = [FIRST_STAGE]
 	var r = parsed.get("ranks", {})
@@ -530,6 +535,183 @@ func pick_sten(våning: int, rng: RandomNumberGenerator) -> Dictionary:
 static func kista_splitter(våning: int) -> int:
 	return clampi(1 + int(round(float(våning - 1) * 0.5)), 1, 4)
 
+## --- belöningen efter körningen (önskemål 24) --------------------------------------------------
+##
+## Två saker, med flit åtskilda:
+##   UTBETALNINGEN är DETERMINISTISK. Den räknas ur hur djupt man kom och hur många man fällde, så en
+##   djup körning är alltid värd mer än en kort och spelet kan säga vad en körning är värd innan man
+##   går ner. Ingen tärning.
+##   BOXEN är ett VAL bland tre — samma form som bossens byte — med synliga odds och en garanti:
+##   efter BOX_GUARANTEE boxar utan stor vinst tvingas en fram. Slumpen bor i innehållet, inte i om
+##   spelaren får något.
+const BOX_GUARANTEE := 10
+## En död körning behåller den här andelen av vad den bar med sig (önskemål 24, punkt 9). En körning
+## som tar slut i förtid ska inte vara värd noll, men en bana som nådde sista våningen ska vara värd
+## mer. Siffran står här för att den ska gå att hitta och justera.
+const DEATH_SHARE := 0.6
+## De utfall som räknas som STOR vinst för garantin.
+const BIG_KINDS := ["card", "companion"]
+
+## Vad körningen är värd i guld och splitter. REN funktion — ingenting betalas ut här; banken får
+## talen när körningen tar slut (samma regel som kistans fynd).
+func run_payout(floor_reached: int, kills: int) -> Dictionary:
+	var d := maxi(0, floor_reached)
+	return {"gold": 40 + 25 * d + 6 * maxi(0, kills), "shards": 1 + int(floor(d / 2.0))}
+
+## Hur stor del av det körningen bar med sig som banken får.
+static func share_of_outcome(outcome: String) -> float:
+	return 1.0 if outcome != "dead" else DEATH_SHARE
+
+## Oddsen för en box, i procent, vid den våning man nådde. EN källa: både rullningen och raden
+## spelaren ser läser ur den här, så den visade siffran kan inte glida ifrån den spelade.
+func box_odds(floor_reached: int) -> Dictionary:
+	if floor_reached <= 2:
+		return {"gold": 60, "shards": 20, "gem": 15, "card": 4, "companion": 1}
+	if floor_reached <= 6:
+		return {"gold": 40, "shards": 22, "gem": 22, "card": 12, "companion": 4}
+	return {"gold": 25, "shards": 20, "gem": 28, "card": 20, "companion": 7}
+
+## Tre val ur samma tabell som spelaren ser. Garantin räknas EFTER valet: en stor vinst nollställer
+## räknaren, annars tickar den. `db` är kortleken (kort-id -> kort); den bor hos körningen, inte här.
+func roll_box(floor_reached: int, rng: RandomNumberGenerator, db: Dictionary) -> Array:
+	var odds := box_odds(floor_reached)
+	var val: Array = []
+	var taken: Array = []
+	var force_big := boxar_utan_stor >= BOX_GUARANTEE
+	for i in 3:
+		var kind := _box_big_kind(odds, taken, rng) if i == 0 and force_big \
+			else _box_kind(odds, taken, rng)
+		taken.append(kind)
+		val.append(_box_value(kind, floor_reached, rng, db))
+	var big := false
+	for v in val:
+		if BIG_KINDS.has(str(v.get("kind", ""))):
+			big = true
+	boxar_utan_stor = 0 if big else boxar_utan_stor + 1
+	return val
+
+## Ett slag mot tabellen, utan de slag som redan tagits: tre val ska vara tre olika saker.
+func _box_kind(odds: Dictionary, taken: Array, rng: RandomNumberGenerator) -> String:
+	var summa := 0
+	for k in odds:
+		if not taken.has(k):
+			summa += int(odds[k])
+	if summa <= 0:
+		return "gold"
+	var slag := rng.randi_range(1, summa)
+	for k in odds:
+		if taken.has(k):
+			continue
+		slag -= int(odds[k])
+		if slag <= 0:
+			return str(k)
+	return "gold"
+
+## Garantins tvingade slag: ett av de stora, om något finns kvar att ge.
+func _box_big_kind(odds: Dictionary, taken: Array, rng: RandomNumberGenerator) -> String:
+	var kvar := []
+	for k in BIG_KINDS:
+		if odds.has(k) and not taken.has(k):
+			kvar.append(k)
+	if kvar.is_empty():
+		return _box_kind(odds, taken, rng)
+	return str(kvar[rng.randi_range(0, kvar.size() - 1)])
+
+## Vad ett slag är värt, i spelets egna bestånd. Faller tillbaka på guld när slaget inte går att ge
+## (inga kort kvar i leken, alla kamrater redan hyrda): garantin kan inte hitta på innehåll.
+func _box_value(kind: String, floor_reached: int, rng: RandomNumberGenerator, db: Dictionary) -> Dictionary:
+	match kind:
+		"gold":
+			return {"kind": "gold", "amount": mini(300, 60 + 20 * maxi(1, floor_reached))}
+		"shards":
+			return {"kind": "shards", "amount": clampi(2 + int(floor(floor_reached / 2.0)), 2, 8)}
+		"gem":
+			var sten := pick_sten(floor_reached, rng)
+			if not str(sten.get("fam", "")).is_empty():
+				return {"kind": "gem", "fam": str(sten["fam"]), "grad": int(sten["grad"])}
+		"card":
+			var id := _box_card(db, rng)
+			if not id.is_empty():
+				return {"kind": "card", "id": id}
+		"companion":
+			var kamrat := _box_companion(rng)
+			if not kamrat.is_empty():
+				return {"kind": "companion", "id": kamrat}
+	return {"kind": "gold", "amount": mini(300, 60 + 20 * maxi(1, floor_reached))}
+
+## Ett kort ur leken — samma avgränsning som nivåvalet: kamrater kommer från egna källor och en
+## uppgradering bara ur sitt recept (se Progress.draft).
+func _box_card(db: Dictionary, rng: RandomNumberGenerator) -> String:
+	var pool := []
+	for id in db:
+		var kort = db[id]
+		if kort == null or kort.card_type == "crawler":
+			continue
+		if Evolution.is_evolution(kort):
+			continue
+		pool.append(str(id))
+	if pool.is_empty():
+		return ""
+	pool.sort()
+	return str(pool[rng.randi_range(0, pool.size() - 1)])
+
+## En kamrat som söker sig till spelaren: den första lediga i bokstavsordning går inte att gissa, så
+## urvalet sker ur de ÄNNU INTE hyrda.
+func _box_companion(rng: RandomNumberGenerator) -> String:
+	var pool := []
+	for c in crawlers:
+		var id := str(c.get("id", ""))
+		if not id.is_empty() and not hired.has(id):
+			pool.append(id)
+	if pool.is_empty():
+		return ""
+	pool.sort()
+	return str(pool[rng.randi_range(0, pool.size() - 1)])
+
+## Raden för ett val, som spelaren ser den INNAN valet: vad det är, inte vad det ger i efterhand.
+func box_text(val: Dictionary) -> String:
+	var id := str(val.get("id", ""))
+	match str(val.get("kind", "")):
+		"gold":
+			return Tr.t("ui.box.gold", "+%d guld") % int(val.get("amount", 0))
+		"shards":
+			return Tr.t("ui.box.shards", "+%d splitter") % int(val.get("amount", 0))
+		"gem":
+			return Tr.t("ui.box.gem", "+%s") % gem_name(str(val.get("fam", "")), int(val.get("grad", 0)))
+		"card":
+			return Tr.t("ui.box.card", "+kortet %s") % Tr.name_of("card", id, id)
+		"companion":
+			return Tr.t("ui.box.companion", "+kamraten %s") % Tr.name_of("crawler", id, id)
+	return ""
+
+## Betalar ut ett val och svarar med raden som ska loggas. Sparfilen skrivs av anroparen — den som
+## betalar ut vet när körningen är över.
+func box_pay(val: Dictionary) -> String:
+	match str(val.get("kind", "")):
+		"gold":
+			var g := int(val.get("amount", 0))
+			gold += g
+			return Tr.t("ui.box.gold", "+%d guld") % g
+		"shards":
+			var s := int(val.get("amount", 0))
+			shards += s
+			return Tr.t("ui.box.shards", "+%d splitter") % s
+		"gem":
+			var fam := str(val.get("fam", ""))
+			var grad := int(val.get("grad", 0))
+			gem_add(fam, grad)
+			return Tr.t("ui.box.gem", "+%s") % gem_name(fam, grad)
+		"card":
+			var id := str(val.get("id", ""))
+			samla(id)
+			return Tr.t("ui.box.card", "+kortet %s") % Tr.name_of("card", id, id)
+		"companion":
+			var cid := str(val.get("id", ""))
+			if not hired.has(cid):
+				hired.append(cid)
+			return Tr.t("ui.box.companion", "+kamraten %s") % Tr.name_of("crawler", cid, cid)
+	return ""
+
 func crawler_for(id: String) -> Dictionary:
 	for c in crawlers:
 		if str(c.get("id", "")) == id:
@@ -716,7 +898,7 @@ func to_dict() -> Dictionary:
 		"best_floor": best_floor.duplicate(), "runs": runs, "hired": hired.duplicate(),
 		"samling": samling.duplicate(),
 		"shards": shards, "gems": gems.duplicate(true), "gem_slots": gem_slots.duplicate(),
-		"gem_in": gem_in.duplicate(true),
+		"gem_in": gem_in.duplicate(true), "boxar_utan_stor": boxar_utan_stor,
 		"crt": crt_på, "musik": musik_på, "korning": korning.duplicate(true)}
 
 func save(path: String = PATH) -> bool:

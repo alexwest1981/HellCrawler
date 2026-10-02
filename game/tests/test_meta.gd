@@ -211,6 +211,7 @@ func _initialize() -> void:
 	print("")
 	_tree_checks()
 	_crawler_checks()
+	_box_checks()
 	_clean()
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
@@ -322,4 +323,120 @@ func _crawler_checks() -> void:
 		var m4 := Meta.load_or_new(TEST_PATH)
 		check(m4.hired == ["ashhound"], "hyrd kamrat överlevde", str(m4.hired))
 		check(is_equal_approx(m4.stat("mana"), 1.0), "och bonusen räknas efter omstart")
+
+## Belöningen efter körningen (önskemål 24): utbetalningen, oddsen, garantin och utbetalningen av ett
+## val. Egen funktion av samma skäl som trädet och kamraterna: namnen krockar annars med kurvorna ovan.
+func _box_checks() -> void:
+	print("")
+	print("— belöningen efter körningen (önskemål 24) —")
+	var m := Meta.load_or_new(TEST_PATH + ".box")
+	m.gold = 0
+	m.shards = 0
+	m.samling = []
+	m.hired = []
+	m.boxar_utan_stor = 0
+	# UTBETALNINGEN är deterministisk: djup och dråp, ingenting annat.
+	var ytan := m.run_payout(1, 0)
+	var djupet := m.run_payout(6, 0)
+	var med_drap := m.run_payout(1, 10)
+	check(int(djupet["gold"]) > int(ytan["gold"]), "djupet betalar mer än ytan",
+		"%d mot %d guld" % [int(djupet["gold"]), int(ytan["gold"])])
+	check(int(med_drap["gold"]) > int(ytan["gold"]), "och dråpen räknas med",
+		"%d mot %d guld" % [int(med_drap["gold"]), int(ytan["gold"])])
+	check(int(djupet["shards"]) > int(ytan["shards"]), "splitter följer också djupet",
+		"%d mot %d" % [int(djupet["shards"]), int(ytan["shards"])])
+	# Andelen vid död (punkt 9): en död körning behåller sin del, en som nådde sista våningen allt.
+	check(is_equal_approx(Meta.share_of_outcome("dead"), Meta.DEATH_SHARE),
+		"en död körning behåller sin andel", "%.2f" % Meta.share_of_outcome("dead"))
+	check(is_equal_approx(Meta.share_of_outcome("cleared"), 1.0), "en klarad bana behåller allt")
+	check(is_equal_approx(Meta.share_of_outcome("reaped"), 1.0),
+		"och en skördad på sista våningen räknas som klarad")
+	# ODDSEN: summan ska vara hundra i varje band, annars ljuger raden spelaren ser.
+	var summor := []
+	var summa_ok := true
+	for vaning in [1, 3, 6, 9, 12]:
+		var summa := 0
+		for k in m.box_odds(vaning):
+			summa += int(m.box_odds(vaning)[k])
+		summor.append(summa)
+		if summa != 100:
+			summa_ok = false
+	check(summa_ok, "oddsen summerar till hundra i varje djupband", str(summor))
+	check(int(m.box_odds(12)["card"]) > int(m.box_odds(1)["card"]),
+		"och den stora vinsten blir vanligare med djupet",
+		"kort %d %% mot %d %%" % [int(m.box_odds(12)["card"]), int(m.box_odds(1)["card"])])
+	# BOXEN: tre OLIKA val varje gång, och garantin tvingar fram en stor vinst.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261002
+	var db := Cards.load_all()
+	var olika := true
+	for i in 40:
+		var val := m.roll_box(3, rng, db)
+		if val.size() != 3:
+			olika = false
+			break
+		var a := str(val[0].get("kind", ""))
+		var b := str(val[1].get("kind", ""))
+		var c := str(val[2].get("kind", ""))
+		if a == b or b == c or a == c:
+			olika = false
+			break
+	check(olika, "fyrtio boxar i rad ger tre olika val varje gång")
+	m.boxar_utan_stor = 0
+	var stor_pa := -1
+	for i in Meta.BOX_GUARANTEE + 2:
+		var val2 := m.roll_box(6, rng, db)
+		for v in val2:
+			if ["card", "companion"].has(str(v.get("kind", ""))) and stor_pa < 0:
+				stor_pa = i + 1
+	check(stor_pa > 0 and stor_pa <= Meta.BOX_GUARANTEE + 2,
+		"garantin ger en stor vinst inom %d boxar" % (Meta.BOX_GUARANTEE + 2),
+		"första stora på box %d" % stor_pa)
+	# Och den TVINGAR: med räknaren på gränsen MÅSTE nästa box bjuda en stor vinst, inte "kan".
+	m.boxar_utan_stor = Meta.BOX_GUARANTEE
+	var tvang := m.roll_box(6, rng, db)
+	var tvang_stor := false
+	for v in tvang:
+		if ["card", "companion"].has(str(v.get("kind", ""))):
+			tvang_stor = true
+	check(tvang_stor, "en box med räknaren på %d bjuder alltid en stor vinst" % Meta.BOX_GUARANTEE,
+		str(tvang))
+	check(m.boxar_utan_stor == 0, "och den stora vinsten nollställer räknaren",
+		str(m.boxar_utan_stor))
+	# UTBETALNINGEN av ett val: varje slag hamnar i rätt bestånd.
+	var guld_fore := m.gold
+	m.box_pay({"kind": "gold", "amount": 120})
+	check(m.gold == guld_fore + 120, "guldvalet betalas ut", "%d guld" % m.gold)
+	var splitter_fore := m.shards
+	m.box_pay({"kind": "shards", "amount": 4})
+	check(m.shards == splitter_fore + 4, "splittervalet betalas ut", "%d splitter" % m.shards)
+	var fam := str(m.gem_defs[0].get("id", "")) if not m.gem_defs.is_empty() else ""
+	if fam.is_empty():
+		check(false, "ädelstensdatan gick att läsa")
+	else:
+		m.box_pay({"kind": "gem", "fam": fam, "grad": 3})
+		var rad: Array = m.gems.get(fam, [])
+		check(rad.size() > 3 and int(rad[3]) == 1,
+			"stenvalet hamnar i fickan på rätt grad", "%s %s" % [fam, str(rad)])
+	var kortid := ""
+	for id in db:
+		if (db[id] as Cards.Card).card_type != "crawler":
+			kortid = str(id)
+			break
+	if kortid.is_empty():
+		check(false, "kortleken hade ett kort att ge")
+	else:
+		m.box_pay({"kind": "card", "id": kortid})
+		check(m.samling.has(kortid), "kortvalet hamnar i samlingen", kortid)
+	var kamrat := str(m.crawlers[0].get("id", "")) if not m.crawlers.is_empty() else ""
+	if kamrat.is_empty():
+		check(false, "kamratdatan gick att läsa")
+	else:
+		m.box_pay({"kind": "companion", "id": kamrat})
+		check(m.hired.has(kamrat), "kamratvalet blir hyrd", kamrat)
+	# Garantiräknaren bor i sparfilen: den ska överleva en omstart.
+	m.boxar_utan_stor = 7
+	check(m.save(TEST_PATH), "sparfilen skrivs med boxräknaren")
+	var m2 := Meta.load_or_new(TEST_PATH)
+	check(m2.boxar_utan_stor == 7, "och räknaren överlevde omstarten", str(m2.boxar_utan_stor))
 

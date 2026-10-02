@@ -286,6 +286,39 @@ func _initialize() -> void:
 	check(utan_kort.is_empty(), "varje hyrbar har sitt kort i data/cards",
 		"%d hyrbara, saknas: %s" % [linjer.size(), str(utan_kort)])
 
+	# BELÖNINGEN EFTER KÖRNINGEN (önskemål 24). Mätt genom spelets EGEN väg: körningen avslutas,
+	# tillståndsbytet bankar och rullar boxen, och valet betalas ut av `_box_pick` — samma funktion
+	# som tangenten 1-3 kallar. Att bara prova `Meta` hade inte sagt om boxen alls kom fram.
+	print("")
+	print("— belöningen efter körningen (önskemål 24) —")
+	main.run._finish_with("dead")
+	main._after_state_change()
+	await process_frame
+	check(main._box_val.size() == 3, "boxen rullas när körningen tar slut",
+		"%d val: %s" % [main._box_val.size(), str(main._box_val)])
+	check(main.end_panel.visible, "och slutskärmen står framme")
+	check(main.meta.gold > 0, "utbetalningen för djupet hamnade i banken", "%d guld" % main.meta.gold)
+	check(main._box_best_index() >= 0 and main._box_best_index() < main._box_val.size(),
+		"och en ospelad box pekar på ett giltigt val", "index %d" % main._box_best_index())
+	var guld_fore: int = main.meta.gold
+	var valt: Dictionary = main._box_val[0]
+	main._box_pick(0)
+	await process_frame
+	check(main._box_val.is_empty(), "valet tömmer boxen")
+	check(not main._box_logg.is_empty(), "och raden för det valda står kvar", main._box_logg)
+	check(main.meta.gold != guld_fore or str(valt.get("kind", "")) != "gold",
+		"och valet betalades ut", "%d → %d (%s)" % [guld_fore, main.meta.gold, str(valt.get("kind", ""))])
+	# Och ett andra val ska inte kunna betala ut igen: boxen är tom, och _box_pick ska tiga.
+	var guld_efter: int = main.meta.gold
+	main._box_pick(0)
+	check(main.meta.gold == guld_efter, "ett andra tryck betalar inte ut igen", "%d guld" % main.meta.gold)
+	# Den bästa ordningen: ett kort väger tyngre än en sten, som väger tyngre än guld.
+	main._box_val = [{"kind": "gold", "amount": 10}, {"kind": "card", "id": "lash"},
+		{"kind": "shards", "amount": 2}]
+	check(main._box_best_index() == 1, "en ospelad box tar det BÄSTA valet",
+		"index %d" % main._box_best_index())
+	main._box_val = []
+
 	print("")
 	print("— %d kontroller, %d fel —" % [checks, fails])
 	quit(1 if fails > 0 else 0)

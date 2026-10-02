@@ -85,6 +85,46 @@ func _initialize() -> void:
 	check(_boss_fights(events) == stage.floors, "bossen på varje våning konfronterades",
 		"%d av %d" % [_boss_fights(events), stage.floors])
 
+	# BELÖNINGEN EFTER KÖRNINGEN (önskemål 24): exakt EN run_reward per avslutad körning, med
+	# utbetalningens tal, och den ligger FÖRE run_end i strömmen — en läsare som tar sista run_end får
+	# inte kunna missa den. Körningen får en meta här, för utan bank blir det ingen belöning alls.
+	print("")
+	print("— belöningen efter körningen (önskemål 24) —")
+	var box_path := "user://test_run_box.json"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(box_path))
+	var mtb := Meta.load_or_new(box_path)
+	var rbox := _new_run(stage, bestiary, deck, 20260919, db, mtb)
+	rbox.play_out()
+	var rewards := 0
+	var reward := {}
+	var idx_reward := -1
+	var idx_end := -1
+	for i in rbox.events.size():
+		var e: Dictionary = rbox.events[i]
+		if str(e.get("type", "")) == "run_reward":
+			rewards += 1
+			reward = e
+			idx_reward = i
+		elif str(e.get("type", "")) == "run_end":
+			idx_end = i
+	check(rewards == 1, "exakt en belöning per avslutad körning", "%d st" % rewards)
+	check(idx_reward >= 0 and idx_reward < idx_end, "och den ligger före run_end i strömmen",
+		"%d < %d" % [idx_reward, idx_end])
+	check(int(reward.get("floor_reached", 0)) == rbox.floor_index + 1,
+		"djupet är våningen man nådde", "%d" % int(reward.get("floor_reached", 0)))
+	check(int(reward.get("kills", -1)) == rbox.kills, "dråpen stämmer",
+		"%d" % int(reward.get("kills", -1)))
+	var vantad := mtb.run_payout(rbox.floor_index + 1, rbox.kills)
+	check(int(reward.get("gold", 0)) == int(vantad["gold"])
+		and int(reward.get("shards", 0)) == int(vantad["shards"]),
+		"och talen är exakt vad run_payout ger", "%d/%d mot %d/%d" % [
+			int(reward.get("gold", 0)), int(reward.get("shards", 0)),
+			int(vantad["gold"]), int(vantad["shards"])])
+	check(is_equal_approx(float(reward.get("share", 0.0)), Meta.share_of_outcome(rbox.outcome)),
+		"andelen följer utfallet", "%s → %.2f" % [rbox.outcome, float(reward.get("share", 0.0))])
+	check(rbox.reward_event() == reward, "och körningen kan lämna tillbaka sin belöning")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(box_path))
+
 	print("— samma seed = samma körning —")
 	var run2 := _new_run(stage, bestiary, deck, 20260919, db)
 	run2.play_out()

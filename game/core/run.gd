@@ -502,7 +502,23 @@ func _finish_with(result: String) -> void:
 		return
 	finished = true
 	outcome = result
+	# BELÖNINGEN (önskemål 24): utbetalningen räknas fram här och läggs i händelseströmmen, så den går
+	# att mäta på i efterhand och provet kan kräva EXAKT en per körning. Talen är rena — banken rörs av
+	# main, en gång, när körningen är slut (samma regel som kistans fynd). Ingen UI, ingen sparning här.
+	if meta != null:
+		var utbetalning := meta.run_payout(floor_index + 1, kills)
+		events.append({"type": "run_reward", "floor_reached": floor_index + 1, "kills": kills,
+			"gold": int(utbetalning["gold"]), "shards": int(utbetalning["shards"]),
+			"share": meta.share_of_outcome(outcome)})
 	events.append({"type": "run_end", "outcome": outcome, "floors": floor_index + 1,
 		"gold": gold, "xp": xp, "hp": hp, "fights_won": fights_won, "fights_lost": fights_lost,
 		"kills": kills,
 		"steps": explore.steps_taken, "turns": explore.turns_taken})
+
+## Belöningen som hör till körningens slut (önskemål 24), eller en tom ordbok om ingen finns.
+func reward_event() -> Dictionary:
+	for i in range(events.size() - 1, -1, -1):
+		var e: Dictionary = events[i]
+		if str(e.get("type", "")) == "run_reward":
+			return e
+	return {}

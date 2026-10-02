@@ -123,6 +123,10 @@ var _sort_mode := 0
 var _hand_order: Array[int] = []
 var meta: Meta = null
 var _banked := false
+## Belöningen efter körningen (önskemål 24): de tre valen, raden för det valda, och om boxen är
+## besvarad. Tom lista = ingen box väntar (den rullas en gång, i _after_state_change).
+var _box_val: Array = []
+var _box_logg := ""
 var _enemies: Array = []        ## [{spr, y, fas, hp, läge, läge_t}] — figurerna i rummet, animerade i _process
 
 # Rutorna i fiendebilden (tools/gen_enemy_art.py), i den ordning de ligger i PNG:n. Siffrorna står
@@ -7407,14 +7411,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		_visa_meny()
 		return
 	if run.finished:
-		# Slutskärmen visar köpen, och T går tillbaka till byn: där ligger både butiken, kartan och
-		# nästa bana. R = samma bana igen, för den som vill försöka om direkt.
+		# BOXEN SVARAS PÅ FÖRST (önskemål 24): väntar ett val går 1-3 dit. T och R tar det bästa valet
+		# själva i stället för att kasta belöningen — man ska inte kunna tappa den med en tangent.
+		if not _box_val.is_empty() and key >= KEY_1 and key <= KEY_3:
+			_box_pick(key - KEY_1)
+			return
+		# Slutskärmen visar sammanfattningen, och T går tillbaka till byn: där ligger både butiken,
+		# kartan och nästa bana. R = samma bana igen, för den som vill försöka om direkt.
 		if key == KEY_R:
+			if not _box_val.is_empty():
+				_box_pick(_box_best_index())
 			_start_run(run.stage.id, randi())
 		elif key == KEY_T:
+			if not _box_val.is_empty():
+				_box_pick(_box_best_index())
 			_show_home()
 			return
-		elif key >= KEY_1 and key <= KEY_9:
+		elif key >= KEY_4 and key <= KEY_9:
 			_buy(key - KEY_0)
 		_refresh()
 		return
@@ -7535,9 +7548,58 @@ func _end_text() -> String:
 		var s: Stages.StageDef = stages.get(_unlocked_now)
 		var namn := Tr.name_of("stage", _unlocked_now, s.name if s != null else _unlocked_now)
 		slut += "\n\n" + Tr.t("ui.end.unlocked", "NY BANA UPPLÅST: %s") % namn
+	# BELÖNINGEN (önskemål 24): först vad djupet betalade, sedan boxens tre val om den väntar. Oddsen
+	# som visas är bara de STORA utfallen — hela raden hade blivit sjuttio tecken i en 480 px-vy — plus
+	# hur nära garantin man är. Samma tabell som rullningen läser, så siffran kan inte ljuga.
+	var belöning := run.reward_event()
+	if not belöning.is_empty():
+		var andel := float(belöning.get("share", 1.0))
+		slut += "\n\n" + Tr.t("ui.end.payout", "belöning för djupet: %d guld · %d splitter") % [
+			int(round(int(belöning.get("gold", 0)) * andel)),
+			int(round(int(belöning.get("shards", 0)) * andel))]
+	if not _box_val.is_empty() and _box_logg.is_empty():
+		var odds := meta.box_odds(run.floor_index + 1)
+		slut += "\n\n" + Tr.t("ui.box.title", "BOXEN — välj en (1-3):")
+		for i in _box_val.size():
+			slut += "\n %d  %s" % [i + 1, meta.box_text(_box_val[i])]
+		slut += "\n" + Tr.t("ui.box.odds",
+			"odds: kort %d %% · kamrat %d %% · garanti efter %d boxar utan stor vinst") % [
+			int(odds["card"]), int(odds["companion"]), Meta.BOX_GUARANTEE]
+		slut += "\n" + Tr.t("ui.box.pity", "boxar utan stor vinst: %d av %d") % [
+			meta.boxar_utan_stor, Meta.BOX_GUARANTEE]
+	elif not _box_logg.is_empty():
+		slut += "\n" + Tr.t("ui.box.taken", "belöningen: %s") % _box_logg
 	return "%s\n\n%s\n\n%s" % [slut,
 		Tr.t("ui.end.hint", "T = tillbaka till byn · R = samma bana igen"),
 		Tr.t("ui.settings.language_hint", "L = byt språk (%s)") % Tr.name_of_code(Tr.lang)]
+
+## Ordningen när spelaren INTE svarar: stora vinster först, sedan sten, sedan valutor. Används av T
+## och R — en ospelad box ska inte kunna tappas, och det bästa valet är det enda rimliga default.
+const BOX_ORDER := ["card", "companion", "gem", "shards", "gold"]
+
+func _box_best_index() -> int:
+	var bästa := 0
+	var rang := BOX_ORDER.size()
+	for i in _box_val.size():
+		var r := BOX_ORDER.find(str(_box_val[i].get("kind", "")))
+		if r >= 0 and r < rang:
+			rang = r
+			bästa = i
+	return bästa
+
+## Spelaren har valt en belöning. Betalas ut EN gång, sparas, och raden står kvar på slutskärmen i
+## stället för att försvinna — kvitteringen är hela poängen med att visa den.
+func _box_pick(index: int) -> void:
+	if index < 0 or index >= _box_val.size():
+		return
+	_box_logg = meta.box_pay(_box_val[index])
+	_box_val = []
+	_logga(Tr.t("ui.box.taken", "belöningen: %s") % _box_logg, Palett.c(14))
+	if not meta.save():
+		push_warning("kunde inte spara belöningen: %s" % meta.last_error)
+	if run != null and run.finished:
+		end_label.text = _end_text()
+		_place_panel(end_panel, false)
 
 func _show_draft() -> bool:
 	if not _draft_pending():
@@ -8007,6 +8069,26 @@ func _after_state_change() -> void:
 				meta.gem_add(str(sten["fam"]), int(sten["grad"]))
 			if run.shards > 0 or not run.stenar.is_empty():
 				print("bankade %d splitter och %d stenar" % [run.shards, run.stenar.size()])
+			# BELÖNINGEN (önskemål 24) betalas ovanpå bytet: djupet och dråpen avgör summan, och en död
+			# körning behåller sin andel (Meta.share_of_outcome). Talen läses ur körningens EGEN
+			# händelse i stället för att räknas om här — en källa, inte två.
+			var belöning := run.reward_event()
+			if not belöning.is_empty():
+				var andel := float(belöning.get("share", 1.0))
+				var pris_guld := int(round(int(belöning.get("gold", 0)) * andel))
+				var pris_splitter := int(round(int(belöning.get("shards", 0)) * andel))
+				meta.add_gold(pris_guld)
+				meta.shards += pris_splitter
+				print("belöning efter körningen: %d guld, %d splitter (andel %.2f)" % [
+					pris_guld, pris_splitter, andel])
+				# Boxen rullas EN gång per körning, och den sparas inte: en ospelad box ska inte kunna
+				# sparas till nästa gång. Slumpen kommer ur körningens egen ström (samma frö-regel som
+				# kistan), så samma körning ger samma box.
+				var rng: RandomNumberGenerator = run.rng_draft
+				if rng == null:
+					rng = RandomNumberGenerator.new()
+				_box_val = meta.roll_box(run.floor_index + 1, rng, run.card_db)
+				_box_logg = ""
 			# Banan är slut: skriv ner hur långt man kom, och lås upp nästa bana om man nådde sista
 			# våningen. Regeln är referensens — att NÅ sista våningen är att klara banan (Pale Reaper
 			# dödar dig där), så "klar" betyder "kom dit", inte "överlevde".

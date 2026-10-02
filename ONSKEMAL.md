@@ -307,11 +307,24 @@ en runda vid liv, boxens form och odds, tio alternativ till boxen, och var i kod
 Rapporterna ligger i `docs/undersokning/`, sammanställningen i `docs/undersokning/00-sammanfattning.md`.
 Alla fil- och funktionshänvisningar i dem är eftergranskade mot koden.
 
-**Status:** undersökt 2026-10-02, väntar på beslut. Rekommendationen i sammanställningen är att grunda på en
-deterministisk utbetalning efter djup och utförande (`_finish_with()` bokför redan allt) och lägga valet
-"1 av 3" vid körningens slut ovanpå — samma panel som bossbytet — med synliga odds och en garanterad stor
-vinst efter tio boxar utan träff. Boxens unika utrymme är den DÖDA körningen: bossbytet kräver att man
-fällde en boss, och efter en död händer i dag inget annat än en kvittenslista.
+**Status:** skiva A klar 2026-10-02, resten byggs. Så här långt: körningens slut betalar en
+DETERMINISTISK belöning för djup och dråp (40 + 25 × våning + 6 × dråp i guld, 1 + våning/2 i splitter),
+med en dödsandel på 60 % — en körning som tar slut i förtid får sin del, en som nådde sista våningen allt.
+Ovanpå det en BOX: tre val (samma form som bossens byte), synliga odds som stiger med djupet
+(kort 4 → 12 → 20 %, kamrat 1 → 4 → 7 %), och en garanti som tvingar fram en stor vinst efter tio boxar
+utan. Slumpen bor i innehållet, inte i om man får något. Tangenterna 1-3 väljer; lämnar man slutskärmen
+utan att svara tar T och R det bästa valet i stället för att kasta belöningen.
+
+**MÄTT:** `tests/test_hud.gd` (9 kontroller genom spelets egen väg: boxen rullas vid körningens slut,
+slutskärmen står framme, valet betalas ut, ett andra tryck betalar inte ut igen), `tests/test_run.gd`
+(exakt en `run_reward` per körning, talen exakt vad `run_payout()` ger) och `tests/test_meta.gd`
+(19 kontroller: djupet och dråpen betalar, oddsen summerar till hundra i varje band, fyrtio boxar ger tre
+olika val varje gång, garantin TVINGAR vid räknarens gräns, varje slag hamnar i rätt bestånd, räknaren
+överlever sparfilen). Slutskärmen renderad på skivan och granskad: belöning, tre val, odds och
+garantiräknare syns utan klippning.
+
+Kvar att bygga: efterlysningar över flera körningar, svårighetstrappan, dagens körning, startvillkor,
+vadslagning och de räddade själarna.
 
 ## Ordning
 

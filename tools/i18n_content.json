@@ -192,7 +192,17 @@
   "crawler.bellringer.text": "+1 Karte auf der Hand, +1 Mana pro Zug",
   "crawler.bonecarver.text": "+20 % Schaden, +2 % Schaden über die Fläche",
   "crawler.tarboy.text": "+2 Rüstung bei Zugbeginn, +12 max. HP",
-  "crawler.cindernun.text": "+5 HP nach dem Kampf geheilt, +15 % Schaden"
+  "crawler.cindernun.text": "+5 HP nach dem Kampf geheilt, +15 % Schaden",
+  "ui.box.title": "DIE TRUHE — wähle eine (1-3):",
+  "ui.box.gold": "+%d Gold",
+  "ui.box.shards": "+%d Splitter",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+die Karte %s",
+  "ui.box.companion": "+der Gefährte %s",
+  "ui.box.odds": "Chancen: Karte %d %% · Gefährte %d %% · garantiert nach %d Truhen ohne großen Gewinn",
+  "ui.box.pity": "Truhen ohne großen Gewinn: %d von %d",
+  "ui.box.taken": "Belohnung: %s",
+  "ui.end.payout": "Belohnung für die Tiefe: %d Gold · %d Splitter"
  },
  "es": {
   "fmt.damage": "%.0f×%d",
@@ -387,7 +397,17 @@
   "crawler.bellringer.text": "+1 carta en la mano, +1 de maná por turno",
   "crawler.bonecarver.text": "+20 % de daño, +2 % de daño en el área",
   "crawler.tarboy.text": "+2 de armadura al inicio del turno, +12 PV máximos",
-  "crawler.cindernun.text": "+5 PV curado tras el combate, +15 % de daño"
+  "crawler.cindernun.text": "+5 PV curado tras el combate, +15 % de daño",
+  "ui.box.title": "LA CAJA — elige una (1-3):",
+  "ui.box.gold": "+%d de oro",
+  "ui.box.shards": "+%d splitter",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+la carta %s",
+  "ui.box.companion": "+el compañero %s",
+  "ui.box.odds": "probabilidades: carta %d %% · compañero %d %% · garantizado tras %d cajas sin gran premio",
+  "ui.box.pity": "cajas sin gran premio: %d de %d",
+  "ui.box.taken": "recompensa: %s",
+  "ui.end.payout": "recompensa por la profundidad: %d de oro · %d splitter"
  },
  "fr": {
   "fmt.damage": "%.0f×%d",
@@ -582,7 +602,17 @@
   "crawler.bellringer.text": "+1 carte en main, +1 mana par tour",
   "crawler.bonecarver.text": "+20 % dégâts, +2 % dégâts sur la zone",
   "crawler.tarboy.text": "+2 armure au début du tour, +12 PV max",
-  "crawler.cindernun.text": "+5 PV soigné après le combat, +15 % dégâts"
+  "crawler.cindernun.text": "+5 PV soigné après le combat, +15 % dégâts",
+  "ui.box.title": "LA BOÎTE — choisis-en une (1-3):",
+  "ui.box.gold": "+%d or",
+  "ui.box.shards": "+%d splitter",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+la carte %s",
+  "ui.box.companion": "+le compagnon %s",
+  "ui.box.odds": "chances : carte %d %% · compagnon %d %% · garanti après %d boîtes sans grand gain",
+  "ui.box.pity": "boîtes sans grand gain : %d sur %d",
+  "ui.box.taken": "récompense : %s",
+  "ui.end.payout": "récompense pour la profondeur : %d or · %d splitter"
  },
  "it": {
   "fmt.damage": "%.0f×%d",
@@ -777,7 +807,17 @@
   "crawler.bellringer.text": "+1 carta in mano, +1 mana per turno",
   "crawler.bonecarver.text": "+20 % danno, +2 % danno sull'area",
   "crawler.tarboy.text": "+2 armatura a inizio turno, +12 HP massimi",
-  "crawler.cindernun.text": "+5 HP curato dopo lo scontro, +15 % danno"
+  "crawler.cindernun.text": "+5 HP curato dopo lo scontro, +15 % danno",
+  "ui.box.title": "LA CASSA — scegline una (1-3):",
+  "ui.box.gold": "+%d oro",
+  "ui.box.shards": "+%d splitter",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+la carta %s",
+  "ui.box.companion": "+il compagno %s",
+  "ui.box.odds": "probabilità: carta %d %% · compagno %d %% · garantito dopo %d casse senza grande vincita",
+  "ui.box.pity": "casse senza grande vincita: %d di %d",
+  "ui.box.taken": "ricompensa: %s",
+  "ui.end.payout": "ricompensa per la profondità: %d oro · %d splitter"
  },
  "ja": {
   "fmt.damage": "%.0f×%d",
@@ -972,7 +1012,17 @@
   "crawler.bellringer.text": "手札 +1 枚, 毎ターンマナ +1",
   "crawler.bonecarver.text": "ダメージ +20 %, 範囲ダメージ +2 %",
   "crawler.tarboy.text": "ターン開始時に装甲 +2, 最大 HP +12",
-  "crawler.cindernun.text": "戦闘後に HP +5 回復, ダメージ +15 %"
+  "crawler.cindernun.text": "戦闘後に HP +5 回復, ダメージ +15 %",
+  "ui.box.title": "宝箱 — 1つ選べ (1-3):",
+  "ui.box.gold": "+%d ゴールド",
+  "ui.box.shards": "+%d スプリッター",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+カード %s",
+  "ui.box.companion": "+仲間 %s",
+  "ui.box.odds": "確率: カード %d %% · 仲間 %d %% · 大当たりなし %d 個で確定",
+  "ui.box.pity": "大当たりなしの宝箱: %d / %d",
+  "ui.box.taken": "報酬: %s",
+  "ui.end.payout": "深さへの報酬: %d ゴールド · %d スプリッター"
  },
  "ko": {
   "fmt.damage": "%.0f×%d",
@@ -1167,7 +1217,17 @@
   "crawler.bellringer.text": "손패 +1장, 턴마다 마나 +1",
   "crawler.bonecarver.text": "피해 +20 %, 범위 피해 +2 %",
   "crawler.tarboy.text": "턴 시작 시 방어 +2, 최대 HP +12",
-  "crawler.cindernun.text": "전투 후 HP +5 회복, 피해 +15 %"
+  "crawler.cindernun.text": "전투 후 HP +5 회복, 피해 +15 %",
+  "ui.box.title": "상자 — 하나를 고르세요 (1-3):",
+  "ui.box.gold": "+%d 골드",
+  "ui.box.shards": "+%d 스플리터",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+카드 %s",
+  "ui.box.companion": "+동료 %s",
+  "ui.box.odds": "확률: 카드 %d %% · 동료 %d %% · 대박 없이 %d 개 후 확정",
+  "ui.box.pity": "대박 없는 상자: %d / %d",
+  "ui.box.taken": "보상: %s",
+  "ui.end.payout": "깊이에 대한 보상: %d 골드 · %d 스플리터"
  },
  "pl": {
   "fmt.damage": "%.0f×%d",
@@ -1362,7 +1422,17 @@
   "crawler.bellringer.text": "+1 karta w ręce, +1 many na turę",
   "crawler.bonecarver.text": "+20 % obrażeń, +2 % obrażeń na obszar",
   "crawler.tarboy.text": "+2 pancerza na początku tury, +12 maks. HP",
-  "crawler.cindernun.text": "+5 HP uleczone po walce, +15 % obrażeń"
+  "crawler.cindernun.text": "+5 HP uleczone po walce, +15 % obrażeń",
+  "ui.box.title": "SKRZYNIA — wybierz jedną (1-3):",
+  "ui.box.gold": "+%d złota",
+  "ui.box.shards": "+%d splitter",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+karta %s",
+  "ui.box.companion": "+towarzysz %s",
+  "ui.box.odds": "szanse: karta %d %% · towarzysz %d %% · gwarancja po %d skrzyniach bez dużej wygranej",
+  "ui.box.pity": "skrzynie bez dużej wygranej: %d z %d",
+  "ui.box.taken": "nagroda: %s",
+  "ui.end.payout": "nagroda za głębokość: %d złota · %d splitter"
  },
  "pt-BR": {
   "fmt.damage": "%.0f×%d",
@@ -1557,7 +1627,17 @@
   "crawler.bellringer.text": "+1 carta na mão, +1 de mana por turno",
   "crawler.bonecarver.text": "+20 % de dano, +2 % de dano na área",
   "crawler.tarboy.text": "+2 de armadura no início do turno, +12 HP máximo",
-  "crawler.cindernun.text": "+5 HP curado após o combate, +15 % de dano"
+  "crawler.cindernun.text": "+5 HP curado após o combate, +15 % de dano",
+  "ui.box.title": "A CAIXA — escolha uma (1-3):",
+  "ui.box.gold": "+%d de ouro",
+  "ui.box.shards": "+%d splitter",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+a carta %s",
+  "ui.box.companion": "+o companheiro %s",
+  "ui.box.odds": "chances: carta %d %% · companheiro %d %% · garantido após %d caixas sem grande prêmio",
+  "ui.box.pity": "caixas sem grande prêmio: %d de %d",
+  "ui.box.taken": "recompensa: %s",
+  "ui.end.payout": "recompensa pela profundidade: %d de ouro · %d splitter"
  },
  "ru": {
   "fmt.damage": "%.0f×%d",
@@ -1752,7 +1832,17 @@
   "crawler.bellringer.text": "+1 карта в руке, +1 маны за ход",
   "crawler.bonecarver.text": "+20 % урона, +2 % урона по области",
   "crawler.tarboy.text": "+2 брони в начале хода, +12 макс. HP",
-  "crawler.cindernun.text": "+5 HP восстановлено после боя, +15 % урона"
+  "crawler.cindernun.text": "+5 HP восстановлено после боя, +15 % урона",
+  "ui.box.title": "СУНДУК — выбери один (1-3):",
+  "ui.box.gold": "+%d золота",
+  "ui.box.shards": "+%d сплиттер",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+карта %s",
+  "ui.box.companion": "+спутник %s",
+  "ui.box.odds": "шансы: карта %d %% · спутник %d %% · гарантия после %d сундуков без крупного выигрыша",
+  "ui.box.pity": "сундуков без крупного выигрыша: %d из %d",
+  "ui.box.taken": "награда: %s",
+  "ui.end.payout": "награда за глубину: %d золота · %d сплиттер"
  },
  "zh-Hans": {
   "fmt.damage": "%.0f×%d",
@@ -1947,7 +2037,17 @@
   "crawler.bellringer.text": "手牌 +1 张, 每回合法力 +1",
   "crawler.bonecarver.text": "伤害 +20 %, 范围伤害 +2 %",
   "crawler.tarboy.text": "回合开始时护甲 +2, 最大 HP +12",
-  "crawler.cindernun.text": "战斗后回复 +5 HP, 伤害 +15 %"
+  "crawler.cindernun.text": "战斗后回复 +5 HP, 伤害 +15 %",
+  "ui.box.title": "宝箱 — 选一个 (1-3):",
+  "ui.box.gold": "+%d 金币",
+  "ui.box.shards": "+%d 裂片",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+卡牌 %s",
+  "ui.box.companion": "+同伴 %s",
+  "ui.box.odds": "概率: 卡牌 %d %% · 同伴 %d %% · 连续 %d 个无大奖后保底",
+  "ui.box.pity": "无大奖的宝箱: %d / %d",
+  "ui.box.taken": "奖励: %s",
+  "ui.end.payout": "深入奖励: %d 金币 · %d 裂片"
  },
  "zh-Hant": {
   "fmt.damage": "%.0f×%d",
@@ -2142,6 +2242,16 @@
   "crawler.bellringer.text": "手牌 +1 張, 每回合法力 +1",
   "crawler.bonecarver.text": "傷害 +20 %, 範圍傷害 +2 %",
   "crawler.tarboy.text": "回合開始時護甲 +2, 最大 HP +12",
-  "crawler.cindernun.text": "戰鬥後回復 +5 HP, 傷害 +15 %"
+  "crawler.cindernun.text": "戰鬥後回復 +5 HP, 傷害 +15 %",
+  "ui.box.title": "寶箱 — 選一個 (1-3):",
+  "ui.box.gold": "+%d 金幣",
+  "ui.box.shards": "+%d 裂片",
+  "ui.box.gem": "+%s",
+  "ui.box.card": "+卡牌 %s",
+  "ui.box.companion": "+同伴 %s",
+  "ui.box.odds": "機率: 卡牌 %d %% · 同伴 %d %% · 連續 %d 個無大獎後保底",
+  "ui.box.pity": "無大獎的寶箱: %d / %d",
+  "ui.box.taken": "獎勵: %s",
+  "ui.end.payout": "深入獎勵: %d 金幣 · %d 裂片"
  }
 }
