@@ -275,6 +275,10 @@ func _init() -> void:
 		"ui.hud.rust": 1, "ui.hud.kort": 1, "ui.shell.status": 3,
 		"ui.by.status.buy": 1, "ui.by.status.deck": 1, "ui.by.status.unlocked": 2,
 		"ui.map.missing_id": 1,
+		# Kartans stegrad och statusraden. `ui.map.floors` SAKNADES här medan koden formaterade
+		# med två tal: Godot lämnade då strängen oformaterad och spelaren såg "%d våningar"
+		# på kortet — i alla tretton språk. Kontraktet fångar den klassen.
+		"ui.map.floors": 2, "ui.map.step": 4, "ui.end.step": 1,
 		"fmt.damage": 2, "fmt.armor": 1, "fmt.heal": 1, "fmt.mana": 1, "fmt.draw": 1,
 		"fmt.knockback": 1, "fmt.freeze": 1,
 	}

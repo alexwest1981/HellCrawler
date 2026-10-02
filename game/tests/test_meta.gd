@@ -213,6 +213,7 @@ func _initialize() -> void:
 	_crawler_checks()
 	_box_checks()
 	_uppdrag_checks()
+	_steg_checks()
 	_clean()
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
@@ -489,3 +490,55 @@ func _uppdrag_checks() -> void:
 	var rader2 := m2.contracts_claim(rng)
 	check(m2.hired.size() > kamrat_fore, "våningmålet ger en kamrat", str(m2.hired))
 	check(rader2.size() >= 2, "och flera mål kan brista i samma körning", str(rader2))
+
+## Svårighetstrappan (önskemål 24, punkt 4): valet kläms mot det upplåsta, klarat på sitt HÖGSTA steg
+## öppnar nästa, och utbetalningen läser samma tal som kartans rad visar.
+func _steg_checks() -> void:
+	print("")
+	print("— svårighetstrappan (önskemål 24, punkt 4) —")
+	var m := Meta.load_or_new(TEST_PATH + ".steg")
+	m.runs = 0
+	m.kills_total = 0
+	m.floors_total = 0
+	m.steg_max = {}
+	m.steg_valt = {}
+	var order := ["stage_01", "stage_02"]
+	check(m.steg_max_för("stage_01") == 0, "en ospelad bana har bara grundsteget")
+	m.steg_sätt("stage_01", 5)
+	check(m.steg_valt_för("stage_01") == 0, "och valet kläms mot det upplåsta",
+		"valde %d" % m.steg_valt_för("stage_01"))
+	check(m.steg_fiende_faktor("stage_01") == 1.0 and m.steg_guld_faktor("stage_01") == 1.0,
+		"steg 0 rör varken fiender eller guld")
+	# Klarat på sista våningen: nästa steg öppnas.
+	m.note_run("stage_01", 3, 3, order, 0)
+	check(m.steg_upplast == 1 and m.steg_upplast_bana == "stage_01",
+		"klarat på högsta steget öppnar nästa", "steg %d" % m.steg_upplast)
+	check(m.steg_max_för("stage_01") == 1, "och taket står på 1", str(m.steg_max_för("stage_01")))
+	# Att DÖ på ett högre steg öppnar ingenting: trappan reses genom att klara, inte genom att försöka.
+	m.steg_sätt("stage_01", 1)
+	m.note_run("stage_01", 1, 3, order, 0)
+	check(m.steg_upplast == 0 and m.steg_max_för("stage_01") == 1,
+		"en död körning öppnar inget nytt steg", str(m.steg_max_för("stage_01")))
+	# Klarat på steg 0 medan taket står på 1: ingen gratis upplåsning (valet läses, inte taket).
+	m.steg_sätt("stage_01", 0)
+	m.note_run("stage_01", 3, 3, order, 0)
+	check(m.steg_upplast == 0, "och steg 0 öppnar inte nästa steg gratis",
+		"tak %d" % m.steg_max_för("stage_01"))
+	# Faktorerna: samma tal som kartans rad räknar ur.
+	m.steg_sätt("stage_01", 1)
+	check(is_equal_approx(m.steg_fiende_faktor("stage_01"), 1.0 + Meta.STEG_FIENDE),
+		"fiendefaktorn följer steget", "%.2f" % m.steg_fiende_faktor("stage_01"))
+	check(is_equal_approx(m.steg_guld_faktor("stage_01"), 1.0 + Meta.STEG_GULD),
+		"och guldfaktorn likaså", "%.2f" % m.steg_guld_faktor("stage_01"))
+	# Utbetalningen: en körning på ett högre steg betalar mer — samma golv, samma dråp.
+	var utan := m.run_payout(3, 10)
+	var med := m.run_payout(3, 10, "stage_01")
+	check(int(med["gold"]) > int(utan["gold"]), "och körningen betalar mer på ett högre steg",
+		"%d mot %d guld" % [int(med["gold"]), int(utan["gold"])])
+	check(int(m.run_payout(3, 10, "stage_02")["gold"]) == int(utan["gold"]),
+		"medan en annan banas steg inte spiller över", str(utan["gold"]))
+	check(m.save(TEST_PATH), "sparfilen skrivs med trappan")
+	var m2 := Meta.load_or_new(TEST_PATH)
+	check(m2.steg_max_för("stage_01") == 1 and m2.steg_valt_för("stage_01") == 1,
+		"taket och valet överlevde omstarten",
+		"%d/%d" % [m2.steg_valt_för("stage_01"), m2.steg_max_för("stage_01")])

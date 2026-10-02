@@ -335,6 +335,38 @@ func stäng_panel() -> void:
 	_panel = false
 	queue_redraw()
 
+## SVÅRIGHETSTRAPPAN (önskemål 24, punkt 4): vänster/höger i nivåpanelen väljer steg för den nivå panelen
+## står på. Bara upplåsta steg går att välja — metan äger räknarna och klämmer valet, så vyn kan inte
+## råka visa ett steg som inte finns. Sparfilen skrivs direkt: ett val man gjort ska inte tappas för att
+## man stänger spelet i stället för att spela en körning.
+func steg_ändra(n: int) -> int:
+	if _meta == null or not _panel:
+		return 0
+	var l: Array = nivåer(_vald)
+	if _nivå < 0 or _nivå >= l.size():
+		return 0
+	var id := str(l[_nivå])
+	var ny := _meta.steg_sätt(id, _meta.steg_valt_för(id) + n)
+	_meta.save()
+	queue_redraw()
+	return ny
+
+## Steg-raden för den nivå panelen står på (eller nodens första nivå när panelen är stängd). Tom när
+## metan saknas eller nivån inte finns — då ska kortet inte påstå något om svårigheten.
+func steg_text() -> String:
+	if _meta == null:
+		return ""
+	var l: Array = nivåer(_vald)
+	var k: int = _nivå if _panel else 0
+	if k < 0 or k >= l.size():
+		return ""
+	var id := str(l[k])
+	var valt := _meta.steg_valt_för(id)
+	var tak := _meta.steg_max_för(id)
+	return Tr.t("ui.map.step", "trappsteg %d/%d · fiender +%d %% · guld +%d %%") % [valt, tak,
+		int(round(Meta.STEG_FIENDE * float(valt) * 100.0)),
+		int(round(Meta.STEG_GULD * float(valt) * 100.0))]
+
 ## Måttet för en nivårad: samma siffror som `_panel_ruta` ritar ur, så provet kan mäta att raderna
 ## ryms i panelen.
 func nivå_rad(i: int, k: int) -> Rect2:
@@ -856,6 +888,9 @@ func etiketter(vp: Vector2) -> Array:
 		UiText.storlek_som_ryms([rad1], bredd, 9, 12, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(14), bredd,
 		HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
 	var rad2 := "%s · %s" % [Tr.t("ui.map.diff", "sv%d") % int(n["svårighet"]), status_text(_vald)]
+	var steg := steg_text()
+	if not steg.is_empty():
+		rad2 += " · " + steg
 	rader.append(UiText.rad(rad2, Vector2(x0, KORT.position.y + 24.0),
 		UiText.storlek_som_ryms([rad2], bredd, 8, 10, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(8), bredd,
 		HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))

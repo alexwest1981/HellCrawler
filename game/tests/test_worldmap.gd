@@ -256,6 +256,33 @@ func _init() -> void:
 	check(bool(rf["ok"]) and såg == [str(karta.nivåer(0)[0])], "och omkörningen sänder samma bana igen",
 		str(såg))
 
+	# SVÅRIGHETSTRAPPAN (önskemål 24, punkt 4): vyn klämmer valet mot metans tak, och raden säger samma
+	# tal som körningen räknar ur — annars kunde kortet lova något körningen inte gjorde.
+	print("")
+	print("— svårighetstrappan på kartan (önskemål 24, punkt 4) —")
+	v.gå_till(1)
+	v.försök_gå_in(1)
+	var nivå_id := str(karta.nivåer(1)[v.nivå_vald()])
+	meta.steg_max.erase(nivå_id)
+	meta.steg_valt.erase(nivå_id)
+	v.steg_ändra(1)
+	check(meta.steg_valt_för(nivå_id) == 0, "ett steg som inte är upplåst går inte att välja",
+		"valde %d" % meta.steg_valt_för(nivå_id))
+	check(v.steg_text().contains("0/0"), "och raden visar 0/0 för en ospelad bana", v.steg_text())
+	meta.steg_max[nivå_id] = 3
+	v.steg_ändra(1)
+	check(meta.steg_valt_för(nivå_id) == 1, "men ett upplåst steg går att välja",
+		"valde %d" % meta.steg_valt_för(nivå_id))
+	check(v.steg_text().contains("1/3"), "och raden visar valt steg av taket", v.steg_text())
+	check(v.steg_text().contains("+12") and v.steg_text().contains("+30"),
+		"med fiendernas och guldets faktor ur samma tal som körningen använder", v.steg_text())
+	v.steg_ändra(-5)
+	check(meta.steg_valt_för(nivå_id) == 0, "och valet stannar vid golvet",
+		"valde %d" % meta.steg_valt_för(nivå_id))
+	v.steg_ändra(5)
+	check(meta.steg_valt_för(nivå_id) == 3, "och vid taket", "valde %d" % meta.steg_valt_för(nivå_id))
+	v.stäng_panel()
+
 	print("")
 	print("— vinkeln, kameran och kartans ruta —")
 	# Platsen man valt ska hamna i KARTYTAN (ovanför kortet): en nod bakom sitt eget kort syns bara på bild.

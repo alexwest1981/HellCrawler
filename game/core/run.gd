@@ -180,12 +180,17 @@ func _init(p_stage: Stages.StageDef, p_bestiary: Dictionary, p_deck: Array, p_se
 ## Svårighetsgraden: förbannelsen gör fienderna tåligare MEN guldet rikare — samma byteshandel
 ## som referensen. Utan meta är båda faktorerna 1.
 func curse_scale() -> float:
-	return 1.0 + (meta.stat("curse") if meta != null else 0.0)
+	# Svårighetstrappan (önskemål 24, punkt 4) läggs PÅ förbannelsen: samma byteshandel, men per bana
+	# och vald av spelaren. Utan meta (balansmätaren och proven) är båda faktorerna 1.
+	var steg := meta.steg_fiende_faktor(stage.id) if meta != null else 1.0
+	return steg * (1.0 + (meta.stat("curse") if meta != null else 0.0))
 
 func gold_bonus() -> float:
 	# `gold` är ren vinst; `curse` är byteshandeln (tåligare fiender mot mer guld). Två nycklar, för
-	# de är två olika köp i trädet.
-	return 1.0 + stage.gold_bonus + ((meta.stat("curse") + meta.stat("gold")) if meta != null else 0.0)
+	# de är två olika köp i trädet. Trappans steg ligger utanpå båda (önskemål 24, punkt 4).
+	var steg := meta.steg_guld_faktor(stage.id) if meta != null else 1.0
+	return steg * (1.0 + stage.gold_bonus
+		+ ((meta.stat("curse") + meta.stat("gold")) if meta != null else 0.0))
 
 ## En nyckel ur trädet som heltal, 0 utan meta. Raden finns för att de sju nya noderna annars hade
 ## fått var sin `if meta != null`-gren i kistan och i stridsstarten.
@@ -506,7 +511,7 @@ func _finish_with(result: String) -> void:
 	# att mäta på i efterhand och provet kan kräva EXAKT en per körning. Talen är rena — banken rörs av
 	# main, en gång, när körningen är slut (samma regel som kistans fynd). Ingen UI, ingen sparning här.
 	if meta != null:
-		var utbetalning := meta.run_payout(floor_index + 1, kills)
+		var utbetalning := meta.run_payout(floor_index + 1, kills, stage.id)
 		events.append({"type": "run_reward", "floor_reached": floor_index + 1, "kills": kills,
 			"gold": int(utbetalning["gold"]), "shards": int(utbetalning["shards"]),
 			"share": meta.share_of_outcome(outcome)})

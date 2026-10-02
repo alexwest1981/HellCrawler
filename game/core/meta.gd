@@ -12,7 +12,7 @@
 class_name Meta
 extends RefCounted
 
-const SAVE_VERSION := 7
+const SAVE_VERSION := 8
 ## Fotoläget (`-- shot`, `-- skarmar` m.fl.) får en EGEN fil. En skärmbilds- eller demokörning
 ## får aldrig kunna skriva i spelarens profil: mätt innan den här raden fanns gick guldet
 ## 1852 -> 237 av en körning som bara skulle fotografera kartan.
@@ -140,6 +140,8 @@ static func load_or_new(path: String = PATH) -> Meta:
 	m.kills_total = int(parsed.get("kills_total", 0))
 	m.floors_total = int(parsed.get("floors_total", 0))
 	m.uppdrag_kvitterade = parsed.get("uppdrag_kvitterade", [])
+	m.steg_max = parsed.get("steg_max", {})      # svårighetstrappan kom i version 8
+	m.steg_valt = parsed.get("steg_valt", {})
 	if m.unlocked.is_empty():
 		m.unlocked = [FIRST_STAGE]
 	var r = parsed.get("ranks", {})
@@ -564,11 +566,14 @@ const BIG_KINDS := ["card", "companion"]
 
 ## Vad körningen är värd i guld och splitter. REN funktion — ingenting betalas ut här; banken får
 ## talen när körningen tar slut (samma regel som kistans fynd).
-func run_payout(floor_reached: int, kills: int) -> Dictionary:
+## Belöningen för en avslutad körning (önskemål 24): deterministisk, räknad ur djupet och dråpen —
+## ingenting annat. `stage_id` är valfri och lägger på svårighetstrappans guld (steg_guld_faktor), så att
+## en körning på ett högre steg betalar bättre; utan den är faktorn 1.0.
+func run_payout(floor_reached: int, kills: int, stage_id: String = "") -> Dictionary:
 	var d := maxi(0, floor_reached)
-	return {"gold": 40 + 25 * d + 6 * maxi(0, kills), "shards": 1 + int(floor(d / 2.0))}
-
-## Hur stor del av det körningen bar med sig som banken får.
+	var steg := steg_guld_faktor(stage_id) if not stage_id.is_empty() else 1.0
+	return {"gold": int(round((40 + 25 * d + 6 * maxi(0, kills)) * steg)),
+		"shards": int(round((1 + int(floor(d / 2.0))) * steg))}## Hur stor del av det körningen bar med sig som banken får.
 static func share_of_outcome(outcome: String) -> float:
 	return 1.0 if outcome != "dead" else DEATH_SHARE
 
@@ -813,6 +818,42 @@ func contracts_claim(rng: RandomNumberGenerator) -> Array:
 			else contract_text(c))
 	return rader
 
+## --- svårighetstrappan (önskemål 24, punkt 4) ---------------------------------------------------
+##
+## Ett STEG är samma byteshandel som förbannelsen redan gör — fienderna tåligare, guldet rikare — men
+## per bana och valt av spelaren i stället för köpt i trädet. Ett steg låses upp genom att KLARA banan på
+## steget under, så trappan är något man reser, inte något man ställer in. Talen står här och inte i
+## run.gd, för både körningen och kartan ska läsa dem ur samma källa.
+const STEG_FIENDE := 0.12     ## fiendernas hp och skada per steg
+const STEG_GULD := 0.30       ## guldmängden per steg
+const STEG_TAK := 9           ## fler steg än så ryms inte i en rad och behövs inte
+
+var steg_max: Dictionary = {}    ## bana -> högsta UPPÅT LÅSTA steg (0 = bara grunden)
+var steg_valt: Dictionary = {}   ## bana -> steget spelaren valt (kläms mot max när körningen startar)
+## Steget som ÖPPNADES av den senaste note_run: 0 = inget. main läser den för att kunna säga det högt
+## utan att note_run behöver ändra sin retur (den är redan upptagen av nästa banas id).
+var steg_upplast := 0
+var steg_upplast_bana := ""
+
+func steg_max_för(stage_id: String) -> int:
+	return clampi(int(steg_max.get(stage_id, 0)), 0, STEG_TAK)
+
+func steg_valt_för(stage_id: String) -> int:
+	return clampi(int(steg_valt.get(stage_id, 0)), 0, steg_max_för(stage_id))
+
+## Klämmer valet mot det upplåsta. Returnerar det nya valet.
+func steg_sätt(stage_id: String, n: int) -> int:
+	var ny := clampi(n, 0, steg_max_för(stage_id))
+	steg_valt[stage_id] = ny
+	return ny
+
+## Fiendernas och guldets faktor för ett valt steg. 1.0 vid steg 0.
+func steg_fiende_faktor(stage_id: String) -> float:
+	return 1.0 + STEG_FIENDE * steg_valt_för(stage_id)
+
+func steg_guld_faktor(stage_id: String) -> float:
+	return 1.0 + STEG_GULD * steg_valt_för(stage_id)
+
 func crawler_for(id: String) -> Dictionary:
 	for c in crawlers:
 		if str(c.get("id", "")) == id:
@@ -897,6 +938,17 @@ func note_run(stage_id: String, floor_reached: int, last_floor: int, order: Arra
 	# inte per bana. `kills` är en ny parameter med standardvärde, så en äldre anropare inte går sönder.
 	kills_total += maxi(0, kills)
 	floors_total += maxi(0, floor_reached)
+	steg_upplast = 0
+	steg_upplast_bana = ""
+	if floor_reached >= last_floor:
+		# SVÅRIGHETSTRAPPAN (önskemål 24, punkt 4): att klara banan på sitt högsta upplåsta steg öppnar
+		# nästa. Steget man SPELADE på läses ur valet — annars kunde man klara banan på steg 0 och få
+		# steg 5 gratis.
+		var spelat := steg_valt_för(stage_id)
+		if spelat >= steg_max_för(stage_id) and spelat < STEG_TAK:
+			steg_max[stage_id] = spelat + 1
+			steg_upplast = spelat + 1
+			steg_upplast_bana = stage_id
 	if floor_reached > int(best_floor.get(stage_id, 0)):
 		best_floor[stage_id] = floor_reached
 	if floor_reached < last_floor:
@@ -1006,6 +1058,7 @@ func to_dict() -> Dictionary:
 		"shards": shards, "gems": gems.duplicate(true), "gem_slots": gem_slots.duplicate(),
 		"gem_in": gem_in.duplicate(true), "boxar_utan_stor": boxar_utan_stor,
 		"kills_total": kills_total, "floors_total": floors_total,
+		"steg_max": steg_max.duplicate(), "steg_valt": steg_valt.duplicate(),
 		"uppdrag_kvitterade": uppdrag_kvitterade.duplicate(),
 		"crt": crt_på, "musik": musik_på, "korning": korning.duplicate(true)}
 

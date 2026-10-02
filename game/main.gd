@@ -3599,9 +3599,17 @@ func _karta_tangent(key: int) -> bool:
 			if not karta_view.flytta_nivå(1):
 				karta_view.flytta(Vector2i(0, 1))
 		KEY_LEFT, KEY_A:
-			karta_view.flytta(Vector2i(-1, 0))
+			# Nivåpanelen är öppen: vänster/höger väljer TRAPPSTEG (önskemål 24, punkt 4) i stället för
+			# att flytta markören — markören ska stå still medan man väljer nivå.
+			if karta_view.panel_öppen():
+				karta_view.steg_ändra(-1)
+			else:
+				karta_view.flytta(Vector2i(-1, 0))
 		KEY_RIGHT, KEY_D:
-			karta_view.flytta(Vector2i(1, 0))
+			if karta_view.panel_öppen():
+				karta_view.steg_ändra(1)
+			else:
+				karta_view.flytta(Vector2i(1, 0))
 		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
 			var r := karta_view.försök_gå_in()
 			if bool(r["ok"]):
@@ -7551,6 +7559,10 @@ func _end_text() -> String:
 		var s: Stages.StageDef = stages.get(_unlocked_now)
 		var namn := Tr.name_of("stage", _unlocked_now, s.name if s != null else _unlocked_now)
 		slut += "\n\n" + Tr.t("ui.end.unlocked", "NY BANA UPPLÅST: %s") % namn
+	# SVÅRIGHETSTRAPPAN (önskemål 24, punkt 4): klarat på sitt högsta steg = nästa står öppet. Raden står
+	# BARA när något nytt öppnades; annars vore den brus.
+	if meta.steg_upplast > 0:
+		slut += "\n" + Tr.t("ui.end.step", "TRAPPSTEG %d UPPLÅST") % meta.steg_upplast
 	# BELÖNINGEN (önskemål 24): först vad djupet betalade, sedan boxens tre val om den väntar. Oddsen
 	# som visas är bara de STORA utfallen — hela raden hade blivit sjuttio tecken i en 480 px-vy — plus
 	# hur nära garantin man är. Samma tabell som rullningen läser, så siffran kan inte ljuga.
@@ -8116,6 +8128,8 @@ func _after_state_change() -> void:
 				_stage_order, run.kills)
 			if not _unlocked_now.is_empty():
 				print("ny bana upplåst: %s" % _unlocked_now)
+			if meta.steg_upplast > 0:
+				print("trappan: %s steg %d upplåst" % [meta.steg_upplast_bana, meta.steg_upplast])
 			if not meta.save():
 				push_warning("kunde inte spara: %s" % meta.last_error)
 		end_label.text = _end_text()

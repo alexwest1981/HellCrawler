@@ -207,7 +207,11 @@
   "ui.uppdrag.kills": "%d Getötete",
   "ui.uppdrag.floors": "%d Etagen hinab",
   "ui.uppdrag.runs": "%d Läufe",
-  "ui.uppdrag.rad": "Auftrag: %s — %d von %d"
+  "ui.uppdrag.rad": "Auftrag: %s — %d von %d",
+  "ui.map.hint": "← → ↑ ↓ Etage wählen · Enter = hinein · Esc = zurück ins Dorf · im Panel: ← → = Stufe",
+  "ui.map.step": "Stufe %d/%d · Feinde +%d %% · Gold +%d %%",
+  "ui.end.step": "STUFE %d FREIGESCHALTET",
+  "ui.map.floors": "%d/%d Etagen"
  },
  "es": {
   "fmt.damage": "%.0f×%d",
@@ -417,7 +421,11 @@
   "ui.uppdrag.kills": "%d muertos",
   "ui.uppdrag.floors": "%d pisos descendidos",
   "ui.uppdrag.runs": "%d partidas",
-  "ui.uppdrag.rad": "contrato: %s — %d de %d"
+  "ui.uppdrag.rad": "contrato: %s — %d de %d",
+  "ui.map.hint": "← → ↑ ↓ elegir piso · Enter = entrar · Esc = aldea · en el panel: ← → = peldaño",
+  "ui.map.step": "peldaño %d/%d · enemigos +%d %% · oro +%d %%",
+  "ui.end.step": "PELDAÑO %d DESBLOQUEADO",
+  "ui.map.floors": "%d/%d pisos"
  },
  "fr": {
   "fmt.damage": "%.0f×%d",
@@ -627,7 +635,11 @@
   "ui.uppdrag.kills": "%d tués",
   "ui.uppdrag.floors": "%d étages descendus",
   "ui.uppdrag.runs": "%d parties",
-  "ui.uppdrag.rad": "contrat : %s — %d sur %d"
+  "ui.uppdrag.rad": "contrat : %s — %d sur %d",
+  "ui.map.hint": "← → ↑ ↓ choisir un étage · Entrée = entrer · Échap = village · dans le panneau : ← → = palier",
+  "ui.map.step": "palier %d/%d · ennemis +%d %% · or +%d %%",
+  "ui.end.step": "PALIER %d DÉBLOQUÉ",
+  "ui.map.floors": "%d/%d étages"
  },
  "it": {
   "fmt.damage": "%.0f×%d",
@@ -837,7 +849,11 @@
   "ui.uppdrag.kills": "%d uccisi",
   "ui.uppdrag.floors": "%d piani discesi",
   "ui.uppdrag.runs": "%d partite",
-  "ui.uppdrag.rad": "incarico: %s — %d di %d"
+  "ui.uppdrag.rad": "incarico: %s — %d di %d",
+  "ui.map.hint": "← → ↑ ↓ scegli piano · Invio = entra · Esc = villaggio · nel pannello: ← → = gradino",
+  "ui.map.step": "gradino %d/%d · nemici +%d %% · oro +%d %%",
+  "ui.end.step": "GRADINO %d SBLOCCATO",
+  "ui.map.floors": "%d/%d piani"
  },
  "ja": {
   "fmt.damage": "%.0f×%d",
@@ -1047,7 +1063,11 @@
   "ui.uppdrag.kills": "%d 撃破",
   "ui.uppdrag.floors": "%d 階降下",
   "ui.uppdrag.runs": "%d 回の挑戦",
-  "ui.uppdrag.rad": "依頼: %s — %d / %d"
+  "ui.uppdrag.rad": "依頼: %s — %d / %d",
+  "ui.map.hint": "← → ↑ ↓ フロア選択 · Enter = 入る · Esc = 村 · パネル内: ← → = 段階",
+  "ui.map.step": "段階 %d/%d · 敵 +%d %% · ゴールド +%d %%",
+  "ui.end.step": "段階 %d 解放",
+  "ui.map.floors": "%d/%d 階"
  },
  "ko": {
   "fmt.damage": "%.0f×%d",
@@ -1257,7 +1277,11 @@
   "ui.uppdrag.kills": "%d 처치",
   "ui.uppdrag.floors": "%d 층 하강",
   "ui.uppdrag.runs": "%d 회 도전",
-  "ui.uppdrag.rad": "의뢰: %s — %d / %d"
+  "ui.uppdrag.rad": "의뢰: %s — %d / %d",
+  "ui.map.hint": "← → ↑ ↓ 층 선택 · Enter = 입장 · Esc = 마을 · 패널에서: ← → = 단계",
+  "ui.map.step": "단계 %d/%d · 적 +%d %% · 골드 +%d %%",
+  "ui.end.step": "단계 %d 해금",
+  "ui.map.floors": "%d/%d층"
  },
  "pl": {
   "fmt.damage": "%.0f×%d",
@@ -1467,7 +1491,11 @@
   "ui.uppdrag.kills": "%d zabitych",
   "ui.uppdrag.floors": "%d pięter w dół",
   "ui.uppdrag.runs": "%d przebiegów",
-  "ui.uppdrag.rad": "zlecenie: %s — %d z %d"
+  "ui.uppdrag.rad": "zlecenie: %s — %d z %d",
+  "ui.map.hint": "← → ↑ ↓ wybierz piętro · Enter = wejdź · Esc = wioska · w panelu: ← → = stopień",
+  "ui.map.step": "stopień %d/%d · wrogowie +%d %% · złoto +%d %%",
+  "ui.end.step": "STOPIEŃ %d ODBLOKOWANY",
+  "ui.map.floors": "%d/%d pięter"
  },
  "pt-BR": {
   "fmt.damage": "%.0f×%d",
@@ -1677,7 +1705,11 @@
   "ui.uppdrag.kills": "%d mortos",
   "ui.uppdrag.floors": "%d andares descidos",
   "ui.uppdrag.runs": "%d partidas",
-  "ui.uppdrag.rad": "contrato: %s — %d de %d"
+  "ui.uppdrag.rad": "contrato: %s — %d de %d",
+  "ui.map.hint": "← → ↑ ↓ escolher andar · Enter = entrar · Esc = vila · no painel: ← → = degrau",
+  "ui.map.step": "degrau %d/%d · inimigos +%d %% · ouro +%d %%",
+  "ui.end.step": "DEGRAU %d DESBLOQUEADO",
+  "ui.map.floors": "%d/%d andares"
  },
  "ru": {
   "fmt.damage": "%.0f×%d",
@@ -1887,7 +1919,11 @@
   "ui.uppdrag.kills": "%d убитых",
   "ui.uppdrag.floors": "%d этажей вниз",
   "ui.uppdrag.runs": "%d забегов",
-  "ui.uppdrag.rad": "задание: %s — %d из %d"
+  "ui.uppdrag.rad": "задание: %s — %d из %d",
+  "ui.map.hint": "← → ↑ ↓ выбрать этаж · Enter = войти · Esc = деревня · в панели: ← → = ступень",
+  "ui.map.step": "ступень %d/%d · враги +%d %% · золото +%d %%",
+  "ui.end.step": "СТУПЕНЬ %d ОТКРЫТА",
+  "ui.map.floors": "%d/%d этажей"
  },
  "zh-Hans": {
   "fmt.damage": "%.0f×%d",
@@ -2097,7 +2133,11 @@
   "ui.uppdrag.kills": "%d 击杀",
   "ui.uppdrag.floors": "%d 层下行",
   "ui.uppdrag.runs": "%d 次挑战",
-  "ui.uppdrag.rad": "委托: %s — %d / %d"
+  "ui.uppdrag.rad": "委托: %s — %d / %d",
+  "ui.map.hint": "← → ↑ ↓ 选择楼层 · Enter = 进入 · Esc = 村庄 · 面板内: ← → = 阶层",
+  "ui.map.step": "阶层 %d/%d · 敌人 +%d %% · 金币 +%d %%",
+  "ui.end.step": "阶层 %d 解锁",
+  "ui.map.floors": "%d/%d 层"
  },
  "zh-Hant": {
   "fmt.damage": "%.0f×%d",
@@ -2307,6 +2347,10 @@
   "ui.uppdrag.kills": "%d 擊殺",
   "ui.uppdrag.floors": "%d 層下行",
   "ui.uppdrag.runs": "%d 次挑戰",
-  "ui.uppdrag.rad": "委託: %s — %d / %d"
+  "ui.uppdrag.rad": "委託: %s — %d / %d",
+  "ui.map.hint": "← → ↑ ↓ 選擇樓層 · Enter = 進入 · Esc = 村莊 · 面板內: ← → = 階層",
+  "ui.map.step": "階層 %d/%d · 敵人 +%d %% · 金幣 +%d %%",
+  "ui.end.step": "階層 %d 解鎖",
+  "ui.map.floors": "%d/%d 層"
  }
 }
