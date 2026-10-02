@@ -131,10 +131,16 @@ figuren; ett eget `Sprite3D`-lager ritas bara för en fiende som pekar ut en sha
 Provat i `tests/test_fiende_shader.gd` (17 kontroller): lagret skapas ur datan, en fiende utan shader är
 orörd, och provet räknar pixlarna utanför konturen ur texturen med samma radie — 924 px med rök,
 0 px utan utspädning ("standarden gör ingenting").
-Kvar: glans, genomskinlighet, glöd och vågor är inte byggda. Och den kompilerade shadern är ännu inte
-mätt i en RENDERING — provet mäter datavägen och räknar om utspädningen på CPU:n. En skärmbild hade
-krävt en display; spelet självt säger "kör med DISPLAY=:99" och `Xvfb` finns inte installerad på maskinen
-(kräver sudo).
+Kvar: glans, genomskinlighet, glöd och vågor är inte byggda. MÄTT I EN RENDERING nu (det som saknades:
+pixlarna, inte bara datavägen): samma scen och samma fönsterstorlek (941x1030) renderad två gånger, en
+gång med `"shader": "rok"` på ash_maw och en gång utan, skiljer **1693 pixlar (0,175 % av bilden) och
+alla ligger inom en 162x154 px ruta kring fienden** (x 383..544, y 467..620) — ingenting annat i vyn rör
+sig, vilket är hela kravet "en fiende utan shader ser ut precis som i dag". Renderingen kördes på Alex'
+egen skärm (`DISPLAY=:0`, Hyprland/XWayland) eftersom `Xvfb` inte finns installerad; fönstret tog först
+olika höjd två körningar emellan och gav 35 % skillnad — en jämförelse som mätte fönstret, inte shadern.
+Kvar att mäta: hur många av de 1693 pixlarna som ligger UTANFÖR figurens kontur (kräver att figurens ruta
+segmenteras ut); provet räknar 924 px utanför konturen på CPU:n, och en bildmodell kunde inte skilja de
+två klippen åt. Klippen ligger i `docs/skarmbilder/fiende-rok-med.png` och `-utan.png`.
 
 ## 14. GUI:t enligt referensbilden — men korten i handen, inte en action bar
 
