@@ -355,3 +355,28 @@ närmast att brista.
 ## Ordning
 
 M32, M33 (pixeltätheten), M36 (HUD-ramen) och M37 (rörelsen) är KLARA 2026-09-21. Sedan M34 (kortborden och albumet: punkt 8 och 9 — kort i solfjäder, hög av använda kort, dragningshög och albumet) och M35 (attackeffekt och dryckes-kvittering). M39 (intro, splash och startmeny) är KLAR 2026-09-21. M40 (GUI:t enligt referensen: statusblock, logg och fienderuta — punkt 14) är KLAR 2026-09-21. Kartpunkten (M41: Alex' egen 16-bit-karta över helvetet, lätt vinklad med kameran på markeringen, en nod per plats, upp till tio nivåer per nod med grön bock, farmning och en editor där han flyttar noderna) är KLAR 2026-09-21, liksom byn (M42: hans egen bild som by — gaten i mitten leder ut till kartan och EXIT-skylten stänger spelet), och kartan är uppdelad i sektioner där nästa sektion öppnar först när en bana i den förra är klarad (M43). Därefter punkt 13 (fiendernas egna shaders, M38) — den ligger sist för att den rör fiendernas material och därmed kan röra allt som ritar en fiende. Punkt 24 (belöning efter körningen) är undersökt men inte beslutad.
+
+## 25.
+
+Volymetri: dimma, rök, moln, fukt och ljus i luften — att se att luften är där.
+
+**Status:** första skivan KLAR 2026-10-02. Fem undersökningsagenter (Orca, en fråga var) skrev
+`docs/undersokning/vol-01..05` och sammanställningen `vol-00-sammanfattning.md`. Sedan MÄTTES råden i
+spelets egen bild, och rapportens första förslag visade sig göra bilden sämre: att sänka tätheten tar bort
+det som sprider ljuset, så strålen försvinner med diset. Det som blev kvar och som syns:
+
+- Lyktan är en **kägla** (`SpotLight3D`, 68°) i stället för ett klot — ljuset har en riktning.
+- Facklornas **luftglöd** 2,2 → 6,0 och anisotropi 0,35 → 0,60: varje fackla har nu en synlig gloria av
+  ljus i LUFTEN, inte bara en ljus prick, medan väggar och golv är oförändrat läsbara.
+- `volumetric_fog_ambient_inject` 0,25 → 0,10: luften grånar inte längre där inget ljus går.
+- Dammet **skuggas per pixel utan emission** (det var unshaded förut): kornen syns bara där lyktan eller
+  facklorna träffar dem — "rök i ljuset" — och är större än två spel-pixlar så de inte flimrar i CRT:n.
+
+**MÄTT:** 38 686 px (4,0 %) av en 941x1030-bild ändrades, allt inom den 480x270 stora spelvyn, medelljus
+21,5 → 20,4, och en granskning av bilden bekräftar glorian kring facklorna. Jämförelserna ligger i
+`docs/skarmbilder/volymetri-v1-for-mork.png` (första försöket) och `volymetri-v3-fackelgloria.png`.
+
+**Kvar:** lokal dimbank med `FogVolume` (kräver ett fält i bandatat), skuggor på ett urval facklor
+(kostar bildrutor, ska mätas en fackla i taget), `fukt` som nivåegenskap, och en mätning av temporal
+reprojection vid rörelse. Att porta den stilenliga screen-space-tutorialen (Godot 3, utan djup) är inte
+motiverat av någon mätning.

@@ -115,8 +115,13 @@ func _initialize() -> void:
 	# Provet mäter att LJUS_STYRKA NÅR FRAM till ljusen i världen: `_fladdra` skrev över lyktans
 	# energi varje bildruta förut, och då gav den tredje ratten i normalprovet samma bild två
 	# gånger — en ratt som inte når fram ser ut som en ratt som inte gör någon skillnad.
-	var lykta: OmniLight3D = main._lykta
+	# LYKTAN ÄR EN KÄGLA (vol-01/vol-05): typen kontrolleras med flit — den var OmniLight3D och blev
+	# SpotLight3D, och en typad tilldelning mot fel klass fällde hela provet utan en enda FEL-rad.
+	var lykta: SpotLight3D = main._lykta
 	check(lykta != null, "lyktan finns i vyn")
+	if lykta != null:
+		check(lykta.spot_angle > 0.0 and lykta.spot_angle < 90.0,
+			"och lyktan är en kägla med en vinkel", "%.0f grader" % lykta.spot_angle)
 	if lykta != null:
 		var väntat: float = main.LYKTA_ENERGI * main.LJUS_STYRKA
 		check(absf(lykta.light_energy - väntat) < väntat * 0.05,

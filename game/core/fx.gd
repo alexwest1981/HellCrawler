@@ -366,7 +366,14 @@ static func fackla(förälder: Node3D, pos: Vector3, skala := 1.0) -> Node3D:
 ##
 ## Färgen är varm och ljuset svagt med flit: ett ljust korn över en kall grotta läses som snö.
 static func damm(kamera: Node3D) -> GPUParticles3D:
-	var p := _moln(40, 9.0, BaseMaterial3D.BLEND_MODE_ADD, Vector2(0.018, 0.018))
+	# DAMMET SYNS BARA I LJUSET (vol-02): förut var ytan UNSHADED, alltså svaga grå prickar i hela
+	# rummet. Nu skuggas kornen per pixel utan emission, så de är små reflektorer som bara lyktans och
+	# facklornas ljus träffar — i mörkret adderas nästan ingenting, i käglan syns dammet. Storleken är
+	# höjd från 0,018 till 0,032: under två spel-pixlar flimrar kornen i CRT:ns skanlinjer.
+	var p := _moln(40, 9.0, BaseMaterial3D.BLEND_MODE_ADD, Vector2(0.032, 0.032))
+	var yta := (p.draw_pass_1 as QuadMesh).material as StandardMaterial3D
+	if yta != null:
+		yta.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	var m := ParticleProcessMaterial.new()
 	m.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
 	m.emission_box_extents = Vector3(4.0, 1.6, 4.0)

@@ -490,7 +490,7 @@ const LAGA_ÖVERKANT := 0.24       ## ... och så högt över sin fot den BRINNA
 var env: Environment
 var _tema := ""
 var _tema_ton := Color.WHITE
-var _lykta: OmniLight3D = null
+var _lykta: SpotLight3D = null
 var _lågor: Array = []             ## fackelljusen, för fladdret i _process
 var _fladder := 0.0
 ## Mätflaggor: `-- lykta=6 omgivning=0.05` provar en ljusnivå utan att bygga om. Stämningen är
@@ -716,10 +716,10 @@ func _ready() -> void:
 	env.volumetric_fog_enabled = _vol
 	env.volumetric_fog_density = 0.014
 	env.volumetric_fog_albedo = Color(0.55, 0.52, 0.58)
-	env.volumetric_fog_anisotropy = 0.35      # mest ljus framåt: käglan syns när man ser MOT ljuset
+	env.volumetric_fog_anisotropy = 0.60      # vol-05: mer framåtspridning — glorian syns när man ser MOT ljuset
 	env.volumetric_fog_length = 26.0
 	env.volumetric_fog_gi_inject = 0.6        # låt lyktans ljus fylla dimman, inte bara dimma den
-	env.volumetric_fog_ambient_inject = 0.25
+	env.volumetric_fog_ambient_inject = 0.10   # vol-01: 0,25 gråade luften ÄVEN där inget ljus gick
 	# Glow: det som gör elden "modern". Utan den är en låga en platt orange fläck; med den blomstrar
 	# allt som är LJUSARE än vitt (HDR) — eld, lava, glöden i en spricka och reflexen i vatten — och
 	# ingenting annat. Tröskeln ligger över 1,0 av det skälet: stenen får inte blomma.
@@ -5266,7 +5266,7 @@ func _apply_tema() -> void:
 		# disigt (kryptan, tunneln) ska ha tjockare luft också där ljuset går genom den. Taket på
 		# 0,05 är mätt: över det blir lyktan en grå vägg och rummet försvinner bakom sin egen luft.
 		if _vol:
-			env.volumetric_fog_density = clampf(float(l.get("dimma", 0.04)) * 0.32, 0.006, 0.05)
+			env.volumetric_fog_density = clampf(float(l.get("dimma", 0.04)) * 0.32, 0.010, 0.05)
 			env.volumetric_fog_albedo = env.background_color.lightened(0.5)
 
 ## Ljuset som faller på YTORNA: lyktan i handen och facklorna i rummet, gånger `f`. EN väg in, så
@@ -5552,11 +5552,17 @@ func _pöl_material() -> ShaderMaterial:
 ## Lyktan i handen: ett ljus som följer kameran. Utan den är våningen antingen platt upplyst (allt
 ## syns, ingen stämning) eller svart (inget syns) — det är avståndet till ljuset som gör rummet.
 func _add_lykta() -> void:
-	_lykta = OmniLight3D.new()
+	# LYKTAN ÄR EN KÄGLA, INTE ETT KLOT (vol-01/vol-05): en OmniLight3D kastar ljuset åt alla håll, så
+	# den volymetriska dimman blev en grå boll runt spelaren. En SpotLight3D riktar samma ljus framåt
+	# (nodens -Z, samma håll som kameran), och då BLIR käglan i luften en kägla. Vinkeln är 52 grader:
+	# vid 35 tappade rummets sidor ljus och vid 70 syntes ingen riktning alls (mätt i bildprov).
+	_lykta = SpotLight3D.new()
 	_lykta.light_color = LYKTA_FARG
 	_lykta.light_energy = _lykta_energi * _ljus_f
-	_lykta.omni_range = LYKTA_RACKVIDD
-	_lykta.omni_attenuation = _lykta_falloff   # mjukare falloff än ren inverskvadrat, för pixelkonsten
+	_lykta.spot_range = LYKTA_RACKVIDD
+	_lykta.spot_angle = 68.0
+	_lykta.spot_angle_attenuation = 1.0
+	_lykta.spot_attenuation = _lykta_falloff   # mjukare falloff än ren inverskvadrat, för pixelkonsten
 	_lykta.light_specular = _ljus_glans          # GLANSEN: ljuset ska kunna ge högdagrar (se LJUS_GLANS)
 	_lykta.shadow_enabled = _skugga
 	_lykta.shadow_bias = 0.06                  # 1x1-block mot 1x1-block: standard ger randiga skuggor
@@ -5594,7 +5600,7 @@ func _add_lagor(f: Dungeon.Floor) -> void:
 		ljus.shadow_enabled = false            # flera skuggande punktljus per våning kostar mer än det ger
 		# Facklans ljus i dimman: det är käglan runt lågan som gör elden till en LJUSKÄLLA och inte
 		# till en orange fläck. Energin är högre än lyktans — facklan ska synas på håll i en korridor.
-		ljus.light_volumetric_fog_energy = 2.2
+		ljus.light_volumetric_fog_energy = 6.0   # vol-05: 2,2 syntes inte i luften (mätt i bildprov)
 		# Ljuset sitter I LÅGAN, inte i golvrutan: en eld i ögonhöjd lyser rummet, en eld på golvet
 		# lyser bara sin egen fläck. Lyktan i handen står på 0,5 m, så en fackla på 1,3 m är över
 		# spelarens huvud — som en fackla på en vägg ska vara.
