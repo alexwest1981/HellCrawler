@@ -12,7 +12,7 @@
 class_name Meta
 extends RefCounted
 
-const SAVE_VERSION := 6
+const SAVE_VERSION := 7
 ## Fotoläget (`-- shot`, `-- skarmar` m.fl.) får en EGEN fil. En skärmbilds- eller demokörning
 ## får aldrig kunna skriva i spelarens profil: mätt innan den här raden fanns gick guldet
 ## 1852 -> 237 av en körning som bara skulle fotografera kartan.
@@ -51,6 +51,11 @@ var best_floor: Dictionary = {}   ## bana -> högsta våning man nått (1-basera
 var runs := 0                     ## avslutade körningar, för byn och framtida prestationer
 ## Boxar utan stor vinst i rad (önskemål 24). Garantin: efter BOX_GARANTI tvingas en fram.
 var boxar_utan_stor := 0
+## Räknarna för EFTERLYSNINGARNA (önskemål 24, punkt 3): mål över flera körningar. De bor i sparfilen
+## av samma skäl som guldet — ett mål som bara levde i minnet skulle aldrig kunna brista ut.
+var kills_total := 0
+var floors_total := 0
+var uppdrag_kvitterade: Array = []   ## id:n för de mål som redan betalats ut
 var hired: Array = []             ## hyrda kamrater (samma id som deras kort i data/cards)
 ## Den PERMANENTA kortsamlingen (M45): kort man vunnit av en boss. Id:n, inte kortobjekt, av samma
 ## skäl som allt annat i sparfilen — datat kan ändras utan att filen börjar ljuga. Samlingen är
@@ -130,6 +135,11 @@ static func load_or_new(path: String = PATH) -> Meta:
 	# Boxens garanti kom i version 6 (önskemål 24). En äldre fil har inga boxar räknade, och noll
 	# boxar utan stor vinst är samma sak som en ny spelare.
 	m.boxar_utan_stor = int(parsed.get("boxar_utan_stor", 0))
+	# Räknarna och de kvitterade målen kom i version 7 (önskemål 24, punkt 3). En äldre fil har inte
+	# räknat dråp och våningar; noll är samma sak som en ny spelare, och målen brister ut när de nås.
+	m.kills_total = int(parsed.get("kills_total", 0))
+	m.floors_total = int(parsed.get("floors_total", 0))
+	m.uppdrag_kvitterade = parsed.get("uppdrag_kvitterade", [])
 	if m.unlocked.is_empty():
 		m.unlocked = [FIRST_STAGE]
 	var r = parsed.get("ranks", {})
@@ -712,6 +722,97 @@ func box_pay(val: Dictionary) -> String:
 			return Tr.t("ui.box.companion", "+kamraten %s") % Tr.name_of("crawler", cid, cid)
 	return ""
 
+## --- efterlysningarna (önskemål 24, punkt 3) ---------------------------------------------------
+##
+## Mål över FLERA körningar: räknarna (kills_total, floors_total, runs) bor i sparfilen, och målen står
+## här i stället för i en datafil — texten byggs ur talen och behöver bara sex ord översatta
+## (ui.uppdrag.*). Ett mål brister ut EN gång: id:t skrivs till `uppdrag_kvitterade`, så en gammal
+## körning inte kan betala ut samma mål igen.
+const CONTRACTS := [
+	{"id": "drap_50", "kind": "kills", "goal": 50, "gold": 150},
+	{"id": "vaning_25", "kind": "floors", "goal": 25, "gold": 300},
+	{"id": "drap_200", "kind": "kills", "goal": 200, "shards": 5},
+	{"id": "korningar_10", "kind": "runs", "goal": 10, "shards": 4},
+	{"id": "vaning_60", "kind": "floors", "goal": 60, "shards": 8, "companion": true},
+]
+
+## Målets namn som spelaren ser det: talet kommer ur målet, ordet ur översättningen.
+func contract_text(c: Dictionary) -> String:
+	var goal := int(c.get("goal", 0))
+	match str(c.get("kind", "")):
+		"kills":
+			return Tr.t("ui.uppdrag.kills", "%d dråp") % goal
+		"floors":
+			return Tr.t("ui.uppdrag.floors", "%d våningar ned") % goal
+		"runs":
+			return Tr.t("ui.uppdrag.runs", "%d körningar") % goal
+	return str(c.get("id", ""))
+
+## Nuläget för ett mål. `value` kommer ur räknarna — aldrig ur en pågående körning.
+func contract_value(kind: String) -> int:
+	match kind:
+		"kills":
+			return kills_total
+		"floors":
+			return floors_total
+		"runs":
+			return runs
+	return 0
+
+## Alla mål med nuläge och om de är kvitterade. Panelen ritar ur den här listan.
+func contract_progress() -> Array:
+	var ut := []
+	for c in CONTRACTS:
+		var kind := str(c.get("kind", ""))
+		ut.append({"id": str(c.get("id", "")), "kind": kind, "goal": int(c.get("goal", 0)),
+			"value": contract_value(kind), "done": uppdrag_kvitterade.has(str(c.get("id", ""))),
+			"text": contract_text(c)})
+	return ut
+
+## Målet som är NÄRMAST att brista (störst andel avklarat), eller en tom ordbok om alla är kvitterade.
+func contract_next() -> Dictionary:
+	var bästa := {}
+	var bästa_andel := -1.0
+	for raden in contract_progress():
+		if bool(raden["done"]) or int(raden["goal"]) <= 0:
+			continue
+		var andel := float(raden["value"]) / float(raden["goal"])
+		if andel > bästa_andel:
+			bästa_andel = andel
+			bästa = raden
+	return bästa
+
+## Kvitterar varje mål som nåtts och inte redan är taget. Svarar med raderna som ska loggas — tom lista
+## när ingenting nytt brast ut. Sparfilen skrivs av anroparen (den vet när körningen är över).
+func contracts_claim(rng: RandomNumberGenerator) -> Array:
+	var rader := []
+	for c in CONTRACTS:
+		var id := str(c.get("id", ""))
+		if uppdrag_kvitterade.has(id):
+			continue
+		if contract_value(str(c.get("kind", ""))) < int(c.get("goal", 0)):
+			continue
+		uppdrag_kvitterade.append(id)
+		var delar := []
+		var guld := int(c.get("gold", 0))
+		if guld > 0:
+			gold += guld
+			delar.append(Tr.t("ui.box.gold", "+%d guld") % guld)
+		var splitter := int(c.get("shards", 0))
+		if splitter > 0:
+			shards += splitter
+			delar.append(Tr.t("ui.box.shards", "+%d splitter") % splitter)
+		if bool(c.get("companion", false)):
+			var kamrat := _box_companion(rng)
+			if not kamrat.is_empty():
+				if not hired.has(kamrat):
+					hired.append(kamrat)
+				delar.append(Tr.t("ui.box.companion", "+kamraten %s")
+					% Tr.name_of("crawler", kamrat, kamrat))
+		rader.append("%s: %s" % [contract_text(c), ", ".join(delar)] if not delar.is_empty()
+			else contract_text(c))
+	return rader
+
 func crawler_for(id: String) -> Dictionary:
 	for c in crawlers:
 		if str(c.get("id", "")) == id:
@@ -789,8 +890,13 @@ func unlock(stage_id: String) -> bool:
 ## Körningen är slut: skriv ner hur långt man kom och lås upp nästa bana om man nådde sista
 ## våningen. `order` är ban-id i svårighetsordning — nästa bana är nästa i den listan, så
 ## upplåsningen följer samma ordning som kartan visar. Returnerar den nyupplåsta banan, annars "".
-func note_run(stage_id: String, floor_reached: int, last_floor: int, order: Array) -> String:
+func note_run(stage_id: String, floor_reached: int, last_floor: int, order: Array,
+		kills: int = 0) -> String:
 	runs += 1
+	# Efterlysningarnas räknare (önskemål 24, punkt 3): dråp och våningar summeras över ALLA körningar,
+	# inte per bana. `kills` är en ny parameter med standardvärde, så en äldre anropare inte går sönder.
+	kills_total += maxi(0, kills)
+	floors_total += maxi(0, floor_reached)
 	if floor_reached > int(best_floor.get(stage_id, 0)):
 		best_floor[stage_id] = floor_reached
 	if floor_reached < last_floor:
@@ -899,6 +1005,8 @@ func to_dict() -> Dictionary:
 		"samling": samling.duplicate(),
 		"shards": shards, "gems": gems.duplicate(true), "gem_slots": gem_slots.duplicate(),
 		"gem_in": gem_in.duplicate(true), "boxar_utan_stor": boxar_utan_stor,
+		"kills_total": kills_total, "floors_total": floors_total,
+		"uppdrag_kvitterade": uppdrag_kvitterade.duplicate(),
 		"crt": crt_på, "musik": musik_på, "korning": korning.duplicate(true)}
 
 func save(path: String = PATH) -> bool:

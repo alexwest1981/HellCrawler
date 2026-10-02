@@ -530,6 +530,11 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.box.pity": "boxar utan stor vinst: %d av %d",
         "ui.box.taken": "belöningen: %s",
         "ui.end.payout": "belöning för djupet: %d guld · %d splitter",
+        "ui.uppdrag.title": "EFTERLYSNING KLAR:",
+        "ui.uppdrag.kills": "%d dråp",
+        "ui.uppdrag.floors": "%d våningar ned",
+        "ui.uppdrag.runs": "%d körningar",
+        "ui.uppdrag.rad": "efterlysning: %s — %d av %d",
     },
     "en": {
         "ui.by.hint": "← → pick a place · Enter = go in · L = language · Q = quit · I = album",
@@ -601,6 +606,11 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.box.pity": "boxes with no big win: %d of %d",
         "ui.box.taken": "reward: %s",
         "ui.end.payout": "reward for depth: %d gold · %d splitter",
+        "ui.uppdrag.title": "CONTRACT COMPLETE:",
+        "ui.uppdrag.kills": "%d kills",
+        "ui.uppdrag.floors": "%d floors down",
+        "ui.uppdrag.runs": "%d runs",
+        "ui.uppdrag.rad": "contract: %s — %d of %d",
     },
     "de": {
         "ui.by.hint": "← → Ort wählen · Enter = hinein · L = Sprache · Q = beenden · I = Album",

@@ -212,6 +212,7 @@ func _initialize() -> void:
 	_tree_checks()
 	_crawler_checks()
 	_box_checks()
+	_uppdrag_checks()
 	_clean()
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
@@ -440,3 +441,51 @@ func _box_checks() -> void:
 	var m2 := Meta.load_or_new(TEST_PATH)
 	check(m2.boxar_utan_stor == 7, "och räknaren överlevde omstarten", str(m2.boxar_utan_stor))
 
+
+## Efterlysningarna (önskemål 24, punkt 3): räknarna summeras över körningar, och ett mål brister ut
+## EXAKT en gång — även efter en omstart av spelet, för annars kunde samma mål betalas varje gång.
+func _uppdrag_checks() -> void:
+	print("")
+	print("— efterlysningarna över flera körningar (önskemål 24, punkt 3) —")
+	var m := Meta.load_or_new(TEST_PATH + ".uppdrag")
+	m.gold = 0
+	m.shards = 0
+	m.runs = 0
+	m.kills_total = 0
+	m.floors_total = 0
+	m.uppdrag_kvitterade = []
+	m.hired = []
+	var order := ["stage_01", "stage_02"]
+	m.note_run("stage_01", 3, 5, order, 20)
+	m.note_run("stage_01", 4, 5, order, 35)
+	check(m.kills_total == 55, "dråpen summeras över körningar", str(m.kills_total))
+	check(m.floors_total == 7, "och våningarna likaså", str(m.floors_total))
+	check(m.runs == 2, "körningarna räknas", str(m.runs))
+	var prog := m.contract_progress()
+	check(prog.size() == Meta.CONTRACTS.size(), "varje mål har ett nuläge", "%d mål" % prog.size())
+	var nasta := m.contract_next()
+	check(not nasta.is_empty() and str(nasta["id"]) == "drap_50",
+		"det närmaste målet är det längst hunna", str(nasta.get("id", "")))
+	# 50 av 50 dråp: målet brister ut, betalas, och kan inte betalas igen.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var guld_fore := m.gold
+	var rader := m.contracts_claim(rng)
+	check(rader.size() == 1, "ett mål brast ut", str(rader))
+	check(m.gold == guld_fore + 150, "och dess guld betalades", "%d -> %d" % [guld_fore, m.gold])
+	check(m.uppdrag_kvitterade.has("drap_50"), "målet är kvitterat", str(m.uppdrag_kvitterade))
+	check(m.contracts_claim(rng).is_empty(), "och det betalas inte ut igen")
+	check(m.gold == guld_fore + 150, "guldet står still vid ett andra försök", "%d guld" % m.gold)
+	check(m.save(TEST_PATH), "sparfilen skrivs med efterlysningarna")
+	var m2 := Meta.load_or_new(TEST_PATH)
+	check(m2.kills_total == 55 and m2.floors_total == 7, "räknarna överlevde omstarten",
+		"%d dråp, %d våningar" % [m2.kills_total, m2.floors_total])
+	check(m2.uppdrag_kvitterade.has("drap_50"), "och kvitteringen likaså", str(m2.uppdrag_kvitterade))
+	check(m2.contracts_claim(rng).is_empty(), "så ett kvitterat mål betalas inte ut efter en omstart")
+	# Kamratmålet (60 våningar) ger en kamrat som ännu inte är hyrd, och flera mål kan brista på en gång.
+	m2.floors_total = 60
+	m2.uppdrag_kvitterade = []
+	var kamrat_fore := m2.hired.size()
+	var rader2 := m2.contracts_claim(rng)
+	check(m2.hired.size() > kamrat_fore, "våningmålet ger en kamrat", str(m2.hired))
+	check(rader2.size() >= 2, "och flera mål kan brista i samma körning", str(rader2))

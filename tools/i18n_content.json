@@ -202,7 +202,12 @@
   "ui.box.odds": "Chancen: Karte %d %% · Gefährte %d %% · garantiert nach %d Truhen ohne großen Gewinn",
   "ui.box.pity": "Truhen ohne großen Gewinn: %d von %d",
   "ui.box.taken": "Belohnung: %s",
-  "ui.end.payout": "Belohnung für die Tiefe: %d Gold · %d Splitter"
+  "ui.end.payout": "Belohnung für die Tiefe: %d Gold · %d Splitter",
+  "ui.uppdrag.title": "AUFTRAG ERFÜLLT:",
+  "ui.uppdrag.kills": "%d Getötete",
+  "ui.uppdrag.floors": "%d Etagen hinab",
+  "ui.uppdrag.runs": "%d Läufe",
+  "ui.uppdrag.rad": "Auftrag: %s — %d von %d"
  },
  "es": {
   "fmt.damage": "%.0f×%d",
@@ -407,7 +412,12 @@
   "ui.box.odds": "probabilidades: carta %d %% · compañero %d %% · garantizado tras %d cajas sin gran premio",
   "ui.box.pity": "cajas sin gran premio: %d de %d",
   "ui.box.taken": "recompensa: %s",
-  "ui.end.payout": "recompensa por la profundidad: %d de oro · %d splitter"
+  "ui.end.payout": "recompensa por la profundidad: %d de oro · %d splitter",
+  "ui.uppdrag.title": "CONTRATO COMPLETADO:",
+  "ui.uppdrag.kills": "%d muertos",
+  "ui.uppdrag.floors": "%d pisos descendidos",
+  "ui.uppdrag.runs": "%d partidas",
+  "ui.uppdrag.rad": "contrato: %s — %d de %d"
  },
  "fr": {
   "fmt.damage": "%.0f×%d",
@@ -612,7 +622,12 @@
   "ui.box.odds": "chances : carte %d %% · compagnon %d %% · garanti après %d boîtes sans grand gain",
   "ui.box.pity": "boîtes sans grand gain : %d sur %d",
   "ui.box.taken": "récompense : %s",
-  "ui.end.payout": "récompense pour la profondeur : %d or · %d splitter"
+  "ui.end.payout": "récompense pour la profondeur : %d or · %d splitter",
+  "ui.uppdrag.title": "CONTRAT REMPLI :",
+  "ui.uppdrag.kills": "%d tués",
+  "ui.uppdrag.floors": "%d étages descendus",
+  "ui.uppdrag.runs": "%d parties",
+  "ui.uppdrag.rad": "contrat : %s — %d sur %d"
  },
  "it": {
   "fmt.damage": "%.0f×%d",
@@ -817,7 +832,12 @@
   "ui.box.odds": "probabilità: carta %d %% · compagno %d %% · garantito dopo %d casse senza grande vincita",
   "ui.box.pity": "casse senza grande vincita: %d di %d",
   "ui.box.taken": "ricompensa: %s",
-  "ui.end.payout": "ricompensa per la profondità: %d oro · %d splitter"
+  "ui.end.payout": "ricompensa per la profondità: %d oro · %d splitter",
+  "ui.uppdrag.title": "INCARICO COMPLETO:",
+  "ui.uppdrag.kills": "%d uccisi",
+  "ui.uppdrag.floors": "%d piani discesi",
+  "ui.uppdrag.runs": "%d partite",
+  "ui.uppdrag.rad": "incarico: %s — %d di %d"
  },
  "ja": {
   "fmt.damage": "%.0f×%d",
@@ -1022,7 +1042,12 @@
   "ui.box.odds": "確率: カード %d %% · 仲間 %d %% · 大当たりなし %d 個で確定",
   "ui.box.pity": "大当たりなしの宝箱: %d / %d",
   "ui.box.taken": "報酬: %s",
-  "ui.end.payout": "深さへの報酬: %d ゴールド · %d スプリッター"
+  "ui.end.payout": "深さへの報酬: %d ゴールド · %d スプリッター",
+  "ui.uppdrag.title": "依頼達成:",
+  "ui.uppdrag.kills": "%d 撃破",
+  "ui.uppdrag.floors": "%d 階降下",
+  "ui.uppdrag.runs": "%d 回の挑戦",
+  "ui.uppdrag.rad": "依頼: %s — %d / %d"
  },
  "ko": {
   "fmt.damage": "%.0f×%d",
@@ -1227,7 +1252,12 @@
   "ui.box.odds": "확률: 카드 %d %% · 동료 %d %% · 대박 없이 %d 개 후 확정",
   "ui.box.pity": "대박 없는 상자: %d / %d",
   "ui.box.taken": "보상: %s",
-  "ui.end.payout": "깊이에 대한 보상: %d 골드 · %d 스플리터"
+  "ui.end.payout": "깊이에 대한 보상: %d 골드 · %d 스플리터",
+  "ui.uppdrag.title": "의뢰 완료:",
+  "ui.uppdrag.kills": "%d 처치",
+  "ui.uppdrag.floors": "%d 층 하강",
+  "ui.uppdrag.runs": "%d 회 도전",
+  "ui.uppdrag.rad": "의뢰: %s — %d / %d"
  },
  "pl": {
   "fmt.damage": "%.0f×%d",
@@ -1432,7 +1462,12 @@
   "ui.box.odds": "szanse: karta %d %% · towarzysz %d %% · gwarancja po %d skrzyniach bez dużej wygranej",
   "ui.box.pity": "skrzynie bez dużej wygranej: %d z %d",
   "ui.box.taken": "nagroda: %s",
-  "ui.end.payout": "nagroda za głębokość: %d złota · %d splitter"
+  "ui.end.payout": "nagroda za głębokość: %d złota · %d splitter",
+  "ui.uppdrag.title": "ZLECENIE UKOŃCZONE:",
+  "ui.uppdrag.kills": "%d zabitych",
+  "ui.uppdrag.floors": "%d pięter w dół",
+  "ui.uppdrag.runs": "%d przebiegów",
+  "ui.uppdrag.rad": "zlecenie: %s — %d z %d"
  },
  "pt-BR": {
   "fmt.damage": "%.0f×%d",
@@ -1637,7 +1672,12 @@
   "ui.box.odds": "chances: carta %d %% · companheiro %d %% · garantido após %d caixas sem grande prêmio",
   "ui.box.pity": "caixas sem grande prêmio: %d de %d",
   "ui.box.taken": "recompensa: %s",
-  "ui.end.payout": "recompensa pela profundidade: %d de ouro · %d splitter"
+  "ui.end.payout": "recompensa pela profundidade: %d de ouro · %d splitter",
+  "ui.uppdrag.title": "CONTRATO CONCLUÍDO:",
+  "ui.uppdrag.kills": "%d mortos",
+  "ui.uppdrag.floors": "%d andares descidos",
+  "ui.uppdrag.runs": "%d partidas",
+  "ui.uppdrag.rad": "contrato: %s — %d de %d"
  },
  "ru": {
   "fmt.damage": "%.0f×%d",
@@ -1842,7 +1882,12 @@
   "ui.box.odds": "шансы: карта %d %% · спутник %d %% · гарантия после %d сундуков без крупного выигрыша",
   "ui.box.pity": "сундуков без крупного выигрыша: %d из %d",
   "ui.box.taken": "награда: %s",
-  "ui.end.payout": "награда за глубину: %d золота · %d сплиттер"
+  "ui.end.payout": "награда за глубину: %d золота · %d сплиттер",
+  "ui.uppdrag.title": "ЗАДАНИЕ ВЫПОЛНЕНО:",
+  "ui.uppdrag.kills": "%d убитых",
+  "ui.uppdrag.floors": "%d этажей вниз",
+  "ui.uppdrag.runs": "%d забегов",
+  "ui.uppdrag.rad": "задание: %s — %d из %d"
  },
  "zh-Hans": {
   "fmt.damage": "%.0f×%d",
@@ -2047,7 +2092,12 @@
   "ui.box.odds": "概率: 卡牌 %d %% · 同伴 %d %% · 连续 %d 个无大奖后保底",
   "ui.box.pity": "无大奖的宝箱: %d / %d",
   "ui.box.taken": "奖励: %s",
-  "ui.end.payout": "深入奖励: %d 金币 · %d 裂片"
+  "ui.end.payout": "深入奖励: %d 金币 · %d 裂片",
+  "ui.uppdrag.title": "委托完成:",
+  "ui.uppdrag.kills": "%d 击杀",
+  "ui.uppdrag.floors": "%d 层下行",
+  "ui.uppdrag.runs": "%d 次挑战",
+  "ui.uppdrag.rad": "委托: %s — %d / %d"
  },
  "zh-Hant": {
   "fmt.damage": "%.0f×%d",
@@ -2252,6 +2302,11 @@
   "ui.box.odds": "機率: 卡牌 %d %% · 同伴 %d %% · 連續 %d 個無大獎後保底",
   "ui.box.pity": "無大獎的寶箱: %d / %d",
   "ui.box.taken": "獎勵: %s",
-  "ui.end.payout": "深入獎勵: %d 金幣 · %d 裂片"
+  "ui.end.payout": "深入獎勵: %d 金幣 · %d 裂片",
+  "ui.uppdrag.title": "委託完成:",
+  "ui.uppdrag.kills": "%d 擊殺",
+  "ui.uppdrag.floors": "%d 層下行",
+  "ui.uppdrag.runs": "%d 次挑戰",
+  "ui.uppdrag.rad": "委託: %s — %d / %d"
  }
 }

@@ -318,6 +318,11 @@ func _initialize() -> void:
 	check(main._box_best_index() == 1, "en ospelad box tar det BÄSTA valet",
 		"index %d" % main._box_best_index())
 	main._box_val = []
+	# Efterlysningarna (önskemål 24, punkt 3): raden ska stå på slutskärmen — antingen en som brast
+	# ut, eller den som är närmast. En trasig formatsträng syntes inte i texten förrän här.
+	check(main.end_label.text.contains("efterlysning") or main.end_label.text.contains("EFTERLYSNING"),
+		"slutskärmen visar efterlysningen",
+		main.end_label.text.substr(0, 60).replace("\n", " / "))
 
 	print("")
 	print("— %d kontroller, %d fel —" % [checks, fails])

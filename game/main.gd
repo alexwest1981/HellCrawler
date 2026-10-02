@@ -127,6 +127,8 @@ var _banked := false
 ## besvarad. Tom lista = ingen box väntar (den rullas en gång, i _after_state_change).
 var _box_val: Array = []
 var _box_logg := ""
+## Raderna för de efterlysningar som brast ut när körningen tog slut (önskemål 24, punkt 3).
+var _uppdrag_rader: Array = []
 var _enemies: Array = []        ## [{spr, y, fas, hp, läge, läge_t}] — figurerna i rummet, animerade i _process
 
 # Rutorna i fiendebilden (tools/gen_enemy_art.py), i den ordning de ligger i PNG:n. Siffrorna står
@@ -4255,6 +4257,7 @@ func _start_run(stage_id: String, seed_value: int, start_floor: int = 0) -> void
 	active_combat = null
 	last_events = 0
 	_banked = false               # guldet från FÖRRA körningen är redan in i banken
+	_uppdrag_rader = []           # efterlysningarna hör till förra körningen
 	end_panel.visible = false
 	battle_panel.visible = false
 	draft_panel.visible = false
@@ -7569,6 +7572,17 @@ func _end_text() -> String:
 			meta.boxar_utan_stor, Meta.BOX_GUARANTEE]
 	elif not _box_logg.is_empty():
 		slut += "\n" + Tr.t("ui.box.taken", "belöningen: %s") % _box_logg
+	# EFTERLYSNINGARNA (önskemål 24, punkt 3): de som brast ut i den här körningen står först, annars
+	# den som är närmast — en rad, för vyn är 270 px hög och panelen har redan boxen.
+	if not _uppdrag_rader.is_empty():
+		slut += "\n\n" + Tr.t("ui.uppdrag.title", "EFTERLYSNING KLAR:")
+		for rad in _uppdrag_rader:
+			slut += "\n  " + str(rad)
+	else:
+		var nasta := meta.contract_next()
+		if not nasta.is_empty():
+			slut += "\n" + Tr.t("ui.uppdrag.rad", "efterlysning: %s — %d av %d") % [
+				str(nasta["text"]), int(nasta["value"]), int(nasta["goal"])]
 	return "%s\n\n%s\n\n%s" % [slut,
 		Tr.t("ui.end.hint", "T = tillbaka till byn · R = samma bana igen"),
 		Tr.t("ui.settings.language_hint", "L = byt språk (%s)") % Tr.name_of_code(Tr.lang)]
@@ -8089,11 +8103,17 @@ func _after_state_change() -> void:
 					rng = RandomNumberGenerator.new()
 				_box_val = meta.roll_box(run.floor_index + 1, rng, run.card_db)
 				_box_logg = ""
+				# EFTERLYSNINGARNA (önskemål 24, punkt 3) kvitteras EFTER note_run, så räknarna har
+				# körningen inräknad — annars brast ett mål ut en körning för sent. Raderna sparas för
+				# slutskärmen: ett mål som brast ut får inte försvinna i en logg man inte läser.
+				_uppdrag_rader = meta.contracts_claim(rng)
+				for rad in _uppdrag_rader:
+					print("efterlysning klar: %s" % rad)
 			# Banan är slut: skriv ner hur långt man kom, och lås upp nästa bana om man nådde sista
 			# våningen. Regeln är referensens — att NÅ sista våningen är att klara banan (Pale Reaper
 			# dödar dig där), så "klar" betyder "kom dit", inte "överlevde".
 			_unlocked_now = meta.note_run(run.stage.id, run.floor_index + 1, run.stage.floors,
-				_stage_order)
+				_stage_order, run.kills)
 			if not _unlocked_now.is_empty():
 				print("ny bana upplåst: %s" % _unlocked_now)
 			if not meta.save():
