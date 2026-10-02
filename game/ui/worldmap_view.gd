@@ -351,6 +351,35 @@ func steg_ändra(n: int) -> int:
 	queue_redraw()
 	return ny
 
+## VADSLAGNINGEN (önskemål 24, punkt 7): V vrider 0 -> 25 % -> 50 % av banken för den nivå panelen står
+## på, och sparar valet direkt (samma regel som steget). Insatsen i guld räknas ur BANKEN, så raden och
+## körningen säger samma summa.
+func vad_vrid() -> float:
+	if _meta == null or not _panel:
+		return 0.0
+	var l: Array = nivåer(_vald)
+	if _nivå < 0 or _nivå >= l.size():
+		return 0.0
+	var id := str(l[_nivå])
+	var ny := _meta.vad_vrid(id)
+	_meta.save()
+	queue_redraw()
+	return ny
+
+## Raden för vadet, eller "" när inget är satsat (då ska kortet inte nämna det).
+func vad_text() -> String:
+	if _meta == null:
+		return ""
+	var l: Array = nivåer(_vald)
+	var k: int = _nivå if _panel else 0
+	if k < 0 or k >= l.size():
+		return ""
+	var id := str(l[k])
+	var insats := _meta.vad_insats(id)
+	if insats <= 0:
+		return ""
+	return Tr.t("ui.map.wager", "vad: %d guld (2x om du klarar banan)") % insats
+
 ## Steg-raden för den nivå panelen står på (eller nodens första nivå när panelen är stängd). Tom när
 ## metan saknas eller nivån inte finns — då ska kortet inte påstå något om svårigheten.
 func steg_text() -> String:
@@ -891,6 +920,9 @@ func etiketter(vp: Vector2) -> Array:
 	var steg := steg_text()
 	if not steg.is_empty():
 		rad2 += " · " + steg
+	var vad := vad_text()
+	if not vad.is_empty():
+		rad2 += " · " + vad
 	rader.append(UiText.rad(rad2, Vector2(x0, KORT.position.y + 24.0),
 		UiText.storlek_som_ryms([rad2], bredd, 8, 10, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(8), bredd,
 		HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))

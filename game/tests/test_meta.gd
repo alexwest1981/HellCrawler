@@ -214,6 +214,7 @@ func _initialize() -> void:
 	_box_checks()
 	_uppdrag_checks()
 	_steg_checks()
+	_vad_checks()
 	_clean()
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
@@ -542,3 +543,37 @@ func _steg_checks() -> void:
 	check(m2.steg_max_för("stage_01") == 1 and m2.steg_valt_för("stage_01") == 1,
 		"taket och valet överlevde omstarten",
 		"%d/%d" % [m2.steg_valt_för("stage_01"), m2.steg_max_för("stage_01")])
+
+## Vadslagningen och de räddade själarna (önskemål 24, punkt 7 och 8): valet vrider i tre steg, insatsen
+## räknas ur banken och kan aldrig bli mer än man har, och en själ som räddas är en som INTE redan är hyrd.
+func _vad_checks() -> void:
+	print("")
+	print("— vadslagningen och de räddade själarna (önskemål 24, punkt 7 och 8) —")
+	var m := Meta.load_or_new(TEST_PATH + ".vad")
+	m.gold = 400
+	m.vad_valt = {}
+	m.hired = []
+	check(m.vad_för("stage_01") == 0.0, "inget vad är inget vad")
+	check(m.vad_vrid("stage_01") == 0.25, "första vridet ger en fjärdedel", str(m.vad_för("stage_01")))
+	check(m.vad_vrid("stage_01") == 0.5, "andra vridet hälften", str(m.vad_för("stage_01")))
+	check(m.vad_vrid("stage_01") == 0.0, "och tredje vrider tillbaka till noll", str(m.vad_för("stage_01")))
+	m.vad_valt["stage_01"] = 0.25
+	check(m.vad_insats("stage_01") == 100, "insatsen är en fjärdedel av banken",
+		"%d guld" % m.vad_insats("stage_01"))
+	m.gold = 3
+	check(m.vad_insats("stage_01") == 0, "och aldrig mer än man har", "%d guld" % m.vad_insats("stage_01"))
+	m.gold = 7
+	check(m.vad_insats("stage_01") == 1, "avrundat nedåt", "%d guld" % m.vad_insats("stage_01"))
+	m.gold = 400
+	check(m.save(TEST_PATH), "sparfilen skrivs med vadet")
+	var m2 := Meta.load_or_new(TEST_PATH)
+	check(is_equal_approx(m2.vad_för("stage_01"), 0.25), "och valet överlevde omstarten",
+		str(m2.vad_för("stage_01")))
+	# Själen: en kamrat som inte redan är hyrd. Ett andra anrop får inte ge samma igen.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var först := m2.radda_sjal(rng)
+	check(not först.is_empty(), "en själ gick att rädda", först)
+	check(m2.hired.has(först), "och hon blev hyrd", str(m2.hired))
+	var andra := m2.radda_sjal(rng)
+	check(andra != först, "en andra själ är en ANNAN kamrat", "%s mot %s" % [först, andra])

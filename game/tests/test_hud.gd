@@ -324,6 +324,35 @@ func _initialize() -> void:
 		"slutskärmen visar efterlysningen",
 		main.end_label.text.substr(0, 60).replace("\n", " / "))
 
+	# VADSLAGNINGEN OCH SJÄLEN (önskemål 24, punkt 7 och 8) genom spelets EGEN väg: insatsen dras när
+	# körningen startar, ett klarat vad betalar tillbaka dubbelt, och en död körning betalar ingenting.
+	print("")
+	print("— vadet och själen genom körningens väg (önskemål 24, punkt 7 och 8) —")
+	main.meta.gold = 1000
+	main.meta.vad_valt["stage_01"] = 0.25
+	main.meta.hired = []
+	main._start_run("stage_01", 4242)
+	check(main._vad_insats == 250, "insatsen är en fjärdedel av banken vid starten",
+		"%d guld" % main._vad_insats)
+	check(main.meta.gold == 750, "och den DROGS när körningen började", "%d guld" % main.meta.gold)
+	main.run._finish_with("dead")
+	main._after_state_change()
+	check(main.meta.gold < 750 + main._vad_insats * 2, "en död körning betalar inte tillbaka vadet",
+		"%d guld" % main.meta.gold)
+	check(main.end_label.text.contains("VADET FÖRLORAT"), "och slutskärmen säger det",
+		main.end_label.text.substr(0, 40).replace("\n", " / "))
+	main.meta.vad_valt["stage_01"] = 0.25
+	main._start_run("stage_01", 4243)
+	var efter_start: int = main.meta.gold
+	main.run._enter_floor(main.run.stage.floors - 1)
+	main.run._finish_with("cleared")
+	main._after_state_change()
+	check(main.meta.gold >= efter_start + main._vad_insats * 2,
+		"en klarad bana betalar tillbaka vadet dubbelt",
+		"%d -> %d guld (%d insats)" % [efter_start, main.meta.gold, main._vad_insats])
+	check(main.end_label.text.contains("VADET VANN"), "och slutskärmen säger det",
+		main.end_label.text.substr(0, 40).replace("\n", " / "))
+
 	print("")
 	print("— %d kontroller, %d fel —" % [checks, fails])
 	quit(1 if fails > 0 else 0)

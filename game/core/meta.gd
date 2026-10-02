@@ -12,7 +12,7 @@
 class_name Meta
 extends RefCounted
 
-const SAVE_VERSION := 8
+const SAVE_VERSION := 9
 ## Fotoläget (`-- shot`, `-- skarmar` m.fl.) får en EGEN fil. En skärmbilds- eller demokörning
 ## får aldrig kunna skriva i spelarens profil: mätt innan den här raden fanns gick guldet
 ## 1852 -> 237 av en körning som bara skulle fotografera kartan.
@@ -142,6 +142,7 @@ static func load_or_new(path: String = PATH) -> Meta:
 	m.uppdrag_kvitterade = parsed.get("uppdrag_kvitterade", [])
 	m.steg_max = parsed.get("steg_max", {})      # svårighetstrappan kom i version 8
 	m.steg_valt = parsed.get("steg_valt", {})
+	m.vad_valt = parsed.get("vad_valt", {})      # vadslagningen kom i version 9
 	if m.unlocked.is_empty():
 		m.unlocked = [FIRST_STAGE]
 	var r = parsed.get("ranks", {})
@@ -854,6 +855,41 @@ func steg_fiende_faktor(stage_id: String) -> float:
 func steg_guld_faktor(stage_id: String) -> float:
 	return 1.0 + STEG_GULD * steg_valt_för(stage_id)
 
+## --- vadslagningen (önskemål 24, punkt 7) --------------------------------------------------------
+##
+## Spelaren satsar guld FÖRE körningen: klarar man banan betalas dubbla insatsen, dör man är insatsen
+## förlorad. Insatsen dras aldrig ur banken här — metan äger bara VALET (som trappan), och main drar och
+## betalar i tillståndsbytet där körningens utfall är känt. Tre stopp: inget, en fjärdedel, hälften.
+const VAD_ANDELAR := [0.0, 0.25, 0.5]
+
+var vad_valt: Dictionary = {}     ## bana -> andel av guldet (ur VAD_ANDELAR)
+
+func vad_för(stage_id: String) -> float:
+	var v := float(vad_valt.get(stage_id, 0.0))
+	return v if VAD_ANDELAR.has(v) else 0.0
+
+## Nästa steg i vrider-ringen: 0 -> 25 % -> 50 % -> 0.
+func vad_vrid(stage_id: String) -> float:
+	var i := VAD_ANDELAR.find(vad_för(stage_id))
+	var ny := float(VAD_ANDELAR[(i + 1) % VAD_ANDELAR.size()])
+	vad_valt[stage_id] = ny
+	return ny
+
+## Insatsen i guld för ett val: andelen av banken, avrundad nedåt, och aldrig mer än man HAR. En insats
+## man inte kan betala är inte ett val.
+func vad_insats(stage_id: String) -> int:
+	return maxi(0, mini(int(floor(float(gold) * vad_för(stage_id))), gold))
+
+## RÄDDADE SJÄLAR (önskemål 24, punkt 8): en kamrat som satt fast i djupet och följer med hem. Bara en
+## KLARAD körning kommer dit, och chansen vägs i main — det är där djupet är känt. Tom sträng = ingen själ
+## fanns kvar att rädda (alla är redan hyrda).
+func radda_sjal(rng: RandomNumberGenerator) -> String:
+	var id := _box_companion(rng)
+	if id.is_empty() or hired.has(id):
+		return ""
+	hired.append(id)
+	return id
+
 func crawler_for(id: String) -> Dictionary:
 	for c in crawlers:
 		if str(c.get("id", "")) == id:
@@ -1059,6 +1095,7 @@ func to_dict() -> Dictionary:
 		"gem_in": gem_in.duplicate(true), "boxar_utan_stor": boxar_utan_stor,
 		"kills_total": kills_total, "floors_total": floors_total,
 		"steg_max": steg_max.duplicate(), "steg_valt": steg_valt.duplicate(),
+		"vad_valt": vad_valt.duplicate(),
 		"uppdrag_kvitterade": uppdrag_kvitterade.duplicate(),
 		"crt": crt_på, "musik": musik_på, "korning": korning.duplicate(true)}
 

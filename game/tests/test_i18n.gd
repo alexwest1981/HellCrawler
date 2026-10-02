@@ -279,6 +279,8 @@ func _init() -> void:
 		# med två tal: Godot lämnade då strängen oformaterad och spelaren såg "%d våningar"
 		# på kortet — i alla tretton språk. Kontraktet fångar den klassen.
 		"ui.map.floors": 2, "ui.map.step": 4, "ui.end.step": 1,
+		"ui.map.wager": 1, "ui.vad.dragen": 1, "ui.end.wager_won": 1, "ui.end.wager_lost": 1,
+		"ui.end.rescued": 1,
 		"fmt.damage": 2, "fmt.armor": 1, "fmt.heal": 1, "fmt.mana": 1, "fmt.draw": 1,
 		"fmt.knockback": 1, "fmt.freeze": 1,
 	}

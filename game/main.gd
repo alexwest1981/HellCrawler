@@ -129,6 +129,10 @@ var _box_val: Array = []
 var _box_logg := ""
 ## Raderna för de efterlysningar som brast ut när körningen tog slut (önskemål 24, punkt 3).
 var _uppdrag_rader: Array = []
+## Vadslagningen (önskemål 24, punkt 7): insatsen som drogs när körningen startade, i guld. 0 = inget vad.
+var _vad_insats := 0
+## En själ som räddades ur djupet i den senaste körningen (önskemål 24, punkt 8). Tom = ingen.
+var _raddad_sjal := ""
 var _enemies: Array = []        ## [{spr, y, fas, hp, läge, läge_t}] — figurerna i rummet, animerade i _process
 
 # Rutorna i fiendebilden (tools/gen_enemy_art.py), i den ordning de ligger i PNG:n. Siffrorna står
@@ -3610,6 +3614,11 @@ func _karta_tangent(key: int) -> bool:
 				karta_view.steg_ändra(1)
 			else:
 				karta_view.flytta(Vector2i(1, 0))
+		KEY_V:
+			# Vadslagningen (önskemål 24, punkt 7): V vrider 0 -> 25 % -> 50 % av banken, bara i
+			# nivåpanelen (där man redan valt bana och steg).
+			if karta_view.panel_öppen():
+				karta_view.vad_vrid()
 		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
 			var r := karta_view.försök_gå_in()
 			if bool(r["ok"]):
@@ -4256,6 +4265,14 @@ func _start_run(stage_id: String, seed_value: int, start_floor: int = 0) -> void
 	# inte en överraskning, den är ett fel — den står i editorn, och den ska stå här med.
 	if not stage.regel.is_empty():
 		_logga("%s — %s" % [Regler.namn(stage.regel), Regler.text(stage.regel)], Color(0.95, 0.75, 0.35))
+	# VADSLAGNINGEN (önskemål 24, punkt 7): insatsen dras HÄR, en gång, innan körningen börjar — annars
+	# kunde man satsa pengar man inte har genom att dö på våning 1. Utfallet betalas i
+	# _after_state_change, där körningens utfall är känt.
+	_vad_insats = meta.vad_insats(stage_id)
+	if _vad_insats > 0:
+		meta.gold -= _vad_insats
+		_logga(Tr.t("ui.vad.dragen", "vad: %d guld satsade (2x om du klarar banan)") % _vad_insats,
+			Color(0.95, 0.75, 0.35))
 	shell = "körning"             # banan är vald: 3D-vyn tar över från skalet
 	_refresh_shell()
 	# Startvåning: normalt 0, men kart-editorn kan släppa in en på en ritad våning.
@@ -4266,6 +4283,7 @@ func _start_run(stage_id: String, seed_value: int, start_floor: int = 0) -> void
 	last_events = 0
 	_banked = false               # guldet från FÖRRA körningen är redan in i banken
 	_uppdrag_rader = []           # efterlysningarna hör till förra körningen
+	_raddad_sjal = ""
 	end_panel.visible = false
 	battle_panel.visible = false
 	draft_panel.visible = false
@@ -7563,6 +7581,16 @@ func _end_text() -> String:
 	# BARA när något nytt öppnades; annars vore den brus.
 	if meta.steg_upplast > 0:
 		slut += "\n" + Tr.t("ui.end.step", "TRAPPSTEG %d UPPLÅST") % meta.steg_upplast
+	# VADSLAGNINGEN (önskemål 24, punkt 7) och den räddade själen (punkt 8): båda hör till körningens
+	# slut och sägs BARA när de hände något.
+	if _vad_insats > 0:
+		if run.floor_index + 1 >= run.stage.floors:
+			slut += "\n" + Tr.t("ui.end.wager_won", "VADET VANN: +%d guld") % (_vad_insats * 2)
+		else:
+			slut += "\n" + Tr.t("ui.end.wager_lost", "VADET FÖRLORAT: %d guld") % _vad_insats
+	if not _raddad_sjal.is_empty():
+		slut += "\n" + Tr.t("ui.end.rescued", "EN SJÄL RÄDDAD: %s") \
+			% Tr.name_of("crawler", _raddad_sjal, _raddad_sjal)
 	# BELÖNINGEN (önskemål 24): först vad djupet betalade, sedan boxens tre val om den väntar. Oddsen
 	# som visas är bara de STORA utfallen — hela raden hade blivit sjuttio tecken i en 480 px-vy — plus
 	# hur nära garantin man är. Samma tabell som rullningen läser, så siffran kan inte ljuga.
@@ -8087,6 +8115,11 @@ func _after_state_change() -> void:
 		# uppdatering av skärmen lagt till samma guld igen.
 		if not _banked:
 			_banked = true
+			# EN slumpström för hela bankningen: boxen, efterlysningarna och de räddade själarna drar
+			# ur samma källa som körningens kortval (samma frö-regel som kistan).
+			var rng: RandomNumberGenerator = run.rng_draft
+			if rng == null:
+				rng = RandomNumberGenerator.new()
 			meta.add_gold(run.gold)
 			# Splitter och ädelstenar bankas med guldet, en gång per körning: körningen bär sina fynd
 			# och banken får dem först när resan är slut (samma regel som guldet).
@@ -8110,17 +8143,8 @@ func _after_state_change() -> void:
 				# Boxen rullas EN gång per körning, och den sparas inte: en ospelad box ska inte kunna
 				# sparas till nästa gång. Slumpen kommer ur körningens egen ström (samma frö-regel som
 				# kistan), så samma körning ger samma box.
-				var rng: RandomNumberGenerator = run.rng_draft
-				if rng == null:
-					rng = RandomNumberGenerator.new()
 				_box_val = meta.roll_box(run.floor_index + 1, rng, run.card_db)
 				_box_logg = ""
-				# EFTERLYSNINGARNA (önskemål 24, punkt 3) kvitteras EFTER note_run, så räknarna har
-				# körningen inräknad — annars brast ett mål ut en körning för sent. Raderna sparas för
-				# slutskärmen: ett mål som brast ut får inte försvinna i en logg man inte läser.
-				_uppdrag_rader = meta.contracts_claim(rng)
-				for rad in _uppdrag_rader:
-					print("efterlysning klar: %s" % rad)
 			# Banan är slut: skriv ner hur långt man kom, och lås upp nästa bana om man nådde sista
 			# våningen. Regeln är referensens — att NÅ sista våningen är att klara banan (Pale Reaper
 			# dödar dig där), så "klar" betyder "kom dit", inte "överlevde".
@@ -8130,6 +8154,29 @@ func _after_state_change() -> void:
 				print("ny bana upplåst: %s" % _unlocked_now)
 			if meta.steg_upplast > 0:
 				print("trappan: %s steg %d upplåst" % [meta.steg_upplast_bana, meta.steg_upplast])
+			# EFTERLYSNINGARNA (önskemål 24, punkt 3) kvitteras EFTER note_run, så räknarna har
+			# körningen inräknad — annars brast ett mål ut först nästa gång. Raderna sparas för
+			# slutskärmen: ett mål som brast ut får inte försvinna i en logg man inte läser.
+			_uppdrag_rader = meta.contracts_claim(rng)
+			for rad in _uppdrag_rader:
+				print("efterlysning klar: %s" % rad)
+			# VADSLAGNINGEN (önskemål 24, punkt 7): insatsen drogs när körningen började. Klarade man
+			# banan betalas DUBBLA insatsen (insatsen + lika mycket till); dog man är den redan borta.
+			var klarat := run.floor_index + 1 >= run.stage.floors
+			if _vad_insats > 0:
+				if klarat:
+					meta.add_gold(_vad_insats * 2)
+					print("vadet vann: %d guld" % (_vad_insats * 2))
+				else:
+					print("vadet förlorat: %d guld" % _vad_insats)
+			# RÄDDADE SJÄLAR (önskemål 24, punkt 8): en kamrat som satt fast i djupet. Bara en klarad
+			# körning hinner dit, och chansen stiger med djupet — 20 % på våning 1, tak vid 60 %.
+			if klarat:
+				var chans := minf(0.6, 0.2 + 0.06 * float(run.floor_index))
+				if rng.randf() < chans:
+					_raddad_sjal = meta.radda_sjal(rng)
+					if not _raddad_sjal.is_empty():
+						print("räddad själ: %s" % _raddad_sjal)
 			if not meta.save():
 				push_warning("kunde inte spara: %s" % meta.last_error)
 		end_label.text = _end_text()
