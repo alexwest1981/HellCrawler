@@ -142,6 +142,60 @@ func _initialize() -> void:
 	check(fel_ruta.is_empty(), "och kvar vid fiendens egen ruta — rummet står bakom dem",
 		"" if fel_ruta.is_empty() else ", ".join(fel_ruta))
 
+	# PIXLARNA SOM RAMLAR AV FIENDEN (önskemål 29). Provet slår genom spelets EGEN väg (`_on_card`,
+	# samma anrop som ett klick gör) och kräver att ett slag som TAR hälsa lämnar en skur i världen.
+	var skurar_före := 0
+	for n in main.world.get_children():
+		if n.name == "pixelregn":
+			skurar_före += 1
+	var hp_före: float = main.active_combat.total_enemy_hp()
+	# Kortet spelas genom stridens eget API och reaktionen läses direkt efter — exakt de två anrop
+	# `_on_card` gör (main.gd:8515-8516). Provet mäter KROKEN, alltså att en verklig skadehändelse
+	# lämnar en skur, inte att en viss korthand råkar innehålla ett skadekort.
+	var hand: Array = main.active_combat.hand
+	for i in hand.size():
+		var r = main.active_combat.play(i)
+		main._enemy_reaktion(int(r.get("multiplier", 1)) if r is Dictionary else 1)
+		var nu: float = main.active_combat.total_enemy_hp()
+		# ETT ICKE-DÖDANDE SLAG: dödsslaget har sin egen skur med fler korn, så det räddar siffran
+		# även om träffgrenen är borta (mätt: provet gick grönt med kroken borttagen).
+		if nu < hp_före and nu > 0.0:
+			break
+	var skurar: Array = []
+	for n in main.world.get_children():
+		if n.name == "pixelregn":
+			skurar.append(n)
+	check(skurar.size() > skurar_före,
+		"ett slag som tar hälsa lämnar en skur av pixlar (%d skurar, hp %.0f -> %.0f)"
+		% [skurar.size(), hp_före, main.active_combat.total_enemy_hp()])
+	if not skurar.is_empty():
+		var skur := skurar[skurar.size() - 1] as GPUParticles3D
+		var material := skur.process_material as ParticleProcessMaterial
+		check(skur.get_parent() == main.world,
+			"skuren ligger i VÄRLDEN, inte som barn till figuren (%s)" % skur.get_parent().name)
+		check(skur.one_shot and skur.amount >= 6,
+			"och den är en engångsskur med minst sex korn (one_shot %s, %d korn)"
+			% [str(skur.one_shot), skur.amount])
+		check(material != null and material.gravity.y < 0.0,
+			"och kornen FALLER (tyngd %.1f)" % (material.gravity.y if material != null else 0.0))
+		check(material != null and material.lifetime_randomness > 0.0,
+			"med olika livstid per korn, annars tickar skuren som en metronom (%.2f)"
+			% (material.lifetime_randomness if material != null else 0.0))
+
+	# TRÄFFENS BLINK FICK INTE RÖRA ALFAN (buggen undersökningen hittade): flashen slutade på
+	# `Color.WHITE`, och vitt har alfa 1,0 — en fiende med genomsläpp blev helt fast efter första
+	# träffen. Provet ger en figur halvt genomsläpp och kräver att alfan står kvar efter blinket.
+	var offer := main.get_tree().get_nodes_in_group("fiende_figur")[0] as Sprite3D
+	offer.modulate = Color(offer.modulate.r, offer.modulate.g, offer.modulate.b, 0.5)
+	offer.set_meta("modulate_bas", offer.modulate)
+	main._slag_kvitto(offer, 5.0, 1)
+	for i in 30:
+		await process_frame
+	await main.get_tree().create_timer(0.4).timeout
+	check(is_equal_approx(offer.modulate.a, 0.5),
+		"genomsläppet står kvar efter träffens blink (alfa %.2f, inte 1,0)" % offer.modulate.a)
+
+
 	Meta.fotolage(false)
 	print("  TOTALT: %d kontroller, %d fel" % [checks, fails])
 	quit(1 if fails > 0 else 0)

@@ -413,6 +413,45 @@ const DROPP_VÄNTAN_ACCENT := Vector2(0.6, 1.6)   ## accenter: något enstaka st
 ##
 ## En REN funktion med flit: provet räknar droppar per minut ur EXAKT samma tal som spelet använder.
 ## Ett prov som räknar sin egen kopia av takten mäter provet, inte spelet.
+## PIXELREGNET (önskemål 29): fyrkantiga spillror som faller från en träffad fiende. Byggd på `_moln`,
+## som redan sätter `local_coords = false` och en `visibility_aabb` — utan AABB:n gallras kornen bort så
+## fort kameran rör sig, och det är den fällan som gör att en effekt "försvinner ibland".
+##
+## Siffrorna är mätta, inte gissade: vid fiendens avstånd (1,15 m) ger kameran 195 px per meter, alltså
+## 5,1 mm per spel-pixel, så 0,014 m är ~3 spel-pixlar. UNDER TVÅ PIXLAR FLIMRAR KORNET I CRT:ns
+## SKANLINJER (samma gräns som dammet), så 0,010 m är golvet och 0,014 det valda.
+##
+## Tyngden är riktig (-9,8): bitar ska falla som bitar. Ett lägre värde läses som rök, inte som skärvor.
+static func skärva(förälder: Node3D, pos: Vector3, färger: Array, antal := 8) -> GPUParticles3D:
+	var p := _moln(antal, 0.55, BaseMaterial3D.BLEND_MODE_MIX, Vector2(0.014, 0.014))
+	var yta := (p.draw_pass_1 as QuadMesh).material as StandardMaterial3D
+	yta.albedo_texture = null                     # solid färgkloss: vid 3 px syns ingen skillnad mot pricken
+	yta.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	p.position = pos
+	p.one_shot = true
+	p.explosiveness = 1.0
+	var m := ParticleProcessMaterial.new()
+	m.direction = Vector3(0.0, 1.0, 0.0)
+	m.spread = 70.0
+	m.initial_velocity_min = 0.7                  # spatten uppåt först, sedan faller de
+	m.initial_velocity_max = 2.0
+	m.gravity = Vector3(0.0, -9.8, 0.0)
+	m.angular_velocity_min = -420.0               # bitar tumlar; en korn som står still läses som damm
+	m.angular_velocity_max = 420.0
+	m.scale_min = 0.7
+	m.scale_max = 1.4
+	m.scale_curve = _kurva([1.0, 1.0, 1.0, 0.0])
+	m.lifetime_randomness = 0.35                  # OBS: på MATERIALET, inte på noden (mätt mot motorn)
+	if färger.size() >= 2:
+		m.color_ramp = _skala([färger[0], färger[0], färger[1]])
+	elif färger.size() == 1:
+		m.color = färger[0]
+	p.process_material = m
+	p.name = "pixelregn"
+	förälder.add_child(p)
+	return p
+
+
 static func dropp_väntan(rng: RandomNumberGenerator, accent: bool = false) -> float:
 	var v: Vector2 = DROPP_VÄNTAN_ACCENT if accent else DROPP_VÄNTAN
 	return rng.randf_range(v.x, v.y)

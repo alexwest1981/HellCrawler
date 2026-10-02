@@ -446,3 +446,41 @@ layout, så panelen placerades 385 px bred med ett rutnät som ville ha 418 och 
 stiger, räknar rutorna (8 av 8), läser varje ruta (namn, rang, pris, märke, ruta), och mäter att rutnätet
 ryms i panelen och panelen i spelvyn. 208 kontroller, 0 fel. Bilden:
 `docs/skarmbilder/butik-varor-som-objekt.png`.
+
+## 29.
+
+"Gör research på bästa sätt att ge effekter när man attackerar, så det ramlar pixlar från fienden när
+man slår dem."
+
+**Status:** KLAR 2026-10-02. Fyra undersökningsagenter i Orca-worktrees på samma fråga i fyra delar
+(partikelvägen, pixelkonsten, arkitekturen, läsbarheten). Rapporterna ligger i
+`docs/undersokning/hit-01..04.md` med källa per påstående, och sammanställningen i `hit-00`.
+
+**Motorn, mätt i stället för trodd.** Alla fyra flaggade samma lucka — ingen kunde köra `ClassDB`-dumpen
+(worktreen saknar `.godot/`, och uppdraget tillät bara rapportfilen). Kontrollen gjordes i efterhand i
+spelets egen 4.7.2: alla egenskaper de föreslår finns, och `lifetime_randomness` sitter på MATERIALET,
+inte på noden. Varje fil, funktion och radnummer i rapporterna greppades mot koden; allt stämde utom ett
+namn (två rapporter skrev `_on_play_card`, anroparen heter `_on_card`) — rättat.
+
+**Vad en spel-pixel är, mätt:** vid fiendens avstånd (1,15 m) ger kameran 195 px per meter = 5,1 mm per
+pixel. Kornen är 0,014 m ≈ 3 px. Under två pixlar flimrar de i CRT:ns skanlinjer.
+
+**Byggt:** `Fx.skärva()` — en engångsskur av fyrkantiga korn i fiendens egen palett (blod 11 = 168,48,40
+och ben 8 = 226,220,208), riktig tyngd (-9,8) så bitarna FALLER, tumlande rotation och olika livstid per
+korn. Kopplad i `_enemy_reaktion()`s gren för tappad hälsa (8 korn, upp till 14 vid kedja) och vid dråp
+(14). Skuren läggs i VÄRLDEN, inte som barn till figuren: som barn ärver kornen träffens blink och lyser
+vita. `-- träffprov` spelar ett skadekort och fotograferar 0,12 s efter slaget.
+
+**En riktig bugg hittades av undersökningen:** träff-flashen tweenade `spr.modulate` tillbaka till
+`Color.WHITE`, och vitt har alfa 1,0 — en fiende med genomsläpp (alfa 0,94) blev alltså HELT FAST efter
+första träffen den fick. Flashen sparar nu figurens egen färg och lämnar tillbaka den.
+
+**MÄTT:** provet slår genom spelets egen väg och kräver att ett slag som tar hälsa lämnar en skur i
+världen (8-14 korn, `one_shot`, tyngd nedåt, livstidsspridning) — och att genomsläppets alfa står kvar
+efter blinket. Båda kontrollerna bevisades fånga sina buggar: med `Color.WHITE` tillbaka blir det
+"alfa 1.00" och rött, med krokarna borta "0 skurar" och rött. Bilden:
+`docs/skarmbilder/träff-pixlar.png` (granskad: små fyrkantiga bitar i spökets palett strax under och vid
+sidan av figuren, 1-3 px).
+
+**Kvar:** kostnaden i bildrutor för tre träffar i samma bildruta är inte mätt — `-- fpsprov` spelar inga
+kort, så den ser inte effekten. Antalet är 8-14 korta partiklar per träff.

@@ -797,7 +797,7 @@ func _ready() -> void:
 		or flags.has("lageprov") or flags.has("stegprov") or flags.has("handprov") or flags.has("grävprov")
 		or _normalprov >= 0.0
 		or not _glansprov_pose.is_empty()
-		or flags.has("guiprov") or flags.has("vinstprov") or flags.has("ljusprov")
+		or flags.has("guiprov") or flags.has("vinstprov") or flags.has("ljusprov") or flags.has("träffprov")
 		or not nodprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
 	if not kör:
 		# Vanlig start (eller en enskild skärms skärmbildsläge): byn först. Ingen körning finns än,
@@ -825,6 +825,9 @@ func _ready() -> void:
 		# går inte att skilja från en flagga som inte gjorde något.
 		print("startar på %s våning %d" % [pt.get("stage_id", "stage_01"), int(pt.get("floor", 0)) + 1])
 		_start_run(str(pt.get("stage_id", "stage_01")), 20260919, int(pt.get("floor", 0)))
+	if flags.has("träffprov"):
+		await _träffprov()
+		return
 	if flags.has("figurprov"):
 		await _figurprov()
 		return
@@ -4025,6 +4028,8 @@ func _add_enemies(node: Dungeon.FloorNode, boss: bool) -> void:
 				egen.pixel_size = spr.pixel_size
 				egen.scale = Vector3.ONE * 1.0005
 				spr.add_child(egen)
+		# Figurens EGEN färg, sparad för träff-blinket: se `_slag_kvitto` (alfa 0,94 ska inte bli 1,0).
+		spr.set_meta("modulate_bas", spr.modulate)
 		spr.add_to_group("fiende_figur")
 		# Bossen är större än de andra, men måste rymmas under taket. Duken är 120 px (M76) och figuren
 		# 96 px: 96 * 0,012 = 1,15 m för en vanlig, 96 * 0,013 = 1,25 m för en boss — exakt samma
@@ -4445,15 +4450,30 @@ func _enemy_reaktion(mult: int = 1) -> Sprite3D:
 		if hp <= 0.0 and förra > 0.0:
 			_enemy_läge(e, ENEMY_DEAD, 9999.0)
 			_slag_kvitto(spr, skada, 3)          # ett dråp är alltid värt den stora siffran
+			_pixelregn(spr, 14)                  # ett dråp spiller mer än en träff
 			if träffad == null:
 				träffad = spr
 		elif hp < förra:
 			_enemy_läge(e, ENEMY_HIT, 0.35)
 			_slag_kvitto(spr, skada, mult)
+			_pixelregn(spr, 6 + mini(mult, 3) * 2)
 			if träffad == null:
 				träffad = spr
 		e["hp"] = hp
 	return träffad
+
+## PIXLARNA SOM RAMLAR AV FIENDEN (önskemål 29). Skuren läggs i VÄRLDEN, inte som barn till figuren:
+## som barn ärver kornen träffens blink (modulate) och lyser vita, följer figurens andning och dör med
+## den. Tyngden gör resten — bitarna spattar upp och faller.
+##
+## Färgen är fiendens egen: blod ur palettens röda (11 = 168,48,40) och ben/vitt (8 = 226,220,208).
+## Se docs/undersokning/hit-00-sammanfattning.md — palettens NAMN i gen_enemy_art.py är föråldrade,
+## indexen är det som gäller.
+func _pixelregn(spr: Sprite3D, antal: int) -> void:
+	if spr == null or not is_instance_valid(spr) or world == null:
+		return
+	Fx.skärva(world, spr.global_position + Vector3(0.0, 0.22, 0.0), [Palett.c(11), Palett.c(8)], antal)
+
 
 ## Rikta ett angrepp mot en figur. Vapnet ritas i SKÄRMKOORDINATER, så världspunkten måste räknas om
 ## — och står fienden bakom spelaren uteblir svepet i stället för att svepa mot ingenting.
@@ -5629,6 +5649,55 @@ func _yta_glans_svep(v: float) -> int:
 ## wellpapp"* och *"så väggar kan se fuktiga ut, så det blänker gentemot ljus osv"*. Det är en
 ## BILD-fråga, så provet lämnar både siffror och en bild: går till ett rum med fiender, mäter hur
 ## många figurer som ritas matta (speglingen av), hur många ytor som är glansiga, och sparar vyn.
+## TRÄFFPROVET (önskemål 29): ett slag, och bilden tagen MEDAN kornen syns. Ett prov som bara räknar
+## noder säger att skuren finns, inte att den syns — därför spelas ett skadekort och bilden tas 0,12 s
+## efter slaget (kornen lever 0,55 s, så de är kvar i rutan men har hunnit sprida sig).
+func _träffprov() -> void:
+	var nod: Dungeon.FloorNode = null
+	for n in run.explore.floor_ref.nodes_of_kind("encounter"):
+		nod = n
+		break
+	if nod == null:
+		print("träffprov: våningen har ingen strid att stå i")
+		get_tree().quit()
+		return
+	await _gå_till_och_vänd(nod.pos)
+	for i in 30:
+		await get_tree().process_frame
+	# KLIV IN PÅ RUTAN: `_gå_till_och_vänd` stannar två steg ifrån och vänder sig mot noden, och striden
+	# startar först när spelaren står på den (samma väg som _demo_gui). Utan steget finns figurerna men
+	# ingen strid — och då finns ingen hand att spela ett kort ur.
+	run.explore.pos = nod.pos
+	run.explore.facing = 0
+	_enter_node_here()
+	for i in 30:
+		await get_tree().process_frame
+	if active_combat == null:
+		print("träffprov: ingen strid startade")
+		get_tree().quit()
+		return
+	var hp_före: float = active_combat.total_enemy_hp()
+	for i in active_combat.hand.size():
+		var r := active_combat.play(i)
+		var mult := 1
+		if r != null and "multiplier" in r:
+			mult = int(r.multiplier)
+		_enemy_reaktion(mult)
+		if active_combat.total_enemy_hp() < hp_före:
+			break
+	await get_tree().create_timer(0.12).timeout
+	var skurar := 0
+	var korn := 0
+	for n in world.get_children():
+		if n is GPUParticles3D and n.name == "pixelregn":
+			skurar += 1
+			korn += (n as GPUParticles3D).amount
+	_spara_bild("user://shots/träffprov.png")
+	print("[träffprov] %d skurar, %d korn i luften, hp %.0f -> %.0f, bilden sparad"
+		% [skurar, korn, hp_före, active_combat.total_enemy_hp()])
+	get_tree().quit()
+
+
 func _figurprov() -> void:
 	var nod: Dungeon.FloorNode = null
 	for n in run.explore.floor_ref.nodes_of_kind("encounter"):
@@ -7601,10 +7670,15 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int) -> void:
 	# Blink och knuff. Knuffen går i Z, aldrig i Y: _process andas figuren i Y, och två tweens på
 	# samma egenskap slåss om sista ordet.
 	var bas := spr.position
+	# ALFAN SKA TILLBAKA TILL FIGURENS EGEN (önskemål 29). Raden tweenade till `Color.WHITE`, och vitt har
+	# alfa 1,0: en fiende med genomsläpp (FIENDE_LOOK, alfa 0,94) blev alltså HELT FAST efter första
+	# träffen den fick — upptäckt av undersökningen, inte av ett prov. Grunden sparas på figuren när den
+	# byggs (se `modulate_bas`), så en avbruten blink inte kan lämna fel färg kvar heller.
+	var grund: Color = spr.get_meta("modulate_bas", spr.modulate)
 	var b := create_tween().set_parallel(true)
-	b.tween_property(spr, "modulate", Color(2.4, 2.4, 2.4), 0.04)
+	b.tween_property(spr, "modulate", Color(2.4, 2.4, 2.4, grund.a), 0.04)
 	b.tween_property(spr, "position:z", bas.z + 0.09, 0.06)
-	b.chain().tween_property(spr, "modulate", Color.WHITE, 0.2)
+	b.chain().tween_property(spr, "modulate", grund, 0.2)
 	b.tween_property(spr, "position:z", bas.z, 0.18).set_trans(Tween.TRANS_BACK)
 
 ## Man ska se att man SJÄLV blev träffad: en röd blink över vyn. Siffran i toppraden räcker inte —
