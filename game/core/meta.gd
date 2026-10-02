@@ -12,7 +12,7 @@
 class_name Meta
 extends RefCounted
 
-const SAVE_VERSION := 9
+const SAVE_VERSION := 10
 ## Fotoläget (`-- shot`, `-- skarmar` m.fl.) får en EGEN fil. En skärmbilds- eller demokörning
 ## får aldrig kunna skriva i spelarens profil: mätt innan den här raden fanns gick guldet
 ## 1852 -> 237 av en körning som bara skulle fotografera kartan.
@@ -143,6 +143,7 @@ static func load_or_new(path: String = PATH) -> Meta:
 	m.steg_max = parsed.get("steg_max", {})      # svårighetstrappan kom i version 8
 	m.steg_valt = parsed.get("steg_valt", {})
 	m.vad_valt = parsed.get("vad_valt", {})      # vadslagningen kom i version 9
+	m.dagens_datum = str(parsed.get("dagens_datum", ""))   # dagens körning kom i version 10
 	if m.unlocked.is_empty():
 		m.unlocked = [FIRST_STAGE]
 	var r = parsed.get("ranks", {})
@@ -863,6 +864,9 @@ func steg_guld_faktor(stage_id: String) -> float:
 const VAD_ANDELAR := [0.0, 0.25, 0.5]
 
 var vad_valt: Dictionary = {}     ## bana -> andel av guldet (ur VAD_ANDELAR)
+## DAGENS KÖRNING (önskemål 24, punkt 5): datumet då den senast STARTADES, så en dygns körning bara
+## kan tas en gång. Tom sträng = aldrig tagen.
+var dagens_datum := ""
 
 func vad_för(stage_id: String) -> float:
 	var v := float(vad_valt.get(stage_id, 0.0))
@@ -1095,7 +1099,7 @@ func to_dict() -> Dictionary:
 		"gem_in": gem_in.duplicate(true), "boxar_utan_stor": boxar_utan_stor,
 		"kills_total": kills_total, "floors_total": floors_total,
 		"steg_max": steg_max.duplicate(), "steg_valt": steg_valt.duplicate(),
-		"vad_valt": vad_valt.duplicate(),
+		"vad_valt": vad_valt.duplicate(), "dagens_datum": dagens_datum,
 		"uppdrag_kvitterade": uppdrag_kvitterade.duplicate(),
 		"crt": crt_på, "musik": musik_på, "korning": korning.duplicate(true)}
 

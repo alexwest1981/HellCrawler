@@ -21,6 +21,25 @@ var recovery := 3.0                ## helas så här mycket efter varje strid
 var enemies_per_encounter := [1, 3]
 
 # --- tillstånd ------------------------------------------------------------------------------
+## Startvillkoren (önskemål 24, punkt 6). Id:na är ASCII; raden spelaren ser kommer ur i18n
+## (`villkor.<id>`), så en ny text är en rad i tretton språk och ingen kodändring.
+const VILLKOR := ["pigg", "bracklig", "rik", "sparsam"]
+var villkor := ""
+
+## Villkorets rad, med effekten i samma sträng som namnet — en andra text hade kunnat säga något annat
+## än koden gör.
+func villkor_text() -> String:
+	match villkor:
+		"pigg":
+			return Tr.t("villkor.pigg", "PIGG (+25 % liv)")
+		"bracklig":
+			return Tr.t("villkor.bracklig", "BRACKLIG (borjar pa 65 % liv)")
+		"rik":
+			return Tr.t("villkor.rik", "RIK (+120 guld)")
+		"sparsam":
+			return Tr.t("villkor.sparsam", "SPARSAM (ett kort mindre pa handen)")
+	return ""
+
 var stage: Stages.StageDef
 var bestiary: Dictionary
 var deck: Array
@@ -173,6 +192,20 @@ func _init(p_stage: Stages.StageDef, p_bestiary: Dictionary, p_deck: Array, p_se
 		base_mana += int(meta.stat("mana"))
 		base_hand += int(meta.stat("hand"))
 		recovery += meta.stat("recovery")
+	# STARTVILLKORET (önskemål 24, punkt 6): varje körning börjar med ett villkor, draget ur körningens
+	# EGET frö — samma frö ger samma körning, så en delad seed betyder samma villkor. Villkoren rör bara
+	# tal som redan finns (liv, hand, guld): inget nytt system och ingen ny skärm.
+	villkor = VILLKOR[absi(p_seed) % VILLKOR.size()]
+	match villkor:
+		"pigg":
+			max_hp *= 1.25
+			hp = max_hp
+		"bracklig":
+			hp = max_hp * 0.65
+		"rik":
+			gold += 120
+		"sparsam":
+			base_hand = maxi(3, base_hand - 1)
 	rng_draft = RandomNumberGenerator.new()
 	rng_draft.seed = p_seed * 7919 + 13      # egen ström: kortvalen ska inte påverkas av striden
 	_enter_floor(0)

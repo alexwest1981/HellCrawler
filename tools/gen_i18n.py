@@ -461,7 +461,14 @@ UI: dict[str, dict[str, str]] = {
 # (en rad per nodtyp — samma kind-strängar som Dungeon.FloorNode bär), och de tre husen + slutet.
 UI_SKARMAR: dict[str, dict[str, str]] = {
     "sv": {
-        "ui.by.hint": "← → välj plats · Enter = gå in · L = språk · Q = avsluta · I = albumet",
+        "ui.by.hint": "← → välj · Enter = in · L = språk · Q = avsluta · I = album · T = dagens",
+        "ui.dagens.rad": "DAGENS KÖRNING — 50 % mer belöning",
+        "ui.dagens.tagen": "dagens körning är redan tagen i dag",
+        "ui.villkor.rad": "startvillkor: %s",
+        "villkor.pigg": "PIGG (+25 % liv)",
+        "villkor.bracklig": "BRÄCKLIG (börjar på 65 % liv)",
+        "villkor.rik": "RIK (+120 guld)",
+        "villkor.sparsam": "SPARSAM (ett kort mindre på handen)",
         "ui.album.title": "ALBUMET",
         "ui.album.rad": "kort %d av %d",
         "ui.album.tom": "inga kort i samlingen än — de köps i butiken",
@@ -544,7 +551,14 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.uppdrag.rad": "efterlysning: %s — %d av %d",
     },
     "en": {
-        "ui.by.hint": "← → pick a place · Enter = go in · L = language · Q = quit · I = album",
+        "ui.by.hint": "← → pick · Enter = in · L = language · Q = quit · I = album · T = daily",
+        "ui.dagens.rad": "RUN OF THE DAY — 50 % more reward",
+        "ui.dagens.tagen": "today\u0027s run is already taken",
+        "ui.villkor.rad": "start condition: %s",
+        "villkor.pigg": "SPIRITED (+25 % health)",
+        "villkor.bracklig": "FRAIL (starts at 65 % health)",
+        "villkor.rik": "RICH (+120 gold)",
+        "villkor.sparsam": "FRUGAL (one card fewer in hand)",
         "ui.album.title": "THE ALBUM",
         "ui.album.rad": "card %d of %d",
         "ui.album.tom": "no cards in the collection yet — they are bought in the shop",

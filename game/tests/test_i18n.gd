@@ -281,6 +281,7 @@ func _init() -> void:
 		"ui.map.floors": 2, "ui.map.step": 4, "ui.end.step": 1,
 		"ui.map.wager": 1, "ui.vad.dragen": 1, "ui.end.wager_won": 1, "ui.end.wager_lost": 1,
 		"ui.end.rescued": 1,
+		"ui.villkor.rad": 1,
 		"fmt.damage": 2, "fmt.armor": 1, "fmt.heal": 1, "fmt.mana": 1, "fmt.draw": 1,
 		"fmt.knockback": 1, "fmt.freeze": 1,
 	}

@@ -353,6 +353,28 @@ func _initialize() -> void:
 	check(main.end_label.text.contains("VADET VANN"), "och slutskärmen säger det",
 		main.end_label.text.substr(0, 40).replace("\n", " / "))
 
+	# DAGENS KÖRNING (önskemål 24, punkt 5): T startar den, den kan bara tas en gång per dygn, och den
+	# betalar 50 % mer. Skillnaden mäts mot en IDENTISK körning utan dagens flagga — samma frö, samma
+	# golv, tom pung och inga mål som kan brista mitt i mätningen.
+	print("")
+	print("— dagens körning (önskemål 24, punkt 5) —")
+	main.meta.dagens_datum = ""
+	main.meta.vad_valt = {}
+	main.meta.gold = 500
+	main._start_dagens()
+	check(main._dagens, "dagens körning startade", "%s" % main.run.stage.id)
+	check(main.meta.dagens_datum == Time.get_date_string_from_system(), "och dagens datum skrevs ner",
+		main.meta.dagens_datum)
+	var dagens_fro: int = main.run.seed_value
+	main._start_dagens()
+	check(main.run.seed_value == dagens_fro, "ett andra tryck startar ingen ny körning",
+		"frö %d" % main.run.seed_value)
+	var utan_dagens := _bankad_guld(main, 20260919, false)
+	var med_dagens := _bankad_guld(main, 20260919, true)
+	check(abs(med_dagens - int(round(float(utan_dagens) * 1.5))) <= 1,
+		"dagens körning betalar 50 % mer för samma körning",
+		"%d mot %d guld" % [med_dagens, utan_dagens])
+
 	print("")
 	print("— %d kontroller, %d fel —" % [checks, fails])
 	quit(1 if fails > 0 else 0)
@@ -368,3 +390,21 @@ func _text_i(n: Node) -> String:
 		if barn is Label:
 			return (barn as Label).text
 	return ""
+
+
+## Bankar en avslutad körning med samma frö och samma golv och svarar med guldet som lades till. Alla
+## efterlysningar märks som kvitterade först, så inget mål kan brista mitt i en mätning — kvar blir
+## körningens egen belöning, och det är den som är 50 % högre för dagens körning.
+func _bankad_guld(m: Node, seed_value: int, dagens: bool) -> int:
+	for c in Meta.CONTRACTS:
+		if not m.meta.uppdrag_kvitterade.has(str(c["id"])):
+			m.meta.uppdrag_kvitterade.append(str(c["id"]))
+	m.meta.vad_valt = {}
+	m.meta.gold = 0
+	m._start_run("stage_01", seed_value)
+	m._dagens = dagens
+	m.run.gold = 0
+	m.run._enter_floor(m.run.stage.floors - 1)
+	m.run._finish_with("cleared")
+	m._after_state_change()
+	return m.meta.gold

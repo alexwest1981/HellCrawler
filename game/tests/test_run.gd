@@ -353,6 +353,32 @@ func _initialize() -> void:
 		"%d -> %d" % [efter_vanlig, mt.samling.size()])
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAMLING))
 
+	# STARTVILLKOREN (önskemål 24, punkt 6): ett villkor per körning, draget ur körningens EGET frö, och
+	# effekten ska synas i körningens TAL. Körningarna byggs med Run.new direkt — _new_run ovan skriver
+	# över liv och hand med late-game-siffror, så villkorets verkan skulle drunkna i dem.
+	print("")
+	print("— startvillkoren (önskemål 24, punkt 6) —")
+	for i in Run.VILLKOR.size():
+		var rv := Run.new(stage, bestiary, deck, i, db)
+		check(rv.villkor == str(Run.VILLKOR[i]), "frö %d ger villkoret %s" % [i, Run.VILLKOR[i]],
+			rv.villkor)
+		check(not rv.villkor_text().is_empty(), "och villkoret har en rad", rv.villkor_text())
+	var pigg := Run.new(stage, bestiary, deck, 0, db)
+	check(is_equal_approx(pigg.max_hp, 75.0) and is_equal_approx(pigg.hp, 75.0),
+		"pigg höjer livet och börjar fullt", "%.0f/%.0f" % [pigg.hp, pigg.max_hp])
+	var brack := Run.new(stage, bestiary, deck, 1, db)
+	check(is_equal_approx(brack.max_hp, 60.0) and is_equal_approx(brack.hp, 39.0),
+		"bräcklig börjar sårad men med samma tak", "%.0f/%.0f" % [brack.hp, brack.max_hp])
+	var rik := Run.new(stage, bestiary, deck, 2, db)
+	check(rik.gold >= 120, "rik har guld i pungen redan från start", "%d guld" % rik.gold)
+	var sparsam := Run.new(stage, bestiary, deck, 3, db)
+	check(sparsam.base_hand == 3, "sparsam har ett kort mindre på handen", "%d kort" % sparsam.base_hand)
+	# Varje körning får ETT villkor (det finns ingen orörd körning), och frö 4 landar på samma villkor
+	# som frö 0 — villkoret är en funktion av fröet, inte av körningens nummer.
+	var igen := Run.new(stage, bestiary, deck, 4, db)
+	check(igen.villkor == pigg.villkor and is_equal_approx(igen.hp, pigg.hp),
+		"samma villkor kommer tillbaka med samma frö", "%s" % igen.villkor_text())
+
 	print("%d kontroller, %d fel" % [checks, fails])
 	quit(1 if fails > 0 else 0)
 

@@ -133,6 +133,8 @@ var _uppdrag_rader: Array = []
 var _vad_insats := 0
 ## En själ som räddades ur djupet i den senaste körningen (önskemål 24, punkt 8). Tom = ingen.
 var _raddad_sjal := ""
+## Dagens körning (önskemål 24, punkt 5): satt av _start_dagens och läst när körningen tar slut.
+var _dagens := false
 var _enemies: Array = []        ## [{spr, y, fas, hp, läge, läge_t}] — figurerna i rummet, animerade i _process
 
 # Rutorna i fiendebilden (tools/gen_enemy_art.py), i den ordning de ligger i PNG:n. Siffrorna står
@@ -3438,6 +3440,10 @@ func _input_shell(key: int) -> void:
 				_på_plats("hem")
 		return
 	if shell == "hem":
+		# DAGENS KÖRNING (önskemål 24, punkt 5): T = en körning per dygn, med dagens frö.
+		if key == KEY_T:
+			_start_dagens()
+			return
 		# Byn: markeringen flyttas mellan platserna, Enter går in. Siffrorna 1-4 är borta — en meny
 		# med två vägar in (markering och siffra) har två ställen att hålla i synk, och bara en av
 		# dem syns i bild.
@@ -4255,6 +4261,29 @@ func _enemy_läge_alla(frame: int, sekunder: float) -> void:
 			continue
 		_enemy_läge(e, frame, sekunder)
 
+## DAGENS KÖRNING (önskemål 24, punkt 5): en körning per dygn med dagens frö — samma bana och samma
+## box för alla som spelar samma dag. Banan väljs bland de UPPÅT LÅSTA, så den följer spelarens framsteg i
+## stället för att alltid vara den första. 50 % mer belöning; resten är som en vanlig körning.
+func _start_dagens() -> void:
+	var idag := Time.get_date_string_from_system()
+	if meta.dagens_datum == idag:
+		_logga(Tr.t("ui.dagens.tagen", "dagens körning är redan tagen i dag"), Color(0.9, 0.6, 0.4))
+		return
+	var upplåsta := []
+	for sid in _stage_order:
+		if meta.is_unlocked(str(sid)):
+			upplåsta.append(str(sid))
+	if upplåsta.is_empty():
+		upplåsta = [str(_stage_order[0])]
+	var dygn := int(Time.get_unix_time_from_system() / 86400.0)
+	var vald := str(upplåsta[absi(dygn) % upplåsta.size()])
+	meta.dagens_datum = idag
+	if not meta.save():
+		push_warning("kunde inte spara: %s" % meta.last_error)
+	_start_run(vald, dygn)
+	_dagens = true     # EFTER _start_run, som nollställer flaggan för varje ny körning
+	print("dagens körning: %s (dygn %d), 50 %% mer belöning" % [vald, dygn])
+
 func _start_run(stage_id: String, seed_value: int, start_floor: int = 0) -> void:
 	var stage: Stages.StageDef = stages.get(stage_id)
 	if stage == null:
@@ -4273,6 +4302,10 @@ func _start_run(stage_id: String, seed_value: int, start_floor: int = 0) -> void
 		meta.gold -= _vad_insats
 		_logga(Tr.t("ui.vad.dragen", "vad: %d guld satsade (2x om du klarar banan)") % _vad_insats,
 			Color(0.95, 0.75, 0.35))
+	# STARTVILLKORET (önskemål 24, punkt 6) sägs högt av samma skäl som banans regel: ett villkor
+	# spelaren inte känner till är inte variation, det är ett fel.
+	if not run.villkor.is_empty():
+		_logga(Tr.t("ui.villkor.rad", "startvillkor: %s") % run.villkor_text(), Color(0.7, 0.85, 0.95))
 	shell = "körning"             # banan är vald: 3D-vyn tar över från skalet
 	_refresh_shell()
 	# Startvåning: normalt 0, men kart-editorn kan släppa in en på en ritad våning.
@@ -4284,6 +4317,7 @@ func _start_run(stage_id: String, seed_value: int, start_floor: int = 0) -> void
 	_banked = false               # guldet från FÖRRA körningen är redan in i banken
 	_uppdrag_rader = []           # efterlysningarna hör till förra körningen
 	_raddad_sjal = ""
+	_dagens = false               # en vanlig körning är inte dagens; _start_dagens sätter den efteråt
 	end_panel.visible = false
 	battle_panel.visible = false
 	draft_panel.visible = false
@@ -6445,6 +6479,11 @@ func _bygg_runt() -> void:
 	_runt.add_child(stats_panel)
 
 	hint_label = Label.new()
+	# RADEN FÅR ALDRIG DRIVA EN ANNAN PANELS BREDD (mätt 2026-10-02): en längre tipsrad gjorde
+	# juvelerarpanelen 504 px i en 480 px-vy, och provet föll på "och i sidled". clip_text sätter
+	# labelns minsta bredd till 0, så texten kan aldrig knuffa ut en förälder — den klipps i stället,
+	# och raden har ändå 560 px i marginalen (mer än någon av de tretton språkens rad).
+	hint_label.clip_text = true
 	hint_label.add_theme_font_size_override("font_size", 16)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -7591,6 +7630,8 @@ func _end_text() -> String:
 	if not _raddad_sjal.is_empty():
 		slut += "\n" + Tr.t("ui.end.rescued", "EN SJÄL RÄDDAD: %s") \
 			% Tr.name_of("crawler", _raddad_sjal, _raddad_sjal)
+	if _dagens:
+		slut += "\n" + Tr.t("ui.dagens.rad", "DAGENS KÖRNING — 50 % mer belöning")
 	# BELÖNINGEN (önskemål 24): först vad djupet betalade, sedan boxens tre val om den väntar. Oddsen
 	# som visas är bara de STORA utfallen — hela raden hade blivit sjuttio tecken i en 480 px-vy — plus
 	# hur nära garantin man är. Samma tabell som rullningen läser, så siffran kan inte ljuga.
@@ -8134,8 +8175,11 @@ func _after_state_change() -> void:
 			var belöning := run.reward_event()
 			if not belöning.is_empty():
 				var andel := float(belöning.get("share", 1.0))
-				var pris_guld := int(round(int(belöning.get("gold", 0)) * andel))
-				var pris_splitter := int(round(int(belöning.get("shards", 0)) * andel))
+				# Dagens körning (önskemål 24, punkt 5) betalar 50 % mer: samma utbetalning, en gång
+				# per dygn, med ett frö som är dagens för alla spelare.
+				var bonus := 1.5 if _dagens else 1.0
+				var pris_guld := int(round(int(belöning.get("gold", 0)) * andel * bonus))
+				var pris_splitter := int(round(int(belöning.get("shards", 0)) * andel * bonus))
 				meta.add_gold(pris_guld)
 				meta.shards += pris_splitter
 				print("belöning efter körningen: %d guld, %d splitter (andel %.2f)" % [
