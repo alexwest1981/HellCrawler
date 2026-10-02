@@ -268,7 +268,7 @@ var butik_panel: PanelContainer
 var butik_label: Label
 var inn_panel: PanelContainer
 var inn_label: Label
-## Värdshuset som kortvägg (M56): det valda kortet stort, raden med alla under.
+## Värdshuset som kortvägg (önskemål 16): det valda kortet stort, raden med alla under.
 var inn_stor: CenterContainer
 var inn_box: HBoxContainer
 var inn_index := 0
@@ -2397,7 +2397,7 @@ func _buy_node(i: int) -> void:
 func _show_inn() -> void:
 	var linjer := meta.crawler_lines()
 	inn_index = clampi(inn_index, 0, maxi(0, linjer.size() - 1))
-	# BARNEN UR TRÄDET FÖRST (M56). `queue_free` lämnar kvar korten i containern under resten av
+	# BARNEN UR TRÄDET FÖRST (önskemål 16). `queue_free` lämnar kvar korten i containern under resten av
 	# ramen, så raden bar BÅDE de gamla och de nya: sexton kort i stället för sex, 12 x 47,8 + 11
 	# mellanrum ≈ 616 px. Godot tvingar en Control till minst sin minsta storlek, så panelen växte
 	# till 616 px i en 480 px-vy — och krympte aldrig tillbaka, för _place_panel:s cache såg samma
@@ -2421,7 +2421,7 @@ func _show_inn() -> void:
 	# Priset står i guld — samma nyckel som byns prislappar, så en hjälte och en butiks­vara inte kan
 	# säga olika saker om samma mynt. Tangenterna (W/S, piltangenterna och siffrorna) står i
 	# marginalens tipsrad: se _refresh_shell.
-	# TRE RADER, INGA TIPS (M56). Panelen mäts mot sin bredaste rad: med tangenttipsen i etiketten
+	# TRE RADER, INGA TIPS (önskemål 16). Panelen mäts mot sin bredaste rad: med tangenttipsen i etiketten
 	# blev raden 76 tecken = 608 px i en 480 px-vy, och texten skars av i båda ändar (mätt; felet
 	# fanns med de sex gamla korten också, 75 tecken). Tipsen står nu i marginalens tipsrad där
 	# körningen skriver sina tangenter (se _refresh_shell) — panelen har kvar titel, namn, verkan
@@ -2747,7 +2747,7 @@ func _refresh_shell() -> void:
 	# TEXTEN FÖRST, placeringen efter: panelen mäts mot sitt innehåll, och den som placerades medan
 	# etiketten var tom blev en liten ruta som texten flöt ut ur (sett på bild: raden om
 	# tangenterna skars av vid skärmkanten).
-	# TIPSEN FÖR SKALET (M56). Marginalens tipsrad är till för tangenterna — körningen skriver sina
+	# TIPSEN FÖR SKALET (önskemål 16). Marginalens tipsrad är till för tangenterna — körningen skriver sina
 	# där — och i skalet stod den tom. Värdshusets tangenter låg förut i panelens etikett, och en rad
 	# på 76 tecken gjorde panelen 608 px i en 480 px-vy. Här är utrymmet fönstret, inte vyn.
 	var skal_hint := ""
@@ -2804,7 +2804,7 @@ func _refresh_shell() -> void:
 		Tr.t("ui.shell.cs", "%d CS") % meta.souls]
 	# Tipsen och korträknaren hör till KÖRNINGEN. Byn och kartan ritar sin egen text, och en
 	# kvarglömd hand över byn vore en lögn om var man är. Värdshuset är undantaget som bekräftar
-	# regeln: dess tangenter står där körningens står, för panelen har ingen plats för dem (M56).
+	# regeln: dess tangenter står där körningens står, för panelen har ingen plats för dem (önskemål 16).
 	hint_label.text = skal_hint
 	kort_label.text = ""
 
@@ -6676,7 +6676,7 @@ func _build_hud() -> void:
 	abox.add_child(album_box)
 	hud.add_child(album_panel)
 
-	# VÄRDSHUSET (M56). Alex: "Där skall korten på alla hjältar radas upp, så man kan välja dem, läsa
+	# VÄRDSHUSET (önskemål 16). Alex: "Där skall korten på alla hjältar radas upp, så man kan välja dem, läsa
 	# om dem innan man köper dem, och sedan läggs de till i ens kortlek." Samma bygge som albumet —
 	# en stor visning och en rad tumnaglar — så hjälte­korten är SAMMA kort som i leken, ritade av
 	# samma CardView. Det som inte står på kortet (hans passiva verkan och priset) står i etiketten.
@@ -6929,7 +6929,7 @@ func _place_panel(panel: Control, at_top: bool) -> void:
 	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	var s := panel.get_combined_minimum_size()
 	var nyckel := panel.get_instance_id()
-	# MÅTTET RÄCKER INTE SOM BEVIS (M56): en Control som växt (t.ex. av en tillfällig minsta storlek
+	# MÅTTET RÄCKER INTE SOM BEVIS (önskemål 16): en Control som växt (t.ex. av en tillfällig minsta storlek
 	# medan gamla och nya barn låg i raden samtidigt) behåller sin storlek när minimum sjunker igen.
 	# Cachen såg samma mått som förut och hoppade över placeringen, så panelen låg kvar på 616 px i
 	# en 480 px-vy. Storleken själv måste stämma också.
@@ -8037,7 +8037,9 @@ func _on_card(index: int) -> void:
 	var kort: Cards.Card = active_combat.hand[hi]
 	# KVITTERINGEN (Alex: "nu ser det bara ut som kortet försvinner"): kortet lägger en händelse i
 	# körningens ström, samma väg som kistan och facklan — då kan en ny kvittering inte bli tyst.
-	# Siffrorna är SKILLNADEN mot före, inte råa värden: mana, hälsa och guld räknas ur samma tal som
+	# Siffrorna är kortets EGNA gåvor (`PlayResult.mana/hp/guld`), alltså vad kortet gav och inte
+	# skillnaden i striden: en mana-dryck som kostar två och ger tre kvitteras "+3 mana". Provat i
+	# `tests/test_reward.gd`.
 	var r := active_combat.play(hi)
 	if r.reason.is_empty():
 		var card_ev := {"type": "card", "card": r.card_id,

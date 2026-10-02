@@ -42,7 +42,13 @@ Det finns redan en förvarning/hugg-effekt, men den är svagast i båda granskni
 > "någon form av visuell bekräftelse när man tar en manapotion eller något annat, för nu ser det bara ut som kortet försvinner."
 
 Effekten `game/ui/reward_fx.gd` finns för belöningar; kort som spelas upp och försvinner behöver samma slags kvittering (mana, hp, guld).
-**Status:** öppen (M35).
+**Status:** klar (skördad från en worktree-agent, granskad här). Kortet lägger sin händelse i körningens
+ström och kvitteras DESSUTOM direkt: `RewardFx` vänder in kortets namn och de tal det gav mitt i vyn.
+Talen är kortets egna gåvor (`PlayResult.mana/hp/guld`) — vad kortet gav, inte skillnaden i striden, så
+en mana-dryck som kostar två och ger tre kvitteras "+3 mana". Ett kort som bara gör skada ger ingen stund.
+Provat i `tests/test_reward.gd`: manakort, hälsokort och guldkort kvitteras, skadekortet tiger.
+Worktreens ändring i `tools/gen_material_tiles.py` togs INTE in — den tog bort klippningen ur arken ur
+kontrolläget, alltså mätstickan i stället för felet.
 
 ## 8. Kortborden: hög → solfjäder → använda → tillbaka
 > "en animation som flyttar korten man har tillgängliga från en korthög i höger hörn, till handen man håller i (som förövrigt nu ser ut som man radat upp längst kanten och behöver vara mer som att man håller korten i en solfjäderform som i Referensspelet), och sedan till vänster sida i en hög av 'Använda kort'. Korten skall sedan samlas ihop och läggas i högen prydligt igen på höger sida."
@@ -118,10 +124,17 @@ rök (mjuk rörelse och kant), glans (en ljusstrimma som vandrar), genomskinligh
 alfa-tröskel), glöd och vågor. Pixelkonsten ska vara kvar — shadern lägger till, den ritar inte om —
 och en fiende utan egen shader ska se ut precis som i dag.
 
-**Status:** ej påbörjad (önskemål, inte mätt). Riktning att börja i: en `ShaderMaterial` per fiende i
-fiendedatat (`game/data/enemies.json` eller motsvarande), med en standard-shader som gör ingenting, så
-att inget ändras förrän en fiende faktiskt får en. Mätbart: en fiende med shader skiljer sig från sin
-egen textur (pixlar utanför bildens kontur eller ändrad alfa) medan en utan är bit-identisk med i dag.
+**Status:** klar för rök (skördad från en worktree-agent, granskad och mätt här). `game/ui/fiende_rok.gdshader`
+späder ut silhuettens alfa mot åtta grannar i radien `rok_vidd` och lägger en genomsläpplig ton ovanpå
+figuren; ett eget `Sprite3D`-lager ritas bara för en fiende som pekar ut en shader i fiendedatat
+(`"shader": "rok"`), och `push_error` om shaderfilen saknas. En fiende utan shader rörs inte.
+Provat i `tests/test_fiende_shader.gd` (17 kontroller): lagret skapas ur datan, en fiende utan shader är
+orörd, och provet räknar pixlarna utanför konturen ur texturen med samma radie — 924 px med rök,
+0 px utan utspädning ("standarden gör ingenting").
+Kvar: glans, genomskinlighet, glöd och vågor är inte byggda. Och den kompilerade shadern är ännu inte
+mätt i en RENDERING — provet mäter datavägen och räknar om utspädningen på CPU:n. En skärmbild hade
+krävt en display; spelet självt säger "kör med DISPLAY=:99" och `Xvfb` finns inte installerad på maskinen
+(kräver sudo).
 
 ## 14. GUI:t enligt referensbilden — men korten i handen, inte en action bar
 

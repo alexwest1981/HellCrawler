@@ -207,7 +207,7 @@ func _initialize() -> void:
 	# Att behålla en ritad komponent som ingen ritar vore att lämna kvar en bild av hur HUD:en SÅG ut.
 
 	print("")
-	print("— värdshuset: kortväggen ryms i vyn, också med sexton hjältar (M56) —")
+	print("— värdshuset: kortväggen ryms i vyn, också med sexton hjältar (önskemål 16) —")
 	# Raden mättes för sex kort (se inn_box i _build_hud). Med sexton blev den 16 x 89 x 0,45 +
 	# mellanrum = 640 px i en 480 px-vy, och korten försvann ut på båda sidor. Provet mäter
 	# geometrin vid VARJE val och inte bara vid det första: fönstret flyttar sig med markeringen,
@@ -216,7 +216,7 @@ func _initialize() -> void:
 	main.shell = "vardshus"
 	main._refresh_shell()          # samma väg som tangenterna tar: panelen OCH marginalens tipsrad
 	await process_frame
-	# Tipsen flyttade ut ur panelen (M56) eftersom de gjorde den 608 px bred. Att de står NÅNSTANS
+	# Tipsen flyttade ut ur panelen (önskemål 16) eftersom de gjorde den 608 px bred. Att de står NÅNSTANS
 	# är en kontroll, inte en detalj: en tangent man inte ser är en tangent man inte vet om.
 	check(not main.hint_label.text.is_empty() and main.hint_label.text.contains("Esc"),
 		"tangenterna står i marginalens tipsrad", "tips: %s" % main.hint_label.text)

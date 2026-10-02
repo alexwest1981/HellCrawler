@@ -49,7 +49,7 @@ func _initialize() -> void:
 	var all_colors := {}
 	for id in db:
 		var path := "res://assets/cards/%s.png" % id
-		# HJÄLTARNAS BILD LIGGER NÅGON ANNANSTANS (M56). Kortikonerna klipps ur Alex' ark
+		# HJÄLTARNAS BILD LIGGER NÅGON ANNANSTANS (önskemål 16). Kortikonerna klipps ur Alex' ark
 		# (tools/gen_card_icons.py) och bor i assets/cards/. Hjältarna har ingen egen kortikon: deras
 		# bild är hjälteikonen ur hjältearket (tools/gen_hero_icons.py, assets/heroes/), och samma väg
 		# tar main.gd:s _card_icon. Provet mäter den vägen i stället för att kräva en ikon som inte
