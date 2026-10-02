@@ -323,8 +323,25 @@ olika val varje gång, garantin TVINGAR vid räknarens gräns, varje slag hamnar
 överlever sparfilen). Slutskärmen renderad på skivan och granskad: belöning, tre val, odds och
 garantiräknare syns utan klippning.
 
-Kvar att bygga: efterlysningar över flera körningar, svårighetstrappan, dagens körning, startvillkor,
-vadslagning och de räddade själarna.
+Kvar att bygga: dagens körning och startvillkoren. Klara: efterlysningarna (skiva B), svårighetstrappan
+(skiva C), vadslagningen och de räddade själarna (skiva D).
+
+**Tillägg (skiva C, samma dag):** SVÅRIGHETSTRAPPAN — ett steg är samma byteshandel som förbannelsen
+redan gör (fiender +12 %, guld +30 % per steg), men per bana och valt av spelaren. Vänster/höger i
+nivåpanelen väljer steg, kortets rad visar "trappsteg 3/3 · fiender +36 % · guld +90 %" och ett klarat
+steg på sin högsta nivå öppnar nästa. **MÄTT:** `tests/test_meta.gd` (13), `tests/test_worldmap.gd` (7).
+**PÅ VÄGEN:** kartans statusrad visade `%d våningar` i ALLA tretton språk — koden formaterade med två tal
+medan språkfilerna hade ett, så Godot lämnade strängen oformaterad. Rättat i alla tretton och nycklarna
+ligger nu i platshållar-kontraktet i `test_i18n.gd`, där de saknades. Sett i en rendering.
+
+**Tillägg (skiva D, samma dag):** VADSLAGNINGEN — V i nivåpanelen vrider 0 → 25 % → 50 % av banken;
+insatsen dras när körningen startar och betalas dubbelt om banan klaras, ingenting om man dör. RÄDDADE
+SJÄLAR — en klarad körning kan hitta en kamrat som satt fast i djupet; chansen stiger med djupet (20 %
+till 60 %) och hon blir hyrd utan kostnad. **MÄTT:** `test_meta.gd` (12: vridet i tre steg, insatsen
+aldrig mer än banken, valet överlever sparfilen, en själ är en som inte redan är hyrd) och
+`tests/test_hud.gd` (6, genom spelets egen väg: 1000 → 750 i startsdrag, död 789 utan återbetalning,
+klarad 592 → 1151 med 197 i insats). **SAMTIDIGT RÄTTAT:** efterlysningarna kvitterades före
+`note_run`, så ett mål som nåddes betalade ut först nästa körning.
 
 **Tillägg (skiva B, samma dag):** EFTERLYSNINGARNA är inne — fem mål över flera körningar (50 och 200
 dråp, 25 och 60 våningar ned, 10 körningar) med räknare i sparfilen (`kills_total`, `floors_total`,
