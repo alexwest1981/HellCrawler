@@ -278,6 +278,13 @@ var karta: Karta                ## kartans bild, vinkel och noder (data/karta.js
 var karta_view: WorldMapView
 var butik_panel: PanelContainer
 var butik_label: Label
+## Klickytorna över butiksraderna (önskemål 28): raden är ett OBJEKT man trycker på, inte en siffra
+## man ska komma ihåg. Osynliga knappar exakt över radens ruta — texten och panelens mått är
+## oförändrade, så siffrorna, provet och språkfilerna behöver inte röras.
+## Varorna som OBJEKT (önskemål 28): en knapp per uppgradering i ett rutnät, inte en textrad med en
+## siffra framför. Rubriken och tipsraden står kvar i etiketten ovanför, språkraden under.
+var butik_rader: GridContainer
+var butik_fot: Label
 var inn_panel: PanelContainer
 var inn_label: Label
 ## Värdshuset som kortvägg (önskemål 16): det valda kortet stort, raden med alla under.
@@ -540,7 +547,7 @@ var _ssr := true                   ## skärmbaserade reflektioner (vatten, ben)
 var _ao := true                    ## kontaktmörker i fogar och hörn (SSAO)
 var _ssil := true                  ## indirekt ljus ur samma pass (SSIL): ljuset som studsar i hörnen
 var _vol := true                   ## volymetrisk dimma: ljuskäglorna i luften (facklor och lyktan)
-var _kontrast := 1.0               ## `kontrast=N`: kontrasten i spelvyn (granskningsflagga)
+var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, se LJUSPROVET nedan
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
                                    ## hur mycket kontrast lagret tar (samma skäl som ssr=0/vol=0)
@@ -727,7 +734,12 @@ func _ready() -> void:
 	# krymper skillnaden mellan ytorna. En rak kontrastkurva efter den lägger tillbaka en del av
 	# separationen — men höjer också svärtan, så den mäts (std i spelvyn) innan den får bli standard.
 	env.adjustment_enabled = _kontrast != 1.0
+	# FÄLLAN: justeringarna är AV som standard, och deras grundvärden är 0,0 — slår man på dem med bara
+	# `contrast` satt blir HELA bilden svart (mätt: medel 0,6 av 255 i spelvyn). Ljusstyrka och mättnad
+	# måste sättas till 1,0 (oförändrat) i samma andetag.
+	env.adjustment_brightness = 1.0
 	env.adjustment_contrast = _kontrast
+	env.adjustment_saturation = 1.0
 	env.glow_enabled = true
 	env.glow_normalized = true
 	env.glow_intensity = 0.9
@@ -785,7 +797,7 @@ func _ready() -> void:
 		or flags.has("lageprov") or flags.has("stegprov") or flags.has("handprov") or flags.has("grävprov")
 		or _normalprov >= 0.0
 		or not _glansprov_pose.is_empty()
-		or flags.has("guiprov") or flags.has("vinstprov")
+		or flags.has("guiprov") or flags.has("vinstprov") or flags.has("ljusprov")
 		or not nodprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
 	if not kör:
 		# Vanlig start (eller en enskild skärms skärmbildsläge): byn först. Ingen körning finns än,
@@ -842,6 +854,9 @@ func _ready() -> void:
 		return
 	if flags.has("fackelprov"):
 		await _demo_node("torch", "fackla", 45)     # 45 bildrutor: lågan behöver tid att byggas upp
+		return
+	if flags.has("ljusprov"):
+		await _ljusprov()
 		return
 	if not _glansprov_pose.is_empty():
 		await _glansprov()
@@ -1471,6 +1486,88 @@ func _lageprov_bild(lågor: Array, storlek: Vector2, glöd: float, namn: String)
 ## |01−02| är glansen med ytan orörd, |02−03| hur mycket av lyftet som är YTORNA, |02−04| vad tröskeln
 ## gör med den, |04−06| och |04−07| rekvisitens metall vid två råheter, och |01−08| vad körningens eget
 ## brus kan åstadkomma — ett svar i brusgolvets storlek betyder "ingen skillnad".
+## LJUSPROVET (önskemål 26): sveper ljusets rattar i EN körning och mäter bildens fördelning per post.
+## Korsvisa körningar duger INTE — elden fladdrar och GI:n sätter sig olika, så två processer skiljer
+## sig även när ingen rad ändrats (samma läxa som glansprovet). Provet går fram till en fackla först,
+## så varje post har en ljuskälla i bild OCH skuggor att mäta på.
+func _ljusprov() -> void:
+	var nod: Dungeon.FloorNode = null
+	for n in run.explore.floor_ref.nodes:
+		if n.kind == "torch":
+			nod = n
+			break
+	if nod == null:
+		print("ljusprov: våningen har ingen fackla (prova en annan bana eller våning)")
+		get_tree().quit()
+		return
+	var avstånd := await _gå_till_och_vänd(nod.pos)
+	for i in 45:                       # elden byggs upp och dimman/GI:n hinner sätta sig
+		await get_tree().process_frame
+	print("[ljusprov] framme vid facklan %s, %d steg ifrån: %d fackelljus, dimma %.4f, gi %.2f, omgivning %.2f, kontrast %.2f, glöd %.2f"
+		% [str(nod.pos), avstånd, _lågor.size(), env.volumetric_fog_density,
+			env.volumetric_fog_gi_inject, env.ambient_light_energy, env.adjustment_contrast,
+			env.glow_intensity])
+	# FÖRSTA POSTEN ÄR DEN GAMLA STANDARDEN, och den körs i SAMMA process som den nya: ljuset fladdrar
+	# och GI:n sätter sig olika mellan två processer, så en A/B över två körningar går inte att skilja
+	# från att bygget självt skiljer sig. `-- shot` duger inte som mätbild — den fotograferar
+	# startplatsen, som är en mörk vägg (mätt: 83 % av rutan under mörkertröskeln).
+	var svep := [
+		{"namn": "00-gammal-standard", "kontrast": 1.0, "omgivning": 0.18, "dimma": 0.0128,
+			"fackel_luft": 6.0, "sken": false, "falloff": 2.0, "fackel_glod": 2.2},
+		{"namn": "01-ny-standard"},
+		{"namn": "02-kontrast-1.2", "kontrast": 1.2},
+		{"namn": "03-kontrast-1.4", "kontrast": 1.4},
+		{"namn": "04-omgivning-0.6", "omgivning": 0.6},
+		{"namn": "05-omgivning-0.15", "omgivning": 0.15},
+		{"namn": "06-glod-1.6", "glod": 1.6},
+		{"namn": "07-dimma-0.030", "dimma": 0.030},
+		{"namn": "08-gi-0.20", "gi": 0.20},
+		{"namn": "09-fackelsken", "sken": true},
+		{"namn": "10-lykta-5", "lykta": 5.0},
+		{"namn": "11-falloff-1.0", "falloff": 1.0},
+		{"namn": "12-allt", "kontrast": 1.2, "omgivning": 0.45, "dimma": 0.030,
+			"fackel_luft": 9.0, "sken": true, "falloff": 1.2},
+	]
+	for post in svep:
+		await _ljusprov_bild(post)
+	get_tree().quit()
+
+## En bild av ljusprovet: postens rattar sätts, bilden sparas och hennes FÖRDELNING skrivs ut — utan
+## fördelningen går det inte att skilja "mer separation" från "hela rutan lyftes" (en platt bild).
+func _ljusprov_bild(post: Dictionary) -> void:
+	# Posten UTAN en ratt ska vara spelets EGET läge, inte en nolla: annars mäter "före" något annat
+	# än det spelaren ser (provet sänkte kontrasten till 1,0 och skuggorna till av).
+	env.adjustment_contrast = float(post.get("kontrast", _kontrast))
+	env.adjustment_enabled = not is_equal_approx(env.adjustment_contrast, 1.0)
+	env.ambient_light_energy = float(post.get("omgivning", env.ambient_light_energy))
+	env.glow_intensity = float(post.get("glod", env.glow_intensity))
+	env.volumetric_fog_density = float(post.get("dimma", env.volumetric_fog_density))
+	env.volumetric_fog_gi_inject = float(post.get("gi", env.volumetric_fog_gi_inject))
+	for l in _lågor:
+		if post.has("sken"):
+			l.shadow_enabled = bool(post["sken"])
+		l.light_volumetric_fog_energy = float(post.get("fackel_luft", 6.0))
+		l.light_energy = float(post.get("fackel_glod", l.light_energy))
+	if _lykta != null:
+		_lykta.light_energy = float(post.get("lykta", _lykta_energi)) * _ljus_f
+		if post.has("falloff"):
+			_lykta.spot_attenuation = float(post["falloff"])
+	for i in 4:
+		await get_tree().process_frame
+	await get_tree().create_timer(0.25).timeout
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
+	var namn := str(post.get("namn", "bild"))
+	var path := "user://shots/ljusprov-%s.png" % namn
+	var img := get_viewport().get_texture().get_image()
+	if img == null or img.is_empty():
+		push_error("ingen bild kunde läsas (%s): kör med DISPLAY=:0" % path)
+		get_tree().quit(2)
+		return
+	img.save_png(path)
+	var st := _bild_statistik(img)
+	print("[ljusprov] %-18s medel %.4f  p50 %.4f  p99 %.4f  mörkt %d %%  ljust %d %%  högdagrar %d px"
+		% [namn, st["medel"], st["p50"], st["p99"], st["mörkt"], st.get("ljust", 0), st["högdagrar"]])
+
 func _glansprov() -> void:
 	var mål := Vector2i.ZERO
 	var pöl := _glansprov_pose == "pöl"
@@ -2784,7 +2881,20 @@ func _refresh_shell() -> void:
 	elif shell == "karta":
 		karta_view.visa(stages, _stage_order, meta)
 	elif shell == "butik" or (shell == "smed" and _smed_läge == "shop"):
-		butik_label.text = _village_text("by")
+		if butik_label != null:
+			butik_label.text = "%s\n%s" % [
+				Tr.t("ui.shop.title", "BUTIKEN — guld i banken: %d") % meta.gold,
+				Tr.t("ui.shop.hint", "klick = köp · Esc = tillbaka till byn")]
+		if butik_fot != null:
+			butik_fot.text = Tr.t("ui.settings.language_hint", "L = byt språk (%s)") % Tr.name_of_code(Tr.lang)
+		_butik_varor()
+		# Panelen MÅSTE placeras: textvarianten behövde det inte (etiketten centrerade sin egen text
+		# och panelen fyllde HUD:en), men med varor i ett rutnät får panelen ett eget minimimått och
+		# hamnade i övre vänstra hörnet med vänsterkolumnen klippt (sett i skärmbilden).
+		# EFTER RAMEN: en container räknar om sitt minimimått först i nästa layout, och `_place_panel`
+		# läste ett för litet mått — panelen blev 385 px med ett rutnät som ville ha 418, och
+		# vänsterkolumnen stack ut utanför kanten (sett i skärmbilden).
+		_place_panel.call_deferred(butik_panel, false)
 	elif shell == "vardshus":
 		_show_inn()
 		# Tangenterna: samma ord som förut, men i marginalen. Siffrorna gäller det SYNLIGA fönstret
@@ -3500,8 +3610,15 @@ func _input_shell(key: int) -> void:
 			KEY_ESCAPE:
 				shell = "hem"
 			_:
+				# SMEDENS SHOP-LÄGE VISAR BUTIKENS RADER (M95). Siffrorna gick ändå till trädet, vars
+				# köp returnerar direkt när smedspanelen inte syns — raden sade OK och ingenting hände
+				# (Alex: *"det går inte att köra något där, trots att jag har tillräckligt med guld"*).
+				# Panelen som SYNS avgör vad siffran köper: butiksraderna i shop, trädnoden i sharpen.
 				if key >= KEY_1 and key <= KEY_9:
-					_buy_node(key - KEY_0)
+					if _smed_läge == "shop":
+						_buy(key - KEY_0)
+					else:
+						_buy_node(key - KEY_0)
 	elif shell == "juvelerare":
 		# Piltangenter väljer KORT (← →) och STEN i fickan (W/S), siffrorna 1-4 tar ett fack, och
 		# Enter gör det valet pekar på: öppnar facket, sätter stenen eller plockar ur den.
@@ -3744,6 +3861,70 @@ func _village_text(läge: String = "by") -> String:
 	rader.append(Tr.t("ui.settings.language_hint", "L = byt språk (%s)") % Tr.name_of_code(Tr.lang))
 	return "\n".join(rader)
 
+## KLICKYTORNA (önskemål 28). Alex: *"jag vill ha dem som objekt, och inte textrader, man skall kunna
+## klicka på dem för att köpa dem, inte ange en siffra"*.
+##
+## Panelen ritar raden som TEXT i en etikett, och etiketten har redan rätt mått och rätt innehåll i
+## alla tretton språk. Därför läggs osynliga knappar OVANPÅ varje rads ruta i stället för att raden
+## byggs om till knappar: ingen text, inget mått och ingen översättning ändras, bara ytan man träffar.
+## Fokus stängs av, annars tar knappen tangentbordet efter ett klick och siffrorna slutar fungera.
+## VARORNA (önskemål 28). Alex: *"jag vill ha dem som objekt, och inte textrader, man skall kunna klicka
+## på dem för att köpa dem, inte ange en siffra"*.
+##
+## En vara är en knapp: namn och rang, priset och om man har råd, och vad den gör — och ett TRYCK köper
+## den. Har man inte råd är rutan mörkare och märket X (inte bock: pixeltypsnittet saknar glyfen, se
+## `_village_text`s gamla kommentar). Siffrorna 1-8 fungerar fortfarande som genväg, men inget står
+## skrivet om dem: det är klicket som är vägen.
+func _butik_varor() -> void:
+	if butik_rader == null:
+		return
+	# UT UR TRÄDET FÖRST: en nod som bara är `queue_free()`ad ligger kvar i sin grupp och i containern
+	# till nästa bildruta, och då bar rutnätet både de gamla och de nya varorna (samma läxa som
+	# värdshusets kort, M16).
+	for barn in butik_rader.get_children():
+		butik_rader.remove_child(barn)
+		barn.queue_free()
+	if butik_panel == null or not butik_panel.visible:
+		return
+	var linjer := meta.village_lines()
+	for i in linjer.size():
+		var v: Dictionary = linjer[i]
+		var har_råd := bool(v["affordable"])
+		var pris := Tr.t("ui.village.maxed", "FULL") if int(v["cost"]) < 0 \
+			else Tr.t("ui.village.price", "%d guld") % int(v["cost"])
+		var knapp := Button.new()
+		# INTE `flat`: en flat knapp ritar ingen bakgrund alls, och då kastas styleboxen nedan — varan
+		# blev en naken textrad igen (mätt i skärmbilden: inga rutor syntes).
+		knapp.focus_mode = Control.FOCUS_NONE        # annars tar knappen tangentbordet efter ett klick
+		knapp.add_theme_font_size_override("font_size", 10)
+		# ETT X BETYDER "HAR INTE RÅD", INTE "FULLT UTVECKLAD" (sett i skärmbilden: en fullt utvecklad
+		# vara visade "FULL · X"). Är priset slut står FULL ensamt.
+		var märke := "" if int(v["cost"]) < 0 else ("OK" if har_råd else "X")
+		knapp.text = "%s %d/%d\n%s\n%s" % [v["name"], int(v["rank"]), int(v["max_rank"]),
+			(pris if märke.is_empty() else "%s · %s" % [pris, märke]), str(v["text"])]
+		for läge in ["normal", "hover", "pressed"]:
+			knapp.add_theme_stylebox_override(läge, _varu_stil(har_råd, läge != "normal"))
+		knapp.tooltip_text = str(v["text"])
+		knapp.pressed.connect(_buy.bind(i + 1))
+		knapp.add_to_group("butik_rad")
+		butik_rader.add_child(knapp)
+
+## Varans ruta. Samma mörka plåt som panelen, en hårfin ram och ett grått märke för det man inte har
+## råd med — priset och märket syns i texten, färgen bara förstärker dem.
+func _varu_stil(har_råd: bool, över: bool = false) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(0.11, 0.10, 0.10, 0.66) if har_råd else Color(0.06, 0.05, 0.05, 0.55)
+	if över:
+		s.bg_color = s.bg_color.lightened(0.30)
+	s.border_color = Color(0.60, 0.54, 0.40) if har_råd else Color(0.32, 0.29, 0.25)
+	s.set_border_width_all(1)
+	s.set_corner_radius_all(2)
+	s.content_margin_left = 4.0
+	s.content_margin_right = 4.0
+	s.content_margin_top = 2.0
+	s.content_margin_bottom = 2.0
+	return s
+
 ## Köp uppgradering nummer i (1-baserat) ur byn. Skälet loggas i klartext: en knapp som inte gör
 ## något ska säga varför, inte tiga.
 func _buy(i: int) -> void:
@@ -3815,6 +3996,12 @@ func _add_enemies(node: Dungeon.FloorNode, boss: bool) -> void:
 			if not look.is_empty():
 				if alfa < 1.0:
 					spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	# FYRKANTEN (M80): en genomskinlig quad med `alpha_cut = DISABLED` skuggar hela RUTAN i stallet
+	# for sin form - Godots skuggpass har ingen silhuett att klippa mot. Figuren klipper sin alfa och
+	# skuggar ratt; lagren OVANPA (mask, rok, glans) och golvplattan gjorde det inte, sa varje fiende
+	# bar en mork fyrkant pa golvet och vagen. Ett lager som bara lyser eller damp ska inte skugga alls.
+	# Beviset ligger i docs/skarmbilder/fiende-fyrkant-{fore,efter}.png och i test_gui.
+					spr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				spr.modulate = Color(ton.r, ton.g, ton.b, alfa)
 				# GLANSEN (M72): aura, våt glans eller metallglint. Den är ett BARN till figuren, så
 				# den andas med den — en aura som står still medan varelsen rör sig är fel.
@@ -3869,6 +4056,12 @@ func _add_enemies(node: Dungeon.FloorNode, boss: bool) -> void:
 		sk.scale = Vector3(SKUGGA_BREDD, SKUGGA_BREDD * 0.55, 1.0)
 		sk.position = Vector3(spr.position.x, SKUGGA_HÖJD, spr.position.z)
 		sk.name = "skugga"
+	# FYRKANTEN (M80): en genomskinlig quad med `alpha_cut = DISABLED` skuggar hela RUTAN i stallet
+	# for sin form - Godots skuggpass har ingen silhuett att klippa mot. Figuren klipper sin alfa och
+	# skuggar ratt; lagren OVANPA (mask, rok, glans) och golvplattan gjorde det inte, sa varje fiende
+	# bar en mork fyrkant pa golvet och vagen. Ett lager som bara lyser eller damp ska inte skugga alls.
+	# Beviset ligger i docs/skarmbilder/fiende-fyrkant-{fore,efter}.png och i test_gui.
+		sk.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		sk.add_to_group("fiende_skugga")
 		world.add_child(sk)
 		# Healthbaren: ett tunt streck över huvudet på de fiender man FAKTISKT slåss mot.
@@ -3987,6 +4180,12 @@ func _glans(färg: Color, storlek: float, höjd: float, styrka: float) -> Sprite
 	s.texture = _skuggtextur()
 	s.pixel_size = 0.035
 	s.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	# FYRKANTEN (M80): en genomskinlig quad med `alpha_cut = DISABLED` skuggar hela RUTAN i stallet
+	# for sin form - Godots skuggpass har ingen silhuett att klippa mot. Figuren klipper sin alfa och
+	# skuggar ratt; lagren OVANPA (mask, rok, glans) och golvplattan gjorde det inte, sa varje fiende
+	# bar en mork fyrkant pa golvet och vagen. Ett lager som bara lyser eller damp ska inte skugga alls.
+	# Beviset ligger i docs/skarmbilder/fiende-fyrkant-{fore,efter}.png och i test_gui.
+	s.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -4066,6 +4265,12 @@ func _fiende_lager(id: String, tex: Texture2D) -> Sprite3D:
 	l.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
 	l.render_priority = 2                                 # ovanpå figuren
 	l.name = "material"
+	# FYRKANTEN (M80): en genomskinlig quad med `alpha_cut = DISABLED` skuggar hela RUTAN i stallet
+	# for sin form - Godots skuggpass har ingen silhuett att klippa mot. Figuren klipper sin alfa och
+	# skuggar ratt; lagren OVANPA (mask, rok, glans) och golvplattan gjorde det inte, sa varje fiende
+	# bar en mork fyrkant pa golvet och vagen. Ett lager som bara lyser eller damp ska inte skugga alls.
+	# Beviset ligger i docs/skarmbilder/fiende-fyrkant-{fore,efter}.png och i test_gui.
+	l.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	l.set_meta("ark_atlas", ark)
 	l.set_meta("mask_atlas", msk)
 	var m := ShaderMaterial.new()
@@ -4117,6 +4322,12 @@ func _fiende_shader_lager(id: String, tex: Texture2D) -> Sprite3D:
 	l.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
 	l.render_priority = 2                                 # ovanpå figuren
 	l.name = "shader"
+	# FYRKANTEN (M80): en genomskinlig quad med `alpha_cut = DISABLED` skuggar hela RUTAN i stallet
+	# for sin form - Godots skuggpass har ingen silhuett att klippa mot. Figuren klipper sin alfa och
+	# skuggar ratt; lagren OVANPA (mask, rok, glans) och golvplattan gjorde det inte, sa varje fiende
+	# bar en mork fyrkant pa golvet och vagen. Ett lager som bara lyser eller damp ska inte skugga alls.
+	# Beviset ligger i docs/skarmbilder/fiende-fyrkant-{fore,efter}.png och i test_gui.
+	l.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	l.set_meta("ark_atlas", ark)
 	var m := ShaderMaterial.new()
 	m.shader = shader
@@ -5259,14 +5470,16 @@ func _apply_tema() -> void:
 	if env != null:
 		env.background_color = l.get("bakgrund", Color(0.07, 0.07, 0.10))
 		env.ambient_light_color = l.get("omgivning", Color(0.5, 0.5, 0.55))
-		env.ambient_light_energy = _omgivning if _omgivning >= 0.0 else float(l.get("energi", 0.30))
+		# LJUSPROVET: nivåns eget `energi` (0,18 här) lämnade 62 % av rutan under mörkertröskeln och
+		# formlös. Golvet lyfter konturerna i mörkret utan att ta bort riktningen från lyktan.
+		env.ambient_light_energy = _omgivning if _omgivning >= 0.0 else maxf(float(l.get("energi", 0.30)), 0.45)
 		env.fog_density = float(l.get("dimma", 0.04))
 		env.fog_light_color = env.background_color.lightened(0.06)
 		# Den volymetriska dimman följer temats täthet, inte ett eget värde: ett tema som redan är
 		# disigt (kryptan, tunneln) ska ha tjockare luft också där ljuset går genom den. Taket på
 		# 0,05 är mätt: över det blir lyktan en grå vägg och rummet försvinner bakom sin egen luft.
 		if _vol:
-			env.volumetric_fog_density = clampf(float(l.get("dimma", 0.04)) * 0.32, 0.010, 0.05)
+			env.volumetric_fog_density = clampf(float(l.get("dimma", 0.04)) * 0.32, 0.022, 0.05)
 			env.volumetric_fog_albedo = env.background_color.lightened(0.5)
 
 ## Ljuset som faller på YTORNA: lyktan i handen och facklorna i rummet, gånger `f`. EN väg in, så
@@ -5428,6 +5641,7 @@ func _figurprov() -> void:
 	await _gå_till_och_vänd(nod.pos)
 	for i in 30:
 		await get_tree().process_frame
+	_spara_bild("user://shots/figurprov.png")        # bilden är beviset: skuggan ska ha figurens form
 	var fig := _figurmaterial_prov()
 	var mörka := 0
 	var glansiga := 0
@@ -5597,7 +5811,11 @@ func _add_lagor(f: Dungeon.Floor) -> void:
 		ljus.omni_range = LAGA_RACKVIDD
 		ljus.omni_attenuation = 1.6
 		ljus.light_specular = _ljus_glans
-		ljus.shadow_enabled = false            # flera skuggande punktljus per våning kostar mer än det ger
+		# LJUSPROVET: skuggor på facklorna är den största liv-ratten — ljuset får FORM av det som står
+		# i vägen (valv, pelare, spelaren) i stället för att fylla rummet jämnt. Kostnaden mäts med
+		# `-- fpsprov`; sjunker bildfrekvensen får de N närmaste facklorna behålla skuggan.
+		ljus.shadow_enabled = true
+		ljus.shadow_bias = 0.04            # flera skuggande punktljus per våning kostar mer än det ger
 		# Facklans ljus i dimman: det är käglan runt lågan som gör elden till en LJUSKÄLLA och inte
 		# till en orange fläck. Energin är högre än lyktans — facklan ska synas på håll i en korridor.
 		ljus.light_volumetric_fog_energy = 6.0   # vol-05: 2,2 syntes inte i luften (mätt i bildprov)
@@ -6696,6 +6914,25 @@ func _build_hud() -> void:
 		hud.add_child(p)
 		match str(par):
 			"butik":
+				butik_panel = p
+				# VARORNA ÄR OBJEKT MAN KLICKAR PÅ (önskemål 28), inte textrader med en siffra framför.
+				# Panelen är en PanelContainer och lägger ALLA sina barn på samma ruta — därför EN låda
+				# som enda barn, med rubriken överst, varorna i ett rutnät och språkraden underst.
+				var låda := VBoxContainer.new()
+				låda.name = "låda"
+				p.remove_child(l)
+				p.add_child(låda)
+				låda.add_child(l)
+				butik_rader = GridContainer.new()
+				butik_rader.name = "varor"
+				butik_rader.columns = 2
+				butik_rader.add_theme_constant_override("h_separation", 8)
+				butik_rader.add_theme_constant_override("v_separation", 3)
+				låda.add_child(butik_rader)
+				butik_fot = Label.new()
+				butik_fot.add_theme_font_size_override("font_size", 10)
+				butik_fot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				låda.add_child(butik_fot)
 				butik_panel = p
 				butik_label = l
 			"vardshus":

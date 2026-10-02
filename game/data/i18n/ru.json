@@ -80,7 +80,7 @@
  "ui.map.nod.shovel": "лопата",
  "ui.map.nod.player": "игрок",
  "ui.shop.title": "ЛАВКА — золото в банке: %d",
- "ui.shop.hint": "1-%d = купить · Esc = назад в деревню",
+ "ui.shop.hint": "клик = купить · Esc = назад в деревню",
  "ui.inn.title": "ПОСТОЯЛЫЙ ДВОР — золото в банке: %d",
  "ui.inn.hired": "НАЙМЁН",
  "ui.inn.hint": "1-%d = нанять · Esc = назад в деревню",

@@ -161,6 +161,40 @@ func _initialize() -> void:
 		% [klippt_genomsläpp.size(), figurer.size()], ", ".join(klippt_genomsläpp.slice(0, 3)))
 	check(för_tunna.is_empty(), "ingen fiende är en hinna (alfa under 0,85): %s"
 		% ", ".join(för_tunna.slice(0, 3)))
+	# SKUGGAN HAR FIGURENS FORM (M80). Alex: *"de verkar inte riktigt funka korrekt då all shader läggs
+	# som i en fyrkant"*. En genomskinlig quad med alfa-klippningen AV skuggar hela RUTAN — Godots
+	# skuggpass har ingen silhuett att klippa mot — så varje fiende bar en mörk fyrkant på golv och
+	# vägg. Lagren ovanpå figuren och golvplattan får därför inte skugga alls; figuren som KLIPPER sin
+	# alfa behåller sin skugga (den har en form att skugga med).
+	var fyrkant: Array = []
+	for f in figurer:
+		var spr := f as Sprite3D
+		if spr.alpha_cut == SpriteBase3D.ALPHA_CUT_DISABLED \
+				and spr.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			fyrkant.append("%s (figuren blandar alfan)" % spr.name)
+		for barn in spr.get_children():
+			var b := barn as Sprite3D
+			if b != null and b.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+				fyrkant.append(b.name)
+	# Lagren byggs HÄR, av samma funktioner spelet använder: scenens fiender kan sakna mask, och då
+	# mäter en kontroll på barnen ingenting — mätt: buggen gick rakt igenom en sådan kontroll.
+	for eid in main.bestiary.keys():
+		var sökväg := "res://assets/enemies/%s.png" % eid
+		if not ResourceLoader.exists(sökväg):
+			continue
+		var textur: Texture2D = load(sökväg)
+		for lag in [main._fiende_lager(eid, textur), main._fiende_shader_lager(eid, textur)]:
+			if lag != null and lag.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+				fyrkant.append(str(eid))
+		var gl: Sprite3D = main._glans(Color.WHITE, 1.0, 0.0, 1.0)
+		if gl.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			fyrkant.append("%s glans" % eid)
+	for s in main.get_tree().get_nodes_in_group("fiende_skugga"):
+		var pl := s as Sprite3D
+		if pl != null and pl.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			fyrkant.append("golvplattan")
+	check(fyrkant.is_empty(), "ingen fiendedel skuggar som en fyrkant (%d fel)" % fyrkant.size(),
+		", ".join(fyrkant.slice(0, 3)))
 	# DROPSHADOWEN STÅR STILL (M71). Alex: *"en platta som åker upp och ned? Det ser lite märkligt ut"*
 	# — skuggan låg målad i figurens ruta och följde med i andningen. Provet mäter motsatsen: höjden
 	# ska ligga på golvet och INTE röra sig medan figuren andas, men x/z ska följa figuren (striden
@@ -566,6 +600,104 @@ func _initialize() -> void:
 	## en panel som redan bär saldot i sin egen rubrik.
 	print("")
 	print("— saldot —")
+	# KÖPET GENOM TANGENTEN (Alex: *"det går inte att köra något där, trots att jag har tillräckligt
+	# med guld"*). Provet trycker "1" i butiksläget och kräver att banken SJUNKER med radens pris och
+	# att rangen stiger — annars ser spelaren bara en rad som säger OK och ingenting händer.
+	main.shell = "butik"
+	main.meta.add_gold(9000)      # blocken köper efter varandra: utan påfyllning blir en rad för dyr
+	main._refresh_shell()
+	var köpbar := -1
+	for i in main.meta.village_lines().size():
+		if int(main.meta.village_lines()[i]["cost"]) > 0:
+			köpbar = i
+			break
+	var butiksrad: Dictionary = main.meta.village_lines()[köpbar]
+	var guld_före: int = main.meta.gold
+	var rang_före: int = main.meta.rank(str(butiksrad["id"]))
+	main._input_shell(KEY_1 + köpbar)
+	var rad_efter: Dictionary = main.meta.village_lines()[köpbar]
+	check(main.meta.gold == guld_före - int(butiksrad["cost"]),
+		"butiken drar radens pris ur banken (%d -> %d, pris %d)" % [guld_före, main.meta.gold, int(butiksrad["cost"])],
+		"rangen %d -> %d, panelen säger %s" % [rang_före, main.meta.rank(str(butiksrad["id"])),
+			str(rad_efter.get("rank", "?"))])
+	check(main.meta.rank(str(butiksrad["id"])) == rang_före + 1, "och rangen stiger ett steg")
+	# SAMMA PANEL, SMEDENS SHOP-LÄGE (M95). Byns butiksrader visas där också, men siffrorna gick till
+	# TRÄDET — vars köp returnerar direkt när smedspanelen inte syns. Alex: *"det går inte att köra
+	# något där, trots att jag har tillräckligt med guld"*: raden sade OK och ingenting hände.
+	main.shell = "smed"
+	main._smed_läge = "shop"
+	main._refresh_shell()
+	var köpbar2 := -1
+	for i in main.meta.village_lines().size():
+		if int(main.meta.village_lines()[i]["cost"]) > 0:
+			köpbar2 = i
+			break
+	var rad2: Dictionary = main.meta.village_lines()[köpbar2]
+	var guld2: int = main.meta.gold
+	var rang2: int = main.meta.rank(str(rad2["id"]))
+	main._input_shell(KEY_1 + köpbar2)
+	check(main.meta.gold == guld2 - int(rad2["cost"]) and main.meta.rank(str(rad2["id"])) == rang2 + 1,
+		"smedens shop-läge köper butiksraden, inte trädnoden (%d -> %d, rang %d -> %d)"
+		% [guld2, main.meta.gold, rang2, main.meta.rank(str(rad2["id"]))])
+	# KLICKYTORNA (önskemål 28): varje rad ska vara ett OBJEKT man trycker på, och trycket ska göra
+	# exakt samma köp som siffran. Provet mäter både att ytorna ligger över sina rader och att ett
+	# tryck betalar.
+	main.shell = "butik"
+	main._refresh_shell()
+	var klickytor := main.get_tree().get_nodes_in_group("butik_rad")
+	check(klickytor.size() == main.meta.village_lines().size(),
+		"varje butiksrad har en klickbar yta (%d ytor mot %d rader)"
+		% [klickytor.size(), main.meta.village_lines().size()])
+	# VARAN ÄR ETT OBJEKT: knappen bär namn, rang, pris, märket och vad den gör — och en ruta att
+	# trycka på (egen stil, inte en tom yta). En rad vars text saknar priset är inte en vara.
+	var fel_varor: Array = []
+	for i in klickytor.size():
+		var k := klickytor[i] as Button
+		var v: Dictionary = main.meta.village_lines()[i]
+		# En fullt utvecklad vara (priset är slut) bär FULL utan märke: X betyder "har inte råd".
+		var märke := "FULL" if int(v["cost"]) < 0 else ("OK" if bool(v["affordable"]) else "X")
+		if not k.text.contains(str(v["name"])) or not k.text.contains(str(v["text"])) \
+				or not k.text.contains(märke) or k.text.split("\n").size() < 3:
+			fel_varor.append("%s: %s" % [v["name"], k.text.replace("\n", " / ")])
+		if not (k.get_theme_stylebox("normal") is StyleBoxFlat):
+			fel_varor.append("%s saknar ruta" % v["name"])
+	check(fel_varor.is_empty(), "varje vara är ett objekt med namn, rang, pris, märke och ruta (%d fel)"
+		% fel_varor.size(), " | ".join(fel_varor.slice(0, 2)))
+	# RYMS DE I VYN? Panelen mäts mot sin bredaste vara, och en vara som sticker ut är text spelaren
+	# aldrig ser. Måttet jämförs med SPELVYN i canvas-enheter (480x270) — panelen är centrerad, så
+	# positioner i canvas-rymden säger ingenting om huruvida den ryms.
+	check(main.butik_panel.size.x <= 480.0 and main.butik_panel.size.y <= 270.0,
+		"butikspanelen ryms i spelvyn (%s)" % str(main.butik_panel.size))
+	var bredaste := 0.0
+	for y in klickytor:
+		bredaste = maxf(bredaste, (y as Button).size.x)
+	check(bredaste <= 424.0, "ingen vara är bredare än panelens tak (%.0f px av 424)" % bredaste)
+	# OCH RUTNÄTET MÅSTE RYMMAS I PANELEN: ett rutnät som är bredare än panelen ritar utanför kanten,
+	# och då ser spelaren en halv vara (mätt innan placeringen flyttades efter ramen: 418 mot 385).
+	check(main.butik_rader.size.x <= main.butik_panel.size.x + 0.5,
+		"rutnätet ryms i panelen (%.0f mot %.0f)" % [main.butik_rader.size.x, main.butik_panel.size.x])
+	check(main.butik_label.text.split("\n").size() == 2,
+		"rubriken bär bara titel och tips, varorna står som objekt under (%d rader)"
+		% main.butik_label.text.split("\n").size())
+	# Raden som trycks måste vara KÖPBAR (tidigare steg i provet har redan köpt de första): en
+	# fullt utvecklad rad kostar -1 och nekas med rätta.
+	var vald := -1
+	for i in main.meta.village_lines().size():
+		if int(main.meta.village_lines()[i]["cost"]) > 0:
+			vald = i
+			break
+	var guld_klick: int = main.meta.gold
+	var rad3: Dictionary = main.meta.village_lines()[vald]
+	var rang3: int = main.meta.rank(str(rad3["id"]))
+	(klickytor[vald] as Button).pressed.emit()
+	check(main.meta.gold == guld_klick - int(rad3["cost"]) and main.meta.rank(str(rad3["id"])) == rang3 + 1,
+		"ett tryck på raden köper den (%d -> %d, rang %d -> %d)"
+		% [guld_klick, main.meta.gold, rang3, main.meta.rank(str(rad3["id"]))],
+		"rad %d %s kostar %d, räcker %s, knappens text: %s"
+		% [vald, str(rad3["id"]), int(rad3["cost"]), str(main.meta.gold >= int(rad3["cost"])),
+			(klickytor[vald] as Button).text.replace("\n", " / ")])
+	check((klickytor[2] as Button).focus_mode == Control.FOCUS_NONE,
+		"och klickytan tar inte tangentbordet (annars slutar siffrorna fungera)")
 	main.shell = "hem"
 	main._refresh_shell()
 	var saldo: String = main.top_label.text

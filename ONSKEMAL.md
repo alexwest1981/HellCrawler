@@ -380,3 +380,69 @@ det som sprider ljuset, så strålen försvinner med diset. Det som blev kvar oc
 (kostar bildrutor, ska mätas en fackla i taget), `fukt` som nivåegenskap, och en mätning av temporal
 reprojection vid rörelse. Att porta den stilenliga screen-space-tutorialen (Godot 3, utan djup) är inte
 motiverat av någon mätning.
+
+## 26.
+
+Ljuset var platt och tråkigt — det skall vara allt annat än platt.
+
+**Status:** KLAR 2026-10-02. `-- ljusprov` sveper ljusets rattar i EN körning (korsvisa körningar går
+inte att jämföra: elden fladdrar och GI:n sätter sig olika, så två processer skiljer sig även när ingen
+rad ändrats) och mäter bildens fördelning per post. Det som blev spelets standard:
+
+- **Kontrast 1,2** (`adjustment_contrast`): högdagrar 743 → 1182 px och p50 ned, formerna kvar. 1,4 gav
+  1926 px högdagrar men granskaren dömde ut den — skuggorna blev svarta hål.
+- **Omgivningsljuset har ett golv på 0,45**: nivåns eget `energi` (0,18 i vån 1) lämnade 64 % av rutan
+  under mörkertröskeln. En nivå som vill ha MER får fortfarande det.
+- **Facklorna skuggar** (den enskilt största liv-ratten): ljuset får FORM av det som står i vägen i
+  stället för att fylla rummet jämnt. Granskaren ser riktiga skuggformer, inte bara mörker.
+- **Dimmans golv 0,022** (oförändrad faktor på nivåns `dimma`).
+
+**MÄTT:** i samma process, samma bildruta — gammal standard 743 högdagrar och 64 % mörkt; "allt" 3924
+högdagrar och 60 % mörkt, och den posten dömdes ut som bäst av alla sju i en granskning. Tät dimma ENSAM
+(0,030) dömdes däremot ut: *"grå sörja"*, inte atmosfär.
+
+## 27.
+
+Fienderna såg fel ut: "all shader läggs som i en fyrkant".
+
+**Status:** KLAR 2026-10-02. Grundorsaken var inte shadern utan SKUGGAN: figuren klipper sin alfa
+(`ALPHA_CUT_DISCARD`) och skuggade rätt, men lagren ovanpå (masken, röken, glansen) och golvplattan hade
+alfan BLANDAD — och Godots skuggpass har då ingen silhuett att klippa mot, så hela quaden skuggades. Varje
+fiende bar en mörk fyrkant på golv och vägg. Lagren skuggar inte längre (fem ställen), och figuren behåller
+sin skugga så länge den klipper alfan.
+
+**MÄTT:** figurprov före/efter skiljer 604 839 px (27,7 %) mot ett brusgolv på 22 404 px mellan två
+identiska körningar, och en granskning av bilden ser de hårda fyrkanterna kring spöket och föremålet på
+golvet i "före" och rena plattor i "efter". Provet `test_gui` fångar återfallet: med skuggan påslagen
+igen blir det **11 fel** (bone_wretch, mire_hound, candlewisp …). Bevisen ligger i
+`docs/skarmbilder/fiende-fyrkant-{fore,efter,jamforelse}.png`.
+
+## 28.
+
+Butiken: "det går inte att köra något där, trots att jag har tillräckligt med guld … jag vill ha dem som
+objekt, och inte textrader, man skall kunna klicka på dem för att köpa dem, inte ange en siffra."
+
+**Status:** KLAR 2026-10-02, två fel i ett.
+
+**Köpet teg.** Panelen visas på TVÅ ställen — byns butiksplats (`shell == "butik"`) och smedens
+shop-avdelning (`shell == "smed"`, M95) — men bara den första kopplade siffrorna till butiksraderna. I
+smedens shop gick de till TRÄDET, vars köp returnerar direkt när smedspanelen inte syns: raden sade "OK"
+och ingenting hände. Reproducerat i provet innan fixen: `4500 -> 4500, rang 5 -> 5`. Routningen går nu
+efter panelen som SYNS.
+
+**Varorna är OBJEKT.** Panelen är inte längre en textklump: rubriken och tipset står överst
+("klick = köp · Esc = tillbaka till byn"), varorna ligger i ett rutnät 2 × 4 som åtta inramade rutor —
+namn och rang, priset (eller FULL), märket OK/X, och vad varan gör — och ett TRYCK köper den. Man har
+inte råd: rutan är mörkare och märket är X. Fullt utvecklad: FULL står ensamt, för X betyder "har inte
+råd". Siffrorna 1-8 fungerar fortfarande som genväg, men ingenting skriver ut dem. Tangentbordsfokus är
+avstängt på rutorna, annars tar knappen tangentbordet efter ett klick.
+
+**Tre Godot-fällor på vägen, alla sedda i bild:** en `PanelContainer` lägger alla sina barn på samma
+ruta (varorna hamnade ovanpå varandra); en `flat` knapp ritar ingen bakgrund alls, så styleboxen
+kastades och varan blev en naken textrad igen; och en container räknar om sitt minimimått först i nästa
+layout, så panelen placerades 385 px bred med ett rutnät som ville ha 418 och vänsterkolumnen stacks av.
+
+**MÄTT:** `test_gui` trycker i båda skal-lägena, kräver att banken sjunker med radens pris och att rangen
+stiger, räknar rutorna (8 av 8), läser varje ruta (namn, rang, pris, märke, ruta), och mäter att rutnätet
+ryms i panelen och panelen i spelvyn. 208 kontroller, 0 fel. Bilden:
+`docs/skarmbilder/butik-varor-som-objekt.png`.

@@ -80,7 +80,7 @@
  "ui.map.nod.shovel": "鐵鏟",
  "ui.map.nod.player": "玩家",
  "ui.shop.title": "商店 — 銀行金幣：%d",
- "ui.shop.hint": "1-%d = 購買 · Esc = 返回村莊",
+ "ui.shop.hint": "點擊 = 購買 · Esc = 返回村莊",
  "ui.inn.title": "客棧 — 銀行金幣：%d",
  "ui.inn.hired": "已雇用",
  "ui.inn.hint": "1-%d = 雇用 · Esc = 返回村莊",

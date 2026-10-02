@@ -80,7 +80,7 @@
  "ui.map.nod.shovel": "pala",
  "ui.map.nod.player": "giocatore",
  "ui.shop.title": "IL NEGOZIO — oro in banca: %d",
- "ui.shop.hint": "1-%d = compra · Esc = torna al villaggio",
+ "ui.shop.hint": "clic = compra · Esc = torna al villaggio",
  "ui.inn.title": "LA LOCANDA — oro in banca: %d",
  "ui.inn.hired": "ASSOLDATO",
  "ui.inn.hint": "1-%d = assolda · Esc = torna al villaggio",

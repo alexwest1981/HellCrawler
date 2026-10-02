@@ -80,7 +80,7 @@
  "ui.map.nod.shovel": "łopata",
  "ui.map.nod.player": "gracz",
  "ui.shop.title": "SKLEP — złoto w banku: %d",
- "ui.shop.hint": "1-%d = kup · Esc = powrót do wsi",
+ "ui.shop.hint": "klik = kup · Esc = powrót do wsi",
  "ui.inn.title": "GOSPODA — złoto w banku: %d",
  "ui.inn.hired": "NAJĘTY",
  "ui.inn.hint": "1-%d = najmij · Esc = powrót do wsi",

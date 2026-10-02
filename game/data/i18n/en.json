@@ -95,7 +95,7 @@
  "ui.map.nod.shovel": "shovel",
  "ui.map.nod.player": "player",
  "ui.shop.title": "THE SHOP — gold in the bank: %d",
- "ui.shop.hint": "1-%d = buy · Esc = back to the village",
+ "ui.shop.hint": "click = buy · Esc = back to the village",
  "ui.inn.title": "THE INN — gold in the bank: %d",
  "ui.inn.hired": "HIRED",
  "ui.inn.hint": "1-%d = hire · Esc = back to the village",

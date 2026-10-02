@@ -80,7 +80,7 @@
  "ui.map.nod.shovel": "铁锹",
  "ui.map.nod.player": "玩家",
  "ui.shop.title": "商店 — 银行金币：%d",
- "ui.shop.hint": "1-%d = 购买 · Esc = 返回村庄",
+ "ui.shop.hint": "点击 = 购买 · Esc = 返回村庄",
  "ui.inn.title": "客栈 — 银行金币：%d",
  "ui.inn.hired": "已雇用",
  "ui.inn.hint": "1-%d = 雇用 · Esc = 返回村庄",

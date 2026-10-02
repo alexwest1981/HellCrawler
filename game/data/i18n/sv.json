@@ -95,7 +95,7 @@
  "ui.map.nod.shovel": "spade",
  "ui.map.nod.player": "spelare",
  "ui.shop.title": "BUTIKEN — guld i banken: %d",
- "ui.shop.hint": "1-%d = köp · Esc = tillbaka till byn",
+ "ui.shop.hint": "klick = köp · Esc = tillbaka till byn",
  "ui.inn.title": "VÄRDSHUSET — guld i banken: %d",
  "ui.inn.hired": "I LEEK",
  "ui.inn.hint": "1-%d = hyr · Esc = tillbaka till byn",

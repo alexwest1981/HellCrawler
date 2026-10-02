@@ -80,7 +80,7 @@
  "ui.map.nod.shovel": "pelle",
  "ui.map.nod.player": "joueur",
  "ui.shop.title": "LA BOUTIQUE — or en banque : %d",
- "ui.shop.hint": "1-%d = acheter · Esc = retour au village",
+ "ui.shop.hint": "clic = acheter · Esc = retour au village",
  "ui.inn.title": "L'AUBERGE — or en banque : %d",
  "ui.inn.hired": "ENGAGÉ",
  "ui.inn.hint": "1-%d = engager · Esc = retour au village",

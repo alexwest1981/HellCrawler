@@ -80,7 +80,7 @@
  "ui.map.nod.shovel": "Spaten",
  "ui.map.nod.player": "Spieler",
  "ui.shop.title": "DER LADEN — Gold in der Bank: %d",
- "ui.shop.hint": "1-%d = kaufen · Esc = zurück ins Dorf",
+ "ui.shop.hint": "klicken = kaufen · Esc = zurück ins Dorf",
  "ui.inn.title": "DAS WIRTSHAUS — Gold in der Bank: %d",
  "ui.inn.hired": "ANGEHEUERT",
  "ui.inn.hint": "1-%d = anheuern · Esc = zurück ins Dorf",

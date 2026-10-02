@@ -516,7 +516,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "spelare",
 
         "ui.shop.title": "BUTIKEN — guld i banken: %d",
-        "ui.shop.hint": "1-%d = köp · Esc = tillbaka till byn",
+        "ui.shop.hint": "klick = köp · Esc = tillbaka till byn",
         "ui.inn.title": "VÄRDSHUSET — guld i banken: %d",
         "ui.inn.hired": "I LEEK",
         "ui.inn.hint": "1-%d = hyr · Esc = tillbaka till byn",
@@ -606,7 +606,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "player",
 
         "ui.shop.title": "THE SHOP — gold in the bank: %d",
-        "ui.shop.hint": "1-%d = buy · Esc = back to the village",
+        "ui.shop.hint": "click = buy · Esc = back to the village",
         "ui.inn.title": "THE INN — gold in the bank: %d",
         "ui.inn.hired": "HIRED",
         "ui.inn.hint": "1-%d = hire · Esc = back to the village",
@@ -682,7 +682,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "Spieler",
 
         "ui.shop.title": "DER LADEN — Gold in der Bank: %d",
-        "ui.shop.hint": "1-%d = kaufen · Esc = zurück ins Dorf",
+        "ui.shop.hint": "klicken = kaufen · Esc = zurück ins Dorf",
         "ui.inn.title": "DAS WIRTSHAUS — Gold in der Bank: %d",
         "ui.inn.hired": "ANGEHEUERT",
         "ui.inn.hint": "1-%d = anheuern · Esc = zurück ins Dorf",
@@ -743,7 +743,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "joueur",
 
         "ui.shop.title": "LA BOUTIQUE — or en banque : %d",
-        "ui.shop.hint": "1-%d = acheter · Esc = retour au village",
+        "ui.shop.hint": "clic = acheter · Esc = retour au village",
         "ui.inn.title": "L'AUBERGE — or en banque : %d",
         "ui.inn.hired": "ENGAGÉ",
         "ui.inn.hint": "1-%d = engager · Esc = retour au village",
@@ -804,7 +804,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "jugador",
 
         "ui.shop.title": "LA TIENDA — oro en el banco: %d",
-        "ui.shop.hint": "1-%d = comprar · Esc = volver al pueblo",
+        "ui.shop.hint": "clic = comprar · Esc = volver al pueblo",
         "ui.inn.title": "LA POSADA — oro en el banco: %d",
         "ui.inn.hired": "CONTRATADO",
         "ui.inn.hint": "1-%d = contratar · Esc = volver al pueblo",
@@ -865,7 +865,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "giocatore",
 
         "ui.shop.title": "IL NEGOZIO — oro in banca: %d",
-        "ui.shop.hint": "1-%d = compra · Esc = torna al villaggio",
+        "ui.shop.hint": "clic = compra · Esc = torna al villaggio",
         "ui.inn.title": "LA LOCANDA — oro in banca: %d",
         "ui.inn.hired": "ASSOLDATO",
         "ui.inn.hint": "1-%d = assolda · Esc = torna al villaggio",
@@ -926,7 +926,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "gracz",
 
         "ui.shop.title": "SKLEP — złoto w banku: %d",
-        "ui.shop.hint": "1-%d = kup · Esc = powrót do wsi",
+        "ui.shop.hint": "klik = kup · Esc = powrót do wsi",
         "ui.inn.title": "GOSPODA — złoto w banku: %d",
         "ui.inn.hired": "NAJĘTY",
         "ui.inn.hint": "1-%d = najmij · Esc = powrót do wsi",
@@ -987,7 +987,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "jogador",
 
         "ui.shop.title": "A LOJA — ouro no banco: %d",
-        "ui.shop.hint": "1-%d = comprar · Esc = voltar à vila",
+        "ui.shop.hint": "clique = comprar · Esc = voltar à vila",
         "ui.inn.title": "A ESTALAGEM — ouro no banco: %d",
         "ui.inn.hired": "CONTRATADO",
         "ui.inn.hint": "1-%d = contratar · Esc = voltar à vila",
@@ -1048,7 +1048,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "игрок",
 
         "ui.shop.title": "ЛАВКА — золото в банке: %d",
-        "ui.shop.hint": "1-%d = купить · Esc = назад в деревню",
+        "ui.shop.hint": "клик = купить · Esc = назад в деревню",
         "ui.inn.title": "ПОСТОЯЛЫЙ ДВОР — золото в банке: %d",
         "ui.inn.hired": "НАЙМЁН",
         "ui.inn.hint": "1-%d = нанять · Esc = назад в деревню",
@@ -1109,7 +1109,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "自分",
 
         "ui.shop.title": "商店 — 銀行のゴールド: %d",
-        "ui.shop.hint": "1-%d = 購入 · Esc = 村へ戻る",
+        "ui.shop.hint": "クリック = 購入 · Esc = 村へ戻る",
         "ui.inn.title": "宿屋 — 銀行のゴールド: %d",
         "ui.inn.hired": "雇用中",
         "ui.inn.hint": "1-%d = 雇う · Esc = 村へ戻る",
@@ -1170,7 +1170,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "플레이어",
 
         "ui.shop.title": "상점 — 은행 골드: %d",
-        "ui.shop.hint": "1-%d = 구매 · Esc = 마을로",
+        "ui.shop.hint": "클릭 = 구매 · Esc = 마을로",
         "ui.inn.title": "여관 — 은행 골드: %d",
         "ui.inn.hired": "고용됨",
         "ui.inn.hint": "1-%d = 고용 · Esc = 마을로",
@@ -1231,7 +1231,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "玩家",
 
         "ui.shop.title": "商店 — 银行金币：%d",
-        "ui.shop.hint": "1-%d = 购买 · Esc = 返回村庄",
+        "ui.shop.hint": "点击 = 购买 · Esc = 返回村庄",
         "ui.inn.title": "客栈 — 银行金币：%d",
         "ui.inn.hired": "已雇用",
         "ui.inn.hint": "1-%d = 雇用 · Esc = 返回村庄",
@@ -1292,7 +1292,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.player": "玩家",
 
         "ui.shop.title": "商店 — 銀行金幣：%d",
-        "ui.shop.hint": "1-%d = 購買 · Esc = 返回村莊",
+        "ui.shop.hint": "點擊 = 購買 · Esc = 返回村莊",
         "ui.inn.title": "客棧 — 銀行金幣：%d",
         "ui.inn.hired": "已雇用",
         "ui.inn.hint": "1-%d = 雇用 · Esc = 返回村莊",
