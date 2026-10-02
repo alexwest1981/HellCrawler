@@ -8038,16 +8038,14 @@ func _on_card(index: int) -> void:
 	# KVITTERINGEN (Alex: "nu ser det bara ut som kortet försvinner"): kortet lägger en händelse i
 	# körningens ström, samma väg som kistan och facklan — då kan en ny kvittering inte bli tyst.
 	# Siffrorna är SKILLNADEN mot före, inte råa värden: mana, hälsa och guld räknas ur samma tal som
-	# staplarna visar, så en effekt som ligger i en underfunktion kvitteras också.
-	var _mana_före: float = active_combat.mana
-	var _hp_före: float = active_combat.hp
-	var _guld_före: int = run.gold
 	var r := active_combat.play(hi)
 	if r.reason.is_empty():
-		run.events.append({"type": "card", "card": r.card_id,
-			"mana": int(round(active_combat.mana - _mana_före)),
-			"hp": int(round(active_combat.hp - _hp_före)),
-			"gold": run.gold - _guld_före})
+		var card_ev := {"type": "card", "card": r.card_id,
+			"mana": r.mana,
+			"hp": r.hp,
+			"gold": r.gold}
+		run.events.append(card_ev)
+		_visa_belöning(card_ev)
 	if not r.ok:
 		print("kan inte spela: %s" % r.reason)
 		_logga(Tr.t("ui.hud.logg.nej", "kan inte spela %s — %s") % [kort.title(), r.reason],

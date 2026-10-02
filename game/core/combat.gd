@@ -41,6 +41,8 @@ class PlayResult extends RefCounted:
 	var broke_chain := false
 	var killed: Array = []
 	var gold := 0                     ## guld ur en ädelsten (girigstenen), läggs på körningen
+	var mana := 0                     ## mana gained from card effects
+	var hp := 0                       ## hp healed by card effects
 
 # --- staten -----------------------------------------------------------------
 var rng: RandomNumberGenerator
@@ -380,9 +382,13 @@ func _apply_effects(card: Cards.Card, combo_used: int, target: Enemy, r: PlayRes
 			"armor":
 				armor += float(effect.get("amount", 0.0))
 			"heal":
+				var hp_before := hp
 				hp = min(max_hp, hp + float(effect.get("amount", 0.0)))
+				r.hp += int(round(hp - hp_before))
 			"mana":
-				mana += int(effect.get("amount", 0))
+				var m := int(effect.get("amount", 0))
+				mana += m
+				r.mana += m
 			"draw":
 				draw(int(effect.get("amount", 1)))
 			"knockback":
@@ -405,7 +411,9 @@ func _apply_effects(card: Cards.Card, combo_used: int, target: Enemy, r: PlayRes
 		# En gång per spelat kort, oavsett hur många rader det har. Guldet hamnar både i resultatet
 		# (för den som visar det spelade kortet) och i stridens summa (som körningen tömmer).
 		armor += float(sten.get("armor", 0))
-		mana += int(sten.get("mana", 0))
+		var gm := int(sten.get("mana", 0))
+		mana += gm
+		r.mana += gm
 		r.gold += int(sten.get("gold", 0))
 		gold_found += int(sten.get("gold", 0))
 	return total

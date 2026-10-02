@@ -126,6 +126,125 @@ func _init() -> void:
 	# Facklan ger också en stund — en belöning mindre än kistan, men samma väg in.
 	var vila := RewardFx.från_event({"type": "torch", "vad": "vila", "hp": 9})
 	check(not vila.is_empty() and str(vila["text"]).contains("9"), "facklan ger sin stund", str(vila))
+
+	print("")
+	print("— played cards: visual receipt for mana, hp or gold —")
+	# 1. Event translation: cards that change mana, hp, or gold produce receipts with exact amounts and variants.
+	var ev_mana := {"type": "card", "card": "ash_tome", "mana": 1, "hp": 0, "gold": 0}
+	var r_mana := RewardFx.från_event(ev_mana)
+	check(not r_mana.is_empty(), "mana card event produces a receipt")
+	check(str(r_mana["ikon"]) == "mana", "mana card carries the mana variant", str(r_mana.get("ikon", "")))
+	check(r_mana["färg"] == Color(0.72, 0.78, 0.94), "mana card carries mana blue colour", str(r_mana.get("färg", "")))
+	check(str(r_mana["text"]).contains("1") and str(r_mana["text"]).contains("mana"),
+		"mana receipt text contains exact amount", str(r_mana.get("text", "")))
+
+	var ev_hp := {"type": "card", "card": "salve", "mana": 0, "hp": 4, "gold": 0}
+	var r_hp := RewardFx.från_event(ev_hp)
+	check(not r_hp.is_empty(), "heal card event produces a receipt")
+	check(str(r_hp["ikon"]) == "läkning", "heal card carries the heal variant", str(r_hp.get("ikon", "")))
+	check(r_hp["färg"] == Color(0.82, 0.32, 0.30), "heal card carries heal red colour", str(r_hp.get("färg", "")))
+	check(str(r_hp["text"]).contains("4") and str(r_hp["text"]).contains("hp"),
+		"heal receipt text contains exact amount", str(r_hp.get("text", "")))
+
+	var ev_gold := {"type": "card", "card": "dagger", "mana": 0, "hp": 0, "gold": 5}
+	var r_gold := RewardFx.från_event(ev_gold)
+	check(not r_gold.is_empty(), "gold card event produces a receipt")
+	check(str(r_gold["ikon"]) == "guld", "gold card carries the gold variant", str(r_gold.get("ikon", "")))
+	check(r_gold["färg"] == Color(0.94, 0.84, 0.48), "gold card carries gold yellow colour", str(r_gold.get("färg", "")))
+	check(str(r_gold["text"]).contains("5") and str(r_gold["text"]).contains("guld"),
+		"gold receipt text contains exact amount", str(r_gold.get("text", "")))
+
+	var ev_dmg := {"type": "card", "card": "lash", "mana": 0, "hp": 0, "gold": 0}
+	check(RewardFx.från_event(ev_dmg).is_empty(), "damage-only card produces no receipt")
+
+	var ev_zero := {"type": "card", "card": "axe", "mana": -1, "hp": 0, "gold": 0}
+	check(RewardFx.från_event(ev_zero).is_empty(), "negative mana cost delta produces no receipt")
+
+	# 2. Combat integration: playing cards in combat produces the expected receipts.
+	var c := Combat.new(999)
+	c.hp = 30.0
+	c.max_hp = 50.0
+	c.mana = 5
+	var foes := [Combat.Enemy.new("dummy", 100.0, 1.0, 0)]
+	c.begin([], foes)
+	c.hp = 30.0
+	c.mana = 5
+
+	# Card that only deals damage: exactly 0 receipts
+	c.hand = [db["lash"]]
+	var res_lash := c.play(0)
+	check(res_lash.ok, "played damage card lash successfully")
+	check(res_lash.damage > 0.0, "lash dealt damage", "%.1f" % res_lash.damage)
+	check(res_lash.mana == 0 and res_lash.hp == 0 and res_lash.gold == 0,
+		"lash changed neither mana, hp nor gold in effects")
+	var receipt_lash := RewardFx.från_event({"type": "card", "card": res_lash.card_id,
+		"mana": res_lash.mana, "hp": res_lash.hp, "gold": res_lash.gold})
+	check(receipt_lash.is_empty(), "damage card produces exactly zero receipts")
+
+	# Mana card (ash_tome): exactly 1 receipt with +1 mana and blue color
+	c.hand = [db["ash_tome"]]
+	var mana_before := c.mana
+	var res_mana := c.play(0)
+	check(res_mana.ok, "played mana card ash_tome successfully")
+	check(res_mana.mana == 1, "ash_tome gained 1 mana", "%d" % res_mana.mana)
+	check(c.mana == mana_before + 1, "combat mana state updated accordingly")
+	var receipt_mana := RewardFx.från_event({"type": "card", "card": res_mana.card_id,
+		"mana": res_mana.mana, "hp": res_mana.hp, "gold": res_mana.gold})
+	check(not receipt_mana.is_empty(), "played mana card produces a receipt")
+	check(str(receipt_mana["ikon"]) == "mana",
+		"mana card produces exactly one receipt with mana variant")
+	check(receipt_mana["färg"] == Color(0.72, 0.78, 0.94),
+		"mana card receipt carries mana blue color")
+	check(str(receipt_mana["text"]).contains("1") and str(receipt_mana["text"]).contains("mana"),
+		"mana receipt carries exact amount (+1 mana)", str(receipt_mana["text"]))
+
+	# Heal card (salve): exactly 1 receipt with +4 hp and red color
+	c.hand = [db["salve"]]
+	var hp_before := c.hp
+	var res_salve := c.play(0)
+	check(res_salve.ok, "played heal card salve successfully")
+	check(res_salve.hp == 4, "salve restored 4 hp", "%d" % res_salve.hp)
+	check(c.hp == hp_before + 4.0, "combat hp state updated accordingly")
+	var receipt_heal := RewardFx.från_event({"type": "card", "card": res_salve.card_id,
+		"mana": res_salve.mana, "hp": res_salve.hp, "gold": res_salve.gold})
+	check(not receipt_heal.is_empty(), "played heal card produces a receipt")
+	check(str(receipt_heal["ikon"]) == "läkning",
+		"heal card produces exactly one receipt with heal variant")
+	check(receipt_heal["färg"] == Color(0.82, 0.32, 0.30),
+		"heal card receipt carries heal red color")
+	check(str(receipt_heal["text"]).contains("4") and str(receipt_heal["text"]).contains("hp"),
+		"heal receipt carries exact amount (+4 hp)", str(receipt_heal["text"]))
+
+	# Gold from card with gem: exactly 1 receipt with +10 gold and gold color
+	c.gem_bonus = {"dagger": {"gold": 10}}
+	c.hand = [db["dagger"]]
+	var res_dagger := c.play(0)
+	check(res_dagger.ok, "played dagger with greed gem successfully")
+	check(res_dagger.gold == 10, "greed gem on card yielded 10 gold", "%d" % res_dagger.gold)
+	var receipt_gold := RewardFx.från_event({"type": "card", "card": res_dagger.card_id,
+		"mana": res_dagger.mana, "hp": res_dagger.hp, "gold": res_dagger.gold})
+	check(not receipt_gold.is_empty(), "played gold card produces a receipt")
+	check(str(receipt_gold["ikon"]) == "guld",
+		"gold card produces exactly one receipt with gold variant")
+	check(receipt_gold["färg"] == Color(0.94, 0.84, 0.48),
+		"gold card receipt carries gold yellow color")
+	check(str(receipt_gold["text"]).contains("10") and str(receipt_gold["text"]).contains("guld"),
+		"gold receipt carries exact amount (+10 guld)", str(receipt_gold["text"]))
+
+	# Visual receipt execution: card receipt steps through all animation phases
+	var fx_card := RewardFx.new()
+	fx_card.visa(str(receipt_mana["titel"]), str(receipt_mana["text"]),
+		str(receipt_mana["ikon"]), receipt_mana["färg"])
+	check(fx_card.aktiv(), "mana card receipt launches the FX animation")
+	check(fx_card.fas() == "vänds", "receipt starts with flipping card phase")
+	var fx_ticks := 0
+	while fx_card.aktiv() and fx_ticks < 1000:
+		fx_ticks += 1
+		fx_card.stega(1.0 / 60.0)
+	check(not fx_card.aktiv() and fx_card.fas() == "klar",
+		"mana card receipt animation completes and shuts off")
+	fx_card.free()
+
 	fx.free()
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
