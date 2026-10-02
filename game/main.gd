@@ -231,6 +231,7 @@ const DEKOR_VIKT := [["gräs", 0.52], ["småsten", 0.22], ["mossa", 0.18], ["rot
 var _dekor_shader: Shader = null
 var _dekor_täthet := DEKOR_TÄTHET     ## `-- dekor=<n>` rattar tätheten, `-- dekor=0` stänger av
 var _mask_cache := {}
+var _shader_cache := {}              ## per-fiende-shaders (önskemål 13), läses i `_fiende_shader`
 var _fiendeprov := ""            ## fiendevisprov=<id>: tvinga fram en fiendetyp i striden (prov)
 var _skugg_tex: Texture2D = null
 var _panel_last_size := {}     ## panel-id -> senast uppmätta storlek (se _place_panel)
@@ -3800,6 +3801,14 @@ func _add_enemies(node: Dungeon.FloorNode, boss: bool) -> void:
 				lager.pixel_size = spr.pixel_size
 				lager.scale = Vector3.ONE * 1.0005     # en hårsmån större, annars z-fightar lagret med figuren
 				spr.add_child(lager)
+			# EGEN SHADER (önskemål 13): fienden får ett material ovanpå sin bild, ur fiendedatat.
+			# En fiende utan egen shader får null och ritas precis som i dag — vägen är opt-in per
+			# fiende, så en shader som blir fel kan bara slå ut sin egen figur.
+			var egen := _fiende_shader_lager(eid, tex)
+			if egen != null:
+				egen.pixel_size = spr.pixel_size
+				egen.scale = Vector3.ONE * 1.0005
+				spr.add_child(egen)
 		spr.add_to_group("fiende_figur")
 		# Bossen är större än de andra, men måste rymmas under taket. Duken är 120 px (M76) och figuren
 		# 96 px: 96 * 0,012 = 1,15 m för en vanlig, 96 * 0,013 = 1,25 m för en boss — exakt samma
@@ -4039,21 +4048,77 @@ func _fiende_lager(id: String, tex: Texture2D) -> Sprite3D:
 	return l
 
 
+## Fiendens EGNA shader (önskemål 13). Namnet står i fiendedatat (`shader`), filen ligger under
+## `res://ui/fiende_<namn>.gdshader`. En fiende UTAN shader får null — standarden gör ingenting,
+## och figuren ritas exakt som i dag. Det här är vägen som läser datat: läses den inte tyst faller
+## en fiende med `shader` tillbaka på ingenting, och det är precis det provet test_fiende_shader
+## mäter att den inte gör.
+func _fiende_shader(id: String) -> Shader:
+	if id.is_empty():
+		return null
+	if _shader_cache.has(id):
+		return _shader_cache[id]
+	var shader: Shader = null
+	var def: Enemies.EnemyDef = bestiary.get(id)
+	if def != null and not def.shader.is_empty():
+		var path := "res://ui/fiende_%s.gdshader" % def.shader
+		if ResourceLoader.exists(path):
+			shader = load(path)
+		else:
+			push_error("fienden %s pekar på en shader som inte finns: %s" % [id, path])
+	_shader_cache[id] = shader
+	return shader
+
+
+## Lagret som bär fiendens egna shader (önskemål 13). Samma form som `_fiende_lager`: en andra quad
+## OVANPÅ figuren, billboard och AtlasTexture på samma ruta, med shadern som `material_override`.
+## `material_override` är TILLÅTET här av samma skäl som glansen — lagret är enruting och har inget
+## rutnät att slå ut. Figuren själv rörs aldrig.
+func _fiende_shader_lager(id: String, tex: Texture2D) -> Sprite3D:
+	var shader := _fiende_shader(id)
+	if shader == null or tex == null:
+		return null
+	var ark := AtlasTexture.new()
+	ark.atlas = tex
+	var l := Sprite3D.new()
+	l.texture = ark
+	l.hframes = 1
+	l.pixel_size = tex.get_height() * 0.012 / 120.0        # samma skala som figuren (sätts om nedan)
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED        # SAMMA billboard som figuren (M79)
+	l.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	l.render_priority = 2                                 # ovanpå figuren
+	l.name = "shader"
+	l.set_meta("ark_atlas", ark)
+	var m := ShaderMaterial.new()
+	m.shader = shader
+	m.set_shader_parameter("ark", ark)
+	# Rökshaderns rattar sätts HÄR, som spegling av shaderns egna standardvärden: i dummy-renderaren
+	# (huvudlöst) svarar get_shader_parameter null på en uniform som aldrig satts, och provet
+	# test_fiende_shader läser värdena tillbaka ur materialet för att mäta effekten utan en rityta.
+	m.set_shader_parameter("rok_vidd", 0.02)
+	m.set_shader_parameter("rok_alfa", 0.40)
+	m.set_shader_parameter("rok_styrka", 1.0)
+	l.material_override = m
+	l.add_to_group("fiende_shader")
+	return l
+
+
 ## Lagret följer figurens ruta: AtlasTexture-regionen flyttas när figuren byter ruta. Egen rutmatematik
 ## behövs inte, och figuren själv rörs inte.
 func _ruta(spr: Sprite3D) -> void:
 	for barn in spr.get_children():
-		if barn is Sprite3D and barn.name == "material":
+		if barn is Sprite3D and (barn.name == "material" or barn.name == "shader"):
 			_ruta_lager(barn as Sprite3D, spr.frame)
 
 
 ## Flytta lagrets region till en ruta i arket.
 func _ruta_lager(l: Sprite3D, ruta: int) -> void:
 	var ark: AtlasTexture = l.get_meta("ark_atlas")
-	var msk: AtlasTexture = l.get_meta("mask_atlas")
 	var w := ark.atlas.get_width() / ENEMY_FRAMES
 	ark.region = Rect2(ruta * w, 0, w, ark.atlas.get_height())
-	msk.region = ark.region
+	if l.has_meta("mask_atlas"):
+		var msk: AtlasTexture = l.get_meta("mask_atlas")
+		msk.region = ark.region
 
 
 ## Fienderna andas: en långsam gungning och en kort "spänner sig"-ruta med ojämna mellanrum. Utan

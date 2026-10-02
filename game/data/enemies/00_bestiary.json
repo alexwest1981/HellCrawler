@@ -11,7 +11,7 @@
 
   {"id": "ossuary_king","name": "Ossuary King", "hp": 200, "damage": 18, "tier": 3, "xp": 10, "gold": 20},
   {"id": "verdigris",   "name": "Verdigris",    "hp": 240, "damage": 15, "tier": 3, "xp": 12, "gold": 22},
-  {"id": "ash_maw",     "name": "Ash Maw",      "hp": 280, "damage": 22, "tier": 3, "xp": 14, "gold": 25},
+  {"id": "ash_maw",     "name": "Ash Maw",      "hp": 280, "damage": 22, "tier": 3, "xp": 14, "gold": 25, "shader": "rok"},
   {"id": "bell_drowned","name": "Bell-Drowned", "hp": 320, "damage": 19, "tier": 3, "xp": 16, "gold": 30},
 
   {"id": "hollow_choir","name": "The Hollow Choir", "hp": 400,  "damage": 12, "tier": 3, "eyes": 4, "kind": "boss", "xp": 25, "gold": 60},

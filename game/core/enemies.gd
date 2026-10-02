@@ -14,6 +14,7 @@ class EnemyDef extends RefCounted:
 	var xp: int = 1
 	var gold: int = 0
 	var kind: String = "normal"    ## normal | elite | boss
+	var shader: String = ""        ## own material shader (name under res://ui/fiende_<name>.gdshader)
 
 	static func from_dict(d: Dictionary) -> EnemyDef:
 		var e := EnemyDef.new()
@@ -28,6 +29,7 @@ class EnemyDef extends RefCounted:
 		e.xp = int(d.get("xp", 1))
 		e.gold = int(d.get("gold", 0))
 		e.kind = str(d.get("kind", "normal"))
+		e.shader = str(d.get("shader", ""))
 		return e
 
 ## id -> EnemyDef
