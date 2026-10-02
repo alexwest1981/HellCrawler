@@ -299,6 +299,20 @@ De **modellritade** korten ligger kvar på 64: bildmodellens veckokvot är slut,
 
 **CRT-filtret var oskyldigt** (mätt, inte antaget): två bilder tagna före och efter ett byte från `filter_linear` till `filter_nearest` på skärmtexturen var pixel-identiska (0 av 1 952 880 pixlar skilde), så bytet gjordes om och filtret står kvar — effekten räknas i FRAGCOORD och ligger 1:1 med rutan.
 
+## 24. Belöning efter körningen — box eller något annat
+> "jag skulle vilja lägga till lootbox efter körning där det finns små men verkliga chanser att vinna något användbart, och ökar ju längre fram i banorna man kommer. Men jag vill se även fler alternativ."
+
+Fyra agenter kördes parallellt i varsin worktree och undersökte saken var för sig: vad som faktiskt håller
+en runda vid liv, boxens form och odds, tio alternativ till boxen, och var i koden en belöning kopplas in.
+Rapporterna ligger i `docs/undersokning/`, sammanställningen i `docs/undersokning/00-sammanfattning.md`.
+Alla fil- och funktionshänvisningar i dem är eftergranskade mot koden.
+
+**Status:** undersökt 2026-10-02, väntar på beslut. Rekommendationen i sammanställningen är att grunda på en
+deterministisk utbetalning efter djup och utförande (`_finish_with()` bokför redan allt) och lägga valet
+"1 av 3" vid körningens slut ovanpå — samma panel som bossbytet — med synliga odds och en garanterad stor
+vinst efter tio boxar utan träff. Boxens unika utrymme är den DÖDA körningen: bossbytet kräver att man
+fällde en boss, och efter en död händer i dag inget annat än en kvittenslista.
+
 ## Ordning
 
-M32, M33 (pixeltätheten), M36 (HUD-ramen) och M37 (rörelsen) är KLARA 2026-09-21. Sedan M34 (kortborden och albumet: punkt 8 och 9 — kort i solfjäder, hög av använda kort, dragningshög och albumet) och M35 (attackeffekt och dryckes-kvittering). M39 (intro, splash och startmeny) är KLAR 2026-09-21. M40 (GUI:t enligt referensen: statusblock, logg och fienderuta — punkt 14) är KLAR 2026-09-21. Kartpunkten (M41: Alex' egen 16-bit-karta över helvetet, lätt vinklad med kameran på markeringen, en nod per plats, upp till tio nivåer per nod med grön bock, farmning och en editor där han flyttar noderna) är KLAR 2026-09-21, liksom byn (M42: hans egen bild som by — gaten i mitten leder ut till kartan och EXIT-skylten stänger spelet), och kartan är uppdelad i sektioner där nästa sektion öppnar först när en bana i den förra är klarad (M43). Därefter punkt 13 (fiendernas egna shaders, M38) — den ligger sist för att den rör fiendernas material och därmed kan röra allt som ritar en fiende.
+M32, M33 (pixeltätheten), M36 (HUD-ramen) och M37 (rörelsen) är KLARA 2026-09-21. Sedan M34 (kortborden och albumet: punkt 8 och 9 — kort i solfjäder, hög av använda kort, dragningshög och albumet) och M35 (attackeffekt och dryckes-kvittering). M39 (intro, splash och startmeny) är KLAR 2026-09-21. M40 (GUI:t enligt referensen: statusblock, logg och fienderuta — punkt 14) är KLAR 2026-09-21. Kartpunkten (M41: Alex' egen 16-bit-karta över helvetet, lätt vinklad med kameran på markeringen, en nod per plats, upp till tio nivåer per nod med grön bock, farmning och en editor där han flyttar noderna) är KLAR 2026-09-21, liksom byn (M42: hans egen bild som by — gaten i mitten leder ut till kartan och EXIT-skylten stänger spelet), och kartan är uppdelad i sektioner där nästa sektion öppnar först när en bana i den förra är klarad (M43). Därefter punkt 13 (fiendernas egna shaders, M38) — den ligger sist för att den rör fiendernas material och därmed kan röra allt som ritar en fiende. Punkt 24 (belöning efter körningen) är undersökt men inte beslutad.
