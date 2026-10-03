@@ -1,0 +1,51 @@
+# Vinkel F: slumpade dungeons — rätt form för oss
+
+## Rekommendation
+
+[resonemang] Behåll de handbyggda våningarna som berättelsens och temats ankare. Lägg till kontrollerad, reproducerbar variation mellan dem med handgjorda rumsmoduler och en graf av rum/korridorer. Använd BSP som layoutverktyg när det behövs, inte som själva spelupplevelsen.
+
+## 1. Metod och spelkänsla
+
+- [resonemang] **Rum och korridor** passar rutnätet och gör det enkelt att säkra väg från start till boss, kontrollera avstånd och placera noder. Förstapersons blobber-rörelse med steg och 90-graderssvängar gör att förgreningar och återvändsgränder känns genom orientering och ruttval. En ren kedja av rum riskerar dock att kännas som samma korridor om och om igen.
+- [resonemang] **BSP** delar en yta i rektangulära områden och är billigt att bygga, lätt att begränsa och garanterar ofta en tydlig rumslig struktur. Er nuvarande reservgenerator använder redan BSP, därefter L-korridorer mellan rummen i ordning. Den ger därmed en linjär rumskedja snarare än en rik utforskningsgraf.
+- [resonemang] **Cellautomater** gör organiska grottor genom upprepade lokala regler. De passar sämre när spelaren rör sig ruta för ruta i förstaperson: de kan ge svårtolkade, smala eller ojämna passager och kräver extra efterarbete för att garantera läsbar rutt, stridsytor och tydlig riktning.
+- [resonemang] **Slumpade rum ur handgjorda mallar** ger bäst spelkänsla per arbetsinsats här. Bygg rum som har en tydlig funktion eller siluett, märk deras dörröppningar och koppla ihop dem under validering. Slumpa ordning, rotation, koppling och vissa nodplatser, men reservera start, boss och tematiska set pieces.
+- [resonemang] Fällan är att först frestas av en stor cellautomat-labyrint eller en helt fri slumpgenerator. Den skapar många kartor fort, men också monotoni, blindgångar och rum utan avsikt. Varians i rutnätet är inte automatiskt variation i beslut eller upplevelse.
+
+## 2. Handbyggt tema, genererad layout
+
+- [belagt: https://create.roblox.com/docs/workspace/streaming] Roblox kan strömma 3D-innehåll i Workspace till och från klienter utifrån avstånd, prestanda och streaminginställningar. [resonemang] Det stödjer att lägga ut en våning ur tematiska moduler, men kräver att rummodulerna fortfarande fungerar när delar strömmas.
+- [resonemang] De åtta namngivna teman ni anger — Asklunden, Koppargruvan, Myrmarken, Vitkalken, Benkammaren, Saltgruvan, Klocktornet och Glashyttan — bör äga material, färg, ljus, ljud, silhuetter, landmärken, fiender och bossens visuella språk. Handbygg start-/bossrum, övergångar och rum med unika gimmickar; de bär igenkänningen.
+- [belagt: /home/alex/Projects/hellcrawlers/game/core/dungeon.gd] Koden modellerar våningen som rutnät plus noder (strid, kista, fackla, boss, spade/start), använder banans fiendepool och låter en handritad karta vinna före generatorn. [belagt: /home/alex/Projects/hellcrawlers/game/core/mapio.gd] Handritade kartor kan bära temaid och material per ruta och kontrolleras för golv, nåbarhet och obligatoriska noder.
+- [belagt: /home/alex/Projects/hellcrawlers/game/data/maps/stage_01_0.json] Den första kartan har ett handlagt 17×17-rutnät med utplacerade fiender, kista, facklor, boss och spade. [belagt: /home/alex/Projects/hellcrawlers/game/data/maps/stage_02_0.json] Den andra kartan har eget rutnät och noder samt temat `grotta`. [resonemang] Det här är konkreta innehållskartor, inte bara temapaletter.
+- [belagt: /home/alex/Projects/hellcrawlers/game/core/mapio.gd] Den lästa Godot-kodens temavalidering listar fem id:n: `asklunden`, `krypta`, `grotta`, `tunnel`, `bro`. [resonemang] Det skiljer sig från de åtta teman du anger; jag utgår i designrådet från dina åtta, men kan inte verifiera deras nuvarande resurskoppling i den lästa filen.
+- [resonemang] Slumpa rumskombination, spegelvändning/rotation där dörrar fortfarande matchar, vanliga noder och mindre dekoration. Behåll handgjorda landmärken, bossarena, tematiska event, progressionens rytm och belöningspunkter. En bra regel är att spelaren ska känna variation i vägen men igenkänning i platsens identitet.
+
+## 3. Seed och delbarhet
+
+- [belagt: https://create.roblox.com/docs/reference/engine/datatypes/Random/NextUnitVector] Roblox `Random.new(seed)` tar en seed och skapar en pseudotalsgenerator; dokumentationen anger seedens giltiga intervall som −9 007 199 254 740 991 till 9 007 199 254 740 991. [resonemang] Samma algoritmversion, seed och indata kan därför återskapa samma val.
+- [resonemang] Skapa en seed per våning från ett explicit heltal plus stabila fält, till exempel `dailySeed + stageId + floorIndex`. Använd en lokal `Random`-instans för alla beslut. Spara även generatorversion och regler för mallrotation; ändras de kan samma nummer annars ge en annan karta efter en uppdatering.
+- [resonemang] Hasha normaliserad våningsdata för att verifiera att klienter och server kom överens. Dela seed tillsammans med generatorversion/tema, skapa topplistor per seed och kör daglig seed med ett fast datumformat och tidszon. För tävling ska servern skapa layouten och auktoritativt kontrollera strid, loot och resultat.
+- [belagt: https://create.roblox.com/docs/scripting/security/security-tactics] Roblox anger servern som yttersta sanningskälla för simulering, regler, progression och kritiska beslut. [resonemang] Klienten kan visa den genererade layouten, men ska inte ensam bestämma belöningar eller topplisteresultat.
+
+## 4. Roblox: var, hur mycket och hur djupt
+
+- [belagt: https://create.roblox.com/docs/scripting/security/security-tactics] Servern ska vara auktoritativ för regler, progression och kritiska beslut. [belagt: https://create.roblox.com/docs/performance-optimization/improve] Roblox rekommenderar att servern bara känner till information den behöver; klienten kan skapa visuella effekter lokalt. [resonemang] Låt servern generera eller åtminstone validera kompakt rutnätsdata och noder, och skapa auktoritativa hinder/loot där de behövs. Klienten kan skapa icke-kritisk dekor lokalt för att minska replikering.
+- [belagt: https://create.roblox.com/docs/performance-optimization/improve] Luau-kod kör synkront på huvudtråden tills den ger ifrån sig exekveringen; dyra tabelloperationer, serialisering och kloning kan belasta den. [belagt: https://create.roblox.com/docs/performance-optimization/identify] Serverns heartbeat har ett tak på 60 uppdateringar per sekund, motsvarande cirka 16,67 ms per uppdatering. [resonemang] Generera före inträde i våningen, mät med MicroProfiler och dela upp stora jobb; Roblox anger ingen universell tillåten beräkningstid per våning.
+- [belagt: https://create.roblox.com/docs/workspace/streaming] Instance streaming kan minska klientens minne och nätverks-/synkroniseringsarbete genom att strömma delar av Workspace. [belagt: https://create.roblox.com/docs/workspace/streaming] Dokumentationens standardvärde för `StreamingMinRadius` anges som 64 studs och rekommenderad standard för `StreamingTargetRadius` som 1 024 studs. [resonemang] Det är radier i 3D-världen, inte en gräns för antal rutceller eller delar; dimensionera med rummens storlek i studs och testa på svaga mobiler.
+- [belagt: https://create.roblox.com/docs/workspace/streaming] Streaming omfattar endast instanser i Workspace, och klienten kan sakna delar långt från spelarens fokus. [resonemang] Bygg inte logik som förutsätter att alla våningens visuella instanser alltid finns på varje klient; håll våningsgraf och progression i serverdata.
+- [belagt: https://create.roblox.com/docs/performance-optimization] Roblox beskriver minne och prestanda som något som ska mätas med verktyg och profiler, och varnar att hög minnesanvändning kan krascha server eller klient. [resonemang] Dokumentationen ger inte en generell maxgräns för antal delar eller minne per våning som gäller alla enheter. Sätt därför en intern budget genom prototypmätning, återanvänd mesh/modeller och skapa inte en Part per väggpixel om en modul eller mesh kan bära samma bild.
+- [resonemang] För en rutnätsblobber är väggarnas antal och detaljgrad ofta viktigare än djupet i antal våningar: bygg en våning, strömma/byt den när spelaren går vidare, och släpp föregående Workspace-instanser. Djup progression kan vara lång utan att alla våningar ligger samtidigt i världen. En kompakt gridrepresentation kan vara större än vad det är klokt att rendera som individuella fysiska delar.
+
+## 5. Ekonomi och återkomst
+
+- [resonemang] Generering ger fler rutter och kombinationer utan att kräva unik konst för varje karta. Det är verklig innehållseffektivitet om varje kombination ändrar beslut, risk eller belöningsväg.
+- [resonemang] Men samma fiender, kistor och korridorer i ny ordning kan snabbt bli mer innehåll utan mer mening. Om slumpningen gör farmvägen mindre läsbar eller lootutfallet svårare att jämföra kan den också skada ekonomins tydlighet och känslan av rättvisa.
+- [belagt: https://create.roblox.com/docs/performance-optimization] Roblox dokumentation kopplar prestanda och korta laddtider till engagemang och retention. [resonemang] I ert spel bör återkomst också komma från tydliga mål, meningsfull progression, nya fiender/teman, belöningar som inte urholkas av farmning och sociala skäl att spela ihop. Seedade dagliga utmaningar kan skapa samtal och jämförbara resultat; de ersätter inte nya mekaniker eller innehåll.
+- [resonemang] Håll ekonomin oberoende av kartans lättfarmade geometri: budgetera fiendevärde och kistvärde per våning/svårighetsgrad, inte per rå golvyta. Servern räknar ut loot och validerar utfallet. Testa om spelare optimerar en viss seed eller mallkombination till en dominerande guldfarm.
+
+## Vad jag inte kunde belägga
+
+- [resonemang] Jag kunde inte belägga att Roblox har ett enda fast maxantal delar eller en fast minnesgräns per våning som gäller alla upplevelser och enheter; därför anges inga sådana tal som hårda gränser.
+- [resonemang] Jag kunde inte verifiera att de åtta teman som nämns i frågan alla finns som nuvarande tileset-resurser i den lästa Godot-arbetskällan; `mapio.gd` listar fem andra/överlappande temaid.
+- [resonemang] Påståenden om att en viss genereringsmetod ökar retention eller intäkter specifikt för ert spel är designbedömningar, inte uppmätta resultat.

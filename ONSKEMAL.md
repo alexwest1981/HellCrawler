@@ -490,12 +490,17 @@ kort, så den ser inte effekten. Antalet är 8-14 korta partiklar per träff.
 "Kan vara en bra grej till hellcrawler framöver, att sätta större Dungeons som genereras automatiskt,
 så det inte går att lära sig banorna."
 
-**Mätt nuläge.** Våningarna ligger som små JSON-filer: `game/data/stage_01_0.json` (3 405 B) och
+**Mätt nuläge.** Våningarna ligger som små JSON-filer: `game/data/maps/stage_01_0.json` (3 405 B) och
 `stage_02_0.json` (3 060 B), med nycklarna `floor`, `nodes`, `stage_id`, `tiles` och `theme` (den
 andra har även `ytor`). Editorns dokument `game/data/karta.json` (3 381 B) bär `bild`, `zoom`,
-`komprimering`, `lutning` och `noder`. Alltså: rutnätet är redan data, och temana är våra åtta
-handbyggda (Asklunden, Koppargruvan, Myrmarken, Vitkalken, Benkammaren, Saltgruvan, Klocktornet,
-Glashyttan).
+`komprimering`, `lutning` och `noder`. Alltså: rutnätet är redan data.
+
+**Rättat efter mätning:** designen är åtta temalager (Asklunden … Glashyttan) men `game/core/mapio.gd`
+validerar fem temaid: `asklunden`, `krypta`, `grotta`, `tunnel`, `bro`. Hur de åtta förhåller sig till
+de fem är inte utrett — det är en egen uppgift, inte något att anta. Koden har dessutom redan en
+reservgenerator: BSP som delar ytan och därefter L-korridorer mellan rummen i ordning, vilket ger en
+linjär rumskedja snarare än en rik utforskningsgraf. Arbetet är alltså inte att bygga generering från
+noll, utan att göra den bra.
 
 **Teknisk tolkning.** Generatorn ska skriva SAMMA form som våningarna redan har — `tiles` med samma
 rutkoder, `theme` och `nodes` — så att inläsningen, minikartan, fienderna och proven inte behöver
@@ -504,9 +509,11 @@ bort det som gör spelet till vårt. Ett frö per våning gör den reproducerbar
 dela en våning och för dagliga våningar. Kvar att mäta: hur stor en våning kan bli innan minikartan,
 legendaren och rytmen går sönder — det är en mätning, inte en gissning.
 
-**Undersökningen.** Metodfrågan (vilken generering som passar en rutnätsdungeon i förstaperson, och
-hur genererat innehåll kan leva inuti handbyggda teman) besvaras av en pågående Orca-studie med sex
-vinklar; den vinkeln läser `game/core/dungeon.gd`, `karta.gd` och `mapio.gd` innan den svarar.
-Rapporten läggs i `docs/undersokning/` på samma sätt som för önskemål 29.
+**Undersökningen.** Metodfrågan besvaras av en Orca-studie som läste `game/core/dungeon.gd`, `karta.gd`
+och `mapio.gd` innan den svarade. Rekommendationen därifrån: behåll de handbyggda våningarna som
+temats ankare, bygg en modulbank av handgjorda rum och slumpa ordning och koppling under validering —
+rum ur handgjorda mallar ger bäst spelkänsla per arbetsinsats, medan en fri cellautomat ger många
+kartor fort och rum utan avsikt. BSP används som verktyg, inte som spelupplevelse. Ett frö per våning
+gör den reproducerbar. Rapporten: `docs/undersokning/slumpade-dungeons-01.md`.
 
 **Status:** öppen. Ingen kod skriven än.
