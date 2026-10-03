@@ -194,7 +194,7 @@ def torrkörning() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--torrkörning", action="store_true", help="plan och kvotläge, hämtar inget")
+    ap.add_argument("--torrkörning", "--check", action="store_true", help="plan och kvotläge, hämtar inget")
     ap.add_argument("--granska", metavar="FIL", help="kör grindarna på en befintlig bild")
     ap.add_argument("--tema", help="hämta det som saknas för ett tema")
     ap.add_argument("--yta", default="golv", choices=["golv", "vägg", "bakgrund"])

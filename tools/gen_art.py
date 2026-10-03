@@ -245,7 +245,7 @@ def main() -> int:
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--missing", action="store_true", help="bara kort som saknar bild (efter 429-strul)")
     ap.add_argument("--delay", type=float, default=4.0, help="paus mellan anropen, sekunder")
-    ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--dry", "--check", action="store_true")
     ap.add_argument("--sheet", action="store_true")
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args()
@@ -255,7 +255,12 @@ def main() -> int:
         print(contact_sheet(sorted(cards)))
         return 0
     if not (args.only or args.all or args.missing):
-        ap.error("välj --only <id>, --all, --missing eller --sheet")
+        # --check utan urval = "vad saknas?", utan att hämta något. Harnesket (test_all.sh) kallar
+        # varje generator med just --check, och en generator som inte kan svara på det ser trasig ut.
+        if args.dry:
+            args.missing = True
+        else:
+            ap.error("välj --only <id>, --all, --missing eller --sheet")
 
     if args.missing:
         ids = sorted(cid for cid in cards if not (OUT / f"{cid}.png").exists())

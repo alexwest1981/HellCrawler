@@ -300,7 +300,7 @@ def provkarta(ut: list[tuple[str, Image.Image]]) -> None:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--prov", action="store_true")
-    p.add_argument("--kolla", action="store_true")
+    p.add_argument("--kolla", "--check", action="store_true")
     a = p.parse_args()
     teman = sys.argv[1:] if not a.prov and not a.kolla else []
     teman = [t for t in teman if t in KÄLLOR] or list(KÄLLOR)
