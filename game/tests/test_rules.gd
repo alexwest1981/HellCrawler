@@ -269,13 +269,13 @@ func _run_shared_fixtures() -> void:
 		var want: Variant = _shared_value(parts[3])
 		var ok := _shared_equal(got, want)
 		check(ok, parts[0].strip_edges(), "" if ok else "wanted %s, got %s" % [want, got])
-	check(read >= 50, "the shared fixtures were read", "%d cases" % read)
+	check(read >= 68, "the shared fixtures were read", "%d cases" % read)
 
 ## A fight is a state machine, so those cases are a step list instead of one call:
 ##   "seed 1; enemies troll:1000:5; mana 20; hand lash,dagger,axe; play 0; probe damage"
 ## The last step is always a probe, and its value is what the expected field is compared with.
 func _run_scenario(steps: String) -> Variant:
-	var state := {"seed": 1, "deck": [], "combat": null, "last": null}
+	var state := {"seed": 1, "deck": [], "combat": null, "last": null, "deck_start": 0}
 	var value: Variant = null
 	for raw in steps.split(";"):
 		var step := raw.strip_edges()
@@ -304,6 +304,19 @@ func _run_scenario(steps: String) -> Variant:
 				state.last = state.combat.play(int(rest))
 			"turn":
 				state.combat.enemy_turn()
+			"autoplay":
+				state.autoplay = state.combat.auto_play()
+			"evo":
+				state.evo_ok = Evolution.consume(state.deck, Cards.load_all(), rest)
+			"floor":
+				var f2 := rest.split(":")
+				state.floor = Dungeon.generate(Stages.load_all()[f2[0]], int(f2[1]) - 1, int(f2[2]), Enemies.load_all())
+			"run":
+				var f3 := rest.split(":")
+				var stages := Stages.load_all()
+				state.deck_start = state.deck.size()
+				state.run = Run.new(stages[f3[0]], Enemies.load_all(), state.deck, int(f3[1]), Cards.load_all())
+				state.run.play_out()
 			"regel":
 				state.combat.regel = rest
 			"hp":
@@ -356,6 +369,61 @@ func _probe(name: String, state: Dictionary) -> Variant:
 			return c.enemies[0].row
 		"over":
 			return c.over()
+		"available":
+			return "+".join(Evolution.available(state.deck))
+		"deck":
+			return state.deck.size()
+		"deck_ids":
+			var ids := []
+			for card in state.deck:
+				ids.append(card.id)
+			return "+".join(ids)
+		"evo_ok":
+			return state.evo_ok
+		"autoplay_count":
+			return state.autoplay.size()
+		"autoplay_ascending":
+			var db := Cards.load_all()
+			var prev := -2
+			var ok := true
+			for r in state.autoplay:
+				var card: Cards.Card = db[r.card_id]
+				if not card.is_wild():
+					if card.cost <= prev:
+						ok = false
+					prev = card.cost
+			return ok
+		"autoplay_broke":
+			for r in state.autoplay:
+				if r.broke_chain:
+					return true
+			return false
+		"unreachable":
+			return Dungeon.unreachable_nodes(state.floor).size()
+		"has_boss":
+			return not state.floor.nodes_of_kind("boss").is_empty()
+		"has_shovel":
+			return not state.floor.nodes_of_kind("shovel").is_empty()
+		"start_is_floor":
+			return state.floor.is_floor_at(state.floor.start)
+		"floor_w":
+			return state.floor.w
+		"run_finished":
+			return state.run.finished
+		"run_outcome_known":
+			return state.run.outcome in ["dead", "reaped", "cleared"]
+		"run_end_count":
+			var ends := 0
+			for e in state.run.events:
+				if str(e.get("type", "")) == "run_end":
+					ends += 1
+			return ends
+		"run_deck_delta":
+			var picked := 0
+			for e in state.run.events:
+				if str(e.get("type", "")) == "card_picked":
+					picked += 1
+			return state.run.deck.size() - int(state.deck_start) - picked
 	push_error("unknown probe: %s" % name)
 	return null
 
