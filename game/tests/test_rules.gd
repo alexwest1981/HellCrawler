@@ -269,13 +269,14 @@ func _run_shared_fixtures() -> void:
 		var want: Variant = _shared_value(parts[3])
 		var ok := _shared_equal(got, want)
 		check(ok, parts[0].strip_edges(), "" if ok else "wanted %s, got %s" % [want, got])
-	check(read >= 68, "the shared fixtures were read", "%d cases" % read)
+	check(read == 94, "the shared fixtures were read", "%d cases" % read)
 
 ## A fight is a state machine, so those cases are a step list instead of one call:
 ##   "seed 1; enemies troll:1000:5; mana 20; hand lash,dagger,axe; play 0; probe damage"
 ## The last step is always a probe, and its value is what the expected field is compared with.
 func _run_scenario(steps: String) -> Variant:
-	var state := {"seed": 1, "deck": [], "combat": null, "last": null, "deck_start": 0}
+	var state := {"seed": 1, "deck": [], "combat": null, "last": null, "deck_start": 0,
+		"meta": null, "unlock_new": ""}
 	var value: Variant = null
 	for raw in steps.split(";"):
 		var step := raw.strip_edges()
@@ -317,6 +318,36 @@ func _run_scenario(steps: String) -> Variant:
 				state.deck_start = state.deck.size()
 				state.run = Run.new(stages[f3[0]], Enemies.load_all(), state.deck, int(f3[1]), Cards.load_all())
 				state.run.play_out()
+			"meta":
+				var sub := rest.split(" ", false, 1)
+				var what := sub[0]
+				var marg := sub[1].strip_edges() if sub.size() > 1 else ""
+				match what:
+					"new":
+						# En färsk spelare med defsen laddade: filen finns inte, så ingen riktig
+						# sparfil kan läcka in i proven.
+						state.meta = Meta.load_or_new("user://__prov_meta_saknas.json")
+						state.unlock_new = ""
+					"guld":
+						state.meta.gold = int(marg)
+					"cs":
+						state.meta.souls = int(marg)
+					"splitter":
+						state.meta.shards = int(marg)
+					"kop":
+						state.meta.buy(marg)
+					"steg_max":
+						var sm := marg.split(":")
+						state.meta.steg_max[sm[0]] = int(sm[1])
+					"steg":
+						var st := marg.split(":")
+						state.meta.steg_sätt(st[0], int(st[1]))
+					"notera":
+						var nt := marg.split(":")
+						state.unlock_new = state.meta.note_run(nt[0], int(nt[1]), int(nt[2]),
+							nt[3].split("+"), int(nt[4]) if nt.size() > 4 else 0)
+					_:
+						push_error("unknown meta step: %s" % rest)
 			"regel":
 				state.combat.regel = rest
 			"hp":
@@ -333,10 +364,51 @@ func _run_scenario(steps: String) -> Variant:
 				push_error("unknown step: %s" % step)
 	return value
 
-func _probe(name: String, state: Dictionary) -> Variant:
+func _probe(rest: String, state: Dictionary) -> Variant:
+	var parts := rest.split(" ", false, 1)
+	var name := parts[0]
+	var arg := parts[1].strip_edges() if parts.size() > 1 else ""
 	var c = state.combat
 	var last = state.last
 	match name:
+		"meta_gold":
+			return state.meta.gold
+		"meta_souls":
+			return state.meta.souls
+		"meta_shards":
+			return state.meta.shards
+		"meta_rank":
+			return state.meta.rank(arg)
+		"meta_stat":
+			return state.meta.stat(arg)
+		"meta_canbuy":
+			return state.meta.can_buy(arg).get("reason", "")
+		"meta_kista":
+			return Meta.kista_splitter(int(arg))
+		"meta_betalning_guld":
+			var pay := arg.split(":")
+			return state.meta.run_payout(int(pay[0]), int(pay[1]), "").get("gold", 0)
+		"meta_betalning_splitter":
+			var pay2 := arg.split(":")
+			return state.meta.run_payout(int(pay2[0]), int(pay2[1]), "").get("shards", 0)
+		"meta_andel":
+			return Meta.share_of_outcome(arg)
+		"meta_steg_max":
+			return state.meta.steg_max_för(arg)
+		"meta_steg_valt":
+			return state.meta.steg_valt_för(arg)
+		"meta_fiende_faktor":
+			return state.meta.steg_fiende_faktor(arg)
+		"meta_guld_faktor":
+			return state.meta.steg_guld_faktor(arg)
+		"meta_best_floor":
+			return int(state.meta.best_floor.get(arg, 0))
+		"meta_upplasta":
+			return state.meta.unlocked.size()
+		"meta_unlock_ny":
+			return state.unlock_new
+		"meta_runs":
+			return state.meta.runs
 		"mana":
 			return c.mana
 		"hp":

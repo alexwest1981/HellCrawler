@@ -60,11 +60,15 @@ func _initialize() -> void:
 	print("— tur och retur över sparfilen —")
 	m.add_gold(777)
 	m.ranks["cooldown"] = 2
+	m.add_souls(9)
 	var skrev := m.save(TEST_PATH)
 	check(skrev, "filen skrevs", m.last_error)
 	var igen := Meta.load_or_new(TEST_PATH)
 	check(igen.gold == m.gold, "guldet överlevde", "%d -> %d" % [m.gold, igen.gold])
 	check(igen.ranks == m.ranks, "rangerna överlevde", str(igen.ranks))
+	# CS är trädets valuta och måste överleva en omstart som guldet: den som tjänat ihop till en
+	# permanent nod ska inte hitta fickan tom nästa gång.
+	check(igen.souls == 9, "CS överlevde omstarten", "%d -> %d" % [m.souls, igen.souls])
 	check(igen.last_error.is_empty(), "ingen feltext vid en frisk fil", igen.last_error)
 
 	print("")

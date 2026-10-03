@@ -120,6 +120,10 @@ static func load_or_new(path: String = PATH) -> Meta:
 	# och tom ficka är samma sak som en ny spelares — inget guld räknas om till splitter, för
 	# valutan ska bara finnas i kistorna.
 	m.shards = int(parsed.get("shards", 0))
+	# CS (trädets valuta) kom i version 10.1: den skrevs aldrig ner före dess, så en äldre fil har
+	# ingen nyckel — noll är samma sak som en ny spelares ficka, inte en förlust (det som redan är
+	# köpt ligger i `ranks`).
+	m.souls = int(parsed.get("souls", 0))
 	var g = parsed.get("gems", {})
 	m.gems = g if typeof(g) == TYPE_DICTIONARY else {}
 	var gs = parsed.get("gem_slots", {})
@@ -1095,7 +1099,7 @@ func to_dict() -> Dictionary:
 		"relics": relics.duplicate(), "language": language, "unlocked": unlocked.duplicate(),
 		"best_floor": best_floor.duplicate(), "runs": runs, "hired": hired.duplicate(),
 		"samling": samling.duplicate(),
-		"shards": shards, "gems": gems.duplicate(true), "gem_slots": gem_slots.duplicate(),
+		"shards": shards, "souls": souls, "gems": gems.duplicate(true), "gem_slots": gem_slots.duplicate(),
 		"gem_in": gem_in.duplicate(true), "boxar_utan_stor": boxar_utan_stor,
 		"kills_total": kills_total, "floors_total": floors_total,
 		"steg_max": steg_max.duplicate(), "steg_valt": steg_valt.duplicate(),
