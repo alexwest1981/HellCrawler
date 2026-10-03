@@ -260,11 +260,111 @@ func _run_shared_fixtures() -> void:
 			check(false, "a fixture line without four fields", line)
 			continue
 		read += 1
-		var got: Variant = _shared_call(parts[1].strip_edges(), _shared_args(parts[2]))
+		var fn_name := parts[1].strip_edges()
+		var got: Variant
+		if fn_name == "scenario":
+			got = _run_scenario(parts[2])
+		else:
+			got = _shared_call(fn_name, _shared_args(parts[2]))
 		var want: Variant = _shared_value(parts[3])
 		var ok := _shared_equal(got, want)
 		check(ok, parts[0].strip_edges(), "" if ok else "wanted %s, got %s" % [want, got])
-	check(read >= 23, "the shared fixtures were read", "%d cases" % read)
+	check(read >= 50, "the shared fixtures were read", "%d cases" % read)
+
+## A fight is a state machine, so those cases are a step list instead of one call:
+##   "seed 1; enemies troll:1000:5; mana 20; hand lash,dagger,axe; play 0; probe damage"
+## The last step is always a probe, and its value is what the expected field is compared with.
+func _run_scenario(steps: String) -> Variant:
+	var state := {"seed": 1, "deck": [], "combat": null, "last": null}
+	var value: Variant = null
+	for raw in steps.split(";"):
+		var step := raw.strip_edges()
+		if step.is_empty():
+			continue
+		var parts := step.split(" ", false, 1)
+		var verb := parts[0]
+		var rest := parts[1].strip_edges() if parts.size() > 1 else ""
+		match verb:
+			"seed":
+				state.seed = int(rest)
+			"deck":
+				state.deck = _cards_from(rest)
+			"enemies":
+				var enemies := []
+				for text in rest.split(","):
+					var f := text.split(":")
+					enemies.append(Combat.Enemy.new(f[0], float(f[1]), float(f[2]),
+						int(f[3]) if f.size() > 3 else 0, int(f[4]) if f.size() > 4 else 0))
+				state.combat = Combat.new(int(state.seed))
+				state.combat.begin(state.deck, enemies)
+				state.last = null
+			"hand":
+				state.combat.hand = _cards_from(rest)
+			"play":
+				state.last = state.combat.play(int(rest))
+			"turn":
+				state.combat.enemy_turn()
+			"regel":
+				state.combat.regel = rest
+			"hp":
+				state.combat.hp = float(rest)
+			"maxhp":
+				state.combat.max_hp = float(rest)
+			"armor":
+				state.combat.armor = float(rest)
+			"mana":
+				state.combat.mana = int(rest)
+			"probe":
+				value = _probe(rest, state)
+			_:
+				push_error("unknown step: %s" % step)
+	return value
+
+func _probe(name: String, state: Dictionary) -> Variant:
+	var c = state.combat
+	var last = state.last
+	match name:
+		"mana":
+			return c.mana
+		"hp":
+			return c.hp
+		"armor":
+			return c.armor
+		"combo":
+			return c.combo
+		"hand":
+			return c.hand.size()
+		"exile":
+			return c.exile_pile.size()
+		"discard":
+			return c.discard_pile.size()
+		"damage":
+			return last.damage if last != null else 0.0
+		"multiplier":
+			return last.multiplier if last != null else 0
+		"reason":
+			return last.reason if last != null else ""
+		"ok":
+			return last.ok if last != null else false
+		"broken":
+			return last.broke_chain if last != null else false
+		"paid_with_blood":
+			return last.betalat_med_blod if last != null else false
+		"frozen":
+			return c.enemies[0].frozen
+		"row":
+			return c.enemies[0].row
+		"over":
+			return c.over()
+	push_error("unknown probe: %s" % name)
+	return null
+
+func _cards_from(ids: String) -> Array:
+	var db := Cards.load_all()
+	var out := []
+	for id in ids.split(","):
+		out.append(db[id.strip_edges()])
+	return out
 
 func _shared_call(fn_name: String, args: Array) -> Variant:
 	match fn_name:
@@ -319,7 +419,9 @@ func _shared_value(text: String) -> Variant:
 			if not item.strip_edges().is_empty():
 				list.append(float(item))
 		return list
-	return float(s)
+	if s.is_valid_float():
+		return float(s)
+	return s ## a bare word ("for_lite_mana") is a value too, not a broken number
 
 ## Relative tolerance, because two languages will not agree bit for bit on floats.
 func _shared_equal(got: Variant, want: Variant) -> bool:
