@@ -269,7 +269,7 @@ func _run_shared_fixtures() -> void:
 		var want: Variant = _shared_value(parts[3])
 		var ok := _shared_equal(got, want)
 		check(ok, parts[0].strip_edges(), "" if ok else "wanted %s, got %s" % [want, got])
-	check(read == 94, "the shared fixtures were read", "%d cases" % read)
+	check(read == 99, "the shared fixtures were read", "%d cases" % read)
 
 ## A fight is a state machine, so those cases are a step list instead of one call:
 ##   "seed 1; enemies troll:1000:5; mana 20; hand lash,dagger,axe; play 0; probe damage"
@@ -316,7 +316,8 @@ func _run_scenario(steps: String) -> Variant:
 				var f3 := rest.split(":")
 				var stages := Stages.load_all()
 				state.deck_start = state.deck.size()
-				state.run = Run.new(stages[f3[0]], Enemies.load_all(), state.deck, int(f3[1]), Cards.load_all())
+				state.run = Run.new(stages[f3[0]], Enemies.load_all(), state.deck, int(f3[1]),
+					Cards.load_all(), state.meta)
 				state.run.play_out()
 			"meta":
 				var sub := rest.split(" ", false, 1)
@@ -496,6 +497,16 @@ func _probe(rest: String, state: Dictionary) -> Variant:
 				if str(e.get("type", "")) == "card_picked":
 					picked += 1
 			return state.run.deck.size() - int(state.deck_start) - picked
+		"run_maxhp":
+			return state.run.max_hp
+		"run_basemana":
+			return state.run.base_mana
+		"run_reward_count":
+			var rewards := 0
+			for e in state.run.events:
+				if str(e.get("type", "")) == "run_reward":
+					rewards += 1
+			return rewards
 	push_error("unknown probe: %s" % name)
 	return null
 
