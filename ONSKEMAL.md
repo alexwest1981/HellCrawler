@@ -484,3 +484,29 @@ sidan av figuren, 1-3 px).
 
 **Kvar:** kostnaden i bildrutor för tre träffar i samma bildruta är inte mätt — `-- fpsprov` spelar inga
 kort, så den ser inte effekten. Antalet är 8-14 korta partiklar per träff.
+
+## 30. Större dungeons som genereras automatiskt
+
+"Kan vara en bra grej till hellcrawler framöver, att sätta större Dungeons som genereras automatiskt,
+så det inte går att lära sig banorna."
+
+**Mätt nuläge.** Våningarna ligger som små JSON-filer: `game/data/stage_01_0.json` (3 405 B) och
+`stage_02_0.json` (3 060 B), med nycklarna `floor`, `nodes`, `stage_id`, `tiles` och `theme` (den
+andra har även `ytor`). Editorns dokument `game/data/karta.json` (3 381 B) bär `bild`, `zoom`,
+`komprimering`, `lutning` och `noder`. Alltså: rutnätet är redan data, och temana är våra åtta
+handbyggda (Asklunden, Koppargruvan, Myrmarken, Vitkalken, Benkammaren, Saltgruvan, Klocktornet,
+Glashyttan).
+
+**Teknisk tolkning.** Generatorn ska skriva SAMMA form som våningarna redan har — `tiles` med samma
+rutkoder, `theme` och `nodes` — så att inläsningen, minikartan, fienderna och proven inte behöver
+ändras alls. Bara layouten slumpas; tema, konst och rumsinnehåll förblir handgjort, annars kastar vi
+bort det som gör spelet till vårt. Ett frö per våning gör den reproducerbar, vilket öppnar för att
+dela en våning och för dagliga våningar. Kvar att mäta: hur stor en våning kan bli innan minikartan,
+legendaren och rytmen går sönder — det är en mätning, inte en gissning.
+
+**Undersökningen.** Metodfrågan (vilken generering som passar en rutnätsdungeon i förstaperson, och
+hur genererat innehåll kan leva inuti handbyggda teman) besvaras av en pågående Orca-studie med sex
+vinklar; den vinkeln läser `game/core/dungeon.gd`, `karta.gd` och `mapio.gd` innan den svarar.
+Rapporten läggs i `docs/undersokning/` på samma sätt som för önskemål 29.
+
+**Status:** öppen. Ingen kod skriven än.
