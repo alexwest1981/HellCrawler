@@ -157,6 +157,7 @@ func _initialize() -> void:
 		"%.1f %%" % hp.enemy_hp_percent())
 
 	_prov_nyckelord()
+	_run_shared_fixtures()
 
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
@@ -233,3 +234,88 @@ func _prov_nyckelord() -> void:
 
 func combat_enemy(hp: float, dmg: float, row: int = 0, eyes: int = 0) -> Combat.Enemy:
 	return Combat.Enemy.new("test_dummy", hp, dmg, row, eyes)
+
+## The shared fixtures: the same file the Roblox port runs in Luau
+## (~/Projects/hellcrawler_roblox/tests/fixtures/rules.luau, override with HELLCRAWLER_FIXTURES).
+## The file is the truth, so a rule that drifts between the two implementations shows up as a
+## number here instead of in a game. Missing file is skipped loudly, not silently.
+const SHARED_FIXTURES := "Projects/hellcrawler_roblox/tests/fixtures/rules.luau"
+
+func _run_shared_fixtures() -> void:
+	var path := OS.get_environment("HELLCRAWLER_FIXTURES")
+	if path.is_empty():
+		path = OS.get_environment("HOME").path_join(SHARED_FIXTURES)
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		print("— shared fixtures unread (Roblox clone missing?): %s —" % path)
+		return
+	print("— shared fixtures, the same cases the Luau port runs —")
+	var read := 0
+	for raw in file.get_as_text().split("\n"):
+		var line := raw.strip_edges()
+		if line.is_empty() or line.begins_with("#") or line.begins_with("--") or not line.contains("|"):
+			continue
+		var parts := line.split("|")
+		if parts.size() < 4:
+			check(false, "a fixture line without four fields", line)
+			continue
+		read += 1
+		var got: Variant = _shared_call(parts[1].strip_edges(), _shared_args(parts[2]))
+		var want: Variant = _shared_value(parts[3])
+		var ok := _shared_equal(got, want)
+		check(ok, parts[0].strip_edges(), "" if ok else "wanted %s, got %s" % [want, got])
+	check(read >= 14, "the shared fixtures were read", "%d cases" % read)
+
+func _shared_call(fn_name: String, args: Array) -> Variant:
+	match fn_name:
+		"damage":
+			return Rules.damage(args[0], int(args[1]), args[2], args[3], args[4], args[5],
+				args[6] if args.size() > 6 else [])
+		"damage_multiplier":
+			return Rules.damage_multiplier(int(args[0]))
+		"continues_chain":
+			return Rules.continues_chain(int(args[0]), int(args[1]))
+		"combo_after":
+			return Rules.combo_after(int(args[0]), int(args[1]), int(args[2]))
+	return null
+
+## Splits on commas at depth 0, so "[3,3]" stays in one piece — same rule as run.luau.
+func _shared_args(text: String) -> Array:
+	var args := []
+	var depth := 0
+	var current := ""
+	for i in text.length():
+		var ch := text[i]
+		if ch == "[":
+			depth += 1
+		elif ch == "]":
+			depth -= 1
+		if ch == "," and depth == 0:
+			args.append(_shared_value(current))
+			current = ""
+		else:
+			current += ch
+	if not current.strip_edges().is_empty():
+		args.append(_shared_value(current))
+	return args
+
+func _shared_value(text: String) -> Variant:
+	var s := text.strip_edges()
+	if s == "true":
+		return true
+	if s == "false":
+		return false
+	if s.begins_with("["):
+		var list := []
+		for item in s.substr(1, s.length() - 2).split(","):
+			if not item.strip_edges().is_empty():
+				list.append(float(item))
+		return list
+	return float(s)
+
+## Relative tolerance, because two languages will not agree bit for bit on floats.
+func _shared_equal(got: Variant, want: Variant) -> bool:
+	var numbers := [TYPE_INT, TYPE_FLOAT]
+	if typeof(got) in numbers and typeof(want) in numbers:
+		return absf(float(got) - float(want)) <= 1e-6 * maxf(1.0, absf(float(want)))
+	return got == want
