@@ -264,7 +264,7 @@ func _run_shared_fixtures() -> void:
 		var want: Variant = _shared_value(parts[3])
 		var ok := _shared_equal(got, want)
 		check(ok, parts[0].strip_edges(), "" if ok else "wanted %s, got %s" % [want, got])
-	check(read >= 14, "the shared fixtures were read", "%d cases" % read)
+	check(read >= 23, "the shared fixtures were read", "%d cases" % read)
 
 func _shared_call(fn_name: String, args: Array) -> Variant:
 	match fn_name:
@@ -277,6 +277,14 @@ func _shared_call(fn_name: String, args: Array) -> Variant:
 			return Rules.continues_chain(int(args[0]), int(args[1]))
 		"combo_after":
 			return Rules.combo_after(int(args[0]), int(args[1]), int(args[2]))
+		"xp_to_next":
+			return Progress.xp_to_next(int(args[0]))
+		"xp_total":
+			return Progress.xp_total(int(args[0]))
+		"level_for_xp":
+			return Progress.level_for_xp(int(args[0]))
+		"levels_gained":
+			return Progress.levels_gained(int(args[0]), int(args[1]))
 	return null
 
 ## Splits on commas at depth 0, so "[3,3]" stays in one piece — same rule as run.luau.
