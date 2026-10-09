@@ -2,7 +2,6 @@
 .godot/
 *.import
 .import/
-export_presets.cfg
 
 # Byggda paket
 build/

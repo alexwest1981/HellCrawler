@@ -2967,14 +2967,15 @@ func _shot_skarm(skarm: String) -> void:
 ## Rubrikerna i menyns ordning. Översatta av `Tr.t`, alltså samma texter i alla 13 språk (nycklarna
 ## ligger i tools/meny_i18n.py).
 func _meny_rubriker() -> Array:
-	# Den sista raden är TILLFÄLLIG och därför otversatt: en genväg till editorn så man slipper komma
-	# ihåg terminaladressen. Att lägga en debug-rad i de 13 språkfilerna vore att översätta något som
-	# ska bort igen — den får stå på svenska tills vidare.
 	# SPARA SPEL står före LADDA SPEL: de två hör ihop, och den som just spelat letar efter spara.
-	return [Tr.t("ui.meny.nytt", "NYTT SPEL"), Tr.t("ui.meny.spara", "SPARA SPEL"),
+	var rader := [Tr.t("ui.meny.nytt", "NYTT SPEL"), Tr.t("ui.meny.spara", "SPARA SPEL"),
 		Tr.t("ui.meny.ladda", "LADDA SPEL"),
-		Tr.t("ui.meny.alternativ", "ALTERNATIV"), Tr.t("ui.meny.avsluta", "AVSLUTA"),
-		"BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)"]
+		Tr.t("ui.meny.alternativ", "ALTERNATIV"), Tr.t("ui.meny.avsluta", "AVSLUTA")]
+	# Redigerarna är utvecklarverktyg och otversatta med flit: raderna finns bara i debug-bygget, och
+	# deras filer filtreras bort ur exporten (export_presets.cfg). En köpare får fem menyrader.
+	if OS.is_debug_build():
+		rader.append_array(["BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)"])
+	return rader
 
 ## Bottenraden: tipset överst, version och copyright under. Finns en sparad körning står det i tipset
 ## vad LADDA SPEL gör — en rad som säger "fortsätt på våning 3" är ett svar, "LADDA SPEL" är en fråga.
