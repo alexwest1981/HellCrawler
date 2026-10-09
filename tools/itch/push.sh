@@ -7,8 +7,11 @@
 #   ITCH_TARGET=<itch-användare>/<spelslugen> tools/itch/push.sh
 # Bygg först med tools/build.sh om spelet ändrats.
 set -euo pipefail
-: "${ITCH_TARGET:?sätt ITCH_TARGET=<itch-användare>/<spel>, t.ex. alexwest1981/hellcrawler}"
+: "${ITCH_TARGET:?sätt ITCH_TARGET=<itch-användare>/<spel>, t.ex. alexwest81/hellcrawler}"
 cd "$(dirname "$0")/../.."          # repo-roten
+# butler skulle annars bara säga att sökvägen inte finns.
+{ [ -d game/build/windows ] && [ -d game/build/linux ]; } \
+  || { echo "fel: inga byggen i game/build/ — kör tools/build.sh först" >&2; exit 1; }
 
 VER="$(sed -n 's/^config\/version="\(.*\)"/\1/p' game/project.godot)"
 [ -n "$VER" ] || VER="0.0.0"
