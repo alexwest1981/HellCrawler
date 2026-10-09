@@ -775,7 +775,11 @@ func _ready() -> void:
 	# nodprov=<kind> fotograferar en nod på håll (kista, spade, fackla). Läses här också, för annars
 	# startar spelet i byn i stället för i våningen och provet mäter en meny.
 	var nodprov := ""
-	Meta.fotolage(not flags.is_empty())   # varje --flagga = en körning som inte är spelarens
+	# Varje --flagga är en körning som inte är spelarens. Bara SÄTT, aldrig tillbaka: ett prov har
+	# redan kunnat välja provfilen, och en main.gd-start utan flaggor ska inte ta tillbaka spelarens
+	# fil mitt i en körning — då skriver autosparningen den. Mätt: nio prov rörde save.json så.
+	if not flags.is_empty():
+		Meta.fotolage(true)
 # skarm=by|butik|vardshus|smed|karta startar direkt på den skärmen. Utan den gick bara HELA
 	# skalet att fotografera (`-- skarmar`), och en enskild skärm fick man leta upp med tangenterna.
 	var skarm := ""

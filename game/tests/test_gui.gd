@@ -48,6 +48,9 @@ func _initialize() -> void:
 	root.add_child(main)
 	await process_frame
 	await process_frame
+	# Provet SPELAR en körning, och körningen sparar sig själv. Utan den här raden blir det spelarens
+	# sparfil — mätt: en svitkörning skrev en pågående körning (676 -> 1190 byte) i save.json.
+	Meta.fotolage(true)
 	# Ett fönster i spelstorlek: provkörningen är huvudlös och startar i 64x64, där marginalerna inte
 	# finns alls (vyn är 960x540 och hamnar utanför fönstret). Utan det mäter provet en layout ingen
 	# spelar i — samma skäl och samma rad som tests/test_kortbord.gd.

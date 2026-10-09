@@ -44,6 +44,10 @@ func _skriv_karta(noder: Array) -> bool:
 	return true
 
 func _init() -> void:
+	# Provet bygger och sparar meta (`Meta.load_or_new` + `save()` nedan), och save() skriver
+	# Meta.PATH. Utan den här raden blir det spelarens sparfil — mätt: provet nollade en körande
+	# körning i save.json.
+	Meta.fotolage(true)
 	var stages := Stages.load_all()
 	# Samma ordning som main.gd bygger: svårighet, sedan id. Kartans väg ÄR upplåsningsordningen.
 	var order: Array = stages.keys()

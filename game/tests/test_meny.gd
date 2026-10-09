@@ -37,6 +37,10 @@ func _initialize() -> void:
 	root.add_child(main)
 	await process_frame
 	await process_frame
+	# Provet SKRIVER sparfilen (main.meta.save() och _spara_körning nedan). Utan den här raden blir
+	# det spelarens fil: mätt — en svitkörning tömde en pågående körning i save.json. Samma skydd som
+	# syskonproven har.
+	Meta.fotolage(true)
 	# REN SPARFIL TILL ATT BÖRJA MED. En körning sparar sig själv (det är meningen: LADDA SPEL ska ha
 	# något att ladda), och en tidigare provkörning — eller ett tidigare prov i sviten — kan ha lämnat en
 	# sparad körning i fönsterlägets fil. Utan den här raden beror provet på vad som råkade köras före:
