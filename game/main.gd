@@ -689,6 +689,13 @@ func _ready() -> void:
 	# partierna lika mycket som de ljusa och dödar rymden. Det låg på 0,25 för att facklorna var
 	# svaga — då ska facklorna upp, inte dimman. (Samma mätning gjordes i andra projektet: en
 	# osynlig sol tvättade rummet vitt och togs bort.)
+	# GL-RENDERAREN (webb) HAR INTE SSR, SSAO ELLER SSIL — de är Forward+-funktioner. En
+	# RenderingDevice finns i Vulkan och är null i Compatibility, så det är frågan att ställa.
+	var rymd_ljus: bool = RenderingServer.get_rendering_device() != null
+	# SSIL LJUSTE UPP HÖRNEN och GL har den inte, så webb-bygget blir mörkare där (mätt: 15 % av vyn
+	# i helsvart mot 0 % i Vulkan). Ett försök att lyfta ambientljuset till 0,14 stängde INTE gapet
+	# (16,4 % svart, medelljus −2 — inom lyktans flimmer), så det står kvar på 0,08. Skillnaden är
+	# kvar och är känd; den ska lösas med något annat än ett grått golv om den ska lösas.
 	env.ambient_light_energy = 0.08
 	# Dimma: mörkret längst bort ska vara en vägg av luft, inte bara svart. Den bär också avståndet
 	# i långa korridorer, där lyktan annars bara tar slut.
@@ -699,20 +706,20 @@ func _ready() -> void:
 	env.fog_density = 0.04
 	# Reflektioner: vattnet och benet ska spegla rummet, inte bara lyktan. SSR är skärmbaserat — det
 	# som syns i bild kan speglas, vilket är precis vad en pöl i en korridor gör.
-	env.ssr_enabled = _ssr
+	env.ssr_enabled = _ssr and rymd_ljus
 	env.ssr_max_steps = 32
 	env.ssr_fade_in = 0.2
 	env.ssr_fade_out = 12.0
 	# Kontaktmörker i fogar och hörn: utan det syns reliefen från normalerna bara där ljuset råkar
 	# falla på en kant. Radien är en meter — samma skala som blocken.
-	env.ssao_enabled = _ao
+	env.ssao_enabled = _ao and rymd_ljus
 	env.ssao_radius = 1.1
 	env.ssao_intensity = 1.8
 	# SSIL: samma skärmpass som AO, men det lägger till det LJUS som studsar mellan ytorna i stället
 	# för att bara mörkna fogarna. Det är skillnaden mellan "håligheter" och "ett rum där lyktan
 	# lyser upp hörnet bredvid". Låg intensitet med flit: i en mörk korridor blir indirekt ljus
 	# snabbt en grå hinna över hela bilden (samma läxa som ambientljuset på 0,25).
-	env.ssil_enabled = _ssil and _ao
+	env.ssil_enabled = _ssil and _ao and rymd_ljus
 	env.ssil_intensity = 0.45
 	env.ssil_radius = 2.0
 	env.ssil_sharpness = 0.98

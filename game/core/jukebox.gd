@@ -38,10 +38,16 @@ func ladda() -> int:
 	var n := d.get_next()
 	while n != "":
 		if not d.current_is_dir():
-			var låg := n.to_lower()
+			# I ETT EXPORTERAT PAKET HETER FILERNA ".mp3.import" — importsidospåret ligger i pck:en,
+			# inte källfilen — och då matchade ingen ändelse: mätt gav release-binären "jukebox: 0
+			# spår" medan provet i editorn krävde sex. Samma mönster som tree_sockets.icon_list().
+			# Dubbleringen skyddas: vissa filer ligger i pck:en BÅDE som källa och som .import.
+			var namn := str(n).trim_suffix(".import")
+			var låg := namn.to_lower()
 			for ändelse in ÄNDELSER:
 				if låg.ends_with(ändelse):
-					filer.append(n)
+					if not filer.has(namn):
+						filer.append(namn)
 					break
 		n = d.get_next()
 	d.list_dir_end()

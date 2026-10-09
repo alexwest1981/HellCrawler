@@ -31,5 +31,6 @@ window/stretch/mode="disabled"
 ; Rensfärgen är den yta HUD:en runt spelvyn ligger på. Svart, inte Godots grå standard (0,30) —
 ; den grå ramen runt en mörk fängelsehåla såg ut som en tänd skärm i ett mörkt rum.
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)
+renderer/rendering_method.web="gl_compatibility"
 
 textures/canvas_textures/default_texture_filter=0
