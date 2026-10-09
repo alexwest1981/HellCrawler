@@ -66,7 +66,7 @@ const HÖGSTA := 6
 ## andra följer rutnätet. Rymden är samma som förut: andelar, oändlig, panorering och zoom.
 const RAD_TOPP := 0.06         ## nivå 1:s rad
 const RAD_STEG := 0.13         ## avståndet mellan två nivåer
-const SYSKON_AVSTÅND := 2.6    ## syskonens avstånd i sidled, räknat i nodradier
+const SYSKON_AVSTÅND := 3.2    ## syskonens avstånd i sidled, räknat i nodradier
 
 ## Radens höjd i trädrymden.
 func _slot_y(nivå: int) -> float:
@@ -311,6 +311,9 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 		ikon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ikon.mouse_filter = Control.MOUSE_FILTER_PASS
 		ikon.mouse_entered.connect(_peka.bind(id))
+		# UT. En ikon hade ingen mouse_exited, så den SISTA nodens rad stod kvar efter att pekaren
+		# lämnat den — hovringen såg död ut. Raden töms när pekaren lämnar just den nod som visas.
+		ikon.mouse_exited.connect(_peka_bort.bind(id))
 		ikon.gui_input.connect(_klick.bind(id))
 		# NODEN SOM EN PLATS I RYMDEN, inte som en pixel. Att räkna pixelpositioner en gång och
 		# behålla dem var felet: vyn får sin storlek EFTER att noderna skapats, och i ett annat fönster
@@ -458,6 +461,18 @@ func _rita(du: CanvasItem) -> void:
 			du.draw_arc(c, rr + 3.0, 0.0, TAU, 28, GULD, 1.5, true)
 
 
+## Noden som hovringstexten tillhör (M98). mouse_entered sätter den, mouse_exited tömmer bara om det är
+## samma nod — annars hade flytten mellan två grannnoder kunnat tömma den nya radens text.
+var _hovrad := ""
+
+
+## Pekaren lämnade noden: töm raden om det är DEN som visas.
+func _peka_bort(id: String) -> void:
+	if _hovrad == id:
+		_hovrad = ""
+		_info.text = ""
+
+
 func _peka(id: String) -> void:
 	var def: Dictionary = _meta.def_for(id)
 	var rad: Dictionary = _rader[id]
@@ -480,6 +495,7 @@ func _peka(id: String) -> void:
 			text += "  ·  %d CS %s" % [pris, "✓" if _meta.souls >= pris else "✗"]
 		else:
 			text += "  ·  %s" % _meta.missing_requirement(id)
+	_hovrad = id
 	_info.text = text
 
 

@@ -21,10 +21,12 @@ extends RefCounted
 ## Nodens storlek i FYRA klasser, i den ordning Alex bygger trädet: "3 stora, 3 medelstora, 15 små,
 ## och 48 små" — alltså en trappa Stor -> Medelstor -> Liten -> Pytteliten.
 ##
-## SIZES är vad vi RITAR, i trädandelar (bildandelen är samma mått som nodernas platser). Siffrorna är
-## kvar från plattan: "stor" var dubbelt mot plattans medaljong (0,018 -> 0,036) eftersom Alex ville ha
-## de stora tydligt större, och vid spelvyns höjd (270 px) blev 0,018 bara nio pixlar.
-const SIZES := {"stor": 0.036, "medelstor": 0.013, "liten": 0.009, "pytteliten": 0.007}
+## SIZES är vad vi RITAR, i trädandelar (bildandelen är samma mått som nodernas platser). Talen är
+## satta mot den vy de faktiskt ritas i: ett träd på 16 nivåer centreras till _sida ≈ 126 px i en
+## 270 px hög ruta, alltså ger de 15/12/10/9 px. De gamla talen (0,036/0,013/0,009/0,007) gav
+## 9/3/3/3 — och 3 px är golvet i size_px, så nittio av nittiotre noder ritades som lika stora
+## punkter: omöjliga att se skillnad på, och omöjliga att träffa med muspekaren (M98).
+const SIZES := {"stor": 0.060, "medelstor": 0.049, "liten": 0.042, "pytteliten": 0.036}
 
 ## Vad en uppgradering ger på en LITEN respektive STOR nod. Ett enda hem för siffrorna: editorn visar
 ## dem när man kryssar, metan lägger in dem i noden, och vyn skriver dem i hovringstexten. Stegen är

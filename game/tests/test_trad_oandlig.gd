@@ -31,10 +31,75 @@ func _initialize() -> void:
 	var vy := TreeView.new()
 	root.add_child(vy)
 	await process_frame                  # in i trädet först: visa() väntar in en bildruta själv
+	# Fönstret måste rymma vyn: hovringen nedan skickas som en RIKTIG musrörelse, och en pekare utanför
+	# fönstret når inga kontroller.
+	root.size = Vector2i(480, 270)
 	vy.size = Vector2(480, 270)
 	await vy.visa(meta, "PROV")
 	await process_frame
 	vy.placera_om()
+
+	# SYNLIGHET OCH AVSTÅND, MÄTT I PIXLAR (M98). Alex: "Separera dem så de inte ligger tätt inpå
+	# varandra i listan nedåt, då det inte går att se dem ordentligt, och det behöver vara hover på
+	# dem." Förr ritades 90 av 93 noder som 3 px — size_px-golvet — eftersom SIZES var satt mot en
+	# platta som inte finns längre. Nio pixlar är golvet här: under det går varken att se eller hovra.
+	print("— noderna syns och är åtskilda —")
+	var minsta := 9999
+	for id in vy._ikoner:
+		minsta = mini(minsta, int((vy._ikoner[id] as Control).size.x))
+	check(minsta >= 9, "ingen nod ritas mindre än 9 px", "%d px" % minsta)
+	# Raderna: högsta nodens mitt per nivå, och luften till nästa nivås högsta nod.
+	var nivå_mitt := {}
+	var nivå_störst := {}
+	var per_nivå := {}
+	for id in vy._ikoner:
+		var ik: Control = vy._ikoner[id]
+		var n: int = int(vy._rader[id].get("nivå", 0))
+		nivå_mitt[n] = maxf(float(nivå_mitt.get(n, -1e9)), ik.position.y + ik.size.y * 0.5)
+		nivå_störst[n] = maxi(int(nivå_störst.get(n, 0)), int(ik.size.x))
+		per_nivå[n] = per_nivå.get(n, []) + [id]
+	var nr: Array = nivå_mitt.keys()
+	nr.sort()
+	var luft := 1e9
+	for i in range(nr.size() - 1):
+		var n1: int = nr[i]
+		var n2: int = nr[i + 1]
+		luft = minf(luft, float(nivå_mitt[n2]) - float(nivå_mitt[n1])
+			- (float(nivå_störst[n1]) + float(nivå_störst[n2])) * 0.5)
+	check(luft > 0.0, "nivåerna ligger inte i varandra", "minsta luft %.1f px" % luft)
+	# Syskonen i sidled, samma räkning (60 px = samma gren; längre bort är nästa kolumn).
+	var syskon := 1e9
+	for n in per_nivå:
+		var ids: Array = per_nivå[n]
+		ids.sort_custom(func(a, b): return (vy._ikoner[a] as Control).position.x < (vy._ikoner[b] as Control).position.x)
+		for i in range(ids.size() - 1):
+			var a: Control = vy._ikoner[ids[i]]
+			var b: Control = vy._ikoner[ids[i + 1]]
+			if b.position.x - a.position.x < 60.0:
+				syskon = minf(syskon, b.position.x - a.position.x - (a.size.x + b.size.x) * 0.5)
+	check(syskon > 0.0, "syskonen ligger inte i varandra", "minsta luft %.1f px" % syskon)
+
+	# HOVRINGEN GENOM EN RIKTIG MUSRÖRELSE, inte genom att kalla _peka: det är spelarens väg, och det
+	# var den som var död — en 3 px-ikon gick i praktiken aldrig att träffa, och raden stod kvar efter
+	# att pekaren lämnat noden.
+	print("— hovringen —")
+	var mus := InputEventMouseMotion.new()
+	mus.position = vy.global_position + Vector2(2, 2)
+	vy.get_window().push_input(mus)
+	await process_frame
+	var tomt: bool = vy._info.text.is_empty()
+	var första: Control = vy._ikoner[vy.nod_ids()[0]]
+	mus = InputEventMouseMotion.new()
+	mus.position = vy.global_position + första.position + första.size * 0.5
+	vy.get_window().push_input(mus)
+	await process_frame
+	check(not vy._info.text.is_empty(), "en riktig musrörelse över en nod fyller hovringsraden",
+		vy._info.text)
+	mus = InputEventMouseMotion.new()
+	mus.position = vy.global_position + Vector2(2, 2)
+	vy.get_window().push_input(mus)
+	await process_frame
+	check(tomt and vy._info.text.is_empty(), "och raden töms när pekaren lämnar noden")
 
 	print("— rymden —")
 	check(vy._ikoner.size() > 0, "trädet ritades", "%d noder" % vy._ikoner.size())
