@@ -173,7 +173,49 @@ static func bakgrund(img: Image, r: Rect2) -> PackedByteArray:
 				continue
 			bg[ny * w + nx] = 1
 			kö.append(ny * w + nx)
-	return bg
+	# SPRICKORNA STÄNGS. I en platt bild är en genomskinlig pixelrad mellan huvudet och kroppen, eller
+	# inne i munnen, en detalj. Som voxlar blir samma rad ett HÅL rakt igenom modellen. Alex: "Det är
+	# lite glipor i hunden, mellan huvuden å i munnen osv, tror det är för att den räknat bort det som
+	# mask?" — ja, precis så. En stängning (väx en pixel, krymp en pixel) lagar varje spricka som är en
+	# pixel bred och lämnar figurens silhuett orörd.
+	return _stäng(bg, w, h)
+
+
+## Morfologisk stängning på figuren (bg: 0 = figur, 1 = bakgrund): väx figuren ett steg och krymp den
+## igen. En spricka som är en pixel bred försvinner, en rak kant står kvar, och en ensam lös pixel (som
+## krymper bort) hade ändå blivit en kub utan kontakt med figuren.
+static func _stäng(bg: PackedByteArray, w: int, h: int) -> PackedByteArray:
+	var växt := PackedByteArray()
+	växt.resize(w * h)
+	# PackedByteArray fylls med NOLLOR, och noll betyder FIGUR här — utan den här raden var hela rutan
+	# figur redan från början, och stängningen lämnade en fylld kvadrat (mätt: 8 192 celler i 64x64 rutor
+	# för en hund på 73x64 px). Allt är bakgrund tills växningen säger annat.
+	växt.fill(1)
+	for y in h:
+		for x in w:
+			if bg[y * w + x] == 0:
+				växt[y * w + x] = 0
+				for d in [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]:
+					var nx: int = x + int(d[0])
+					var ny: int = y + int(d[1])
+					if nx >= 0 and ny >= 0 and nx < w and ny < h:
+						växt[ny * w + nx] = 0
+	var ut := PackedByteArray()
+	ut.resize(w * h)
+	for y in h:
+		for x in w:
+			if växt[y * w + x] == 1:
+				ut[y * w + x] = 1
+				continue
+			var hel := true
+			for d in [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]:
+				var nx: int = x + int(d[0])
+				var ny: int = y + int(d[1])
+				if nx < 0 or ny < 0 or nx >= w or ny >= h or växt[ny * w + nx] == 1:
+					hel = false
+					break
+			ut[y * w + x] = 0 if hel else 1
+	return ut
 
 
 static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
