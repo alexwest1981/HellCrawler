@@ -8210,13 +8210,6 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 				# den ska inte försvinna av att man tittar på den.
 				vx.lossna(maxi(4, int(float(vx.antal_celler()) * 0.05)))
 				voxel_nod.mesh = vx.mesh()
-			# MESHEN TAR INTE EMOT `modulate` (den är ingen sprite, så blinket i `spr` når den inte).
-			# Träffen lyser i stället genom modellens egen emission ett ögonblick.
-			var mat := voxel_nod.material_override as StandardMaterial3D
-			if mat != null:
-				var bt := create_tween()
-				bt.tween_property(mat, "emission_energy_multiplier", 2.8, 0.04)
-				bt.tween_property(mat, "emission_energy_multiplier", 0.42, 0.22)
 	var grund: Color = spr.get_meta("modulate_bas", spr.modulate)
 	var b := create_tween().set_parallel(true)
 	b.tween_property(spr, "modulate", Color(2.4, 2.4, 2.4, grund.a), 0.04)
