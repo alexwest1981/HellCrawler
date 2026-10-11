@@ -19,6 +19,38 @@ var hp_per_floor := 0.15           ## ...och +15 % per våning nedåt
 var damage_per_difficulty := 0.06
 var recovery := 3.0                ## helas så här mycket efter varje strid
 var enemies_per_encounter := [1, 3]
+## LEDET (M100): hur en strid ställer upp sig. EN källa för striden (raderna i `begin_fight`) och vyn
+## (`_stage_fight`) — annars slåss två fiender i främre raden medan bara en syns, eller tvärtom.
+## Alex: *"skulle vilja ha att de ställer upp sig i formation - rad för rad"*.
+const SIDLED := 0.62                 ## m mellan två fiender i samma rad
+const RADAVSTAND := 0.60             ## m mellan raderna
+const FRAMSTEG: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]
+
+## Riktningen spelaren tittar i (och sidledet). Ledet ställs upp i DEN riktningen: den som räknar ut
+## hur många som får plats i en rad och den som ritar figuren måste fråga samma sak.
+func led_fram() -> Vector2i:
+	if explore == null:
+		return FRAMSTEG[0]
+	return FRAMSTEG[explore.facing % 4]
+
+func led_sido() -> Vector2i:
+	var fram := led_fram()
+	return Vector2i(-fram.y, fram.x)
+
+## Hur många fiender som står i SAMMA rad. Rummet avgör, inte en tro: i en 1 m-gång finns ingen plats
+## vid sidan (då står ledet på ett led, som förut), i en sal står två — eller tre — sida vid sida.
+func per_rad(node: Dungeon.FloorNode) -> int:
+	var antal := enemy_count_for(node, false)
+	if antal <= 1 or explore == null or explore.floor_ref == null:
+		return 1
+	var fram := led_fram()
+	var sido := led_sido()
+	var plats := 1
+	if explore.floor_ref.is_floor_at(explore.pos + fram + sido):
+		plats += 1
+	if explore.floor_ref.is_floor_at(explore.pos + fram - sido):
+		plats += 1
+	return clampi(plats, 1, mini(antal, 3))
 
 # --- tillstånd ------------------------------------------------------------------------------
 ## Startvillkoren (önskemål 24, punkt 6). Id:na är ASCII; raden spelaren ser kommer ur i18n
@@ -405,7 +437,12 @@ func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
 		# slog hela packet varje runda, och därmed var regeln — och Shove-kortet, som knuffar bakåt —
 		# verkningslös. Mätt i M30 (20 körningar, samma lek och seeds): med rader 7/20 → 11/20 når
 		# våning 2 på svårighet 3, 11/20 → 18/20 klarar stage_01, 4/20 → 8/20 klarar stage_05.
-		var e := Combat.Enemy.new(def.name, def.hp * scale_hp, def.damage * scale_dmg, i, def.eyes)
+		# RADEN (M100): raden är fienden delad med antalet som får plats i en rad, inte fienden
+		# själv. Står två i främre raden slår båda (combat.gd: varje levande fiende med
+		# rad <= främsta raden), och nästa rad avancerar när den är död — "det tar tid att
+		# slåss med dem" (Alex).
+		var e := Combat.Enemy.new(def.name, def.hp * scale_hp, def.damage * scale_dmg,
+			i / per_rad(node), def.eyes)
 		foes.append(e)
 	events.append({"type": "combat_start", "enemy": def.id, "count": count, "boss": is_boss})
 

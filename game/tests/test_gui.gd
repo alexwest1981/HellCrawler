@@ -72,11 +72,18 @@ func _initialize() -> void:
 	main._placera_vy()
 	await process_frame
 	# En strid: gå fram till en fiende och slåss (kartan läggs i ordning, så provet inte gissar var).
+	# PROVET VÄLJER EN STRID MED FLERA FIENDER (M100). Ledet — och därmed radregeln — syns bara när det
+	# står fler än en, och en våning bjuder på båda slagen. Finns ingen sådan nod mäts den första bästa.
 	var nod: Dungeon.FloorNode = null
+	var flera: Dungeon.FloorNode = null
 	for n in main.run.explore.floor_ref.nodes:
 		if not n.cleared and (n.kind == "encounter" or n.kind == "boss"):
-			nod = n
-			break
+			if nod == null:
+				nod = n
+			if main.run.enemy_count_for(n, n.kind == "boss") > 1:
+				flera = n
+				break
+	nod = flera if flera != null else nod
 	main.run.explore.pos = nod.pos
 	main.run.explore.facing = 0
 	main._enter_node_here()
@@ -89,37 +96,106 @@ func _initialize() -> void:
 		"ja" if main.active_combat != null else "nej"])
 	check(main.active_combat != null, "provet fick en strid att mäta i")
 
-	## FIGURERNA STÅR PÅ SIKTLINJEN (M66). Alex: *"spökena står på sidan när man möter dem, även andra
-	## fiender — har det att göra med hur trångt det är i gången?"* Ja, delvis: förskjutningen låg i
-	## världens x och z, och den är SIDLED så fort spelaren kommer in i rummet från ett annat håll
-	## (mätt i figurprov: två figurer 0,45 m i sidled när spelaren kom från x-hållet). Regeln nu: i
-	## en strid står figuren i rutans mitt och de andra BAKOM varandra på linjen från spelaren genom
-	## rutan. Provet mäter att ingen figur i striden ligger vid sidan om den linjen.
+	## FIGURERNA STÅR I FORMATION, RAD FÖR RAD (M100). M66 lade dem på ETT led för att en 1 m-gång inte
+	## rymde två sida vid sida — men då stod den bakre inne i den främre och man såg bara EN fiende
+	## (Alex: *"om man stöter på mer än 1 fiende i en ruta, så är fighten fortfarande bara med 1 fiende
+	## ... de ska ställa upp sig i formation - rad för rad"*). Regeln ligger i run.gd (`per_rad`,
+	## `SIDLED`, `RADAVSTAND`) och är DENSAMMA som stridens rader.
+	##
+	## Provet mäter formationens EGENSKAPER, inte regeln om igen: raderna ligger på rätt djup, raderna
+	## är symmetriska kring siktlinjen, främre radens mitt ligger mitt för spelaren, och två figurer i
+	## samma rad står isär så att ingen skymmer den andra (det var hela felet).
 	print("")
 	print("— figurerna —")
 	var figurer := main.get_tree().get_nodes_in_group("fiende_figur")
-	# REGELN MÄTS SOM ETT AVSTÅND TILL EN LINJE, inte som en kant mot en vägg: figurens duk är 1,44 m
-	# och gången 1 m, så en kantmätning fäller även en korrekt placering (mätt i ett tidigare prov: 31
-	# kanter "i vägg" när varje figur stod rätt). Det som var fel var SIDLEDET, och det mäts här som
-	# avståndet från linjen spelaren -> rutan: noll betyder mitt för spelaren.
-	# MÄTT SOM AVSTÅND TILL KAMERANS SIKTE, inte till en världsaxel: det är så det syns. Linjen är
-	# kamerans högerled, och figuren ska ligga nära noll — "mitt för spelaren" är ett BILDKRAV.
-	var vid_sidan := []
+	var djup_fel := []
+	var osymmetriska := []
+	var skymda := []
+	var mitt_fel := []
 	if main.active_combat != null and main.cam != null:
-		var snode: Vector2i = main.active_node_pos()
-		var spelare: Vector3 = main._cam_pos()
-		var bas: Basis = main.cam.global_transform.basis
-		var höger := Vector3(bas.x.x, 0.0, bas.x.z).normalized()
+		# UTGÅNGSPUNKTEN ÄR SPELARENS RUTA, inte fiendens: `_stage_fight` ställer upp ledet framför
+		# spelaren (efter `_backa_till_rutan_före`), och det är därifrån avstånden mäts.
+		var fram := Vector2(main.run.led_fram())
+		var sido := Vector2(main.run.led_sido())
+		var bas: Vector2 = Vector2(main.run.explore.pos) + Vector2(0.5, 0.5)
+		var rader := {}
 		for fig in figurer:
-			if fig.position.distance_to(Vector3(snode.x + 0.5, fig.position.y, snode.y + 0.5)) > 2.5:
+			if fig.position.distance_to(Vector3(bas.x, fig.position.y, bas.y)) > 3.0:
 				continue
-			var b := Vector3(fig.position.x - spelare.x, 0.0, fig.position.z - spelare.z)
-			var sidled: float = absf(höger.dot(b))
-			if sidled > 0.15:
-				vid_sidan.append("%s %.2f m i sidled" % [str(fig.position), sidled])
+			var p := Vector2(fig.position.x, fig.position.z) - bas
+			var d := p.dot(fram)
+			var s := p.dot(sido)
+			# BARA LEDET FRAMFÖR SPELAREN. Våningen har fiender i rummen runt omkring, och en figur
+			# bakom spelaren, eller inne i ett annat rum, hör till en annan nod.
+			if d < 0.4 or absf(s) > 1.2:
+				continue
+			# Djupet är 1,15 + led * 0,60 (0,75 + led * 0,45 när rutan framför är en vägg). Provet tar
+			# den av de två som ligger närmast i stället för att gissa vilken gren som gällde.
+			var led1 := roundf((d - 1.15) / Run.RADAVSTAND)
+			var led2 := roundf((d - 0.75) / 0.45)
+			var fel1: float = absf(d - (1.15 + led1 * Run.RADAVSTAND))
+			var fel2: float = absf(d - (0.75 + led2 * 0.45))
+			if mini(fel1, fel2) > 0.06:
+				djup_fel.append("%s djupt %.2f m" % [str(fig.position), d])
+				continue
+			var led := int(led1) if fel1 <= fel2 else int(led2)
+			if not rader.has(led):
+				rader[led] = []
+			rader[led].append({"fig": fig, "s": s, "pos": fig.position})
+		for led in rader:
+			var rad: Array = rader[led]
+			var summa := 0.0
+			for r in rad:
+				summa += float(r["s"])
+			# Symmetrin: en rad om två ska ligga lika långt på var sin sida om siktlinjen.
+			if absf(summa) > 0.08:
+				osymmetriska.append("rad %d: summa %+.2f m" % [led, summa])
+			var sorterad := rad.duplicate()
+			sorterad.sort_custom(func(a, b): return float(a["s"]) < float(b["s"]))
+			for k in range(sorterad.size() - 1):
+				var avstånd: float = float(sorterad[k + 1]["s"]) - float(sorterad[k]["s"])
+				if avstånd < Run.SIDLED * 0.6:
+					skymda.append("rad %d: %.2f m isär" % [led, avstånd])
+			if led == 0:
+				# FRÄMRE RADEN STÅR MITT FÖR SPELAREN. En ensam fiende står rakt fram; står flera i raden
+				# är det RADENS MITT som ligger på siktlinjen (symmetrin ovan) och ingen får sticka ut
+				# utanför rutan (0,75 m ≈ gångens halva bredd + marginal) — annars står ledet i väggen.
+				if rad.size() == 1:
+					for r in rad:
+						if absf(float(r["s"])) > 0.15:
+							mitt_fel.append("%s %.2f m i sidled" % [str(r["pos"]), float(r["s"])])
+				else:
+					for r in rad:
+						if absf(float(r["s"])) > 0.75:
+							mitt_fel.append("%s %.2f m utanför rutan" % [str(r["pos"]), float(r["s"])])
+		# RADERNA I STRIDEN ÄR DESAMMA SOM I BILDEN (M100). Två fiender i främre raden slår båda två
+		# (combat.gd: varje levande fiende med rad <= främsta raden), och då MÅSTE de stå i samma led i
+		# bilden — annars slår någon som står bakom, eller står den som slår och väntar bakom en annan.
+		var storlekar_bild := []
+		var bild_nycklar := rader.keys()
+		bild_nycklar.sort()
+		for led in bild_nycklar:
+			storlekar_bild.append(rader[led].size())
+		var storlekar_modell := []
+		if main.active_combat != null:
+			var antal_rad := {}
+			for e in main.active_combat.enemies:
+				antal_rad[e.row] = int(antal_rad.get(e.row, 0)) + 1
+			var modell_nycklar := antal_rad.keys()
+			modell_nycklar.sort()
+			for r in modell_nycklar:
+				storlekar_modell.append(int(antal_rad[r]))
+		check(storlekar_bild == storlekar_modell, "stridens rader är desamma som ledet i bilden",
+			"%s mot %s" % [str(storlekar_bild), str(storlekar_modell)])
 	check(figurer.size() > 0, "våningen har fiender att mäta (%d figurer)" % figurer.size())
-	check(vid_sidan.is_empty(), "ingen fiende i striden står vid sidan om siktlinjen (%d av %d)"
-		% [vid_sidan.size(), figurer.size()], ", ".join(vid_sidan.slice(0, 4)))
+	check(djup_fel.is_empty(), "raderna ligger på rätt djup (%d fel)" % djup_fel.size(),
+		", ".join(djup_fel.slice(0, 3)))
+	check(osymmetriska.is_empty(), "raderna är symmetriska kring siktlinjen (%d fel)"
+		% osymmetriska.size(), ", ".join(osymmetriska.slice(0, 3)))
+	check(skymda.is_empty(), "ingen figur i en rad skymmer sin granne (%d fel)" % skymda.size(),
+		", ".join(skymda.slice(0, 3)))
+	check(mitt_fel.is_empty(), "främre radens mitt står mitt för spelaren (%d fel)" % mitt_fel.size(),
+		", ".join(mitt_fel.slice(0, 3)))
 	# FIGUREN MÅSTE RITAS (M69). Mätt med `-- figurprov fienderödfärg` (figuren självlysande magenta,
 	# allt annat i bilden oförändrat): med `material_override` ritar Sprite3D 73 px av figuren, med
 	# Sprite3D:s EGET material 22 641 px. Rutan i arket väljs i motorns eget material, och en override

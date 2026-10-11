@@ -173,7 +173,7 @@ mönster som tre av tio i omgång 2 — författaren säljer koden på itch).
 | **basic self-shadowing from heightmap** (PickledSosig) | Strålmarschar en höjdkarta i ljusets riktning: ytan skuggar sig SJÄLV, utan geometri (32 steg) | **Andra halvan av OMD-looken.** Område 1 gav höjd-djupet (heightmap voxel traversal); den här ger skuggan som gör djupet läsbart — fogarnas och stenkanternas kontaktmörker. Båda behöver samma höjdkartor ur `tools/gen_tiles.py` | **het kandidat, i par med heightmap voxel traversal** |
 | **billboard grass with wind** (Purga) | Vinden är ett BRUSFÄLT som rör sig över världen — bladen böjer sig i en våg, inte var för sig | Vår dekor har redan gräs som MultiMesh-billboards (`ui/dekor.gdshader`) men vinden är `sin(TIME * vind + fas)` per tuva: varje tuva vibrerar för sig, ingen vind FAR genom ängen. Ett advekterat brusfält i shadern är ~10 rader och **kräver ingen ny textur** (samma värdebrus som fuktshadern) | **billig vinst, görs när som helst** |
 | **simple pixelated fire** (MIT, canvas_item) | Eld ur gradient + brus, kvantiserad till `pallet_size` färger via luminanströsklar | Metoden, inte shadern: att TRÖSKLA flamman till palettens steg är precis vad som får eld att läsa som pixelkonst. Hör i så fall i den 3D-varianten (`pixelated-fire`, omgång 2) — våra lågor är billboards i världen, inte canvas | metod värd att kopiera, inte filen |
-| **retro parchment paper** (CC0, canvas_item) | Sepia + vinjett + pappersbrus + bläckblödning + smuts, 32 prover per bildpunkt | Färdigt för en 2D-panel (världskartan, albumet, slutet). MEN: sepia-mixen flyttar färgerna UT ur vår 27-färgspalett, och 32 texturprover per bildpunkt är 4 miljoner hämtningar per bildruta i 480x270 | nej tills en panel ska se ut som pergament — fråga då |
+| **retro parchment paper** (CC0, canvas_item) | Sepia + vinjett + pappersbrus + bläckblödning + smuts, 32 prover per bildpunkt | Färdigt för en 2D-panel (världskartan, albumet, slutet). MEN: sepia-mixen flyttar färgerna UT ur vår 27-färgspalett, och 32 texturprover per bildpunkt är 4 miljoner hämtningar per bildruta i 480x270 | **BYGGD 11/10 på MINIKARTAN** (Alex: "Parchment-shadern var tänkt till kartan ... den som är uppe till höger över dungeon"). `ui/pergament.gdshader` läser COLOR + `VERTEX` i stället för `UV` (minikartan ritas i kod), behåller kroma (bara ljuset tonas, annars försvinner märkena) och har 2 oktavers brus i stället för 32 texturprover. Mätt: värme (R−B) −0,031 → +0,038, ljuset still (36,5 → 36,9 av 255). Världskartan fick den INTE — Alex pekade ut minikartan |
 | **transition shader with patterns** (binbun) | Gradient + kaklad form-textur = vilken form som helst på en övergång | Våra övergångar är DIEGETISKA (kameran sjunker genom golvet, M44) — en formad torka läser som en MENYövergång och passar skalet, inte våningen. Skalet har ingen övergång att byta i dag | nej |
 | **double dither** (nojoule) | Två ditherpass → cirklar med fransiga kanter, 5 alfasteg | Samma familj som ovan: hör till skal/övergångar. Idén (5 steg i stället för en mjuk ton) är retro och billig att skriva själv, men det finns ingen plats den behövs i dag | nej, tills en skärm ska tonas |
 
@@ -210,3 +210,37 @@ mönster som tre av tio i omgång 2 — författaren säljer koden på itch).
    fälla den ojämna kortskalan. Mät före/efter och behåll bara om måtten håller.
 3. **Sandstormen behövs inte**: ingen kod publicerad, och vår dimma är redan mätt (den kostade gryn, och
    anisotropin är satt för att facklorna ska synas i luften).
+
+---
+
+## Omgång 5 (Alex 11/10): 14 länkar, mestadels "stora önskemål"
+
+Lästa, och koden hämtad där den finns. Kolumnen "kod?" är avgörande: flera sidor visar bara texten —
+`grep -c '<pre'` på rå HTML, noll träffar = ingen kod att lyfta.
+
+| shader | vad den gör | kod? | vad HellCrawler får | kostnad | dom |
+|---|---|---|---|---|---|
+| **hand-drawn hatch lines** (CC0) | Handritade skrafferingar i en SDF-ruta: brusjitter per linje, `progress` animerar in dem, `fwidth`-kantutjämning | ja | **MINIKARTAN** (Alex pekade ut den): okända/utforskade rutor skrafferade i stället för platta. Koden är ~90 rader och självständig; skrafferingen målas med en SENTINELFÄRG som shadern byter mot linjer (kartan ritas i kod, så SDF:en måste byggas ur rutorna, inte ur UV) | liten | **bygg först** |
+| **soft drop shadow for pixel art** (CC0) | Riktig Gaussisk skugga (σ inställbar, `erf`-baserad viktsumma) för en pixelart-ruta, och kan göra glöd | ja | Korten: en MJUK skugga i stället för den platta. Fallgropen står i texten: `skip_vertex_transform` kräver att rutan har texturens storlek och skalas med `scale` | liten (5x5 prover vid σ 0,4) | **kandidat** |
+| **simple + dynamic shadow for 2D sprites** (MIT, samma författare) | Samma idé, men kräver en DUBBLERAD `TextureRect`; den dynamiska låter skuggan peka bort från skärmens mitt | ja | Samma plats som ovan. Vår väg är ytan (SubViewport, M98) eftersom ett kort är ett träd av Controls — en shader kan bara vrida EN textur | liten | kandidat-lite |
+| **card shadow + pseudo 3D** | Perspektiv + skugga UTAN att dubblera kortet, plus musstyrd lutning (`mouse_screen_pos`, vortex, slump-fladder) | ja (avkortad i extraktet) | Överlappar `ui/kort3d.gdshader` (M98, redan byggd). Det NYA är skuggan utan dubblering och mus-kraften | medel | läsvärd |
+| **balatro card hover** (script + shader) | Kortet följer musen, lutar efter sin egen rörelsehastighet, vinglar, skalas 1,05; shadern får `hovering` + musposition och lägger en glans där musen är | ja | Alex' *"liiiite när man för muspekaren över"* (M98 gav 8 % lutning). RÖRELSEN är fyra rader i `card_view.gd` (lerp mot musen, `rotation += fart`, vinge, skala 1,05); glansen kräver ytvarianten | liten / medel | **bygg (rörelsen)** |
+| **highlight shader (good version)** | En diagonal ljuslinje sveper över spriten, med paus mellan svepen | ja (+ en rättad 4.5-variant i kommentarerna som PIXLAR linjen efter texturen — viktigt för vår konst) | Kortets hover ("mild version"): en svepande glans. Även tänkbar som markering av ett nytt/spelbart kort | liten | **kandidat** |
+| **2D burn/dissolve from point** (CC0) | 6 rader: radie från en punkt i UV, brusförskjuten, brännkant i färg | ja | Kortet som FÖRBRÄNNS när det används (Alex' egen fråga). Fallgropen står i kommentarerna: materialet måste KOPIERAS per kort, annars brinner alla | liten (kräver kortet på en yta) | **kandidat** |
+| **DOOM-like melting screen** | Per-kolumn brusförskjutning som smälter bilden nedåt, `movement` styr hur långt | ja | **DÖDSÖVERGÅNGEN** till byn (Alex' egen fråga). ~40 rader, och i vår väg läses `SCREEN_TEXTURE` på en fullskärmsruta i stället för `TEXTURE` — då behövs ingen yta alls | liten | **bygg** |
+| **bounce/wave** | Vertikal sinus-bounce i `vertex()`, med `do_quantize` som låser rörelsen till hela pixlar | ja | Kvantiseringen är det intressanta för pixelkonst: en sak som guppar hamnar aldrig MELLAN två pixlar (samma krav som M33/M78 ställer på skalor). Kandidat: kortets andning, mynt/skärvor | liten | kandidat-lite |
+| **procedural cyclic slash** | Hugg-VFX: polära koordinater, brus + två gradientmasker + highlight, `progress`/`derive_progress` | ja (spatial + en canvas-variant) | Attacken (Alex: *"vid attack, men behöver fler liknande denna, så det blir variation"*). Kräver 4 texturer (brus + 2 gradienter + highlight) och en quad; canvas-varianten är en skärmyta. Den ärliga mitten: 3 varianter (vinkel/bredd/längd) ur EN förenklad kärna | stor | stor önskan |
+| **wind shader** | Pappersflykt: vertex-fladder ur en normalmap + omloppsbana (`MODELVIEW_MATRIX` byggs om) | ja (spatial) | Inget rakt in: våra kort är 2D och flyger redan med tween. Trickvärdet är att bygga sin egen `MODELVIEW_MATRIX` för att få en quad att kretsa | — | nej |
+| **BumpOffset VisualShaderNode** | En nod till den VISUELLA shader-editorn: UV-parallax ur en höjdkarta (samma som Unreals BumpOffset) | ja (GDScript-nod) | Vi skriver text-shaders; själva tricket (`uv + vy.xy * höjd * skala`) står redan på listan som heightmap-vandring | — | nej (idén redan listad) |
+| **health/mana-bar i glaskula** | Vätska i en sfär: nivå, brytning, skakning vid träff, lutande yta | **NEJ** — 0 `<pre>`-block, koden är inte publicerad (bara GDScript-kontrollern) | Våra kärl ritas i kod (`hud_orb.gd`). Idéerna att stjäla: en LUTANDE vätskeyta i stället för en rak linje, och en SKAKNING vid träff (billigt, känns direkt) | — | idén, inte koden |
+
+**Vad jag skulle bygga, i ordning** (billigast först, och de tre första hänger ihop):
+
+1. **Kortet som förbränns när det används** + **glansen som sveper vid hover** + **hover-rörelsen** —
+   samma ytväg som `reward_fx` redan har (M98). Alla tre är små och sitter på samma ställe.
+2. **Dödsmältan** till byn — fristående, ~40 rader, `SCREEN_TEXTURE` på en fullskärmsruta.
+3. **Skrafferingen på minikartan** — fortsätter pergamentet (M101), och Alex pekade själv ut den.
+4. **Hugg-VFX** (förenklad kärna, 3 varianter) — störst, och den enda som kräver nya texturer.
+5. **Kärlens skakning vid träff** — två rader i HUD:en, ingen shader alls.
+
+Förkastat: vind-shadern (fel dimension), BumpOffset (redan på listan), glaskulan (koden finns inte).

@@ -204,17 +204,40 @@ func _initialize() -> void:
 		var c := rr.begin_fight(paket, false)
 		check(c != null and c.enemies.size() > 1, "striden har ett packet",
 			"%d fiender" % (c.enemies.size() if c != null else 0))
+		# LEDET (M100): raden är i / per_rad, och per_rad räknas ur RUMMET. Ett prov som krävde
+		# raderna [0, 1, 2] mätte kolonnen M66 satte — två fiender sida vid sida ska ha SAMMA rad.
+		var per := rr.per_rad(paket)
 		var rader := []
-		var summa := 0.0
+		var väntade := []
+		for i in c.enemies.size():
+			väntade.append(i / per)
 		for e in c.enemies:
 			rader.append(e.row)
-			summa += e.damage
-		check(int(rader.max()) > 0, "packet står i olika rader, inte allt i rad 0", str(rader))
-		var hp_före := c.hp
-		c.end_turn()
-		var tappat := hp_före - c.hp
-		check(tappat < summa, "bara den främre raden slår",
-			"tappade %.0f av %.0f möjliga" % [tappat, summa])
+		check(rader == väntade, "packet står i ledet: raden är i / per_rad (%d i samma rad)" % per,
+			str(rader))
+		check(per >= 1 and per <= 3, "per_rad är 1-3 (rummet avgör, inte en tro)", str(per))
+
+		# MEKANISMEN (combat.gd), oberoende av hur ledet råkade se ut i den här våningen: två i främre
+		# raden slår BÅDA, och raden bakom väntar tills den främre fallit. Striden byggs för hand
+		# (samma Combat.Enemy som begin_fight använder), annars mäter provet run.gd:s uppställning en
+		# gång till i stället för regeln.
+		var c2 := Combat.new(7)
+		var foes := []
+		for i in 3:
+			foes.append(Combat.Enemy.new("prov", 50.0, 4.0, i / 2))     # raderna 0, 0, 1
+		c2.begin([], foes)
+		c2.hp = 100.0
+		c2.max_hp = 100.0
+		c2.end_turn()
+		check(is_equal_approx(100.0 - c2.hp, 8.0), "två i främre raden slår båda (2 x 4 skada)",
+			"tappade %.0f" % (100.0 - c2.hp))
+		for e in foes:
+			if e.row == 0:
+				e.hp = 0.0
+		var hp_före := c2.hp
+		c2.end_turn()
+		check(is_equal_approx(hp_före - c2.hp, 4.0), "raden bakom avancerar och slår när den främre fallit",
+			"tappade %.0f" % (hp_före - c2.hp))
 
 	print("")
 	print("— banans xp_bonus räknas —")

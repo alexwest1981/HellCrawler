@@ -672,3 +672,48 @@ ljuskronor hänger i taket med fri yta under sig.
 **Prov:** fyra nya kontroller i `tests/test_dekor.gd` mäter REGELN (överkanten i taket för en krona,
 nederkanten på golvet för en tuva, buren hänger men sprickan ligger kvar) — lyftet kan inte läsas ur
 MultiMesh i huvudlöst läge, så regeln mäts i stället för siffran.
+
+---
+
+## 36. Flera fiender i en ruta slogs som en (Alex 11/10)
+
+**Rapporten:** *"om man stöter på mer än 1 fiende i en ruta, så är fighten fortfarande bara med 1
+fiende. Skulle vilja ha att de ställer upp sig i formation - rad för rad. Vissa strider kan ha flera
+fiender så det tar tid att slåss med dem med."*
+
+**Status:** RÄTTAT 2026-10-11, mätt.
+
+**Vad som var fel:** striden HADE 1–3 fiender hela tiden (`run.gd`: `enemies_per_encounter = [1, 3]`),
+men uppställningen var en KOLONN (M66): den främre 1,15 m bort och varje följande 0,6 m bakom, med
+0,12 m i sidled. Den bakre stod alltså inuti den främre och syntes inte — man såg en fiende och slogs
+mot en i taget. M66 valde kolonnen av ett gott skäl (en 1 m-gång rymde inte två sida vid sida), men
+drog slutsatsen för hela våningen.
+
+**Rättningen, på ett ställe:** `Run.per_rad(node)` räknar ut hur många som får plats i samma rad ur
+RUMMET (rutan framför + dess sidor), och radnumret är `i / per_rad` — samma regel för stridens rader
+(`begin_fight`) och för bilden (`_stage_fight`). I en sal står två (tre) sida vid sida och nästa rad
+0,6 m bakom; i en trång gång står ledet kvar på ett led, precis som förut. Två i främre raden slår
+båda (combat.gd: varje levande fiende med `rad <= främsta raden`), så striden tar tid — det var
+önskemålet.
+
+**Mätt:** `-- träffprov`/`tests/test_gui.gd` på nod (9,2) med 2 fiender: figurerna står på
+`(9,19, 2,35)` och `(9,81, 2,35)` — samma djup (en RAD), 0,62 m isär, symmetriskt kring siktlinjen.
+Stridens rader `[2]` mot bildens `[2]`. Sviten: 2 232 kontroller, 0 fel.
+
+## 37. Pergamentet hörde till minikartan (Alex 11/10)
+
+**Rapporten:** *"Parchment-shadern var tänkt till kartan, så den inte är så.... grå"* och, efter en
+första rättning på fel karta: *"Sen var det inte kartan där alla platserna ligger, utan den som är
+uppe till höger över dungeon"*.
+
+**Status:** RÄTTAT 2026-10-11, mätt.
+
+**Vad som gjordes:** `ui/pergament.gdshader` ligger nu på MINIKARTAN (M99-kartan i HUD:ens övre
+högra hörn). Shadern tonar LJUSET till papper men behåller FÄRGEN (kroma = avvikelsen från grått), så
+en grå sten blir varmt papper medan en röd fiende förblir röd — annars försvinner märkena man läser
+kartan med. Korn, fläckar och en nött kant gör att tonen läser som material och inte som ett filter.
+
+**Mätt** (samma våning, samma seed, `tools/prov.sh -- shot` med och utan shadern): minikartans
+värme (R−B) gick från **−0,031** (svalt) till **+0,038** (varmt), medan ljuset stod still
+(36,5 → 36,9 av 255) — tonen ändrades, inte läsbarheten. I bild: kartan läser som åldrat papper med
+mörkare kanter och märkena syns kvar.

@@ -4664,6 +4664,13 @@ class MapView extends Control:
 
 	func _ready() -> void:
 		custom_minimum_size = MAP_SIZE
+		# PERGAMENTET (Alex: *"Parchment-shadern var tänkt till kartan ... den som är uppe till höger
+		# över dungeon"*): kartan ska läsa som gammalt papper, inte som grå sten. Shadern ligger på
+		# kartan SJÄLV — orden ligger i ett eget textlager över (UiText), så de tonas inte.
+		var papper := ShaderMaterial.new()
+		papper.shader = load("res://ui/pergament.gdshader")
+		papper.set_shader_parameter("storlek", MAP_SIZE)
+		material = papper
 		# KARTAN ÄR EN KNAPP (M75). Alex: *"Informationen om vad varje grej på kartan kan vara en ruta
 		# som visas om man trycker på kartan eller en knapp, men behöver inte vara synlig hela tiden."*
 		# Ett klick på kartan fäller ut teckenförklaringen; den ligger kvar tills man klickar igen.
@@ -5806,6 +5813,20 @@ func _träffprov() -> void:
 		print("träffprov: ingen strid startade")
 		get_tree().quit()
 		return
+	# LEDET (M100). Provet skriver ut BÅDE bildens positioner och stridens radnummer: de två är samma
+	# regel (run.per_rad), och en fiende som står i ledet i bilden men i en bakre rad i striden är en
+	# bild som ljuger om mekaniken. Figurens position går att läsa här — till skillnad från rekvisiternas
+	# MultiMesh-instanser svarar en Sprite3D med sin riktiga position även i en körande körning.
+	var ledet := []
+	for e in _enemies:
+		if e.get("nod") == nod.pos:
+			var s: Sprite3D = e["spr"]
+			ledet.append("(%.2f, %.2f)" % [s.position.x, s.position.z])
+	var rader := []
+	for f in active_combat.enemies:
+		rader.append(f.row)
+	print("träffprov: %d fiender — ledet %s, per_rad %d, stridens rader %s" % [
+		active_combat.enemies.size(), ", ".join(ledet), run.per_rad(nod), str(rader)])
 	var hp_före: float = active_combat.total_enemy_hp()
 	for i in active_combat.hand.size():
 		var r := active_combat.play(i)
@@ -7696,9 +7717,8 @@ func _refresh_battle() -> void:
 ## mot (Alex: "om man går in i dem för att strida, de försvinner ur bild"). Nu flyttas de till en
 ## linje framför blicken: två i främre ledet, resten bakom, som en stridslinje.
 func _stage_fight(node: Dungeon.FloorNode) -> void:
-	var dirs: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]
-	var fram: Vector2i = dirs[run.explore.facing % 4]
-	var sido := Vector2i(-fram.y, fram.x)
+	var fram: Vector2i = run.led_fram()
+	var sido: Vector2i = run.led_sido()
 	var bas := Vector2(run.explore.pos) + Vector2(0.5, 0.5)
 	# Rummet kan vara en enda ruta: är rutan framför en vägg stannar ledet innanför spelarens ruta
 	# i stället för att stå inne i en mur.
@@ -7710,14 +7730,18 @@ func _stage_fight(node: Dungeon.FloorNode) -> void:
 		var spr: Sprite3D = e["spr"]
 		if not is_instance_valid(spr):
 			continue
-		# I KOLONN, INTE PÅ LED (M66). Alex: *"spökena står på sidan när man möter dem, även andra
-		# fiender — har det att göra med hur trångt det är i gången?"* Ja: ledet lade två figurer sida
-		# vid sida med 0,85 m mellanrum, och i en 1 m-gång står de då tryckta mot varsin vägg, i
-		# ögonvrån. Nu står de MITT FÖR spelaren, den ena bakom den andra: den främsta på 1,15 m och
-		# varje följande 0,6 m bakom. Sidledet är kvar som en aning (±0,06 m) så den bakre inte
-		# försvinner helt bakom den främre.
-		var sida := (float(i % 2) - 0.5) * 0.12
-		var d := (1.15 + float(i) * 0.60) if framme else (0.75 + float(i) * 0.45)
+		# I FORMATION, RAD FÖR RAD (M100). M66 satte dem på ETT led (0,12 m i sidled) för att en 1 m-gång
+		# inte rymde två sida vid sida — men då stod den bakre inne i den främre och man såg bara EN
+		# fiende (Alex: *"om man stöter på mer än 1 fiende i en ruta, så är fighten fortfarande bara med
+		# 1 fiende ... skulle vilja ha att de ställer upp sig i formation - rad för rad"*). Nu räknar
+		# Run.per_rad ut hur många som får plats: i en sal står två (tre) i samma rad, i en trång gång
+		# står ledet kvar på ett led. RADEN ÄR DENSAMMA SOM STRIDENS (run.gd) — det man ser är det man
+		# slåss mot, och antalet som slår per runda följer ledet.
+		var per := run.per_rad(node)
+		var led := i / per
+		var kol := i % per
+		var sida := (float(kol) - float(per - 1) * 0.5) * Run.SIDLED
+		var d := (1.15 + float(led) * Run.RADAVSTAND) if framme else (0.75 + float(led) * 0.45)
 		var p: Vector2 = bas + Vector2(fram) * d + Vector2(sido) * sida
 		spr.position.x = p.x
 		spr.position.z = p.y
