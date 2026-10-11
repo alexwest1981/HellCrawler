@@ -316,6 +316,14 @@ func _initialize() -> void:
 	if kortvy.forward:
 		kortvy.set_forward(false)
 		await create_timer(0.2).timeout
+	# ÖVERLÄGGNINGEN FÅR INTE LÄSA SKÄRMEN (M106c). Den första versionen gjorde det, och i Alex' fönster
+	# blev ett kort alldeles svart: skärmkopian löste ut i svart i hans vy, och överläggningen är
+	# ogenomskinlig, så den målade ut kortet (vit ram, kolsvart inuti — hans bild). Här räckte renderingen
+	# — samma kod gav ett friskt kort. Provet läser därför shaderns KOD och kräver att ingen skärmtextur
+	# finns kvar, vilket fångar felet även när maskinen råkar rendera rätt.
+	var fx_shader: Shader = load("res://ui/kortfx.gdshader")
+	check(fx_shader != null and not fx_shader.code.contains("hint_screen_texture"),
+		"kortets överläggning ritar sin egen effekt och läser inte skärmen")
 	kortvy.set_forward(true)
 	await create_timer(0.2).timeout
 	check(kortvy._param("glans") > 0.5 and kortvy._fx.visible,

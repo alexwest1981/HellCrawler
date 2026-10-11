@@ -1288,6 +1288,14 @@ func _hand_prov() -> void:
 		% str(hand_views.map(func(v: CardView): return v.self_modulate.a)))
 	print("[handprov] panelalfa: framträdd %.2f, i ledet %.2f" % [
 		_stylebox_alfa(hand_views[0]), _stylebox_alfa(hand_views[1])])
+	# BILD MEDAN KORTET ÄR FRAMME. Den tidigare bilden togs EFTER att framträdandet släppts, och visade
+	# därför ett friskt kort — medan Alex' bild visar ett kort som är alldeles svart i huvud, kostnad och
+	# konst. Överläggningen (kortfx) är den ENDA som tänds av framträdandet, så den här bildrutan är den
+	# som avgör om felet ligger där.
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
+	_spara_bild("user://shots/handprov-hover.png")
+	print("[handprov] bild med kortet framme i %s"
+		% ProjectSettings.globalize_path("user://shots/handprov-hover.png"))
 	hand_views[0].set_forward(false)
 	for i in 20:
 		await get_tree().process_frame
