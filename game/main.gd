@@ -240,6 +240,32 @@ const DEKOR_PIXEL := 0.008            ## samma pixelstorlek som rekvisiten (128 
 const DEKOR_TÄTHET := 4               ## var n:te golvruta får något (0 = av)
 ## Vikten mellan arterna: gräs vanligast, rot ovanligast. Summan ska bli 1,0 — läses uppifrån och ned.
 const DEKOR_VIKT := [["gräs", 0.52], ["småsten", 0.22], ["mossa", 0.18], ["rot", 0.08]]
+## REKVISITERNA: föremål som STÅR UPP i rummet, till skillnad från markdekoren. Alex ville ha dungeons
+## som referensen (One More Dungeon): där står 2-5 lösa föremål i varje bildruta — tunnor, svampar,
+## benhögar, kandelabrar, galler — och de bär ljuset. Spelet hade bara markdekoration (gräs, sten,
+## mossa, rot) på en yta som nu är fyra gånger större, alltså fyra gånger så mycket tomt mörker.
+##
+## Bara arter som är RITADE ur paletten (tools/gen_props.py) används här. Rekvisiter skurna ur Alex
+## ark har namn som är en gissning i läsordning — 5 av 9 granskade stämde inte — och hör inte in i
+## spelet förrän etiketterna är avlästa (se gen_props_alex.py).
+##
+## Ingen av dem har kollision (en MultiMesh bär transformar, inte kroppar): man går rakt igenom.
+const REKVISIT_TÄTHET := 12           ## var n:te golvruta får ett föremål (0 = av)
+const REKVISIT_VIKT := [["bur", 0.36], ["kandelaber", 0.32], ["spricka_eld", 0.32]]
+## De två som LYSer: en kandelaber och en spricka i golvet med eld. Taket är inte bara ett antal utan
+## en rytm — ljuset ska komma i punkter man går mellan, som i referensen, inte som en jämn dimma.
+##
+## MÄTT (stage_90 v3, 1222 golvrutor, 50x50): med 20:e ruta och 8 ljus syntes INGENTING i vyn — fyra
+## bildpunkter skilde sig från körningen utan rekvisiter, och vyns medelljushet låg kvar på 12,0 av
+## 255 med 62 % av bilden under 10. Föremålen var alltså där (loggen: 41 st, 8 ljus), men de stod i
+## mörkret: en rekvisit utanför lyktans kägla syns inte alls hur många de än är. Det som måste upp är
+## LJUSET, inte antalet — referensen har 2-4 ljuskällor i varje bildruta.
+const REKVISIT_LYSER := ["kandelaber", "spricka_eld"]
+const REKVISIT_LJUS_MAX := 24         ## flest glödande rekvisiter per våning (varje ljus kostar)
+const REKVISIT_LJUS_RACKVIDD := 4.5   ## kortare än facklan (6,5): en glimt, inte en rumshörnsten
+## GLÖDEN i duken för de arter som är eld. Ett värde över 1 syns på håll i mörkret; markdekoren står
+## inte med här och får alltså 0.0 (albedo, ingen emission — samma regel som förut).
+const GLÖD := {"kandelaber": 2.6, "spricka_eld": 4.0}
 var _dekor_shader: Shader = null
 var _dekor_täthet := DEKOR_TÄTHET     ## `-- dekor=<n>` rattar tätheten, `-- dekor=0` stänger av
 var _mask_cache := {}
@@ -1486,7 +1512,7 @@ func _lageprov_bild(lågor: Array, storlek: Vector2, glöd: float, namn: String)
 ## skilja från att bygget självt skiljer sig.
 ##
 ##   `-- glansprov`       facklan i bild: lyktan, fackelljuset och järnplattan (rekvisiten)
-##   `-- glansprov=pöl`   pölen i bild: vattnets shader (råhet 0,05 + krusningen)
+##   `-- glansprov=pöl`   pölen i bild: fuktighetens shader (råhet 0,05 i fläcken, 0,92 utanför)
 ##
 ##   01 glans 0,0  yta -1 (GGX, före)            läget FÖRE — ingen högdager möjlig
 ##   02 glans 1,0  yta -1 (GGX, före)            glansen på medan ytan står kvar på Godots standard
@@ -1586,7 +1612,7 @@ func _glansprov() -> void:
 	var mål := Vector2i.ZERO
 	var pöl := _glansprov_pose == "pöl"
 	if pöl:
-		var mi := _pölnod()
+		var mi := _fuktnod()
 		if mi == null:
 			print("glansprov: våningen har ingen pöl (prova en annan bana eller våning)")
 			get_tree().quit()
@@ -1608,7 +1634,7 @@ func _glansprov() -> void:
 	for i in 45:                       # elden byggs upp, och dimman/GI:n hinner sätta sig
 		await get_tree().process_frame
 	var järn := _järndelar()
-	var vatten := _pöl_material()
+	var vatten := _fukt_material()
 	# Vattnets EGNA värde läses ur materialet, inte ur en kopia i provet: provet ska mäta spelets
 	# vatten, och en siffra som står på två ställen driver isär.
 	var vatten_metall := -1.0
@@ -1619,7 +1645,7 @@ func _glansprov() -> void:
 	var ytor := _ytmaterial().size()
 	print("[glansprov] %s vid %s, %d steg ifrån: glans %.2f på lyktan och %d fackelljus, %d ytmaterial, %d järndelar, vatten %s (glans %.2f)"
 		% ["pöl" if pöl else "fackla", str(mål), avstånd, _ljus_glans, _lågor.size(), ytor, järn.size(),
-			"%d plattor" % _pölnod().multimesh.instance_count if vatten != null else "saknas",
+			"%d rutor" % _fuktnod().multimesh.instance_count if vatten != null else "saknas",
 			vatten_metall])
 	if ytor == 0 and järn.is_empty() and vatten == null:
 		print("glansprov: hittade inga ytor, ingen rekvisit och inget vatten att mäta på")
@@ -5074,8 +5100,11 @@ func _build_world() -> void:
 
 	# Området är mörkt; lyktan är det som lyser. Facklorna är rummets egna ljuspunkter.
 	_add_lagor(f)
-	# Effekterna: eld i facklorna, damm i luften, pölar och droppar där vattnet är målat.
+	# Effekterna: eld i facklorna, damm i luften, fukten på golvet och dropparna från taket.
 	if _fx:
+		# Bara GOLVRUTORNA (golv[0] slitna + golv[1] hela): `floors` är hela rutnätet och ritas som
+		# tak, och ett fuktlager inne i en vägg är bara overdraw.
+		_fukt(golv[0] + golv[1])
 		_vatten_och_eld(f, slitet_golv, sliten_vägg)
 		if _takdropp_på:
 			_takdropp(f)
@@ -5168,32 +5197,66 @@ func _bygg_dekor(golv: Array) -> void:
 	if _dekor_shader == null:
 		_dekor_shader = load("res://ui/dekor.gdshader")
 	var per_art := {}
+	var lysande := {}            ## art -> platser, för de föremål som ska ha ett eget ljus
+	var antal_föremål := 0
 	for p in golv:
-		if not _strö(p, _dekor_täthet):
+		# MARKDEKOR OCH FÖREMÅL ÄR TVÅ URVAL UR SAMMA HASH, och då ligger föremålen ovanpå marken: allt
+		# som är under 1/20 är också under 1/4. Föremålens urval får därför ett eget salt, så de hamnar
+		# i TOMRUMMEN i stället — annars hade våningen inte fått fler saker att titta på, bara tätare
+		# gräs, och rummen hade sett likadana ut.
+		var är_mark := _strö(p, _dekor_täthet)
+		if not är_mark and _slump(p.x, p.y, run.explore.floor_ref.index + 5011) >= 1.0 / float(REKVISIT_TÄTHET):
 			continue
-		var v := _slump(p.x, p.y, 7717)
-		var art := "gräs"
-		var ackum := 0.0
-		for rad in DEKOR_VIKT:
-			ackum += float(rad[1])
-			if v <= ackum:
-				art = str(rad[0])
-				break
+		var art := _välj(DEKOR_VIKT if är_mark else REKVISIT_VIKT, _slump(p.x, p.y, 7717))
+		if not är_mark:
+			antal_föremål += 1
 		# Liten förskjutning inom rutan och egen storlek: två tuvor ska inte vara samma tuva.
 		var dx := (_slump(p.x, p.y, 331) - 0.5) * 0.6
 		var dz := (_slump(p.x, p.y, 557) - 0.5) * 0.6
 		var s := 0.8 + _slump(p.x, p.y, 991) * 0.4
 		if not per_art.has(art):
 			per_art[art] = []
-		(per_art[art] as Array).append(Transform3D(
-			Basis().scaled(Vector3(s, s, s)),
-			Vector3(float(p.x) + 0.5 + dx, 0.0, float(p.y) + 0.5 + dz)))
+		var t := Transform3D(Basis().scaled(Vector3(s, s, s)),
+			Vector3(float(p.x) + 0.5 + dx, 0.0, float(p.y) + 0.5 + dz))
+		(per_art[art] as Array).append(t)
+		if not är_mark and REKVISIT_LYSER.has(art):
+			if not lysande.has(art):
+				lysande[art] = []
+			(lysande[art] as Array).append(t)
 	var antal := 0
 	for art in per_art:
 		var n := _dekor_nod(art, per_art[art])
 		antal += n
 		print("  dekor: %-8s %3d st" % [art, n])
 	print("  dekor: %d st på %d golvrutor (var %d:e ruta)" % [antal, golv.size(), _dekor_täthet])
+	print("  rekvisiter: %d st som står upp (var %d:e golvruta)" % [antal_föremål, REKVISIT_TÄTHET])
+	# LJUSET I REKVISITERNA: en glimt per glödande föremål, upp till taket, utan skuggor — de ska ge
+	# mörkret en rytm att gå mellan (som referensen), inte bära rummet. Facklorna bär skuggorna.
+	var ljus := 0
+	for art in lysande:
+		for t in lysande[art]:
+			if ljus >= REKVISIT_LJUS_MAX:
+				break
+			var l := OmniLight3D.new()
+			l.light_color = LAGA_FARG
+			l.light_energy = LAGA_ENERGI * 0.6 * _ljus_f
+			l.omni_range = REKVISIT_LJUS_RACKVIDD
+			l.omni_attenuation = 1.6
+			l.shadow_enabled = false
+			l.position = (t as Transform3D).origin + Vector3(0.0, 0.5, 0.0)
+			world.add_child(l)
+			ljus += 1
+	print("  rekvisiter: %d av dem lyser (tak %d)" % [ljus, REKVISIT_LJUS_MAX])
+
+
+## Slår upp en art ur en vikt-tabell ([[namn, vikt], ...], summerande till 1,0) med ett tal i [0,1).
+static func _välj(tabell: Array, v: float) -> String:
+	var ackum := 0.0
+	for rad in tabell:
+		ackum += float(rad[1])
+		if v <= ackum:
+			return str(rad[0])
+	return str(tabell[tabell.size() - 1][0]) if not tabell.is_empty() else ""
 
 
 ## En MultiMesh per art. Quadden är dukens pixelstorlek gånger DEKOR_PIXEL, och instanserna lyfts så
@@ -5208,6 +5271,7 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	var mat := ShaderMaterial.new()
 	mat.shader = _dekor_shader
 	mat.set_shader_parameter("textur", tex)
+	mat.set_shader_parameter("glod", GLÖD.get(art, 0.0))
 	mesh.material = mat
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -5825,21 +5889,21 @@ func _järndelar() -> Array:
 	return ut
 
 
-## Pölnoden: pölplattorna ligger i EN MultiMesh som heter "pölar" (se `_pölar`), så både materialet
+## Fuktnoden: fuktlagret ligger i EN MultiMesh som heter "fukt" (se `_fukt`), så både materialet
 ## och plattornas positioner går att läsa ur den.
-func _pölnod() -> MultiMeshInstance3D:
+func _fuktnod() -> MultiMeshInstance3D:
 	if world == null:
 		return null
 	for n in world.find_children("*", "MultiMeshInstance3D", true, false):
-		if n.name == "pölar" and (n as MultiMeshInstance3D).multimesh != null:
+		if n.name == "fukt" and (n as MultiMeshInstance3D).multimesh != null:
 			return n
 	return null
 
 
-## Vattnets material: pölplattornas mesh bär shadern som ger glansen (`Fx.pöl_material`). Råheten
-## (0,05) är vätan; metallen är YTANS andel av speglingen, och den provas i `_glansprov`.
-func _pöl_material() -> ShaderMaterial:
-	var nod := _pölnod()
+## Fuktens material: golvlagrets mesh bär shadern som ger vätan (`Fx.fukt_material`). Råheten (0,05)
+## är vattnet, speglingen är YTANS andel av ljuset, och den provas i `_glansprov`.
+func _fukt_material() -> ShaderMaterial:
+	var nod := _fuktnod()
 	if nod == null:
 		return null
 	var m: Material = nod.multimesh.mesh.material
@@ -6149,35 +6213,15 @@ func _del(mesh: Mesh, färg: Color, pos: Vector3, namn := "", bas := Transform3D
 ## Elden, vattnet och dammet. Elden hör till facklorna (se `_add_lagor`); här byggs resten:
 ##
 ##   dammet     sitter på kameran, för damm syns bara i ljuset — ett korn i mörkret är ingenting.
-##   pölarna    en blank platta över det vatten som redan är MÅLAT i rutan. Rutans vatten ligger på
-##              samma ställe i varje kopia av rutan (2x2 per meter), så plattan läggs ut 2x2 per
-##              ruta — annars hamnar glansen bredvid vattnet.
-##   dropparna  faller från taket ner i pölen, och från väggen där vattnet rinner. Fallsträckan
+##   fukten     ett lager över golvet som räknar sin egen fuktighet ur platsen i världen (se `_fukt`).
+##   dropparna  faller från taket ner i golvet, och från väggen där vattnet rinner. Fallsträckan
 ##              räknas fram, så droppen dör i samma stund som den når marken.
-##
-## Allt är samma sak som pixelkonsten redan säger, men i rörelse: kartan vet var vattnet är,
-## `_vatten.json` talar om det, och den här koden gör något av det.
 func _vatten_och_eld(f: Dungeon.Floor, slitet_golv: Array, sliten_vägg: Array) -> void:
-	var pöl := _vatten_ruta("floor_crack")
-	var mask := _tile("floor_crack_vatten", true)
-	# Vattnet rinner ut ur väggen även där golvet inte har någon pöl (bron: trasiga plankor, inget
-	# vatten i golvet). Lägg inte hela funktionen bakom pöl-kontrollen — då tystnar dropparna också.
-	var har_pöl := not pöl.is_empty() and not slitet_golv.is_empty() and mask != null
-	if har_pöl:
-		har_pöl = Fx.pöl_material(mask, pöl) != null
-	if har_pöl:
-		_pölar(pöl, mask, slitet_golv)
-	# Dropparna: inte i varje pöl — droppar överallt blir ett regn, och regn är en annan våning.
+	# Dropparna: inte i varje ruta — droppar överallt blir ett regn, och regn är en annan våning.
 	for p in slitet_golv:
 		if not _strö(p, 3):
 			continue
-		# Droppen faller mitt i pölen när våningen har en, annars mitt i rutan.
-		var dx: float = p.x + 0.5
-		var dz: float = p.y + 0.5
-		if har_pöl:
-			dx = p.x + (pöl[0] + pöl[2] * 0.5) / 64.0
-			dz = p.y + (pöl[1] + pöl[3] * 0.5) / 64.0
-		_droppställe(_dropprng, Vector3(dx, TAK_HÖJD - 0.06, dz), "vatten", _strö(p, 8))
+		_droppställe(_dropprng, Vector3(p.x + 0.5, TAK_HÖJD - 0.06, p.y + 0.5), "vatten", _strö(p, 8))
 	# Vattnet på väggen: en droppe då och då framför rutan där vattnet är MÅLAT, så det inte bara
 	# glänser. Det ska droppa, inte rinna — väntan mellan dropparna ligger i Fx.DROPP_VÄNTAN, och
 	# ett enstaka ställe per våning får en accent (tätare).
@@ -6218,37 +6262,46 @@ func _droppa(delta: float) -> void:
 		d["kvar"] = Fx.dropp_väntan(d["rng"], d["accent"])
 
 
-## Pölplattorna: rutans vatten i rutans egen form, 2x2 per meter som golvplattan, med shadern som ger
-## glans och rullande krusning. Masken (Assets/tiles/<tema>/<ruta>_vatten.png) är vattnets form —
-## plattan ritar inget där rutan är torr.
-func _pölar(pöl: Array, mask: Texture2D, slitet_golv: Array) -> void:
-	var material := Fx.pöl_material(mask, pöl)
+## Fuktlagret: ETT lager över hela golvet, och varje fläck räknas ur sin plats i världen.
+##
+## Alex: *"Golvet som skall se ut att ha någon enstaka pöl är ett repeterande mönster av blå ringar,
+## jag vill hellre du utnyttjar motorns möjlighet att lägga på en fuktig yta, rent motormässigt,
+## istället för en platt bild."*
+##
+## FÖRE: en platta per fjärdedels ruta i VARJE sliten golvruta, och varje platta ritade den målade
+## vattenbilden 2,5 varv över sig. Mätt på en 50x50-våning (342 slitna rutor): 342 x 4 x 2,5 ≈ 3 400
+## blå ringar, alltså ett mönster och inte en pöl. Att måla färre pölar hade varit samma platta bild i
+## mindre skala — felet satt i att fläcken kom ur en TEXTUR.
+##
+## NU: golvet får ett genomskinligt lager (en platta per golvruta, inga texturer alls), och shadern
+## räknar fuktigheten ur golvets xz i världen. Samma fläck ligger på samma ställe hur stor våningen än
+## blir, och två fläckar kan inte bli samma fläck. Hur vått ett tema är står i FUKT_TEMA — en torr
+## våning får inget lager alls (och då kostar det ingenting).
+const FUKT_TEMA := {"grotta": 1.0, "bro": 0.55}
+func _fukt(golv: Array) -> void:
+	var styrka := float(FUKT_TEMA.get(_tema, 0.0))
+	if styrka <= 0.0 or golv.is_empty():
+		return
+	var material := Fx.fukt_material(styrka)
 	if material == null:
 		return
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	# Ruttätheten LÄSES ur texturen i stället för att stå som en siffra. Den stod som 32,0 medan
-	# rutorna var 32 px; när de blev 64 px blev pölarna dubbelt så stora och hamnade fel, utan att
-	# något larmade. Med texturens bredd kan de inte drifta isär igen.
-	var ruta_px := float(_tile("floor_crack_vatten", true).get_width())
 	var platta := PlaneMesh.new()
-	platta.size = Vector2(pöl[2] / ruta_px * 0.5, pöl[3] / ruta_px * 0.5)
+	platta.size = Vector2(1.0, 1.0)
 	platta.material = material
 	mm.mesh = platta
-	mm.instance_count = slitet_golv.size() * 4
-	var i := 0
-	for p in slitet_golv:
-		for j in 2:
-			for k in 2:
-				var t := Transform3D()
-				t.origin = Vector3(p.x + (j + (pöl[0] + pöl[2] * 0.5) / ruta_px) * 0.5, 0.045,
-					p.y + (k + (pöl[1] + pöl[3] * 0.5) / ruta_px) * 0.5)
-				mm.set_instance_transform(i, t)
-				i += 1
+	mm.instance_count = golv.size()
+	for i in golv.size():
+		var p: Vector2i = golv[i]
+		var t := Transform3D()
+		t.origin = Vector3(p.x + 0.5, 0.045, p.y + 0.5)
+		mm.set_instance_transform(i, t)
 	var mi := MultiMeshInstance3D.new()
-	mi.name = "pölar"
+	mi.name = "fukt"
 	mi.multimesh = mm
 	world.add_child(mi)
+	print("  fukt: %d golvrutor, styrka %.2f (tema %s)" % [golv.size(), styrka, _tema])
 
 
 ## Vad som får droppa i en våning beror på temat — en bro av trä droppar inte lava. Grunden är alltid
@@ -6304,18 +6357,6 @@ func _takdropp(f: Dungeon.Floor) -> void:
 		print("    takdropp: %d ställen %s" % [antal, str(räknat)])
 
 
-## Rutans vatten som rektangel [x, y, w, h] i pixlar, ur `assets/tiles/<tema>/_vatten.json` (skriven
-## av tools/gen_tiles.py). Saknas filen blir det inga pölar — en våning utan vatten är ingen krasch.
-func _vatten_ruta(ruta: String) -> Array:
-	var p := "res://assets/tiles/%s/_vatten.json" % _tema
-	if _tema.is_empty() or not FileAccess.file_exists(p):
-		return []
-	var d = JSON.parse_string(FileAccess.get_file_as_string(p))
-	if typeof(d) != TYPE_DICTIONARY or not d.has(ruta):
-		return []
-	return d[ruta]
-
-
 ## Den sida av en väggruta som vetter mot golv — där vattnet rinner ut i rummet. Noll om rutan är
 ## instängd (då finns det ingen sida att rinna på).
 func _öppen_sida(f: Dungeon.Floor, p: Vector2i) -> Vector2i:
@@ -6328,7 +6369,6 @@ func _öppen_sida(f: Dungeon.Floor, p: Vector2i) -> Vector2i:
 ## Kostar ingenting (några multiplikationer per bildruta) och är skillnaden mellan en lampa och en eld.
 func _fladdra(delta: float) -> void:
 	_fladder += delta
-	Fx.rulla(_fladder)   # krusningen i vattnet rullar i takt med tiden, inte med bildrutorna
 	if _lågor.is_empty() and _lykta == null:
 		return
 	for i in _lågor.size():

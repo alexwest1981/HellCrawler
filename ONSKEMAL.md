@@ -536,4 +536,50 @@ rum ur handgjorda mallar ger bäst spelkänsla per arbetsinsats, medan en fri ce
 kartor fort och rum utan avsikt. BSP används som verktyg, inte som spelupplevelse. Ett frö per våning
 gör den reproducerbar. Rapporten: `docs/undersokning/slumpade-dungeons-01.md`.
 
-**Status:** öppen. Ingen kod skriven än.
+**Status:** KLAR 2026-10-11 i sin första form, mätt. `game/core/dungeon.gd` genererar nu våningar som
+är exakt fyra gånger så stora (yta 34x34 / 42x42 / 50x50 mot förr 17/21/25), med djupare BSP-delning
+(fler rum, inte bara större), några extra förbindelser mellan rum som inte ligger intill varandra
+(våningen blir ett nät i stället för en gång) och en boss som väljs bland de bortersta fjärde rummen i
+stället för att alltid vara det sista. Mätt med `tools/vandring.gd` över 7830 våningar per körning:
+
+| | före | efter |
+|---|---|---|
+| yta | 289/441/625 | 1156/1764/2500 (exakt 4x) |
+| golvrutor | 96/152/229 | 470/778/1192 |
+| väg start→boss i steg | 17/26/34 | 42-46/57/70-71 |
+| väg, spridning (sd) | 2 | 8-12 |
+| strider per våning | 9/18/35 | 9/16-35 (oförändrat) |
+
+Striderna är en budget per VÅNING i stället för per rum, så en fyrdubblad yta ger mer att GÅ och inte
+mer guld och xp — balanskurvan är mätt och flyttas inte av en storleksändring. Kostnaden är mätt med
+`-- fpsprov`: 47 fps mot 60 på den gamla våningen. Kvar: rummen är många men innehåller bara strider,
+en kista och tre facklor — "rum utan avsikt" som undersökningen varnade för. Rekvisiter och ljus räcker
+inte hela vägen (se 31), och en modulbank av handgjorda rum är nästa riktiga steg om våningarna ska
+kännas byggda och inte slumptal.
+
+---
+
+## 32. Fuktigheten på golvet (Alex 11/10)
+
+**Önskemålet:** *"Golvet som skall se ut att ha någon enstaka pöl är ett repeterande mönster av blå
+ringar, jag vill hellre du utnyttjar motorns möjlighet att lägga på en fuktig yta, rent motormässigt,
+istället för en platt bild."*
+
+**Status:** KLAR 2026-10-11, mätt. Den målade pölen är borta och ersatt av ETT genomskinligt lager över
+golvet vars shader räknar fuktigheten ur golvets plats i världen (två skalor värdebrus, samma recept som
+"Rain puddles" och "cs-2 water"). Ingen textur, ingen mask — alltså ingenting som kan upprepa sig från
+ruta till ruta, hur stor våningen än blir. Fuktigheten driver tre saker: normalen (ur fläckens lutning +
+en krusning), råheten (0,22 vått mot 0,92 torrt) och mörkret (alfa). Speglingen viktas med fresnel, så
+golvet lyser framåt och är mörkt vid fötterna. Vilka teman som är våta står i `FUKT_TEMA`.
+
+**Mätt:** hela golvet (1222 rutor) bär lagret i EN MultiMesh. A/B på samma våning och frö, `fx=0` mot
+`fx=1`: 1,17 % av bilden ändras, största skillnad 138 luminanssteg (en högdager som inte fanns).
+Bredvid varandra i `docs/skarmbilder`-provet: den våta sidan är mörkare och blankare i förgrunden, men
+**knappt märkbar** — rummet är för mörkt (medelluminans 19/255) för att en fläck ska synas på håll.
+Nästa riktiga grepp är ljuset, inte fler fläckar.
+
+**Bifångst, rättad mätning:** rekvisitens shader (`ui/dekor.gdshader`) hade ett `ö` i ett uniformNAMN
+och kompilerade aldrig — alltså ritades inga rekvisiter alls, och den tidigare slutsatsen "71 rekvisit
+ändrade 0 % av bilden" mätte en trasig shader, inte rekvisiter. Efter rättningen ritas de (A/B ger
+0,06 % skillnad, en kandelaber i bild). Ett prov fångar nu klassen: inget shadernamn får innehålla
+å/ä/ö — och headless KÖR inga shaders, så felet syns bara i en körning med bild.

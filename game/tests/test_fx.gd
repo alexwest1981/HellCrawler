@@ -29,6 +29,39 @@ func moln(rot: Node3D, namn: String) -> GPUParticles3D:
 	return null
 
 
+## Partsnamn ur en shadertext: raderna dar ett uniform/varying deklareras. Resten av raden (kommentaren
+## efter //) far ha hur mycket a och o som helst — det ar bara NAMNET tokenizern kvider pa.
+func shader_namn(text: String) -> Array:
+	var ut := []
+	for rad in text.split("\n"):
+		var r := rad.strip_edges()
+		if r.begins_with("uniform ") or r.begins_with("varying ") or r.begins_with("in ") \
+				or r.begins_with("out "):
+			ut.append(r.split("//")[0].strip_edges())
+	return ut
+
+
+func bara_ascii(rader: Array) -> bool:
+	for r in rader:
+		for i in r.length():
+			if r.unicode_at(i) > 126:
+				return false
+	return true
+
+
+func shaderfiler(rot: String, ut: Array) -> void:
+	var d := DirAccess.open(rot)
+	if d == null:
+		return
+	for n in d.get_files():
+		if n.ends_with(".gdshader"):
+			ut.append(rot.path_join(n))
+	for m in d.get_directories():
+		if m.begins_with("."):
+			continue
+		shaderfiler(rot.path_join(m), ut)
+
+
 func _init() -> void:
 	print("=== facklan")
 	var förälder := Node3D.new()
@@ -191,31 +224,28 @@ func _init() -> void:
 						"samma frö ger samma ställen (%s v%d)" % [bana, våning])
 	check(slagslag.size() == 3, "alla tre slagen dyker upp över nio våningar", str(slagslag))
 
-	print("=== pölen har vattnets form")
-	var mask := ImageTexture.create_from_image(Image.create(32, 32, false, Image.FORMAT_RGBA8))
-	var mat := Fx.pöl_material(mask, [6, 10, 21, 21])
-	check(mat != null, "pölens material byggs")
+	print("=== fuktigheten räknas ur golvets plats, inte ur en ruta")
+	check(Fx.fukt_material(0.0) == null, "ett torrt tema får inget fuktlager")
+	var mat := Fx.fukt_material(1.0)
+	check(mat != null, "fuktmaterials byggs")
 	if mat != null:
 		check(mat.shader != null and not mat.shader.code.is_empty(), "materialet har en shader")
-		check(mat.get_shader_parameter("mask") == mask, "vattnets form (masken) är inkopplad")
-		var uv: Vector4 = mat.get_shader_parameter("mask_uv")
-		check(absf(uv.x - 21.0 / 32.0) < 0.001 and absf(uv.z - 6.0 / 32.0) < 0.001,
-			"UV räknas ur rutans vattenrektangel", str(uv))
-		# Krusningen ska rulla, och bara krusningen: hade offseten legat på materialet hade pölens
-		# form följt med — därför en shader med egen UV för normalen.
-		# En shader som inte kompilerar har inga parametrar alls: då är svaret null, och det ska
-		# provet säga i klartext i stället för att krascha på en typ.
-		var tid_före = mat.get_shader_parameter("tid")
-		if tid_före == null:
-			check(false, "krusningen går att styra (shadern har parametern tid — kompilerar den?)")
-		else:
-			Fx.rulla(4.0)
-			var tid_efter = mat.get_shader_parameter("tid")
-			check(tid_efter != null and tid_efter > tid_före, "krusningen rullar med tiden",
-				"%s → %s" % [tid_före, tid_efter])
-	# En tom ruta är ett fel hos anroparen (spelet kontrollerar rektangeln innan), och då ska svaret
-	# vara null — inte en platta som ser ut som vatten på fel ställe.
-	check(Fx.pöl_material(mask, []) == null, "en tom ruta ger ingen platta (inget kraschar)")
+		check(mat.get_shader_parameter("styrka") == 1.0, "temats fuktighet är inkopplad")
+		# En parameter som aldrig SATTS går inte att läsa tillbaka (samma fälla som `glans`), så
+		# provet sätter fuktighetsratten först — och det är samtidigt beviset för att shadern
+		# kompilerade: en shader med fel i sig tar inte emot några parametrar alls.
+		mat.set_shader_parameter("troskel", 0.55)
+		check(mat.get_shader_parameter("troskel") != null and mat.get_shader_parameter("glans") != null,
+			"shadern kompilerar och bär fuktighetens rattar")
+		# Ingen mask, ingen textur: fläcken räknas ur xz i världen, och då kan den inte upprepa sig
+		# från ruta till ruta hur stor våningen än blir. Det var hela felet med den målade pölen.
+		check(mat.shader.code.contains("fuktighet(xz") and not mat.shader.code.contains("texture(mask"),
+			"fläcken räknas ur världspositionen (ingen mask, ingen upprepning)")
+		check(mat.shader.code.contains("ROUGHNESS = mix") and mat.shader.code.contains("NORMAL_MAP"),
+			"råheten kommer ur fuktigheten och normalen räknas ur dess lutning")
+		check(not mat.shader.code.contains("ALBEDO = m.rgb"),
+			"ingen målad vattenfärg i shadern (färgen kommer ur ljuset som speglas)")
+	check(Fx.fukt_material(-1.0) == null, "en negativ styrka ger inget lager (inget kraschar)")
 
 	print("=== elden är en ljuskälla (emission över vitt)")
 	# En unshaded yta skriver ut sin albedo rakt av — högst 1,0 — och då har miljöns glow (tröskel 1,0)
@@ -263,6 +293,18 @@ func _init() -> void:
 	check(Fx.korn_efter_skada(10.0, 0.0, 1) == Fx.KORN_MAX,
 		"ett tak på noll delar inte med noll: regeln svarar taket i stället för att krascha",
 		"%d" % Fx.korn_efter_skada(10.0, 0.0, 1))
+
+	print("=== inget shadernamn far ha a, a eller o (da ritas ytan aldrig, och tyst)")
+	var filer := []
+	shaderfiler("res://", filer)
+	check(filer.size() >= 4, "hittade shaderfilerna", "%d filer" % filer.size())
+	for p in filer:
+		var text := FileAccess.get_file_as_string(p)
+		check(bara_ascii(shader_namn(text)), "deklarationerna i %s ar ASCII" % p.get_file(),
+			"%d st" % shader_namn(text).size())
+	check(bara_ascii(shader_namn(Fx.VATTEN_SHADER)), "deklarationerna i fuktens shader ar ASCII")
+	check(not bara_ascii(["uniform float glöd = 0.0;"]),
+		"kontrollen ser skillnad: ett o i ett NAMN fångas (kommentaren får ha dem)")
 
 	print("=== %d kontroller, %d fel" % [checks, fails])
 	quit(1 if fails > 0 else 0)

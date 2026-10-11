@@ -15,9 +15,9 @@ extends RefCounted
 ##   formen      ParticleProcessMaterial: riktning, spridning, tyngd, turbulens (Godots inbyggda
 ##               brus) och färg-/skalgrader. Turbulensen är skillnaden mellan en kon av prickar och
 ##               en låga som slickar uppåt.
-##   vattnet     NoiseTexture2D med `as_normal_map` = en krusning utan en enda bildfil. Den rullas
-##               i uv1_offset varje bildruta, och eftersom pölen inte har någon albedotextur rör sig
-##               BARA normalen — alltså spegelglansen i vattnet, inte marken under det.
+##   vattnet     fuktighetsmasken ligger i materialet (se VATTEN_SHADER). Den är STATISK: en pöl
+##               rinner inte, och vätan syns i stället genom att masken styr normalen (ur maskens
+##               lutning), råheten och mörkret — inte genom att något rullar.
 ##
 ## Gränsen mot ui/attack_fx.gd: den ritar kortens anfall i 2D ovanpå bilden. Det här är saker som
 ## står I rummet — de hör till kameran i 3D, inte till skärmen.
@@ -57,59 +57,114 @@ const DROPP := {
 }
 
 static var _prick: Texture2D = null
-static var _krus: NoiseTexture2D = null
 static var _shader: Shader = null
-static var _pölar: Array = []
 
-## Vattnets METALL (shaderns `glans`). Inte 0: vatten är ingen metall, men speglingen sitter inte bara
-## i råheten, och den lilla andelen är det som gör krusningen SYNLIG i glansen. Siffran står på ETT
-## ställe — shaderns standardvärde, materialet och mätprovet (`-- glansprov=pöl`) läser samma konstant.
-## MÄTT: höjd till 0,7 blir vattnet mörkare och plattare i stället för blankare (se PLAN.md M27).
-const VATTEN_METALL := 0.06
-## Vattnets shader. Masken (vattnets form) ligger still; bara krusningen rullar — det är den enda
-## skillnaden mellan "en blå fläck" och "en blöt fläck". Kanten klipps bort, så plattan får pölens form.
+## Vattnets spegling (shaderns `glans` = SPECULAR). Våt sten är inte metall — metallen är 0 i shadern,
+## mätt: höjd metall blev vattnet mörkare och plattare i stället för blankare (se PLAN.md M27). Det som
+## ger högdagern är i stället ytans spegling, och den ligger strax över stenens 0,5.
+const VATTEN_GLANS := 0.65
+## FUKTIGHETENS SHADER — The Last of Us Part 2:s recept (statisk mask som driver normal, råhet och
+## mörker), med masken räknad ur VÄRLDSPOSITIONEN i stället för ur rutan. Källor: shadern Alex länkade
+## (r/godot "Realistic wetness shader driven by a simple static wetness mask") och "Rain puddles with
+## ripples and reflections" av shadecore_dev (CC0), vars pölmask är två brus över `center.xz` — alltså
+## just det: fläckarna sitter i världen, inte i texturen.
+##
+## VARFÖR INTE EN MÅLAD PÖL: den ritade vattenbilden låg i varje sliten ruta, 2x2 per ruta, och UV-
+## rektangeln delades med 32 medan rutorna är 128 px — 2,5 varv av samma målade pöl per platta. Mätt på
+## en 50x50-våning: 342 slitna rutor x 4 plattor x 2,5 pölar ≈ 3 400 blå ringar. Alex: *"Golvet som
+## skall se ut att ha någon enstaka pöl är ett repeterande mönster av blå ringar, jag vill hellre du
+## utnyttjar motorns möjlighet att lägga på en fuktig yta, rent motormässigt, istället för en platt
+## bild."*
+##
+## Nu finns ingen bild alls: ETT lager över hela golvet, och varje bildpunkt räknar sin egen fuktighet
+## ur sin plats i världen. Samma fläck ligger på samma ställe hur många rutor golvet än består av, och
+## två fläckar kan aldrig bli samma fläck — en upprepning är omöjlig per konstruktion, inte bortstädad.
+##
+##   NORMALEN   ur fuktighetens lutning. Kanten på en våt fläck är en menisk — vattnet buktar — och det
+##              är den som fångar ljuset och får fläcken att läsas som en vattenyta. Det är hela tricket.
+##   RÅHETEN    låg i fläcken, hög utanför: vått speglar lyktan och facklan, torrt gör det inte.
+##   MÖRKRET    fläcken mörknar det som ligger under den (alfa i blend_mix). Vått är samma sten, inte
+##              en annan färg — färgen kommer ur ljuset som speglas.
 const VATTEN_SHADER := """
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_lambert, specular_schlick_ggx;
 
-/* filter_linear_mipmap, INTE filter_nearest: pölens mask är 32 px och ligger utsträckt över en
-   ruta på en meter. Med nearest och utan mipnivåer hamnar alfatestet (m.a < 0.5) och vippar på
-   måfå på håll — pölens kant blev ett SPRÄCKLIGT 1-bits dithermönster i stället för en kant.
-   Mipnivåerna medelvärdesbildar masken och kanten blir mjuk. Krusningen samplas likadant: ett
-   brus utan mipnivåer är bara brus på håll. */
-uniform sampler2D mask : filter_linear_mipmap, repeat_enable;
-uniform sampler2D krus : hint_normal, filter_linear_mipmap, repeat_enable;
-uniform vec4 mask_uv = vec4(1.0, 1.0, 0.0, 0.0);
-uniform vec2 rullning = vec2(0.030, 0.022);
-// Krusningen är det som syns: glansen vandrar över vattnet när normalen rör sig. Metallen är låg med
-// flit — en metallisk yta speglar omgivningen, och i en mörk korridor finns ingenting att spegla, så
-// den blev bara mörk och platt. Vätan ligger i råheten och krusningen, inte i metallen. (GLSL
-// kommenterar med //, inte # — en # här fick hela shadern att sluta kompilera.)
-uniform float krus_skala = 4.0;
-uniform float normal_djup = 0.9;
-uniform float matthet = 0.05;
 uniform float glans = %s;
-uniform float tid = 0.0;
+uniform float vat_rahet = 0.22;
+uniform float torr_rahet = 0.92;
+uniform float morknar = 0.55;
+uniform float troskel = 0.55;
+uniform float styrka = 1.0;           /* temats fuktighet: 1 = sa vatt temat ar, 0 = torrt */
+uniform float flack_skala = 0.55;     /* flackarnas storlek i varlden, i 1/m */
+uniform float menisk = 3.0;           /* hur brant kanten lutar normalen */
+uniform float steg = 0.10;            /* avstandet lutningen mats over, i meter */
+uniform float krusning = 0.045;       /* hur mycket vattenytan krusar sig (normalen) */
+uniform float fresnel_min = 0.35;     /* speglingen rakt framifran; 1,0 i betraktningsvinkeln */
+
+varying vec2 xz;
+
+float hash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 19.19);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+/* Vardesbrus, mjukt: tva rutor interpolerade. Samma sorts brus som referensens. */
+float brus(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x),
+		mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+/* Fuktigheten i en punkt pa golvet. Tva skalor: en stor for polen, en liten for kanten. */
+float fuktighet(vec2 p) {
+	float f = brus(p * flack_skala) * 0.62 + brus(p * flack_skala * 3.7) * 0.38;
+	return clamp((f - troskel) / max(1.0 - troskel, 0.001), 0.0, 1.0) * styrka;
+}
+
+/* Krusningen: vattenytan ar inte en spegel. Utan den blir hogdagern en nalsticka i en mork korridor
+   (matt: med rahet 0,05 och slat normal syntes ingen vatan alls i vyn). En liten lutning ur bruset
+   gor glansen till ett STRECK man ser, och det ar strecket som sager "vatt". */
+float krus(vec2 p) {
+	return brus(p * 6.3) + brus(p * 17.9) * 0.5;
+}
+
+void vertex() {
+	xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
+}
 
 void fragment() {
-	vec4 m = texture(mask, UV * mask_uv.xy + mask_uv.zw);
-	if (m.a < 0.5) {
+	float f = fuktighet(xz);
+	if (f <= 0.004) {
 		discard;
 	}
-	ALBEDO = m.rgb;
-	ROUGHNESS = matthet;
-	METALLIC = glans;
-	NORMAL_MAP = texture(krus, UV * krus_skala + rullning * tid).rgb;
-	NORMAL_MAP_DEPTH = normal_djup;
+	float fx = fuktighet(xz + vec2(steg, 0.0)) - f;
+	float fy = fuktighet(xz + vec2(0.0, steg)) - f;
+	float kx = krus(xz + vec2(0.07, 0.0)) - krus(xz - vec2(0.07, 0.0));
+	float ky = krus(xz + vec2(0.0, 0.07)) - krus(xz - vec2(0.0, 0.07));
+	NORMAL_MAP = normalize(vec3(fx * menisk + kx * krusning, fy * menisk + ky * krusning, 1.0)) * 0.5 + 0.5;
+	NORMAL_MAP_DEPTH = 1.0;
+	ALBEDO = vec3(0.03);
+	ALPHA = f * morknar;
+	ROUGHNESS = mix(torr_rahet, vat_rahet, f);
+	METALLIC = 0.0;
+	/* FRESNEL: en vattenyta speglar mer nar man ser den i betraktningsvinkel (framat langs golvet)
+	   an rakt ned. Det ar darfor en vat gata lyser i fjarran och ar mork vid fotterna, och det ar
+	   skillnaden mellan "mork flack" och "vat flack". Receptet ar referensens cs-2-water:
+	   reflect_amount = mix(reflectivity, 1.0, fresnel). */
+	float fres = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.0);
+	SPECULAR = glans * mix(fresnel_min, 1.0, fres);
 }
 """
 
 
-## Vattnets shader, byggd första gången den behövs.
+## Fuktighetens shader, byggd första gången den behövs.
 static func shader() -> Shader:
 	if _shader == null:
 		var s := Shader.new()
-		s.code = VATTEN_SHADER % VATTEN_METALL
+		s.code = VATTEN_SHADER % VATTEN_GLANS
 		_shader = s
 	return _shader
 
@@ -130,23 +185,6 @@ static func prick() -> Texture2D:
 		t.height = 32
 		_prick = t
 	return _prick
-
-
-## Krusningen: brus som NORMAL-karta. Sömlös, så att rullningen aldrig visar en söm.
-static func krusning() -> NoiseTexture2D:
-	if _krus == null:
-		var n := FastNoiseLite.new()
-		n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-		n.frequency = 0.035
-		var t := NoiseTexture2D.new()
-		t.noise = n
-		t.as_normal_map = true
-		t.seamless = true
-		t.normalize = true
-		t.width = 128
-		t.height = 128
-		_krus = t
-	return _krus
 
 
 ## En färgskala till partiklarna: het → varm → sval → genomskinlig.
@@ -524,41 +562,24 @@ static func droppar(förälder: Node3D, pos: Vector3, fall: float, slag := "vatt
 	return p
 
 
-## Pölen: rutan vatten i rutans EGEN form, med låg råhet och en krusning som normal — rullad.
+## Fuktlagrets material: EN shader för hela golvet, och `styrka` är hur vått temat är (0 = torrt).
 ##
-## Här tog Godots inbyggda material slut: `uv1_offset` flyttar ALLA texturer på materialet (det finns
-## ingen UV-inställning per textur i StandardMaterial3D), så en rullad offset hade dragit iväg med
-## pölens form också. Tjugo rader shader ger det som behövs: masken ligger still, krusningen rör sig.
-##
-## Masken är rutan med bara vattnet kvar (allt annat genomskinligt), så plattan ÄR den målade pölen och
-## inte en rektangel ovanpå den — kanten klipps bort med `discard`.
-static func pöl_material(mask: Texture2D, ruta: Array) -> ShaderMaterial:
+## Ingen mask, ingen textur: fuktigheten räknas ur golvets plats i världen (se VATTEN_SHADER), så det
+## finns ingenting som kan upprepa sig från ruta till ruta. Ritade pölar krävde en mask per ruta och
+## fyra plattor per golvruta — och blev ett mönster på en våning som är fyra gånger så stor.
+static func fukt_material(styrka: float) -> ShaderMaterial:
 	var sh := shader()
-	if sh.code.is_empty() or ruta.size() < 4:
+	if sh.code.is_empty() or styrka <= 0.0:
 		return null                    # en shader utan kod är det enda vi kan upptäcka här; ett
-		                               # kompileringsfel skriver Godot själv ut i loggen
+	                               # kompileringsfel skriver Godot själv ut i loggen
 	var m := ShaderMaterial.new()
 	m.shader = _shader
-	m.set_shader_parameter("mask", mask)
-	m.set_shader_parameter("krus", krusning())
-	m.set_shader_parameter("mask_uv", Vector4(ruta[2] / 32.0, ruta[3] / 32.0, ruta[0] / 32.0,
-		(32 - ruta[1] - ruta[3]) / 32.0))
-	# Tiden sätts även här, inte bara i rulla(): en parameter som aldrig satts har inget värde förrän
-	# shadern har kompilerats, och då är den null den första bildrutan.
-	m.set_shader_parameter("tid", 0.0)
-	# Glansen sätts uttryckligen, inte bara som shaderns standardvärde: ett värde som finns i koden
-	# men aldrig satts går inte att LÄSA tillbaka (mätprovet `-- glansprov=pöl` läser det), och en
+	# Värdena sätts uttryckligen, inte bara som shaderns standardvärden: ett värde som finns i koden
+	# men aldrig satts går inte att LÄSA tillbaka (mätprovet `-- glansprov=pöl` läser glansen), och en
 	# standard som bara finns i shadertexten är en siffra som driver isär från spelets.
-	m.set_shader_parameter("glans", VATTEN_METALL)
-	_pölar.append(m)
+	m.set_shader_parameter("styrka", styrka)
+	m.set_shader_parameter("glans", VATTEN_GLANS)
 	return m
-
-
-## Krusningen rullar. Anropas varje bildruta med tiden sedan start. Alla pölar delar material per
-## ruta, så det är några få material som får en ny tid — inte en uppdatering per pöl.
-static func rulla(t: float) -> void:
-	for m in _pölar:
-		m.set_shader_parameter("tid", t)
 
 
 static func _kurva(värden: Array) -> CurveTexture:

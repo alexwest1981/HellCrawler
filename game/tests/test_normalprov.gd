@@ -58,6 +58,12 @@ func _initialize() -> void:
 			# mäter ytorna. Utan detta rad fälldes gräset för att det inte är en vägg.
 			hoppade += 1
 			continue
+		if mi.name == "fukt":
+			# Fuktlagret räknar sin EGEN normal ur fuktighetens lutning i shadern (`NORMAL_MAP` i
+			# `Fx.VATTEN_SHADER`) — den har ingen normalkarta och ska inte ha någon. Provet mäter
+			# ytorna som bär relief; det här är ett genomskinligt lager ovanpå dem.
+			hoppade += 1
+			continue
 		var m: Material = mi.multimesh.mesh.material
 		if not (m is StandardMaterial3D):
 			utan.append("%s (inget standardmaterial)" % mi.name)
