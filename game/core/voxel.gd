@@ -398,14 +398,23 @@ func lossna(antal: int) -> Array:
 	return borta
 
 
-## HELA FIGUREN RASAR (M108). Alex: "Om de dör skall de rasa sönder i småbitar och försvinna."
-## Returnerar antalet celler som gick sönder. Bitarna som flyger är samma `pixelregn` som redan
-## spiller vid en träff (och mer av det vid ett dråp, se `_enemy_reaktion`).
-func rasar() -> int:
-	var n := celler.size()
-	celler.clear()
-	_mesh = null
-	return n
+## DÖDSRASET, I STEG (M108). Alex: "de ramlar sönder i bitar när de dör, eller så går det för fort. I
+## så fall får du sakta ner det ordentligt."
+##
+## Tar bort alla celler under andelen `f` av höjden: 0 = allt kvar, 1 = tomt. Raset går NEDIFRÅN och upp,
+## för en kropp faller ihop underifrån — den försvinner inte uppifrån. Anropas upprepade gånger av en
+## tween i stället för att tömmas i ett enda steg, som var Alex' klagomål: figuren slocknade i stället för
+## att rasa.
+func rasa_till(f: float) -> int:
+	var gräns := f * float(sidor)
+	var borta := 0
+	for cell in celler.keys():
+		if float(cell.y) < gräns:
+			celler.erase(cell)
+			borta += 1
+	if borta > 0:
+		_mesh = null
+	return borta
 
 
 func antal_celler() -> int:

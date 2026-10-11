@@ -163,6 +163,9 @@ const ENEMY_FRAMES := 6
 ## Cellerna i höjdled. 64 = figuren blir EN voxel per källpixel så länge den är högst 64 px (mätt: den
 ## högsta figuren i arken är 92 px, de flesta 50-75) — att köra 32 tog bort halva figurens detalj, och
 ## mätt såg hunden då inte ut som en hund. Se `_klä_voxel`.
+## Hur länge en fiende rasar i hop när den dör (M108). Alex ville ha det LÅNGSAMMARE: tio steg över en
+## dryg sekund läses som att kroppen faller i bitar, medan ett enda steg läses som att den slocknar.
+const RASA_TID := 1.1
 const VOXEL_SIDOR := 64
 const VOXEL_DJUP := 2
 ## Alex 11/10: "Fixa voxlar av alla monster." Av: figuren är då en billboard med en voxelmodell som
@@ -8099,6 +8102,22 @@ func _klä_voxel(spr: Sprite3D, tex: Texture2D, rutor: int, ps: float) -> bool:
 	spr.texture = null
 	return true
 
+## DÖDEN: FIGUREN RASAR I HOP, I STEG (M108). Alex: "de ramlar sönder i bitar när de dör, eller så går
+## det för fort. I så fall får du sakta ner det ordentligt."
+##
+## Modellen töms NEDIFRÅN och upp medan spillror fortsätter att flyga, så kroppen faller ihop och bitarna
+## syns falla i stället för att allt slocknar på en bildruta. Stegen är tio över RASA_TID, och varje steg
+## lägger en skur — samma `pixelregn` som träffen använder.
+func _rasa(spr: Sprite3D, vx: Voxel, nod: MeshInstance3D) -> void:
+	var t := create_tween()
+	t.tween_method(func(f: float) -> void:
+		vx.rasa_till(f)
+		nod.mesh = vx.mesh()
+		_pixelregn(spr, 7)
+	, 0.0, 1.0, RASA_TID)
+	t.tween_callback(func() -> void: nod.visible = false)
+
+
 ## Healthbarens plats räknas ur figurens position. Egen funktion för att uppställningen flyttar
 ## figurerna EFTER att staplarna byggts — utan det stod staplarna kvar där fienden stod först.
 func _place_bar(e: Dictionary) -> void:
@@ -8214,9 +8233,7 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 		var voxel_nod: MeshInstance3D = spr.get_node_or_null("voxel")
 		if voxel_nod != null and voxel_nod.mesh != null:
 			if död:
-				vx.rasar()
-				voxel_nod.mesh = vx.mesh()
-				voxel_nod.visible = false
+				_rasa(spr, vx, voxel_nod)
 			else:
 				# En flisa på några procent av figuren per träff: efter en hel strid är den sargad, men
 				# den ska inte försvinna av att man tittar på den.
