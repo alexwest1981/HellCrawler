@@ -162,6 +162,10 @@ const ENEMY_FRAMES := 6
 ## är 32 celler drygt var fjärde pixel. Fler celler = fler ytor att bygga om per hugg.
 const VOXEL_SIDOR := 32
 const VOXEL_DJUP := 2
+## Alex 11/10: "Fixa voxlar av alla monster." Av: figuren är då en billboard med en voxelmodell som
+## barn (se `_voxel_fiende`) — då behåller figurens nod allt som redan fungerar (position, andning,
+## skugga, healthbar, aura, gruppen `fiende_figur`) och bytet rör bara det som SYNS.
+const VOXLAR := true
 
 ## EGEN LOOK PER FIENDE (M70). Alex: *"Kan vi ge alla fiender egna shaders, så spökena t ex är
 ## transparenta? dock bara någon procent, och inte genomskinliga"*.
@@ -4610,7 +4614,7 @@ func _enemy_reaktion(mult: int = 1) -> Sprite3D:
 		var skada := förra - hp
 		if hp <= 0.0 and förra > 0.0:
 			_enemy_läge(e, ENEMY_DEAD, 9999.0)
-			_slag_kvitto(spr, skada, 3)          # ett dråp är alltid värt den stora siffran
+			_slag_kvitto(spr, skada, 3, true)    # ett dråp är alltid värt den stora siffran
 			# Ett dråp spiller alltid mer än en träff — men andelen styr hur mycket mer (Teardown:
 			# bitarna är en hälsodeklaration, och en död fiende har lämnat allt).
 			_pixelregn(spr, maxi(Fx.korn_efter_skada(skada, foes[i].max_hp, 3), 14))
@@ -5313,6 +5317,11 @@ func _add_markör(n: Dungeon.FloorNode, namn: String) -> void:
 	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	spr.position = Vector3(n.pos.x + 0.5, 0.35, n.pos.y + 0.5)
 	world.add_child(spr)
+	# INTERIÖREN BLIR OCKSÅ VOXLAR (M108). Alex: "Kör även voxlar av all interiör med, t om kistan, då
+	# den är otroligt platt idag." Samma väg som fienderna — modellen byggs ur markörens EGET ark (varje
+	# rekvisitabild är EN figur, alltså en ruta) och den platta bilden tas bort. Ingen hugg-kod: bara
+	# fiender går sönder under attack.
+	_klä_voxel(spr, spr.texture, 1, spr.pixel_size)
 	if namn == "shovel":
 		# Spaden är den enda sak som KLICKAS (`_vy_klick`): spara noden och spriten, så klicket kan
 		# räkna ut var på skärmen den står och om den får tas (bossen måste vara besegrad).
@@ -6004,11 +6013,11 @@ func _voxelprov() -> void:
 	# HÖJDEN RÄKNAS UR FIGUREN, INTE UR CELLEN. Första försöket tog 34 x pixel_size (måttet healthbaren
 	# använder) och gav en modell på 0,41 m: den stod som ett litet grönt skräp på golvet medan spöket på
 	# skärmen är 1,26 m. Figurens EGET mått i arket gånger pixel_size är det som stämmer.
-	var figur_höjd: float = Voxel.figur_px(tex, 0, ENEMY_FRAMES).y * 0.012
+	var figur_höjd: float = Voxel.figur_ruta(tex, 0, ENEMY_FRAMES).size.y * 0.012
 	var t0 := Time.get_ticks_usec()
 	var vx := Voxel.ur_ark(tex, 0, ENEMY_FRAMES, figur_höjd, VOXEL_SIDOR, VOXEL_DJUP)
 	var bygg_ms := float(Time.get_ticks_usec() - t0) / 1000.0
-	var mått := Voxel.figur_px(tex, 0, ENEMY_FRAMES)
+	var mått := Voxel.figur_ruta(tex, 0, ENEMY_FRAMES).size
 	print("[voxelprov] figuren i arket: %.0fx%.0f px, alltså %.2f m hög vid pixel_size 0,012 (cellen är %d px)"
 		% [mått.x, mått.y, figur_höjd, tex.get_height()])
 	print("[voxelprov] %d celler i %dx%d rutor, %d ytor, byggtid %.0f ms"
@@ -7969,6 +7978,7 @@ func _stage_fight(node: Dungeon.FloorNode) -> void:
 		var spr: Sprite3D = e["spr"]
 		if not is_instance_valid(spr):
 			continue
+		_voxel_fiende(spr, node)          # figuren blir en voxelmodell (M108), en gång per strid
 		# I FORMATION, RAD FÖR RAD (M100). M66 satte dem på ETT led (0,12 m i sidled) för att en 1 m-gång
 		# inte rymde två sida vid sida — men då stod den bakre inne i den främre och man såg bara EN
 		# fiende (Alex: *"om man stöter på mer än 1 fiende i en ruta, så är fighten fortfarande bara med
@@ -7986,6 +7996,47 @@ func _stage_fight(node: Dungeon.FloorNode) -> void:
 		spr.position.z = p.y
 		_place_bar(e)
 		i += 1
+
+## ALLA MONSTER BLIR VOXLAR (M108). Alex: "Fixa voxlar av alla monster."
+##
+## Modellen byggs ur figurens EGET ark och hängs som ett BARN till billboarden i stället för att
+## billboarden byts ut. Då äger figurens nod fortfarande allt som redan fungerar — positionen (som
+## uppställningen och andningen rör), skuggan, healthbaren, auran och gruppen `fiende_figur` — och
+## bytet rör bara det som syns. Den platta bilden tas bort från billboarden (`texture = null`), så det
+## är meshen som ritas.
+##
+## Hämtas här, när striden ställs upp, och inte när våningen byggs: att bygga modeller för varje fiende
+## på en våning tar 5-8 ms styck, och bara de man faktiskt möter behöver en.
+func _voxel_fiende(spr: Sprite3D, node: Dungeon.FloorNode) -> void:
+	_klä_voxel(spr, _enemy_tex(str(node.enemy_id).to_lower()), ENEMY_FRAMES, spr.pixel_size)
+
+
+## Klä en billboard med en voxelmodell ur SIN EGEN bild och ta bort den platta bilden (M108).
+## Delas av fienderna (`_voxel_fiende`) och interiören (`_add_markör`) — EN implementation, så en
+## förbättring av modellen slår igenom på båda.
+##
+## INGEN hugg-kod här. Alex: *"det är bara fiender som skall gå sönder under attack, inte interiören"* —
+## modellen KAN gå sönder, men det är bara `_slag_kvitto` som tar bort celler, och den vägen går bara
+## fiendernas figurer.
+func _klä_voxel(spr: Sprite3D, tex: Texture2D, rutor: int, ps: float) -> bool:
+	if not VOXLAR or spr == null or tex == null or spr.has_node("voxel"):
+		return false
+	var r := Voxel.figur_ruta(tex, 0, rutor)
+	if r.size.y <= 0.0:
+		return false
+	var vx := Voxel.ur_ark(tex, 0, rutor, r.size.y * ps, VOXEL_SIDOR, VOXEL_DJUP)
+	var mi := vx.nod()
+	mi.name = "voxel"
+	# FIGURENS MITT, INTE RUTANS. Bilden har nästan alltid en tom ram runt figuren, och billboardens
+	# origo är RUTANS mitt — utan förskjutningen står modellen en bit fel i höjdled mot var bilden stod.
+	var fw := float(tex.get_width()) / float(maxi(1, rutor))
+	var fh := float(tex.get_height())
+	mi.position = Vector3((r.position.x + r.size.x * 0.5 - fw * 0.5) * ps,
+		-(r.position.y + r.size.y * 0.5 - fh * 0.5) * ps, 0.02)
+	spr.add_child(mi)
+	spr.set_meta("voxel", vx)
+	spr.texture = null
+	return true
 
 ## Healthbarens plats räknas ur figurens position. Egen funktion för att uppställningen flyttar
 ## figurerna EFTER att staplarna byggts — utan det stod staplarna kvar där fienden stod först.
@@ -8046,7 +8097,7 @@ func _hugg(spr: Sprite3D) -> void:
 ## inget HÄNDER (Alex: "det gäller att få till så det är en visuell bekräftelse att man attackerar
 ## med"). Tre saker på samma gång, för de svarar på olika frågor: SIFFRAN säger hur mycket, BLINKET
 ## säger att det tog, och KNUFFEN säger var.
-func _slag_kvitto(spr: Sprite3D, skada: float, mult: int) -> void:
+func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) -> void:
 	if skada <= 0.0 or not is_instance_valid(spr):
 		return
 	_hugg(spr)
@@ -8091,6 +8142,32 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int) -> void:
 	# alfa 1,0: en fiende med genomsläpp (FIENDE_LOOK, alfa 0,94) blev alltså HELT FAST efter första
 	# träffen den fick — upptäckt av undersökningen, inte av ett prov. Grunden sparas på figuren när den
 	# byggs (se `modulate_bas`), så en avbruten blink inte kan lämna fel färg kvar heller.
+	# VOXLARNA GÅR SÖNDER (M108). Alex: "Det kan lossna random bitar av fienden om de inte dör direkt av
+	# attacken. Om de dör skall de rasa sönder i småbitar och försvinna."
+	#
+	# Träffen tar en flisa ur kanten (inte en kula ur bröstet: det var min egen idé, inte hans), och
+	# dör fienden av slaget försvinner HELA modellen medan `pixelregn` spiller mer än vanligt — bitarna
+	# som flyger ÄR sönderfallet. Bara fiender går här; interiören har ingen hugg-kod (Alex).
+	var vx: Voxel = spr.get_meta("voxel", null)
+	if vx != null:
+		var voxel_nod: MeshInstance3D = spr.get_node_or_null("voxel")
+		if voxel_nod != null and voxel_nod.mesh != null:
+			if död:
+				vx.rasar()
+				voxel_nod.mesh = vx.mesh()
+				voxel_nod.visible = false
+			else:
+				# En flisa på några procent av figuren per träff: efter en hel strid är den sargad, men
+				# den ska inte försvinna av att man tittar på den.
+				vx.lossna(maxi(4, int(float(vx.antal_celler()) * 0.05)))
+				voxel_nod.mesh = vx.mesh()
+			# MESHEN TAR INTE EMOT `modulate` (den är ingen sprite, så blinket i `spr` når den inte).
+			# Träffen lyser i stället genom modellens egen emission ett ögonblick.
+			var mat := voxel_nod.material_override as StandardMaterial3D
+			if mat != null:
+				var bt := create_tween()
+				bt.tween_property(mat, "emission_energy_multiplier", 2.8, 0.04)
+				bt.tween_property(mat, "emission_energy_multiplier", 0.42, 0.22)
 	var grund: Color = spr.get_meta("modulate_bas", spr.modulate)
 	var b := create_tween().set_parallel(true)
 	b.tween_property(spr, "modulate", Color(2.4, 2.4, 2.4, grund.a), 0.04)

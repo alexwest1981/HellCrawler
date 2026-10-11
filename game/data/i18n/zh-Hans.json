@@ -44,7 +44,7 @@
  "ui.by.hint": "← → 选择 · Enter = 进入 · L = 语言 · Q = 退出 · I = 图鉴 · T = 今日",
  "ui.album.title": "图鉴",
  "ui.album.rad": "卡牌 %d / %d",
- "ui.album.tom": "收藏中还没有卡牌 — 可在商店购买",
+ "ui.album.tom": "收藏中还没有卡牌 — 从首领处获得",
  "ui.album.hint": "← → 翻看 · I 或 Esc = 返回村庄",
  "ui.by.plats.butik": "商店",
  "ui.by.plats.vardshus": "客栈",

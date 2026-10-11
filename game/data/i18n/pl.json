@@ -44,7 +44,7 @@
  "ui.by.hint": "← → wybierz · Enter = wejdź · L = język · Q = wyjście · I = album · T = dnia",
  "ui.album.title": "ALBUM",
  "ui.album.rad": "karta %d z %d",
- "ui.album.tom": "brak kart w kolekcji — kupuje się je w sklepie",
+ "ui.album.tom": "brak kart w kolekcji — zdobywa się je od bossa",
  "ui.album.hint": "← → przeglądaj · I lub Esc = powrót do wsi",
  "ui.by.plats.butik": "SKLEP",
  "ui.by.plats.vardshus": "GOSPODA",

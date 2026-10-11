@@ -44,7 +44,7 @@
  "ui.by.hint": "← → escolher · Enter = entrar · L = idioma · Q = sair · I = álbum · T = do dia",
  "ui.album.title": "O ÁLBUM",
  "ui.album.rad": "carta %d de %d",
- "ui.album.tom": "ainda sem cartas na coleção — compram-se na loja",
+ "ui.album.tom": "ainda sem cartas na coleção — ganham-se do chefe",
  "ui.album.hint": "← → folhear · I ou Esc = voltar à aldeia",
  "ui.by.plats.butik": "A LOJA",
  "ui.by.plats.vardshus": "A ESTALAGEM",

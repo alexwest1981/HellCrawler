@@ -44,7 +44,7 @@
  "ui.by.hint": "← → 選ぶ · Enter = 入る · L = 言語 · Q = 終了 · I = アルバム · T = 今日",
  "ui.album.title": "アルバム",
  "ui.album.rad": "カード %d / %d",
- "ui.album.tom": "コレクションにカードがありません — 店で買えます",
+ "ui.album.tom": "コレクションにカードがありません — ボスから手に入ります",
  "ui.album.hint": "← → めくる · I か Esc = 村へ戻る",
  "ui.by.plats.butik": "商店",
  "ui.by.plats.vardshus": "宿屋",

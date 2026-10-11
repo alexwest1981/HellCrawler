@@ -44,7 +44,7 @@
  "ui.by.hint": "← → choisir · Entrée = entrer · L = langue · Q = quitter · I = album · T = du jour",
  "ui.album.title": "L'ALBUM",
  "ui.album.rad": "carte %d sur %d",
- "ui.album.tom": "pas encore de cartes dans la collection — elles s'achètent à la boutique",
+ "ui.album.tom": "pas encore de cartes dans la collection — elles se gagnent auprès du boss",
  "ui.album.hint": "← → parcourir · I ou Échap = retour au village",
  "ui.by.plats.butik": "LA BOUTIQUE",
  "ui.by.plats.vardshus": "L'AUBERGE",

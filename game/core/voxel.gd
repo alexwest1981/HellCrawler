@@ -33,6 +33,9 @@ var djup: int = 2                    ## celler i tjocklek
 var höjd: float = 1.0                ## figurens höjd i meter
 var celler := {}                     ## Vector3i -> Color: modellen som den ser ut NU (hugg tömmer den)
 var kolumner: int = 32               ## celler i sidled, ur figurens egen bredd (sätts av ur_ark)
+## Figurens ruta i arket (px), så anroparen kan räkna ut var modellen ska stå i förhållande till
+## billboardens ruta — och hur hög den är i meter (`ruta.size.y * pixel_size`).
+var ruta := Rect2()
 
 var _mesh: ArrayMesh = null
 ## Modellen centreras kring nodens origo, precis som Sprite3D:s mitt: figurens mitt hamnar där noden
@@ -47,12 +50,12 @@ var _förskjutning := Vector3.ZERO
 ## som healthbaren gör) gav en voxelmodell på 0,41 m medan spöket på skärmen är 105 x 0,012 = 1,26 m —
 ## den stod som ett litet grönt skräp på golvet bredvid figuren den skulle ersätta. Höjden ska räknas ur
 ## figurens EGEN höjd gånger pixel_size, och den här ger måttet.
-static func figur_px(tex: Texture2D, ruta: int, rutor: int) -> Vector2:
+static func figur_ruta(tex: Texture2D, ruta: int, rutor: int) -> Rect2:
 	if tex == null:
-		return Vector2.ZERO
+		return Rect2()
 	var img := tex.get_image()
 	if img == null:
-		return Vector2.ZERO
+		return Rect2()
 	var fw: int = img.get_width() / maxi(1, rutor)
 	var fh: int = img.get_height()
 	var x_min := fw
@@ -67,8 +70,10 @@ static func figur_px(tex: Texture2D, ruta: int, rutor: int) -> Vector2:
 				y_min = mini(y_min, py)
 				y_max = maxi(y_max, py)
 	if x_max < x_min or y_max < y_min:
-		return Vector2.ZERO
-	return Vector2(x_max - x_min + 1, y_max - y_min + 1)
+		return Rect2()
+	# POSITIONEN OCKSÅ, inte bara storleken: figuren sitter inte alltid mitt i arkrutan, och en voxel
+	# som centreras på rutan hamnar en bit fel (upp eller ned) jämfört med var billboarden ritade den.
+	return Rect2(Vector2(x_min, y_min), Vector2(x_max - x_min + 1, y_max - y_min + 1))
 
 
 ## Bygg ur en ruta i ett ark. `ruta` är rutan i sidled (figurerna ligger som en vågrät remsa),
@@ -105,6 +110,7 @@ static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
 		return v                              # tom ruta
 	var bw := x_max - x_min + 1
 	var bh := y_max - y_min + 1
+	v.ruta = Rect2(Vector2(x_min, y_min), Vector2(bw, bh))
 	# Cellen är LIKA många källpixlar i x och y (annars blir voxlarna rektanglar), och antalet celler i
 	# sidled följer figurens bredd — en smal figur ska inte töjas ut till en kvadrat.
 	var cell := float(bh) / float(v.sidor)
@@ -215,6 +221,45 @@ func hugg(lokal_punkt: Vector3, radie: float) -> Array:
 	if not borta.is_empty():
 		_mesh = null                          # byggs på nytt vid nästa mesh()
 	return borta
+
+
+## LOSSA BITAR (M108). Alex: "Det kan lossna random bitar av fienden om de inte dör direkt av
+## attacken." Ytterkanten först — en flisa slås av en figur som står kvar, och mittcellerna håller
+## ihop den tills den faller.
+func lossna(antal: int) -> Array:
+	var borta: Array = []
+	if antal <= 0 or celler.is_empty():
+		return borta
+	# Hur många grannar varje cell har: ju färre, desto mer utsatt kant.
+	var kandidater: Array = []
+	for cell in celler.keys():
+		var grannar := 0
+		for riktning in HORN:
+			if celler.has(cell + riktning):
+				grannar += 1
+		kandidater.append([grannar, cell])
+	kandidater.sort_custom(func(a, b): return int(a[0]) < int(b[0]))
+	# Slumpa bland de yttre: annars lossnar alltid samma flisa.
+	var yttre: Array = []
+	for i in mini(kandidater.size(), maxi(antal * 3, antal)):
+		yttre.append(kandidater[i][1])
+	yttre.shuffle()
+	for i in mini(antal, yttre.size()):
+		borta.append(celler[yttre[i]])
+		celler.erase(yttre[i])
+	if not borta.is_empty():
+		_mesh = null
+	return borta
+
+
+## HELA FIGUREN RASAR (M108). Alex: "Om de dör skall de rasa sönder i småbitar och försvinna."
+## Returnerar antalet celler som gick sönder. Bitarna som flyger är samma `pixelregn` som redan
+## spiller vid en träff (och mer av det vid ett dråp, se `_enemy_reaktion`).
+func rasar() -> int:
+	var n := celler.size()
+	celler.clear()
+	_mesh = null
+	return n
 
 
 func antal_celler() -> int:

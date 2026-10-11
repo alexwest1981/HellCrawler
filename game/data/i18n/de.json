@@ -44,7 +44,7 @@
  "ui.by.hint": "← → wählen · Enter = rein · L = Sprache · Q = Ende · I = Album · T = Tageslauf",
  "ui.album.title": "DAS ALBUM",
  "ui.album.rad": "Karte %d von %d",
- "ui.album.tom": "noch keine Karten in der Sammlung — sie werden im Laden gekauft",
+ "ui.album.tom": "noch keine Karten in der Sammlung — sie werden vom Boss gewonnen",
  "ui.album.hint": "← → blättern · I oder Esc = zurück ins Dorf",
  "ui.by.plats.butik": "DER LADEN",
  "ui.by.plats.vardshus": "DAS WIRTSHAUS",
