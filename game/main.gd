@@ -615,7 +615,7 @@ func _ready() -> void:
 		print("meta: %s" % meta.last_error)
 	# Språket ur sparfilen, innan HUD:en byggs — annars står första bildrutan på svenska.
 	if not Tr.set_lang(meta.language):
-		meta.language = Tr.SOURCE
+		meta.language = Tr.DEFAULT
 	# Felsökningsflagga: `-- lang=de` visar spelet på ett annat språk. Den rör inte sparfilen —
 	# språkbytet i spelet sparar, och en granskning ska inte skriva över spelarens val.
 	for f in OS.get_cmdline_user_args():

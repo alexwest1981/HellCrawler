@@ -16,6 +16,9 @@ func check(ok: bool, what: String, detail: String = "") -> void:
 		print("  FEL  %s%s" % [what, "" if detail.is_empty() else "  (%s)" % detail])
 
 func _initialize() -> void:
+	# Provet jämför mot svenska ordagrant ("LÅST", "fryser 1 tur"), så språket pinnas: förstavalet är
+	# engelska sedan 11/10 (Alex), och ett prov får inte hänga på vilket språk som råkar vara först.
+	Tr.set_lang("sv")
 	print("— skadeformeln mot referensens eget exempel —")
 	# Wiki: Knife 40, Combo 25, Amount 50, Might 1000 %, Area 1000 %, två Triple Damage = 427 680
 	var w := Rules.damage(40.0, 25, 8.0, 50.0, 10.0, 10.0, [3.0, 3.0])

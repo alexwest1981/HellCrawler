@@ -12,13 +12,16 @@ class_name Tr
 extends RefCounted
 
 const DIR := "res://data/i18n/"
-const SOURCE := "sv"
+const SOURCE := "sv"      ## källspråket: nycklarna kommer ur svenskan, och en saknad nyckel faller dit
+const DEFAULT := "en"     ## förstavalet. Spelet startar på engelska (Alex 11/10): menyns språklista
+                          ## börjar där, och en ny spelare möts av engelska.
 
 ## Språken i spelet: de tolv som referensen har, plus svenska. Se research/06-referensbygget.md —
 ## originalet har ingen skandinaviska alls, så vår svenska är ett tillägg, inte ett lån.
+## ENGELSKA LIGGER FÖRST: listan i menyn följer DEFAULT, och L växlar vidare härifrån.
 const LANGUAGES := [
-	{"code": "sv", "name": "Svenska"},
 	{"code": "en", "name": "English"},
+	{"code": "sv", "name": "Svenska"},
 	{"code": "de", "name": "Deutsch"},
 	{"code": "fr", "name": "Français"},
 	{"code": "es", "name": "Español"},
@@ -32,7 +35,7 @@ const LANGUAGES := [
 	{"code": "zh-Hant", "name": "繁體中文"},
 ]
 
-static var lang := SOURCE
+static var lang := DEFAULT
 static var _tabeller := {}          ## kod -> {nyckel: värde}
 
 

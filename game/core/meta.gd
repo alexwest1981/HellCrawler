@@ -44,7 +44,7 @@ var gem_slots: Dictionary = {}
 var gem_in: Dictionary = {}
 var ranks: Dictionary = {}        ## id -> rang
 var relics: Array = []
-var language := Tr.SOURCE         ## språkvalet sparas: en gång valt ska det gälla nästa gång
+var language := Tr.DEFAULT        ## språkvalet sparas: en gång valt ska det gälla nästa gång
 var unlocked: Array = [FIRST_STAGE]   ## upplåsta banor. En lista, inte ett träd: banorna låses upp
                                       ## i svårighetsordning, så nästa bana är alltid nästa i listan.
 var best_floor: Dictionary = {}   ## bana -> högsta våning man nått (1-baserat, 0 = aldrig varit där)
@@ -103,7 +103,7 @@ static func load_or_new(path: String = PATH) -> Meta:
 		return m
 	m.gold = int(parsed.get("gold", 0))
 	m.relics = parsed.get("relics", [])
-	m.language = str(parsed.get("language", Tr.SOURCE))
+	m.language = str(parsed.get("language", Tr.DEFAULT))
 	# Upplåsningen kom i version 2. En version 1-fil har spelat klart banor utan att någon skrev
 	# ner det, så den får behålla sitt guld och sina ranger men börjar med bara första banan öppen
 	# — alternativet vore att gissa vilka banor spelaren klarat, och en gissning som ger fel bana

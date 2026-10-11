@@ -32,6 +32,10 @@ func _rå(card: Cards.Card) -> float:
 	return sum
 
 func _initialize() -> void:
+	# Provet prövar att korttexten använder det ÖVERSATTA nyckelordet i stället för det råa engelska
+	# ("Evolved"). På engelska ÄR "Evolved" det översatta ordet, så provet är bara meningsfullt på ett
+	# annat språk — språket pinnas därför (förstavalet är engelska sedan 11/10, Alex).
+	Tr.set_lang("sv")
 	var db := Cards.load_all()
 	var stages := Stages.load_all()
 	var bestiary := Enemies.load_all()

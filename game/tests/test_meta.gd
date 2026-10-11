@@ -29,6 +29,10 @@ func _write(path: String, text: String) -> void:
 	f.close()
 
 func _initialize() -> void:
+	# Provet letar upp trädets gren på dess NAMN, och namnet är en översättning ("Järnvägen"). Språket
+	# pinnas: förstavalet är engelska sedan 11/10 (Alex), och ett prov får inte hänga på vilket språk
+	# som råkar vara först.
+	Tr.set_lang("sv")
 	_clean()
 
 	print("— en ny spelare —")

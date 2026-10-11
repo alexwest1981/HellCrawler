@@ -59,32 +59,36 @@ const DROPP := {
 static var _prick: Texture2D = null
 static var _shader: Shader = null
 
-## Vattnets spegling (shaderns `glans` = SPECULAR). Våt sten är inte metall — metallen är 0 i shadern,
-## mätt: höjd metall blev vattnet mörkare och plattare i stället för blankare (se PLAN.md M27). Det som
-## ger högdagern är i stället ytans spegling, och den ligger strax över stenens 0,5.
+## WATER'S REFLECTION (the shader's `glans` = SPECULAR). Wet stone is not metal -- METALLIC is 0 in
+## the shader, measured: raising metallic made the water darker and flatter instead of shinier (see
+## PLAN.md M27). What makes the highlight is the surface's own reflection, and that sits just above
+## the stone's 0.5.
 const VATTEN_GLANS := 0.65
-## FUKTIGHETENS SHADER — The Last of Us Part 2:s recept (statisk mask som driver normal, råhet och
-## mörker), med masken räknad ur VÄRLDSPOSITIONEN i stället för ur rutan. Källor: shadern Alex länkade
-## (r/godot "Realistic wetness shader driven by a simple static wetness mask") och "Rain puddles with
-## ripples and reflections" av shadecore_dev (CC0), vars pölmask är två brus över `center.xz` — alltså
-## just det: fläckarna sitter i världen, inte i texturen.
+## THE WETNESS SHADER -- The Last of Us Part 2's recipe (a static mask driving normal, roughness and
+## darkening), with the mask computed from the WORLD POSITION instead of from the tile. Sources: the
+## shader Alex linked (r/godot "Realistic wetness shader driven by a simple static wetness mask") and
+## "Rain puddles with ripples and reflections" by shadecore_dev (CC0), whose puddle mask is two noise
+## fields over `center.xz` -- exactly that: the patches live in the world, not in the texture.
 ##
-## VARFÖR INTE EN MÅLAD PÖL: den ritade vattenbilden låg i varje sliten ruta, 2x2 per ruta, och UV-
-## rektangeln delades med 32 medan rutorna är 128 px — 2,5 varv av samma målade pöl per platta. Mätt på
-## en 50x50-våning: 342 slitna rutor x 4 plattor x 2,5 pölar ≈ 3 400 blå ringar. Alex: *"Golvet som
-## skall se ut att ha någon enstaka pöl är ett repeterande mönster av blå ringar, jag vill hellre du
-## utnyttjar motorns möjlighet att lägga på en fuktig yta, rent motormässigt, istället för en platt
-## bild."*
+## WHY NOT A PAINTED PUDDLE: the painted water image sat in every worn tile, 2x2 per tile, and the UV
+## rect was divided by 32 while the tiles are 128 px -- 2.5 turns of the same painted puddle per quad.
+## Measured on a 50x50 floor: 342 worn tiles x 4 quads x 2.5 puddles ~ 3 400 blue rings. Alex: *"the
+## floor that is supposed to have the occasional puddle is a repeating pattern of blue rings, I would
+## rather you use the engine's ability to apply a wet surface, purely engine-wise, instead of a flat
+## image."*
 ##
-## Nu finns ingen bild alls: ETT lager över hela golvet, och varje bildpunkt räknar sin egen fuktighet
-## ur sin plats i världen. Samma fläck ligger på samma ställe hur många rutor golvet än består av, och
-## två fläckar kan aldrig bli samma fläck — en upprepning är omöjlig per konstruktion, inte bortstädad.
+## There is no image now: ONE layer over the whole floor, and every pixel computes its own wetness from
+## its place in the world. The same patch lands in the same spot however many tiles the floor consists
+## of, and two patches can never become the same patch -- a repetition is impossible by construction,
+## not cleaned up.
 ##
-##   NORMALEN   ur fuktighetens lutning. Kanten på en våt fläck är en menisk — vattnet buktar — och det
-##              är den som fångar ljuset och får fläcken att läsas som en vattenyta. Det är hela tricket.
-##   RÅHETEN    låg i fläcken, hög utanför: vått speglar lyktan och facklan, torrt gör det inte.
-##   MÖRKRET    fläcken mörknar det som ligger under den (alfa i blend_mix). Vått är samma sten, inte
-##              en annan färg — färgen kommer ur ljuset som speglas.
+##   THE NORMAL  from the wetness gradient. The edge of a wet patch is a meniscus -- the water bulges
+##               -- and that is what catches the light and makes the patch read as a water surface.
+##               That is the whole trick.
+##   THE ROUGHNESS  low inside the patch, high outside: wet mirrors the lantern and the torch, dry
+##               does not.
+##   THE DARKNESS   the patch darkens what lies beneath it (alpha in blend_mix). Wet is the same
+##               stone, not another colour -- the colour comes from the light that is reflected.
 const VATTEN_SHADER := """
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_lambert, specular_schlick_ggx;
@@ -94,12 +98,12 @@ uniform float vat_rahet = 0.22;
 uniform float torr_rahet = 0.92;
 uniform float morknar = 0.55;
 uniform float troskel = 0.55;
-uniform float styrka = 1.0;           /* temats fuktighet: 1 = sa vatt temat ar, 0 = torrt */
-uniform float flack_skala = 0.55;     /* flackarnas storlek i varlden, i 1/m */
-uniform float menisk = 3.0;           /* hur brant kanten lutar normalen */
-uniform float steg = 0.10;            /* avstandet lutningen mats over, i meter */
-uniform float krusning = 0.045;       /* hur mycket vattenytan krusar sig (normalen) */
-uniform float fresnel_min = 0.35;     /* speglingen rakt framifran; 1,0 i betraktningsvinkeln */
+uniform float styrka = 1.0;           /* how wet the theme is: 1 = as wet as it gets, 0 = dry */
+uniform float flack_skala = 0.55;     /* patch size in the world, in 1/m */
+uniform float menisk = 3.0;           /* how steeply the edge tilts the normal */
+uniform float steg = 0.10;            /* the distance the tilt is measured over, in metres */
+uniform float krusning = 0.045;       /* how much the water surface ripples (the normal) */
+uniform float fresnel_min = 0.35;     /* the reflection head-on; 1.0 seen at a grazing angle */
 
 varying vec2 xz;
 
@@ -109,7 +113,7 @@ float hash12(vec2 p) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
-/* Vardesbrus, mjukt: tva rutor interpolerade. Samma sorts brus som referensens. */
+/* Value noise, smooth: two cells interpolated. The same kind of noise as the reference's. */
 float brus(vec2 p) {
 	vec2 i = floor(p);
 	vec2 f = fract(p);
@@ -118,15 +122,16 @@ float brus(vec2 p) {
 		mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
-/* Fuktigheten i en punkt pa golvet. Tva skalor: en stor for polen, en liten for kanten. */
+/* How wet one point on the floor is. Two scales: a large one for the puddle, a small one for the edge. */
 float fuktighet(vec2 p) {
 	float f = brus(p * flack_skala) * 0.62 + brus(p * flack_skala * 3.7) * 0.38;
 	return clamp((f - troskel) / max(1.0 - troskel, 0.001), 0.0, 1.0) * styrka;
 }
 
-/* Krusningen: vattenytan ar inte en spegel. Utan den blir hogdagern en nalsticka i en mork korridor
-   (matt: med rahet 0,05 och slat normal syntes ingen vatan alls i vyn). En liten lutning ur bruset
-   gor glansen till ett STRECK man ser, och det ar strecket som sager "vatt". */
+/* The ripple: a water surface is not a mirror. Without it the highlight becomes a pinprick in a dark
+   corridor (measured: with roughness 0.05 and a smooth normal, no wetness showed in the view at all).
+   A slight tilt from the noise turns the highlight into a STREAK you can see, and the streak is what
+   says "wet". */
 float krus(vec2 p) {
 	return brus(p * 6.3) + brus(p * 17.9) * 0.5;
 }
@@ -150,10 +155,10 @@ void fragment() {
 	ALPHA = f * morknar;
 	ROUGHNESS = mix(torr_rahet, vat_rahet, f);
 	METALLIC = 0.0;
-	/* FRESNEL: en vattenyta speglar mer nar man ser den i betraktningsvinkel (framat langs golvet)
-	   an rakt ned. Det ar darfor en vat gata lyser i fjarran och ar mork vid fotterna, och det ar
-	   skillnaden mellan "mork flack" och "vat flack". Receptet ar referensens cs-2-water:
-	   reflect_amount = mix(reflectivity, 1.0, fresnel). */
+	/* FRESNEL: a water surface reflects more when you see it at a grazing angle (looking along the
+	   floor) than straight down. That is why a wet street shines in the distance and is dark at your
+	   feet, and it is the difference between "a dark patch" and "a wet patch". The recipe is the
+	   reference's cs-2 water: reflect_amount = mix(reflectivity, 1.0, fresnel). */
 	float fres = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.0);
 	SPECULAR = glans * mix(fresnel_min, 1.0, fres);
 }

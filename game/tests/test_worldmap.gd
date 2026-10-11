@@ -203,7 +203,10 @@ func _init() -> void:
 	var r := v.stanna()
 	check(not bool(r["ok"]), "sista platsen är låst för en ny spelare")
 	check(str(r["reason"]) == "låst", "och skälet är låst", str(r["reason"]))
-	check(str(r["text"]).begins_with("LÅST"), "beskedet säger LÅST och vad som krävs", str(r["text"]))
+	# Provet får inte hänga på vilket språk som råkar vara förstavalet: ordet hämtas ur språkfilen
+	# (förstavalet är engelska sedan 11/10, och då står det LOCKED här).
+	var låst_ord: String = Tr.t("ui.map.locked", "LOCKED — %s").split(" ")[0]
+	check(str(r["text"]).begins_with(låst_ord), "beskedet säger LÅST och vad som krävs", str(r["text"]))
 	# Kravet är SEKTIONEN, inte en namnad bana: "klara en bana i sektion 4 först" (krav står tomt, för
 	# det finns ingen enskild bana att peka på).
 	check(str(r["text"]).contains("4") and str(r["krav"]).is_empty(),

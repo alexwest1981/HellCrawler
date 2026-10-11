@@ -21,6 +21,9 @@ func check(ok: bool, what: String, detail: String = "") -> void:
 		print("  FEL  %s%s" % [what, "" if detail.is_empty() else "  (%s)" % detail])
 
 func _init() -> void:
+	# Provet jämför mot svenska ordagrant ("KISTA", "guld"), så språket pinnas: förstavalet är engelska
+	# sedan 11/10 (Alex), och ett prov får inte hänga på vilket språk som råkar vara först.
+	Tr.set_lang("sv")
 	print("— stunden: kortet vänds in med en glöd —")
 	var fx := RewardFx.new()
 	check(not fx.aktiv(), "ingenting visas innan något hänt")

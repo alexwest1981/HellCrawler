@@ -1,36 +1,38 @@
 shader_type spatial;
-// DEKORATIONEN (M84): graset, roten, mossan och smasten i miljon. Alex: *"saker i miljon som inte
-// skall ha nagon collision, men bidrar till mer... kansla"*.
+// THE DECORATION (M84): grass, roots, moss and pebbles in the million. Alex: *"saker i miljon som
+// inte skall ha nagon collision, men bidrar till mer... kansla"* ("little things in the millions that
+// should have no collision, but add more... feel").
 //
-// GRASET LYSER INTE SIALVT: render_mode ar inte `unshaded`. Vaningen ar mork och lyktan i handen ar
-// det som lyser (BESLUT 007), sa en tuva ska falla i skugga nar ljuset vander sig bort - annars
-// lyser den som en dekal i morkret. Albedon ar textur, ingen emission.
+// THE GRASS DOES NOT GLOW BY ITSELF: render_mode is not `unshaded`. The room is dark and the lantern
+// in your hand is what lights it (DECISION 007), so a tuft must fall into shadow when the light turns
+// away -- otherwise it glows like a decal in the dark. The albedo is texture, no emission.
 //
-// GLODEN (glöd > 0) ar undantaget fran den regeln och galler bara elden: en kandelaer och en spricka i
-// golvet med eld ar LJUSKALLOR, och i referensen (One More Dungeon) ar det precis de som syns langt
-// bort i morkret - svampar, symboler och kittlar som gloder. Matt: 71 rekvisiter pa en 50x50-vaning
-// med 24 riktiga ljus syntes anda inte i vyn, for ett ljus racker 4,5 m; en glodande duk syns pa hur
-// langt som helst och kostar ingenting. Gloden lyser inte UPP rummet (det gor ljuset), den visar VAR
-// ljuset ar.
+// THE GLOW (glod > 0) is the exception to that rule and applies to fire only: a candelabra and a
+// crack in the floor with fire in it are LIGHT SOURCES, and in the reference (One More Dungeon) those
+// are exactly what you see far away in the dark -- mushrooms, symbols and cauldrons that glow.
+// Measured: 71 props + 24 real lights on a 50x50 floor still did not show up in the view, because one
+// light reaches 4.5 m; a glowing sheet shows at any distance and costs nothing. The glow does not
+// light the room (the lights do), it shows WHERE the light is.
 //
-// BILLBOARDEN ar samma recept som fiendelagret: basen kommer fran den inverterade vyn och modellens
-// egen translation behalls. Den tappar modellens skala, vilket inte spelar nagon roll har - varje
-// instans ar en QuadMesh i sin egen storlek.
+// THE BILLBOARD is the same recipe as the enemy layer: the basis comes from the inverted view and the
+// model's own translation is kept. It drops the model's scale, which does not matter here -- every
+// instance is a QuadMesh in its own size.
 //
-// VINDEN: toppen svar, roten star still. Svingen dras ur varldslaget (MODEL_MATRIX[3]) i stallet for
-// ur INSTANCE_CUSTOM, sa ingen instansdata behover skickas in.
+// THE WIND: the tip sways, the root stands still. The swing is drawn from the world position
+// (MODEL_MATRIX[3]) instead of INSTANCE_CUSTOM, so no per-instance data has to be pushed in.
 render_mode cull_disabled, depth_draw_opaque, shadows_disabled, specular_disabled;
 
 uniform sampler2D textur : source_color, filter_nearest, repeat_disable;
 uniform float svep : hint_range(0.0, 0.08) = 0.012;
 uniform float vind : hint_range(0.0, 4.0) = 1.4;
-// Gloden: markdekoren har 0 (albedon ar textur, ingen emission), elden har ett varde over 1 sa den
-// syns pa hall i morkret.
+// The glow: floor decor has 0 (the albedo is texture, no emission), fire has a value above 1 so it
+// shows at a distance in the dark.
 uniform float glod : hint_range(0.0, 8.0) = 0.0;
 
 void vertex() {
-	// Skalan per instans behalls: langden pa basens axlar ar instansens skala (M79: tappade man den
-	// ritades lagret i en annan storlek an figuren). Positionen kommer fran MODEL_MATRIX[3].
+	// The per-instance scale is kept: the length of the basis axes is the instance's scale (M79 -- drop
+	// it and the layer is drawn in a different size than the figure). The position comes from
+	// MODEL_MATRIX[3].
 	vec3 skala = vec3(length(MODEL_MATRIX[0]), length(MODEL_MATRIX[1]), length(MODEL_MATRIX[2]));
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0] * skala.x, INV_VIEW_MATRIX[1] * skala.y,
 		INV_VIEW_MATRIX[2] * skala.z, MODEL_MATRIX[3]);
