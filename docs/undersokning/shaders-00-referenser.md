@@ -160,3 +160,31 @@ beskrivning.
 3. En notis om sajten: **tre av tio kodblock är tomma** även i rå HTML. Läs alltid `curl`-versionen
    innan något planeras kring en shader därifrån.
 
+
+---
+
+# Omgång 3 (11/10, sex till)
+
+Samma måttstock. `double-dither` hade inget kodblock ens i rå HTML (kontrollerat med `curl`, samma
+mönster som tre av tio i omgång 2 — författaren säljer koden på itch).
+
+| Referens | Vad den gör | Vad den ger oss | Status |
+|---|---|---|---|
+| **basic self-shadowing from heightmap** (PickledSosig) | Strålmarschar en höjdkarta i ljusets riktning: ytan skuggar sig SJÄLV, utan geometri (32 steg) | **Andra halvan av OMD-looken.** Område 1 gav höjd-djupet (heightmap voxel traversal); den här ger skuggan som gör djupet läsbart — fogarnas och stenkanternas kontaktmörker. Båda behöver samma höjdkartor ur `tools/gen_tiles.py` | **het kandidat, i par med heightmap voxel traversal** |
+| **billboard grass with wind** (Purga) | Vinden är ett BRUSFÄLT som rör sig över världen — bladen böjer sig i en våg, inte var för sig | Vår dekor har redan gräs som MultiMesh-billboards (`ui/dekor.gdshader`) men vinden är `sin(TIME * vind + fas)` per tuva: varje tuva vibrerar för sig, ingen vind FAR genom ängen. Ett advekterat brusfält i shadern är ~10 rader och **kräver ingen ny textur** (samma värdebrus som fuktshadern) | **billig vinst, görs när som helst** |
+| **simple pixelated fire** (MIT, canvas_item) | Eld ur gradient + brus, kvantiserad till `pallet_size` färger via luminanströsklar | Metoden, inte shadern: att TRÖSKLA flamman till palettens steg är precis vad som får eld att läsa som pixelkonst. Hör i så fall i den 3D-varianten (`pixelated-fire`, omgång 2) — våra lågor är billboards i världen, inte canvas | metod värd att kopiera, inte filen |
+| **retro parchment paper** (CC0, canvas_item) | Sepia + vinjett + pappersbrus + bläckblödning + smuts, 32 prover per bildpunkt | Färdigt för en 2D-panel (världskartan, albumet, slutet). MEN: sepia-mixen flyttar färgerna UT ur vår 27-färgspalett, och 32 texturprover per bildpunkt är 4 miljoner hämtningar per bildruta i 480x270 | nej tills en panel ska se ut som pergament — fråga då |
+| **transition shader with patterns** (binbun) | Gradient + kaklad form-textur = vilken form som helst på en övergång | Våra övergångar är DIEGETISKA (kameran sjunker genom golvet, M44) — en formad torka läser som en MENYövergång och passar skalet, inte våningen. Skalet har ingen övergång att byta i dag | nej |
+| **double dither** (nojoule) | Två ditherpass → cirklar med fransiga kanter, 5 alfasteg | Samma familj som ovan: hör till skal/övergångar. Idén (5 steg i stället för en mjuk ton) är retro och billig att skriva själv, men det finns ingen plats den behövs i dag | nej, tills en skärm ska tonas |
+
+## Vad jag tar med mig ur omgång 3
+
+1. **Höjdskuggan är den saknade halvan av OMD-jobbet.** Höjd-djup utan skugga är en gråsörja; skuggan
+   är vad som gör fogarna läsbara. De två shaders (omgång 1 #4 och omgång 3 #1) är ETT jobb: bygg
+   höjdkartor i `tools/gen_tiles.py`, lägg reliefen i tile-materialet, och mörklägg den med
+   strålmarschen. Mät mot fps-provet innan den slås på för alla teman.
+2. **Gräsvinden kan bytas i dag** utan en ny textur: ett advekterat värdebrus i `ui/dekor.gdshader`
+   (samma `brus()` som fuktshadern) ger en våg genom ängen i stället för 53 tuvar som vibrerar var för
+   sig.
+3. **Pergament, dither och formade övergångar** är skalsaker. De rör inte våningen, och sepia-mixen
+   bryter mot palettregeln — de väntar tills någon skärm faktiskt ska se gammal ut.
