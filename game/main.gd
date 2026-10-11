@@ -156,6 +156,12 @@ const FÖRVARNING_TID := 0.6
 const ENEMY_HIT := 4            ## träffad
 const ENEMY_DEAD := 5           ## död
 const ENEMY_FRAMES := 6
+## VOXLARNA (M108). Alex: "jag bad ju om att göra om dem till voxlar eller liknande som kan gå sönder
+## vid attack, de är ännu platta png's". Figuren byggs ur SAMMA ark (ingen ny konst): varje synlig pixel
+## blir en kub. `VOXEL_SIDOR` celler i höjd bestämmer detaljgraden — arket är 120 px per ruta, alltså
+## är 32 celler drygt var fjärde pixel. Fler celler = fler ytor att bygga om per hugg.
+const VOXEL_SIDOR := 32
+const VOXEL_DJUP := 2
 
 ## EGEN LOOK PER FIENDE (M70). Alex: *"Kan vi ge alla fiender egna shaders, så spökena t ex är
 ## transparenta? dock bara någon procent, och inte genomskinliga"*.
@@ -861,6 +867,7 @@ func _ready() -> void:
 		or _normalprov >= 0.0
 		or not _glansprov_pose.is_empty()
 		or flags.has("guiprov") or flags.has("vinstprov") or flags.has("ljusprov") or flags.has("träffprov")
+		or flags.has("voxelprov")
 		or not nodprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
 	if not kör:
 		# Vanlig start (eller en enskild skärms skärmbildsläge): byn först. Ingen körning finns än,
@@ -890,6 +897,9 @@ func _ready() -> void:
 		_start_run(str(pt.get("stage_id", "stage_01")), 20260919, int(pt.get("floor", 0)))
 	if flags.has("träffprov"):
 		await _träffprov()
+		return
+	if flags.has("voxelprov"):
+		await _voxelprov()
 		return
 	if flags.has("figurprov"):
 		await _figurprov()
@@ -5979,6 +5989,82 @@ func _träffprov() -> void:
 	_spara_bild("user://shots/träffprov.png")
 	print("[träffprov] %d skurar, %d korn i luften, hp %.0f -> %.0f, bilden sparad"
 		% [skurar, korn, hp_före, active_combat.total_enemy_hp()])
+	get_tree().quit()
+
+
+## VOXELPROVET (M108). Bygger en voxelfigur ur samma ark som billboarden, mäter byggtiden och hugget,
+## och ställer den bredvid den platta figuren i en riktig strid — bilden visar skillnaden, siffrorna
+## säger vad den kostar.
+func _voxelprov() -> void:
+	var tex: Texture2D = _enemy_tex("candlewisp")
+	if tex == null:
+		print("voxelprov: ingen bild för candlewisp")
+		get_tree().quit()
+		return
+	# HÖJDEN RÄKNAS UR FIGUREN, INTE UR CELLEN. Första försöket tog 34 x pixel_size (måttet healthbaren
+	# använder) och gav en modell på 0,41 m: den stod som ett litet grönt skräp på golvet medan spöket på
+	# skärmen är 1,26 m. Figurens EGET mått i arket gånger pixel_size är det som stämmer.
+	var figur_höjd: float = Voxel.figur_px(tex, 0, ENEMY_FRAMES).y * 0.012
+	var t0 := Time.get_ticks_usec()
+	var vx := Voxel.ur_ark(tex, 0, ENEMY_FRAMES, figur_höjd, VOXEL_SIDOR, VOXEL_DJUP)
+	var bygg_ms := float(Time.get_ticks_usec() - t0) / 1000.0
+	var mått := Voxel.figur_px(tex, 0, ENEMY_FRAMES)
+	print("[voxelprov] figuren i arket: %.0fx%.0f px, alltså %.2f m hög vid pixel_size 0,012 (cellen är %d px)"
+		% [mått.x, mått.y, figur_höjd, tex.get_height()])
+	print("[voxelprov] %d celler i %dx%d rutor, %d ytor, byggtid %.0f ms"
+		% [vx.antal_celler(), vx.kolumner, VOXEL_SIDOR, vx.antal_ytor(), bygg_ms])
+	# HUGGET: en kula i bröstet. Klockan mäter både borttagningen och ombygget av meshen.
+	var t1 := Time.get_ticks_usec()
+	var borta := vx.hugg(Vector3(0.0, figur_höjd * 0.10, 0.0), figur_höjd * 0.20)
+	var _m := vx.mesh()
+	var hugg_ms := float(Time.get_ticks_usec() - t1) / 1000.0
+	print("[voxelprov] hugg i bröstet: %d celler bort, %d kvar, %d ytor efter, %.0f ms inklusive ombygge"
+		% [borta.size(), vx.antal_celler(), vx.antal_ytor(), hugg_ms])
+	# RAKT FRAMFÖR KAMERAN, inte inne i en strid. Första försöket ställde voxlarna i en riktig strid
+	# bredvid figuren, och i den bilden gick de inte att skilja från golvets rutnät och panelerna kring
+	# — mätt med en luminanskarta över området, inte med ögat. Ett prov som ska SVARA på hur modellen
+	# ser ut ska ha bara modellen i bild: 1,6 m framför kameran, två noder sida vid sida (den hela och
+	# den med hugg), i ögonhöjd.
+	var oskadd := Voxel.ur_ark(tex, 0, ENEMY_FRAMES, figur_höjd, VOXEL_SIDOR, VOXEL_DJUP)
+	var fram := -cam.global_transform.basis.z
+	var höger := cam.global_transform.basis.x
+	var mitten := cam.global_position + fram * 0.95      # tätt inpå: provet ska se modellen, inte rummet
+	for par in [[oskadd, -0.24], [vx, 0.24]]:
+		var mi: MeshInstance3D = (par[0] as Voxel).nod()
+		world.add_child(mi)
+		mi.global_position = mitten + höger * float(par[1])
+		var p := cam.unproject_position(mi.global_position)
+		print("[voxelprov]   voxelnod vid %s -> skärm (%.0f, %.0f)"
+			% [str(mi.global_position.round()), p.x, p.y])
+	print("[voxelprov] två noder i världen: en hel och en med hugg (%d respektive %d ytor)"
+		% [oskadd.antal_ytor(), vx.antal_ytor()])
+	# GEOMETRIN I SIFFROR. Att noden finns och har ytor betyder inte att meshen har en utsträckning —
+	# en AABB på noll är en mesh utan volym, och då syns ingenting oavsett var den står.
+	for mi3 in world.get_children():
+		var m4 := mi3 as MeshInstance3D
+		if m4 != null and m4.material_override is StandardMaterial3D and m4.mesh != null:
+			var arr: Array = m4.mesh.surface_get_arrays(0)
+			var col0: PackedColorArray = arr[Mesh.ARRAY_COLOR]
+			var nor0: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+			# FÄRGEN I MESHEN, inte i avsikten: en albedo på 0 ritar svart även med emission, och då
+			# är det färgerna i bygget som är fel — inte ljuset i rummet.
+			print("[voxelprov]   mesh: %d yta(or), AABB %s, %d hörn, första färgen %s, första normalen %s"
+				% [m4.mesh.get_surface_count(), str(m4.mesh.get_aabb()), col0.size(),
+					str(col0[0]) if col0.size() > 0 else "-",
+					str(nor0[0]) if nor0.size() > 0 else "-"])
+	var skurar := 0
+	for n in world.get_children():
+		if n is GPUParticles3D and n.name == "pixelregn":
+			skurar += 1
+	# FRAMRUTOR INNAN KAMERAN: `_spara_bild` läser vyns textur, och den är TOM innan något har ritats.
+	# Första bilden blev helsvart (mätt: varje rad och kolumn 0,0) — provet fotograferade en vy som
+	# ännu inte fanns. De andra proven väntar in sina strider och slipper därför problemet.
+	for i in 4:
+		await get_tree().process_frame
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
+	_spara_bild("user://shots/voxelprov.png")
+	print("[voxelprov] %d skurar i luften, bild i %s"
+		% [skurar, ProjectSettings.globalize_path("user://shots/voxelprov.png")])
 	get_tree().quit()
 
 
