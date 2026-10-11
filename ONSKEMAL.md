@@ -485,6 +485,26 @@ sidan av figuren, 1-3 px).
 **Kvar:** kostnaden i bildrutor för tre träffar i samma bildruta är inte mätt — `-- fpsprov` spelar inga
 kort, så den ser inte effekten. Antalet är 8-14 korta partiklar per träff.
 
+**Uppföljning 2026-10-11 — mängden ska vara en hälsodeklaration.** Alex förtydligade vad han menade med
+"pixlarna lossnar": *"Tänk dig spelet Teardown, när man slår sönder något, så lossnar voxlar från
+objektet. Samma med fienden, Lite som en hälsodeklaration över deras hälsa."* Alltså inte att fienden ska
+BYTAS mot en voxelmodell, utan att **förlusten** ska synas: antalet bitar som lossnat ska vara
+avläsningen av hur mycket stryk fienden tagit.
+
+**Byggt:** antalet korn följer nu skadans ANDEL av fiendens högsta hälsa (`Fx.korn_efter_skada()`,
+`game/core/fx.gd`) i stället för att vara en konstant skur: golv 6, tak 30, och kedjan (från `mult` 2)
+lägger till två korn per steg. Kopplad i `_enemy_reaktion()`s två grenar (träff och dråp, `game/main.gd`).
+
+**MÄTT:** `-- träffprov`: hp 32 → 16 gav **30 korn** (taket) mot 14 före; fem nya kontroller i
+`tests/test_fx.gd` mäter regelns FORM (större skada → fler bitar, aldrig under golvet, aldrig över taket,
+kedjan lägger till, ett tak på noll delar inte med noll) → **70 kontroller, 0 fel**. Skärmbilden från
+provet granskades: bitarna syns (1–3 px, kring huvud, axlar och sidor) — men de LÄSES som ett moln av
+gnistor, inte som tydliga bitar som lossnat ur figuren.
+
+**Kvar (nästa steg, om han vill ha mer):** formen. Färre och större bitar, färgade ur fiendens egen
+albedo i stället för blod/röd-paletten, mindre spridning och mer "faller rakt ned" — plus att bitarna
+ligger kvar på golvet en stund (Teardown) i stället för att slockna efter 0,55 s.
+
 ## 30. Större dungeons som genereras automatiskt
 
 "Kan vara en bra grej till hellcrawler framöver, att sätta större Dungeons som genereras automatiskt,

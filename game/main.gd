@@ -4462,13 +4462,15 @@ func _enemy_reaktion(mult: int = 1) -> Sprite3D:
 		if hp <= 0.0 and förra > 0.0:
 			_enemy_läge(e, ENEMY_DEAD, 9999.0)
 			_slag_kvitto(spr, skada, 3)          # ett dråp är alltid värt den stora siffran
-			_pixelregn(spr, 14)                  # ett dråp spiller mer än en träff
+			# Ett dråp spiller alltid mer än en träff — men andelen styr hur mycket mer (Teardown:
+			# bitarna är en hälsodeklaration, och en död fiende har lämnat allt).
+			_pixelregn(spr, maxi(Fx.korn_efter_skada(skada, foes[i].max_hp, 3), 14))
 			if träffad == null:
 				träffad = spr
 		elif hp < förra:
 			_enemy_läge(e, ENEMY_HIT, 0.35)
 			_slag_kvitto(spr, skada, mult)
-			_pixelregn(spr, 6 + mini(mult, 3) * 2)
+			_pixelregn(spr, Fx.korn_efter_skada(skada, foes[i].max_hp, mult))
 			if träffad == null:
 				träffad = spr
 		e["hp"] = hp

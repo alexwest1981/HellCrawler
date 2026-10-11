@@ -243,5 +243,26 @@ func _init() -> void:
 		check(not rökmat.emission_enabled, "röken lyser inte (bara elden är en ljuskälla)")
 	fackel_rot.free()
 
+	# HÄLSODEKLARATIONEN (Alex 2026-10-11): mängden som lossnar ska följa SKADANS andel, inte vara en
+	# konstant skur. Provet mäter därför REGELNS form — litet hugg < halvt liv, aldrig under golvet,
+	# aldrig över taket — och inte ett enstaka tal som råkar stämma en dag.
+	var tiondel := Fx.korn_efter_skada(5.0, 50.0, 1)
+	var halvt := Fx.korn_efter_skada(25.0, 50.0, 1)
+	var allt := Fx.korn_efter_skada(500.0, 50.0, 1)
+	check(tiondel < halvt and halvt < allt,
+		"fler bitar lossnar av större skada — en hälsodeklaration, inte en konstant skur",
+		"%d < %d < %d korn (fiende med 50 hp)" % [tiondel, halvt, allt])
+	check(Fx.korn_efter_skada(0.0, 50.0, 1) == Fx.KORN_GOLV and tiondel > Fx.KORN_GOLV,
+		"golvet gäller en träff utan skada; en liten skada ger redan mer än golvet (%d mot %d)"
+		% [tiondel, Fx.KORN_GOLV])
+	check(allt == Fx.KORN_MAX and Fx.korn_efter_skada(50.0, 50.0, 3) == Fx.KORN_MAX,
+		"och taket håller emot: %d korn är dimma, inte bitar" % Fx.KORN_MAX, "%d" % allt)
+	check(Fx.korn_efter_skada(25.0, 50.0, 3) > Fx.korn_efter_skada(25.0, 50.0, 1),
+		"kedjan lägger till ovanpå andelen: ett stort drag vräker ut mer",
+		"%d mot %d" % [Fx.korn_efter_skada(25.0, 50.0, 3), Fx.korn_efter_skada(25.0, 50.0, 1)])
+	check(Fx.korn_efter_skada(10.0, 0.0, 1) == Fx.KORN_MAX,
+		"ett tak på noll delar inte med noll: regeln svarar taket i stället för att krascha",
+		"%d" % Fx.korn_efter_skada(10.0, 0.0, 1))
+
 	print("=== %d kontroller, %d fel" % [checks, fails])
 	quit(1 if fails > 0 else 0)

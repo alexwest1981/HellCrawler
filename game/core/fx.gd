@@ -421,6 +421,28 @@ const DROPP_VÄNTAN_ACCENT := Vector2(0.6, 1.6)   ## accenter: något enstaka st
 ## 5,1 mm per spel-pixel, så 0,014 m är ~3 spel-pixlar. UNDER TVÅ PIXLAR FLIMRAR KORNET I CRT:ns
 ## SKANLINJER (samma gräns som dammet), så 0,010 m är golvet och 0,014 det valda.
 ##
+## HUR MYCKET SOM LOSSNAR ÄR EN HÄLSODEKLARATION (Alex 2026-10-11: *"Tänk dig spelet Teardown, när man
+## slår sönder något, så lossnar voxlar från objektet. Samma med fienden, lite som en hälsodeklaration
+## över deras hälsa."*). Antalet korn följer därför skadans ANDEL av fiendens tak, inte en konstant skur:
+## ett hugg på en tiondel av livet syns, ett hugg på halva livet vräker ut bitar. Kedjemultiplikatorn
+## lägger till lite — den är redan spelets sätt att säga "det här draget var stort".
+##
+## Golvet är 6 (samma krav som provet i `tests/test_strid.gd` ställer: en engångsskur med minst sex korn)
+## och taket 30: fler bitar än så i en 480x270-vy är en dimma, inte bitar.
+const KORN_GOLV := 6
+const KORN_TAK := 24
+const KORN_MAX := 30
+
+## Antalet korn för en träff: skadans andel av fiendens högsta hälsa, plus kedjan, klämt mellan golv och tak.
+## Kedjan räknas från 2 och uppåt: `mult` 1 är ett ensamt kort, och det ska inte få samma påslag som ett
+## riktigt kedjedrag (annars är golvet 8 och inte 6, och provet mäter ett annat tal än det påstår).
+static func korn_efter_skada(skada: float, fiende_tak: float, mult: int = 1) -> int:
+	var andel := clampf(skada / maxf(fiende_tak, 1.0), 0.0, 1.0)
+	var kedja := mini(maxi(mult - 1, 0), 3) * 2
+	return int(clampf(float(KORN_GOLV) + float(KORN_TAK) * andel + float(kedja),
+		float(KORN_GOLV), float(KORN_MAX)))
+
+
 ## Tyngden är riktig (-9,8): bitar ska falla som bitar. Ett lägre värde läses som rök, inte som skärvor.
 static func skärva(förälder: Node3D, pos: Vector3, färger: Array, antal := 8) -> GPUParticles3D:
 	var p := _moln(antal, 0.55, BaseMaterial3D.BLEND_MODE_MIX, Vector2(0.014, 0.014))
