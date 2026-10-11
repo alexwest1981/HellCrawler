@@ -4598,6 +4598,13 @@ func _process(delta: float) -> void:
 				cam.global_transform.basis.rotated(Vector3.UP, PI), vox.global_position)
 		var gn: Sprite3D = e.get("glans")
 		if gn != null:
+			# AURAN SLÄCKS PÅ EN VOXELFIGUR. Den är en ADDITIV glödquadd som lades över spriten för att
+			# figuren skulle lysa av sig själv — men på en solid modell lägger den ett vitt sken över hela
+			# kroppen. Alex: "Om du ser, så är hundarna delvis vita?" Mätt: provets lösa modeller (samma kod,
+			# men utan aura) lästes som "dark muted blues, slate greys", medan figuren i spelet är
+			# genomgående blek. Skillnaden är auran. Samma skäl som när emissionen togs bort: färgen ska
+			# komma från bilden, inte från ett konstant lager ovanpå den.
+			gn.visible = not spr.has_node("voxel")
 			var andning: float = 1.0 + sin(t * 2.3 + float(e["fas"])) * 0.06
 			gn.scale = Vector3.ONE * andning * gn.get_meta("basstorlek", 1.0)
 			(gn.material_override as StandardMaterial3D).emission_energy_multiplier = \
