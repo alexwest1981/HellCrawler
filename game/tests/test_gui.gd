@@ -19,6 +19,19 @@ var checks := 0
 var fönster := Vector2.ZERO
 var vy := Rect2()
 
+## Kvadarna som `_hugg` (M107) lägger i världen. Känns igen på shadern, inte på namnet: en nod som
+## heter rätt men ritar fel är inget hugg.
+func _hugg_kvadar(nod: Node) -> Array:
+	var ut: Array = []
+	for barn in nod.world.get_children():
+		var mi := barn as MeshInstance3D
+		if mi == null or not (mi.material_override is ShaderMaterial):
+			continue
+		var sh: Shader = (mi.material_override as ShaderMaterial).shader
+		if sh != null and sh.resource_path.ends_with("hugg.gdshader"):
+			ut.append(mi)
+	return ut
+
 func check(ok: bool, what: String, detail: String = "") -> void:
 	checks += 1
 	if ok:
@@ -247,6 +260,45 @@ func _initialize() -> void:
 		check(main._forhands_noder.is_empty(), "förhandsvisningen städas bort när inget kort är framme",
 			"%d kvar" % main._forhands_noder.size())
 
+	## HUGGET (M107): Alex länkade procedural-cyclic-slash ("Vid attack, men behöver fler liknande
+	## denna, så det blir variation"). Bågen är PROCEDURELL — ingen textur — så provet mäter det som
+	## ger variationen (fyra rattar dras olika för varje hugg), att kvaden följer figurens höjd, och att
+	## den städar efter sig. Anropet går genom `_slag_kvitto`, den enda vägen in för skada.
+	print("")
+	print("— hugget över fienden —")
+	var hugg_fiende: Sprite3D = null
+	for f in figurer:
+		hugg_fiende = f as Sprite3D
+		break
+	check(hugg_fiende != null, "det finns en fiende att hugga")
+	if hugg_fiende != null:
+		main._slag_kvitto(hugg_fiende, 5.0, 1)
+		var kvadar := _hugg_kvadar(main)
+		check(kvadar.size() == 1, "slaget lägger en båge i världen", "%d kvadar" % kvadar.size())
+		if kvadar.size() == 1:
+			var rattar: Array = []
+			for namn in ["vinkel", "riktning", "radie", "svep", "bredd", "styrka"]:
+				rattar.append(float((kvadar[0].material_override as ShaderMaterial).get_shader_parameter(namn)))
+			# Flyttal: 0,408 mot 0,40800001 är samma höjd, och ett == hade fällt ett riktigt hugg.
+			check(is_equal_approx((kvadar[0].mesh as QuadMesh).size.x, 34.0 * hugg_fiende.pixel_size),
+				"bågen har figurens höjd (34 x pixel_size)",
+				"%.3f m" % (kvadar[0].mesh as QuadMesh).size.x)
+			main._hugg(hugg_fiende)
+			var kvadar2 := _hugg_kvadar(main)
+			var olika := 0
+			if kvadar2.size() == 2:
+				for i in rattar.size():
+					var ny := float((kvadar2[1].material_override as ShaderMaterial)
+						.get_shader_parameter(["vinkel", "riktning", "radie", "svep", "bredd", "styrka"][i]))
+					if absf(ny - float(rattar[i])) > 0.0001:
+						olika += 1
+			# Ett hugg är fyra SLUMPADE rattar (Alex: "behöver fler liknande denna, så det blir
+			# variation"). Att alla sex blev lika är att slumptalet sitter fast.
+			check(olika >= 2, "två hugg drar olika rattar (variationen)", "%d av 6 olika" % olika)
+		await create_timer(main.HUGG_TID + 0.25).timeout
+		check(_hugg_kvadar(main).is_empty(), "och bågen städar sig själv efter svepet",
+			"%d kvar" % _hugg_kvadar(main).size())
+
 	## KORTETS EGNA EFFEKTER (M103): glansen vid hover och förbränningen när kortet spelas. Båda bor i
 	## EN överläggning ovanpå kortet (ui/kortfx.gdshader), för kortet är ett träd av Controls och en
 	## canvas-shader ritar per del — en brinnfläck hade hamnat olika på ramen, konsten och texten.
@@ -291,6 +343,14 @@ func _initialize() -> void:
 		k0.set_forward(true)
 		k1.set_forward(false)
 		await create_timer(0.2).timeout
+		var skugga := k0.get_theme_stylebox("panel") as StyleBoxFlat
+		# SKUGGAN (M106b). Alex länkade fyra skugg-shadrar till korten; alla fyra är samma sak — en mjuk
+		# skugga under kortet — och den finns inbyggd i StyleBoxFlat. Provet kräver att den FINNS, så en
+		# stil som tappar den fångas här och inte av att korten ser platta ut.
+		check(skugga != null and skugga.shadow_size > 0 and skugga.shadow_color.a > 0.1,
+			"kortet kastar en skugga (StyleBoxFlat, ingen shader)",
+			"shadow_size %d, alfa %.2f" % [skugga.shadow_size if skugga != null else -1,
+				skugga.shadow_color.a if skugga != null else -1.0])
 		check(main._stylebox_alfa(k0) >= 0.999 and main._stylebox_alfa(k1) >= 0.999,
 			"kortets panel är hel både framträdd och i ledet",
 			"framträdd %.2f, i ledet %.2f" % [main._stylebox_alfa(k0), main._stylebox_alfa(k1)])

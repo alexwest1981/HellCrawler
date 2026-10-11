@@ -414,6 +414,9 @@ const TAK_TON := Color(0.60, 0.66, 0.90)
 const GOLV_TON := Color(1.12, 1.06, 0.98)
 const LAGA_RACKVIDD := 6.5
 const LAGA_FARG := Color(1.0, 0.78, 0.55)
+## Hur länge hugget sveper (M107). 0,20 s: siffran och blinket är gjorda på 0,04-0,2 s, och ett svep
+## som hänger kvar efteråt läses som en projektileffekt i stället för ett hugg.
+const HUGG_TID := 0.20
 ## LJUSET PÅ YTORNA: en faktor på lyktan och facklorna — ljuset som träffar väggar och golv.
 ##
 ## HELA ändringen ligger här, och den är en faktor och inte en omgivning: rummet är inte för mörkt för
@@ -5909,9 +5912,12 @@ func _träffprov() -> void:
 	# bild som ljuger om mekaniken. Figurens position går att läsa här — till skillnad från rekvisiternas
 	# MultiMesh-instanser svarar en Sprite3D med sin riktiga position även i en körande körning.
 	var ledet := []
+	var prov_spr: Sprite3D = null          # första fienden i ledet: den provet hugger i bilden
 	for e in _enemies:
 		if e.get("nod") == nod.pos:
 			var s: Sprite3D = e["spr"]
+			if prov_spr == null:
+				prov_spr = s
 			ledet.append("(%.2f, %.2f)" % [s.position.x, s.position.z])
 	var rader := []
 	for f in active_combat.enemies:
@@ -5944,6 +5950,24 @@ func _träffprov() -> void:
 	_refresh_battle()
 	print("träffprov: förhandsvisning %s" % str(_forhands_noder.map(
 		func(n): return str(n.text) if is_instance_valid(n) else "-")))
+	# HUGGET I BILDEN (M107). Svepet varar 0,20 s och provet väntar 0,12 s, så ett hugg från slingan
+	# hinner blekna innan kameran är framme. Provet tar därför ett FRISKT hugg precis före bilden och
+	# skriver BÅDE hur många som låg kvar från striden och hur många som syns nu — siffran och bilden
+	# säger samma sak.
+	var hugg_kvar := 0
+	for n in world.get_children():
+		var mi := n as MeshInstance3D
+		if mi != null and mi.material_override is ShaderMaterial \
+			and (mi.material_override as ShaderMaterial).shader != null \
+			and (mi.material_override as ShaderMaterial).shader.resource_path.ends_with("hugg.gdshader"):
+			hugg_kvar += 1
+	if prov_spr != null:
+		_hugg(prov_spr)
+		# MITT I SVEPET, inte i starten: vid `fram = 0` har ingen del av bågen ritats än, så en bild
+		# tagen direkt efter anropet visar ingenting (mätt: bilden blev utan hugg två gånger). Provet
+		# väntar 45 % av sveptiden, där bågen står som tydligast.
+		await get_tree().create_timer(HUGG_TID * 0.45).timeout
+	print("[träffprov] hugg: %d kvar från striden, 1 friskt för bilden (fram 0.45)" % hugg_kvar)
 	_spara_bild("user://shots/träffprov.png")
 	print("[träffprov] %d skurar, %d korn i luften, hp %.0f -> %.0f, bilden sparad"
 		% [skurar, korn, hp_före, active_combat.total_enemy_hp()])
@@ -7883,6 +7907,47 @@ func _place_bar(e: Dictionary) -> void:
 	fyllnad.position = Vector3(vänster + BAR_W * 0.06, topp + BAR_H * 0.2, spr.position.z)
 	e["y"] = spr.position.y
 
+## HUGGET (M107). Alex länkade `procedural-cyclic-slash`: "Vid attack, men behöver fler liknande
+## denna, så det blir variation". En båge ritas på en kvad som står upp som figurerna (samma höjd, ur
+## `pixel_size`), och en het kant sveper genom den. PROCEDURELLT — ingen textur: variationen Alex bad om
+## kommer ur att fyra rattar dras slumpvis per hugg (vinkel, riktning, radie, svep), så två slag aldrig
+## ser likadana ut utan att en enda ny fil hamnar i assets/.
+##
+## Anropas ur `_slag_kvitto`, som är den ENDA vägen in för skada — allt som gör ont får samma hugg,
+## och en ny angripare kan inte glömma det.
+func _hugg(spr: Sprite3D) -> void:
+	if world == null:
+		return
+	# Figurens höjd i meter: samma 17 x pixel_size över mitten som healthbaren räknar ur (se _enemy_reaktion).
+	var höjd: float = 34.0 * spr.pixel_size
+	var m := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(höjd, höjd)
+	m.mesh = q
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://ui/hugg.gdshader")
+	# HUGGET SKA VARA SNETT. Riktningen dras först (uppåt vänster eller uppåt höger), och vinkeln följer
+	# den — en båge som lutar lite hur som helst läser som en gloria, en som alltid skär diagonalt läser
+	# som ett hugg. Mätt i bild: rakt ovanför figuren blev det "en ren halvcirkel över huvudet".
+	var sned: float = 1.0 if randf() < 0.5 else -1.0
+	mat.set_shader_parameter("riktning", sned)
+	mat.set_shader_parameter("vinkel", sned * randf_range(0.30, 0.80))
+	mat.set_shader_parameter("radie", randf_range(0.42, 0.52))
+	mat.set_shader_parameter("svep", randf_range(2.0, 2.7))
+	mat.set_shader_parameter("bredd", randf_range(0.07, 0.12))
+	mat.set_shader_parameter("styrka", randf_range(1.5, 2.1))
+	# Färgen varierar med: mest varmt, ibland nästan vitt (ett hårdare hugg).
+	mat.set_shader_parameter("glod", Vector3(1.0, randf_range(0.74, 0.94), randf_range(0.5, 0.72)))
+	mat.set_shader_parameter("fram", 0.0)
+	m.material_override = mat
+	world.add_child(m)
+	m.global_position = spr.global_position + Vector3(0.0, 0.06, 0.03)
+	var t := create_tween()
+	t.tween_method(func(v: float): mat.set_shader_parameter("fram", v), 0.0, 1.0, HUGG_TID)
+	# Noden städas av tweenen, inte av en timer någon annanstans: en kvad kvar i världen är ett spöke
+	# som syns i nästa strid (och ett läckage i provet).
+	t.tween_callback(m.queue_free)
+
 ## Slagets kvitto. Utan det ser ett spelat kort likadant ut som ett ospelat: baren krymper, men
 ## inget HÄNDER (Alex: "det gäller att få till så det är en visuell bekräftelse att man attackerar
 ## med"). Tre saker på samma gång, för de svarar på olika frågor: SIFFRAN säger hur mycket, BLINKET
@@ -7890,6 +7955,7 @@ func _place_bar(e: Dictionary) -> void:
 func _slag_kvitto(spr: Sprite3D, skada: float, mult: int) -> void:
 	if skada <= 0.0 or not is_instance_valid(spr):
 		return
+	_hugg(spr)
 	var lbl := Label3D.new()
 	lbl.text = "−%.0f" % skada
 	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED

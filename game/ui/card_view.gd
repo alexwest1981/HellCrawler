@@ -632,6 +632,14 @@ func _style(raised: bool) -> StyleBoxFlat:
 	sb.set_border_width_all(_px(2) if raised else _px(1))
 	sb.set_corner_radius_all(_px(4))
 	sb.set_content_margin_all(_px(3))
+	# SKUGGAN. Alex länkade fyra skugg-shadrar till korten (soft drop shadow för pixel art, simple och
+	# dynamic shadow för 2D-sprites, card-shadow pseudo-3D). Alla fyra gör samma sak — en mjuk skugga
+	# under kortet som lyfter det från underlaget — och den är inbyggd: StyleBoxFlat bär shadow_size,
+	# shadow_offset och shadow_color. Noll shader, noll textur, inget nytt lager. Det framträdda kortet
+	# kastar en större skugga och längre ned, vilket är det som gör lyftet läsbart även mot mörk botten.
+	sb.shadow_size = _px(3 if raised else 2)
+	sb.shadow_offset = Vector2(_px(1), _px(3 if raised else 1))
+	sb.shadow_color = Color(0.0, 0.0, 0.0, 0.55)
 	return sb
 
 ## Titellisten i kortets typfärg.

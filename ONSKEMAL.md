@@ -744,3 +744,29 @@ framträder — `[1.0, 1.0, 1.0, 1.0]` båda gångerna, så hoverrörelsen rörd
 ur den stil som LIGGER på (`_stylebox_alfa`): **0.97/0.94 → 1.00/1.00**. Kortstorleken: 130x180.
 
 Prov: `test_kortrorelse` 26 kontroller 0 fel, `test_gui` 227 kontroller 0 fel.
+
+## 39. Hugget över fienden, och skuggan under kortet (Alex 11/10)
+
+Alex: *"Vid attack, men behöver fler liknande denna, så det blir variation"* (procedural-cyclic-slash)
+och fyra skugg-shadrar till korten.
+
+**Status:** BYGGT 2026-10-11, mätt.
+
+**Hugget** (`ui/hugg.gdshader` + `Main._hugg`): referensen kräver fyra texturer; vår version behöver
+noll. En ringbana i polära koordinater med en het framkant, och variationen blir fyra SLUMPADE rattar
+per hugg (vinkel, riktning, radie, svep). Kvaden är figurens höjd (34 × `pixel_size`) och billboardas i
+vertex-funktionen. Anropas ur `_slag_kvitto`, den enda vägen in för skada.
+
+**Två mätningar som rättade koden:** (1) en bild tagen direkt efter anropet visar ingenting — vid
+`fram = 0` har ingen del av bågen ritats, så `--träffprov` väntar 45 % av sveptiden; (2) bågen
+parametrades först från `a = 0` (klockan tre), vilket la den ritade biten vid kvadens hörn utanför
+kroppen — vinkeln mäts nu från ringens topp (bröstet). I bild: *"a luminous white highlight that runs
+vertically and diagonally, resembling a bright slash across its form"*.
+
+**Skuggan:** de fyra skugg-länkarna gör samma sak, och den är inbyggd — `StyleBoxFlat` bär
+`shadow_size`, `shadow_offset`, `shadow_color`. Noll shader, noll textur, noll dubblerad ruta.
+Framträdd 3 px kärna / 3 px ned, i ledet 2 px / 1 px.
+
+**Prov:** fem kontroller av hugget (genom `_slag_kvitto`, en kvad med hugg-shadern, figurens höjd, två
+hugg drar olika rattar — mätt 5 av 6 — och bågen städar sig själv) plus en skuggkontroll. Hela sviten:
+2 263 kontroller, 0 fel.
