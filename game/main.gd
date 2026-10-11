@@ -5476,11 +5476,11 @@ func _dekor_nod(art: String, platser: Array) -> int:
 		mesh = vx.mesh()
 		mat.vertex_color_use_as_albedo = true     # färgen sitter i hörnen, ur arkets egna pixlar
 		mat.roughness = 0.9                        # matt yta, som fienderna (M59)
-		var glod := float(GLÖD.get(art, 0.0))
-		if glod > 0.0:                             # samma glöd som dekor-shadern hade
-			mat.emission_enabled = true
-			mat.emission = LAGA_FARG
-			mat.emission_energy_multiplier = glod
+		# INGEN EMISSION PÅ MODELLEN. Den gamla dekor-shadern la en glöd över hela den platta bilden, och
+		# jag ärvde det rakt av — men på en solid modell lyser då HELA kroppen: Alex om tak-kronan: "är
+		# helvit typ". Samma sak som gav vita hundar (auran) och bleka spöken (emissionen i noden). Ett
+		# föremål som ska glöda har redan sitt EGET ljus: koden sätter en OmniLight3D per lysande rekvisit
+		# (REKVISIT_LYSER), och den lyser modellen utifrån precis som facklorna gör.
 	else:
 		var quad := QuadMesh.new()
 		quad.size = duk
