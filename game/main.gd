@@ -4589,8 +4589,13 @@ func _process(delta: float) -> void:
 		# Bara gir: modellen ska stå upp, och färgen sitter i cellerna så fram och bak är lika.
 		var vox: MeshInstance3D = spr.get_node_or_null("voxel")
 		if vox != null and cam != null:
-			var mot := cam.global_position - vox.global_position
-			vox.global_rotation = Vector3(0.0, atan2(mot.x, mot.z), 0.0)
+			# SOM SPRITENS BILLBOARD, fast: kamerans egen bas, vriden ett halvt varv så modellens framsida
+			# möter kameran. ENBART GIR RÄCKTE INTE. Kameran tittar nedåt i korridoren, och en kvad som bara
+			# girar visar sin ÖVERKANT när man ser den ovanifrån — den tredje vålnaden, den som stod längst
+			# bort, blev en vit linje: Alex: "3 vålnader, den vita linjen i mitten är en med." Att låna
+			# kamerans bas ger samma lutning som billboarden hade.
+			vox.global_transform = Transform3D(
+				cam.global_transform.basis.rotated(Vector3.UP, PI), vox.global_position)
 		var gn: Sprite3D = e.get("glans")
 		if gn != null:
 			var andning: float = 1.0 + sin(t * 2.3 + float(e["fas"])) * 0.06
