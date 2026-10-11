@@ -262,6 +262,11 @@ const REKVISIT_VIKT := [["bur", 0.36], ["kandelaber", 0.32], ["spricka_eld", 0.3
 ## mörkret: en rekvisit utanför lyktans kägla syns inte alls hur många de än är. Det som måste upp är
 ## LJUSET, inte antalet — referensen har 2-4 ljuskällor i varje bildruta.
 const REKVISIT_LYSER := ["kandelaber", "spricka_eld"]
+## DE SOM HÄNGER I TAKET. Alex: *"Ljuskronorna ligger på golvet, å hänger inte i taket"* — konsten bär
+## en kedja överst (VÄGG i tools/gen_props.py), och buren är rättad efter samma regel: den skulle
+## hänga enligt sin egen generator ("någonstans i taket skall en sån där bur med ett skelett hänga")
+## men stod på golvet sedan den kom in. Sprickan i golvet är den enda som hör till golvet.
+const REKVISIT_HÄNGER := ["kandelaber", "bur"]
 const REKVISIT_LJUS_MAX := 24         ## flest glödande rekvisiter per våning (varje ljus kostar)
 const REKVISIT_LJUS_RACKVIDD := 4.5   ## kortare än facklan (6,5): en glimt, inte en rumshörnsten
 ## GLÖDEN i duken för de arter som är eld. Ett värde över 1 syns på håll i mörkret; markdekoren står
@@ -5214,6 +5219,7 @@ func _bygg_dekor(golv: Array) -> void:
 	var per_art := {}
 	var lysande := {}            ## art -> platser, för de föremål som ska ha ett eget ljus
 	var antal_föremål := 0
+	var antal_hängande := 0            ## hur många av dem som hänger i taket (krona, bur)
 	for p in golv:
 		# MARKDEKOR OCH FÖREMÅL ÄR TVÅ URVAL UR SAMMA HASH, och då ligger föremålen ovanpå marken: allt
 		# som är under 1/20 är också under 1/4. Föremålens urval får därför ett eget salt, så de hamnar
@@ -5225,6 +5231,8 @@ func _bygg_dekor(golv: Array) -> void:
 		var art := _välj(DEKOR_VIKT if är_mark else REKVISIT_VIKT, _slump(p.x, p.y, 7717))
 		if not är_mark:
 			antal_föremål += 1
+			if REKVISIT_HÄNGER.has(art):
+				antal_hängande += 1
 		# Liten förskjutning inom rutan och egen storlek: två tuvor ska inte vara samma tuva.
 		var dx := (_slump(p.x, p.y, 331) - 0.5) * 0.6
 		var dz := (_slump(p.x, p.y, 557) - 0.5) * 0.6
@@ -5244,11 +5252,14 @@ func _bygg_dekor(golv: Array) -> void:
 		antal += n
 		print("  dekor: %-8s %3d st" % [art, n])
 	print("  dekor: %d st på %d golvrutor (var %d:e ruta)" % [antal, golv.size(), _dekor_täthet])
-	print("  rekvisiter: %d st som står upp (var %d:e golvruta)" % [antal_föremål, REKVISIT_TÄTHET])
+	print("  rekvisiter: %d st i rummet (var %d:e golvruta, %d av dem hänger i taket)" % [
+		antal_föremål, REKVISIT_TÄTHET, antal_hängande])
 	# LJUSET I REKVISITERNA: en glimt per glödande föremål, upp till taket, utan skuggor — de ska ge
 	# mörkret en rytm att gå mellan (som referensen), inte bära rummet. Facklorna bär skuggorna.
 	var ljus := 0
 	for art in lysande:
+		var tex := _prop(art)
+		var duk_h := (float(tex.get_height()) * DEKOR_PIXEL) if tex != null else 0.4
 		for t in lysande[art]:
 			if ljus >= REKVISIT_LJUS_MAX:
 				break
@@ -5258,7 +5269,13 @@ func _bygg_dekor(golv: Array) -> void:
 			l.omni_range = REKVISIT_LJUS_RACKVIDD
 			l.omni_attenuation = 1.6
 			l.shadow_enabled = false
-			l.position = (t as Transform3D).origin + Vector3(0.0, 0.5, 0.0)
+			# LJUSETS HÖJD: ett föremål på golvet lyser strax över sin egen fot (0,5 m, som förut), men en
+			# HÄNGANDE krona lyser NEDÅT — 0,5 m över dess mitt hamnade inne i taket och glöden försvann
+			# upp i mörkret. Vid lågorna = 0,4 av dukens höjd under kronans mitt.
+			var y := 0.5
+			if REKVISIT_HÄNGER.has(art):
+				y = _dekor_y(art, duk_h, (t as Transform3D).basis.get_scale().y) - duk_h * 0.4
+			l.position = (t as Transform3D).origin + Vector3(0.0, y, 0.0)
 			world.add_child(l)
 			ljus += 1
 	print("  rekvisiter: %d av dem lyser (tak %d)" % [ljus, REKVISIT_LJUS_MAX])
@@ -5274,8 +5291,19 @@ static func _välj(tabell: Array, v: float) -> String:
 	return str(tabell[tabell.size() - 1][0]) if not tabell.is_empty() else ""
 
 
-## En MultiMesh per art. Quadden är dukens pixelstorlek gånger DEKOR_PIXEL, och instanserna lyfts så
-## att figurens NEDERKANT står på golvet — quadden är centrerad kring sin origo.
+## En MultiMesh per art. Quadden är dukens pixelstorlek gånger DEKOR_PIXEL, och höjden kommer ur
+## `_dekor_y` — quadden är centrerad kring sin origo.
+##
+## Instansens HÖJD. Golvregeln är att figurens NEDERKANT står på golvet; de som hänger har i stället sin
+## ÖVERKANT i taket (kedjan fäster där). Ren funktion med flit: MultiMesh-instansernas transformar går
+## inte att läsa i huvudlöst läge (dummyns lagring är tom, se tests/test_dekor.gd), så provet mäter
+## REGELN i stället för en bild som ingen kan granska i en svit.
+static func _dekor_y(art: String, duk_höjd: float, s: float) -> float:
+	if REKVISIT_HÄNGER.has(art):
+		return float(TAK_HÖJD) - duk_höjd * 0.5 * s
+	return duk_höjd * 0.5 * s
+
+
 func _dekor_nod(art: String, platser: Array) -> int:
 	var tex := _prop(art)
 	if tex == null or platser.is_empty() or not world:
@@ -5295,8 +5323,17 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	for i in platser.size():
 		var t: Transform3D = platser[i]
 		var s := t.basis.get_scale().y
-		t.origin.y = duk.y * 0.5 * s          # figurens nederkant på golvet, se provet
+		t.origin.y = _dekor_y(art, duk.y, s)
 		mm.set_instance_transform(i, t)
+	# HÖJDEN LÄSES TILLBAKA ur MultiMesh, inte ur beräkningen: det är den siffran renderaren ritar, och
+	# i huvudlöst läge svarar den 0,00 (dummyns lagring är tom) — alltså ett prov som säger sanningen om
+	# var den kördes. Se tests/test_dekor.gd för regeln och `_dekor_y` för skälet.
+	if REKVISIT_HÄNGER.has(art):
+		var t0 := mm.get_instance_transform(0)
+		var s0 := t0.basis.get_scale().y          # varje instans har sin egen storlek (0,8-1,2)
+		var mitten := t0.origin.y
+		print("  dekor: %s hänger — mitten %+.2f m (underkant %+.2f, överkant %+.2f, tak %.2f)" % [
+			art, mitten, mitten - duk.y * 0.5 * s0, mitten + duk.y * 0.5 * s0, TAK_HÖJD])
 	var nod := MultiMeshInstance3D.new()
 	nod.name = "dekor_" + art
 	nod.multimesh = mm

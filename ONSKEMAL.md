@@ -642,3 +642,33 @@ synliga del — kortet är lika brett men kortare upptill. Mätt i `tests/test_k
 **Kvar med flit:** en RIKTIG vridning i handen kräver en egen yta per kort (4-6 kort = 4-6 ytor i
 bildrutan varje bildruta medan man hovrar). Det är inte värt det för en kosmetisk vink — säg till om du
 vill se det.
+
+---
+
+## 35. Ljuskronorna låg på golvet (Alex 11/10)
+
+**Rapporten:** *"Ljuskronorna ligger på golvet, å hänger inte i taket"* — med en bild där kronan står
+på en golvruta.
+
+**Status:** RÄTTAT 2026-10-11, mätt.
+
+**Vad som var fel:** konsten bär en kedja överst (`VÄGG` i `tools/gen_props.py` — krona, bur,
+väggkedja), men `_bygg_dekor` placerade ALLA rekvisiter med samma regel: nederkanten på golvet.
+Buren hade samma fel ända sedan den kom in (dess egen generator säger *"hängande i taket"* och Alex
+bad om den i taket), och sprickan i golvet är den enda som verkligen hör till golvet.
+
+**Rättningen, på ett ställe:** `_dekor_y(art, dukhöjd, skala)` är regeln — överkanten i taket för de
+som hänger, nederkanten på golvet för allt annat. `_dekor_nod` och rekvisiternas ljus läser samma
+funktion, och ljuset i en hängande krona sitter nu vid LÅGORNA (0,4 av dukens höjd under mitten) i
+stället för 0,5 m över mitten, vilket hamnade inne i taket.
+
+**Mätt i en RENDERANDE körning** (`tools/prov.sh -- shot`, där `MultiMesh.get_instance_transform`
+faktiskt svarar — i huvudlöst läge är lagringen tom och svarar 0,00):
+`kandelaber hänger — mitten +1,09 m (underkant +0,89, överkant +1,30, tak 1,30)` och
+`bur hänger — mitten +0,83 m (underkant +0,37, överkant +1,30, tak 1,30)`. Överkanten ligger alltså
+exakt i taket och underkanten hänger fritt. I bild (`-- nodprov=chest`, samma scen varje gång): två
+ljuskronor hänger i taket med fri yta under sig.
+
+**Prov:** fyra nya kontroller i `tests/test_dekor.gd` mäter REGELN (överkanten i taket för en krona,
+nederkanten på golvet för en tuva, buren hänger men sprickan ligger kvar) — lyftet kan inte läsas ur
+MultiMesh i huvudlöst läge, så regeln mäts i stället för siffran.

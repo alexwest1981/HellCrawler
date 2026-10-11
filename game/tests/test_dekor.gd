@@ -58,6 +58,21 @@ func _init() -> void:
 			antal_noder += 1
 	check(antal_noder == 1, "dekor=0 lägger inte till något (kvar: %d)" % antal_noder)
 
+	# 6) HÄNGER DE SOM SKA HÄNGA? Alex: *"Ljuskronorna ligger på golvet, å hänger inte i taket"*.
+	#    Lyftet går inte att läsa ur MultiMesh i huvudlöst läge (dummyns lagring är tom), så provet
+	#    mäter REGELN i stället: överkanten i taket för en krona, nederkanten på golvet för en tuva.
+	var krona_h: float = 52.0 * float(main.DEKOR_PIXEL)
+	var krona_y: float = main._dekor_y("kandelaber", krona_h, 1.0)
+	check(absf(krona_y + krona_h * 0.5 - float(main.TAK_HÖJD)) < 0.001,
+		"ljuskronans ÖVERKANT sitter i taket (%.2f m)" % (krona_y + krona_h * 0.5))
+	check(krona_y - krona_h * 0.5 > 0.2,
+		"och den hänger fritt över golvet (underkant %.2f m)" % (krona_y - krona_h * 0.5))
+	var gräs_h: float = 26.0 * float(main.DEKOR_PIXEL)
+	var gräs_y: float = main._dekor_y("gräs", gräs_h, 1.0)
+	check(absf(gräs_y - gräs_h * 0.5) < 0.001, "och en tuva står på golvet (mitt %.3f m)" % gräs_y)
+	check(main.REKVISIT_HÄNGER.has("bur") and not main.REKVISIT_HÄNGER.has("spricka_eld"),
+		"buren hänger, sprickan i golvet ligger kvar på golvet")
+
 	print("= %d kontroller, %d fel" % [kontroller, fel])
 	# Noden lades aldrig i trädet (provets hela poäng), så den städas för hand — annars gnäller Godot om
 	# resurser "still in use at exit" och det ser ut som ett fel i ett grönt prov.
