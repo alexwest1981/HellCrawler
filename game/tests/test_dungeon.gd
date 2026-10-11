@@ -87,6 +87,11 @@ func _initialize() -> void:
 	var same_tile := 0
 	var empty_floor := 0
 	var checksum_dupes := {}
+	var fel_yta := 0
+	var fel_strider := 0
+	var små_golv := 0
+	var dubbla_noder := 0
+	var nod_på_vägg := 0
 	for id in stages:
 		var stage: Stages.StageDef = stages[id]
 		for seed_value in SEEDS:
@@ -109,6 +114,19 @@ func _initialize() -> void:
 					too_few_encounters += 1
 				if f.start == f.boss_pos:
 					same_tile += 1
+				# DEN STÖRRE VÅNINGEN (Alex 2026-10-11: minst 4x så stora, och aldrig samma två gånger).
+				# Det som mäts är det som utlovades: ytan, golvytan, antalet strider och att varje nod
+				# har en egen ruta — bossen flyttades in i ett rum som kan ha egna strider, så två noder
+				# på samma ruta är nu en möjlighet och inte en omöjlighet.
+				# EN HANDRITAD VÅNING GÅR FRI: den är Alex egen, i sin egen storlek, och de här talen
+				# är generatorns löfte. Att mäta dem på en ritad karta vore att mäta fel sak.
+				var ritad := MapIo.has_map(stage.id, fi)
+				if not ritad:
+					var förväntad := Dungeon._yta(stage.difficulty)
+					if f.w != förväntad.x or f.h != förväntad.y:
+						fel_yta += 1
+					if f.nodes_of_kind("encounter").size() != Dungeon._strids_tak(stage):
+						fel_strider += 1
 				var floors_tiles := 0
 				for row in f.tiles:
 					for t in row:
@@ -116,6 +134,17 @@ func _initialize() -> void:
 							floors_tiles += 1
 				if floors_tiles < 20:
 					empty_floor += 1
+				if floors_tiles < 300 and not ritad:
+					små_golv += 1
+				var sedda := {}
+				for n in f.nodes:
+					if not f.is_floor_at(n.pos):
+						nod_på_vägg += 1
+					# Shoveln ligger MED FLIT på bossens ruta (man får den av bossen), så det paret
+					# är den enda tillåtna delade rutan.
+					if sedda.has(n.pos) and n.kind != "shovel" and n.kind != "boss":
+						dubbla_noder += 1
+					sedda[n.pos] = true
 				for n in f.nodes:
 					if n.kind == "encounter" and not bestiary.has(n.enemy_id):
 						unknown_enemy.append(n.enemy_id)
@@ -131,6 +160,14 @@ func _initialize() -> void:
 	check(unknown_enemy.is_empty(), "inga okända fiende-id:n i noderna", ", ".join(unknown_enemy.slice(0, 3)))
 	check(missing_floor.is_empty(), "varje stage går att bygga (ingen våning utan fiender)",
 		", ".join(missing_floor.slice(0, 3)))
+	# Den gamla våningen hade 96 golvrutor vid svårighet 1 (17x17, mätt). 300 är alltså mer än 3x
+	# där — tröskeln ska fånga en återgång till den gamla storleken, inte mäta decennier.
+	check(fel_yta == 0, "varje våning har den yta svårighetsgraden bestämmer (4x den gamla)")
+	check(fel_strider == 0, "varje våning har precis så många strider budgeten säger",
+		"Dungeon._strids_tak per bana")
+	check(små_golv == 0, "ingen våning är mindre än 3x den gamla golvytan", "%d rutor som lägst" % 300)
+	check(dubbla_noder == 0, "ingen ruta bär två noder")
+	check(nod_på_vägg == 0, "varje nod står på en golvruta")
 
 	print("— banornas form —")
 	var floor_min := 99

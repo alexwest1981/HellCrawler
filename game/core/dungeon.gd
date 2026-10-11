@@ -1,9 +1,15 @@
 ## Dungeongenerator. En våning = rutnät + noder (strider, kistor, facklor, boss, shovel).
 ##
-## Metod: BSP-delning till rum, sedan L-korridorer mellan rummen i ordning. Att koppla rummen
-## i sekvens ÄR ett spännande träd — ingen separat MST behövs.
-## ponytail: linjär rumskedja ger förutsägbar topologi (alla våningar är "gång på gång").
-## Bygg ut med extra kanter/slingor när spelkänslan kräver det, inte förr.
+## Metod: BSP-delning till rum, L-korridorer mellan rummen i ordning — kedjan är ryggraden och gör
+## att varje rum går att nå, så ingen separat MST behövs. Utöver kedjan läggs några extra förbindelser
+## (se `generate`), så våningen blir ett nät i stället för en gång.
+##
+## STORLEK OCH INNEHÅLL (Alex 2026-10-11): *"banorna genereras random så man aldrig kan lära sig
+## banorna utantill, samt att de är minst 4x så stora som de är nu, det skall ta lite tid att ta sig
+## genom."* Ytan är därför exakt 4x den gamla (17/21/25 -> 34/42/50) och rummen är fler. Strider,
+## kistor och facklor per VÅNING är däremot oförändrade (mätta, se `_strids_tak`) — en fyrdubblad yta
+## ska ge mer att GÅ, inte mer guld och xp: balanskurvan är mätt med tools/balance.gd och ska inte
+## flyttas av en storleksändring.
 ##
 ## Allt styrs av (stage, våning, seed) och är deterministiskt: samma seed = samma våning.
 class_name Dungeon
@@ -11,6 +17,44 @@ extends RefCounted
 
 const WALL := 0
 const FLOOR := 1
+
+## Våningens yta i rutor — 4x den gamla vid varje svårighetsgrad.
+static func _yta(difficulty: int) -> Vector2i:
+	if difficulty >= 7:
+		return Vector2i(50, 50)        # var 25x25
+	if difficulty >= 5:
+		return Vector2i(42, 42)        # var 21x21
+	return Vector2i(34, 34)            # var 17x17
+
+
+## Hur många strider en våning bär TOTALT (inte per rum). Talen 9/18/35 är MÄTTA med
+## tools/vandring.gd på den gamla generatorn över 7830 våningar (svårighet 1-4 / 5-6 / 7+), och de är
+## de tal som ska hållas: våningen blev fyra gånger större, men guld och xp per våning är mätt med
+## tools/balance.gd och ska inte flyttas av en storleksändring. Den extra ytan ger mer att GÅ.
+##
+## Banans egen ratt `encounters_per_floor` ("strider per våning" i editorn) räknas mot 8: en bana som
+## står på 8 får de uppmätta 9/18/35, en som står på 4 får hälften och en på 16 får dubbelt. 8:an är
+## medianen av de 90 banornas värden (de ligger på 6-10; ingen står på defaulten 4).
+##
+## Förr räknades ratten PER RUM, och där tog rummet slut: ett rum på 3x3 har några få inre rutor, så
+## en bana som bad om 10 strider per rum fick 3. Det verkliga antalet per våning bestämdes alltså av
+## ytan, inte av ratten — mätt (stage_40, svårighet 10, ratten 8): 24-44 strider per våning, medan
+## ratten gav 35-40. Nu är rummen stora nog att ratten slår igenom helt.
+static func _strids_tak(stage) -> int:
+	var mätt := 9.0
+	if stage.difficulty >= 5:
+		mätt = 18.0
+	if stage.difficulty >= 7:
+		mätt = 35.0
+	return maxi(1, int(round(mätt * float(stage.encounters_per_floor) / 8.0)))
+
+
+## Kistor och facklor per våning: tak, inte en per rum. Mätt före ändringen: 0-1 kista och 0-1 fackla
+## per våning i snitt. Fler rum betyder inte fler kistor — guldet per våning ska stå still. Facklorna
+## får bli några fler: de är landmärken i en fyra gånger större våning, och ljuset är redan mätt
+## (60 fps med skuggor på, se `-- fpsprov`).
+const KISTOR_PER_VÅNING := 1
+const FACKLOR_PER_VÅNING := 3
 
 class FloorNode extends RefCounted:
 	var kind: String            ## encounter | chest | torch | boss | shovel | start
@@ -73,24 +117,47 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 	var f := Floor.new()
 	f.stage_id = stage.id
 	f.index = floor_index
-	f.w = 17
-	f.h = 17
-	if stage.difficulty >= 5:
-		f.w = 21
-		f.h = 21
-	if stage.difficulty >= 7:
-		f.w = 25
-		f.h = 25
+	var mått := _yta(stage.difficulty)
+	f.w = mått.x
+	f.h = mått.y
 	f.tiles = _blank(f.w, f.h)
 
-	var rooms := _split(rng, Rect2i(1, 1, f.w - 2, f.h - 2), 4, 4)
+	# Rummen. BSP-delningen går djupare än förr (6 i stället för 4), så den större ytan får FLER rum i
+	# stället för bara större: det är rummen man går mellan, och det är de som gör våningen lång.
+	var rooms := _split(rng, Rect2i(1, 1, f.w - 2, f.h - 2), 4, 6)
 	for r in rooms:
 		_carve_room(f, r)
 	for i in rooms.size() - 1:
 		_carve_corridor(f, _center(rooms[i]), _center(rooms[i + 1]))
+	# Kedjan är ryggraden och garanterar att varje rum går att nå. Men en ren kedja har samma FORM varje
+	# gång: man lär sig "följ gången till slutet" utan att titta på kartan, och det är precis det Alex
+	# ville bort. Några extra förbindelser mellan rum som inte ligger intill varandra gör våningen till
+	# ett nät — det finns genvägar att hitta och rum man inte måste passera. Få, inte många: varje extra
+	# förbindelse gör våningen lättare att lära sig, och en genväg rakt till bossen kortar den väg vi
+	# just gjorde lång.
+	for i in mini(rooms.size() / 4, 5):
+		var a := rng.randi_range(0, rooms.size() - 1)
+		var b := rng.randi_range(0, rooms.size() - 1)
+		if absi(a - b) > 1:
+			_carve_corridor(f, _center(rooms[a]), _center(rooms[b]))
 
-	f.start = _center(rooms[0])
-	f.boss_pos = _center(rooms[rooms.size() - 1])
+	# BOSSEN LIGGER INTE ALLTID SIST. Rummen kommer i BSP-ordning, inte i avståndsordning, så det
+	# SISTA rummet är en fast punkt på varje våning — och mätt blev vägen från start till boss exakt
+	# 51 steg på våning efter våning vid svårighet 2-4 (standardavvikelse 2): samma promenad varje gång,
+	# trots att kartan ritas om. "Man kan inte lära sig banorna utantill" gäller alltså kartan men inte
+	# rytmen. Bossen väljs därför slumpmässigt bland de rum som ligger längst bort från start (den
+	# bortersta fjärdedelen), så LÄNGDEN på promenaden varierar med våningen.
+	# ponytail: urvalet mäter rakt avstånd mellan rumscentrum, inte verklig gångväg efter att
+	# extraförbindelserna slagits — en genväg kan korta vägen efteråt. Räcker för spridningen.
+	var start_centrum := _center(rooms[0])
+	var ordning := range(1, rooms.size())
+	ordning.sort_custom(func(a, b):
+		return _avstånd(_center(rooms[a]), start_centrum) > _avstånd(_center(rooms[b]), start_centrum))
+	var topp: int = maxi(1, int(ceil(ordning.size() * 0.25)))
+	var boss_rum: int = ordning[rng.randi_range(0, topp - 1)]
+
+	f.start = start_centrum
+	f.boss_pos = _center(rooms[boss_rum])
 	f.shovel_pos = f.boss_pos        # shoveln får man av bossen på våningen
 
 	var start_node := FloorNode.new()
@@ -119,29 +186,56 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 		# sviten kallade det en timeout, utan ett ord om stage_46 och dess tier 4.
 		push_error("stage %s saknar fiender i sina tiers %s" % [stage.id, stage.tiers])
 		return null
+	# Striderna: budgeten är VÅNINGENS (se _strids_tak), och den delas ut ett slag per rum i taget —
+	# runda för runda — så striderna hamnar utspridda över våningen i stället för att klumpa ihop sig i
+	# de första rummen. Rummen är fler än striderna, så många rum blir tomma; det är där kistan,
+	# facklan och rekvisiten bor.
+	var platser := []
 	for i in range(1, rooms.size() - 1):
-		var room: Rect2i = rooms[i]
-		var spots := _spots(rng, room)
-		for j in min(stage.encounters_per_floor, spots.size()):
+		# Start- och bossrutan hoppas över: bossen står nu i ett rum som kan få egna strider, och två
+		# noder på samma ruta är en nod som skymmer den andra (kartan ritar dem ovanpå varandra).
+		var rum: Array = []
+		for p in _spots(rng, rooms[i]):
+			if p != f.boss_pos and p != f.start:
+				rum.append(p)
+		platser.append(rum)
+	var per_rum: Array[int] = []
+	per_rum.resize(platser.size())
+	per_rum.fill(0)
+	var kvar := _strids_tak(stage)
+	var runda := 0
+	while kvar > 0 and not platser.is_empty() and runda < 4096:
+		var r := runda % platser.size()
+		if per_rum[r] < platser[r].size():
+			per_rum[r] += 1
+			kvar -= 1
+		runda += 1
+	var kistor := 0
+	var facklor := 0
+	for i in platser.size():
+		var rum: Array = platser[i]
+		for j in per_rum[i]:
 			var n := FloorNode.new()
 			n.kind = "encounter"
 			var e = pool[rng.randi_range(0, pool.size() - 1)]
 			n.enemy_id = e.id
 			n.xp = e.xp
 			n.gold = e.gold
-			n.pos = spots[j]
+			n.pos = rum[j]
 			f.nodes.append(n)
-		if spots.size() > stage.encounters_per_floor:
+		if kistor < KISTOR_PER_VÅNING and rum.size() > per_rum[i]:
 			var c := FloorNode.new()
 			c.kind = "chest"
-			c.pos = spots[stage.encounters_per_floor]
+			c.pos = rum[per_rum[i]]
 			c.gold = 10 + stage.difficulty * 5
 			f.nodes.append(c)
-		if spots.size() > stage.encounters_per_floor + 1:
+			kistor += 1
+		if facklor < FACKLOR_PER_VÅNING and rum.size() > per_rum[i] + 1:
 			var t := FloorNode.new()
 			t.kind = "torch"
-			t.pos = spots[stage.encounters_per_floor + 1]
+			t.pos = rum[per_rum[i] + 1]
 			f.nodes.append(t)
+			facklor += 1
 	return f
 
 # --- rutnät -----------------------------------------------------------------
@@ -156,6 +250,11 @@ static func _blank(w: int, h: int) -> Array:
 
 static func _center(r: Rect2i) -> Vector2i:
 	return Vector2i(r.position.x + r.size.x / 2, r.position.y + r.size.y / 2)
+
+## Rakt avstånd (Manhattan) mellan två rutor: gångvägen är längre, men till att VÄLJA ut de bortersta
+## rummen räcker det — och det kostar inget att räkna.
+static func _avstånd(a: Vector2i, b: Vector2i) -> int:
+	return absi(a.x - b.x) + absi(a.y - b.y)
 
 static func _carve_room(f: Floor, r: Rect2i) -> void:
 	for y in range(r.position.y, r.position.y + r.size.y):
