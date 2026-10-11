@@ -48,6 +48,11 @@ func _initialize() -> void:
 	root.add_child(main)
 	await process_frame
 	await process_frame
+	# SPRÅKET PINNAS EFTER main, inte före: `main._ready` läser sparfilens språk (`meta.language`)
+	# och sätter det sist, så en pinne före instansieringen skrivs över. Provet jämför mot svenska
+	# ordagrant ("NYTT SPEL", "tillbaka till byn"), och det ska inte hänga på vilket språk spelaren
+	# råkade välja i sin egen sparfil.
+	Tr.set_lang("sv")
 	# Provet SPELAR en körning, och körningen sparar sig själv. Utan den här raden blir det spelarens
 	# sparfil — mätt: en svitkörning skrev en pågående körning (676 -> 1190 byte) i save.json.
 	Meta.fotolage(true)

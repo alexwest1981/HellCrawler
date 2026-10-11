@@ -35,6 +35,11 @@ func _initialize() -> void:
 	root.add_child(main)
 	await process_frame
 	await process_frame
+	# SPRÅKET PINNAS EFTER main, inte före: `main._ready` läser sparfilens språk (`meta.language`)
+	# och sätter det sist, så en pinne före instansieringen skrivs över. Provet jämför mot svenska
+	# ordagrant ("NYTT SPEL", "tillbaka till byn"), och det ska inte hänga på vilket språk spelaren
+	# råkade välja i sin egen sparfil.
+	Tr.set_lang("sv")
 	main._start_run("stage_01", 20260919)
 	await process_frame
 
