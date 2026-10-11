@@ -160,7 +160,10 @@ const ENEMY_FRAMES := 6
 ## vid attack, de är ännu platta png's". Figuren byggs ur SAMMA ark (ingen ny konst): varje synlig pixel
 ## blir en kub. `VOXEL_SIDOR` celler i höjd bestämmer detaljgraden — arket är 120 px per ruta, alltså
 ## är 32 celler drygt var fjärde pixel. Fler celler = fler ytor att bygga om per hugg.
-const VOXEL_SIDOR := 32
+## Cellerna i höjdled. 64 = figuren blir EN voxel per källpixel så länge den är högst 64 px (mätt: den
+## högsta figuren i arken är 92 px, de flesta 50-75) — att köra 32 tog bort halva figurens detalj, och
+## mätt såg hunden då inte ut som en hund. Se `_klä_voxel`.
+const VOXEL_SIDOR := 64
 const VOXEL_DJUP := 2
 ## Alex 11/10: "Fixa voxlar av alla monster." Av: figuren är då en billboard med en voxelmodell som
 ## barn (se `_voxel_fiende`) — då behåller figurens nod allt som redan fungerar (position, andning,
@@ -871,7 +874,7 @@ func _ready() -> void:
 		or _normalprov >= 0.0
 		or not _glansprov_pose.is_empty()
 		or flags.has("guiprov") or flags.has("vinstprov") or flags.has("ljusprov") or flags.has("träffprov")
-		or flags.has("voxelprov")
+		or flags.has("voxelprov") or flags.has("voxelhund")
 		or not nodprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
 	if not kör:
 		# Vanlig start (eller en enskild skärms skärmbildsläge): byn först. Ingen körning finns än,
@@ -902,8 +905,9 @@ func _ready() -> void:
 	if flags.has("träffprov"):
 		await _träffprov()
 		return
-	if flags.has("voxelprov"):
-		await _voxelprov()
+	if flags.has("voxelprov") or flags.has("voxelhund"):
+		# -- voxelhund bygger samma prov av Alex' eget exempel: hunden han inte kände igen.
+		await _voxelprov("mire_hound" if flags.has("voxelhund") else "candlewisp")
 		return
 	if flags.has("figurprov"):
 		await _figurprov()
@@ -6024,10 +6028,10 @@ func _träffprov() -> void:
 ## VOXELPROVET (M108). Bygger en voxelfigur ur samma ark som billboarden, mäter byggtiden och hugget,
 ## och ställer den bredvid den platta figuren i en riktig strid — bilden visar skillnaden, siffrorna
 ## säger vad den kostar.
-func _voxelprov() -> void:
-	var tex: Texture2D = _enemy_tex("candlewisp")
+func _voxelprov(id: String = "candlewisp") -> void:
+	var tex: Texture2D = _enemy_tex(id)
 	if tex == null:
-		print("voxelprov: ingen bild för candlewisp")
+		print("voxelprov: ingen bild för %s" % id)
 		get_tree().quit()
 		return
 	# HÖJDEN RÄKNAS UR FIGUREN, INTE UR CELLEN. Första försöket tog 34 x pixel_size (måttet healthbaren
@@ -8057,7 +8061,11 @@ func _klä_voxel(spr: Sprite3D, tex: Texture2D, rutor: int, ps: float) -> bool:
 	var r := Voxel.figur_ruta(tex, 0, rutor)
 	if r.size.y <= 0.0:
 		return false
-	var vx := Voxel.ur_ark(tex, 0, rutor, r.size.y * ps, VOXEL_SIDOR, VOXEL_DJUP)
+	# EN VOXEL PER KÄLLPIXEL. Figurens höjd i pixlar är antalet celler (taket `VOXEL_SIDOR` skyddar mot en
+	# orimligt stor bild), och då blir cellen exakt en bildpixel — modellen får med sig hela figurens
+	# form i stället för varannan pixel.
+	var sidor := mini(VOXEL_SIDOR, maxi(8, int(r.size.y)))
+	var vx := Voxel.ur_ark(tex, 0, rutor, r.size.y * ps, sidor, VOXEL_DJUP)
 	var mi := vx.nod()
 	mi.name = "voxel"
 	# FIGURENS MITT, INTE RUTANS. Bilden har nästan alltid en tom ram runt figuren, och billboardens

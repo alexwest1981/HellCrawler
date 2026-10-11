@@ -238,8 +238,12 @@ static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
 			if n == 0 or float(n) / float(maxi(1, (y1 - y0) * (x1 - x0))) < GRANS:
 				continue
 			var färg := Color(summa.x / float(n), summa.y / float(n), summa.z / float(n))
+			# FIGUREN STÅR RÄTT VÄG. `cy` räknas nedifrån (modellens y=0 är fötterna) medan `y0` räknas
+			# uppifrån (en bild har sin rad 0 högst upp) — utan speglingen hamnade bildens översta rad i
+			# modellens nederkant och figuren blev UPP OCH NED: mätt såg hunden ut som en varelse med
+			# utskotten uppåt, och Alex kände inte igen den alls.
 			for k in v.djup:
-				v.celler[Vector3i(cx, cy, k)] = färg
+				v.celler[Vector3i(cx, v.sidor - 1 - cy, k)] = färg
 	v._förskjutning = Vector3(-float(kol) * 0.5, -float(v.sidor) * 0.5, -float(v.djup) * 0.5)
 	v._bygg_mesh()
 	return v
@@ -295,14 +299,12 @@ func nod() -> MeshInstance3D:
 	mat.roughness = 0.9                       # matt yta, som resten av pixelkonsten (M59)
 	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	mat.metallic = 0.0
-	# FIGUREN BÄR SITT EGET LJUS (M74:s regel: en varelse i källaren lyser av sig själv). Utan emission
-	# är en shaded voxelmodell i en mörk gång nästan svart — mätt i första renderingen: området kring
-	# noden visade bara golvets rutnät, ingen figur. Emissionen är en kall ton (vålnadens egen) och låg,
-	# så facklorna fortfarande SYNS på ytorna — vilket är hela poängen med att gå från platt bild till
-	# geometri. Sprites löser samma sak med en additiv aura-quad (M72); en mesh kan bära det själv.
-	mat.emission_enabled = true
-	mat.emission = Color(0.52, 0.60, 0.72)
-	mat.emission_energy_multiplier = 0.42
+	# INGEN EGEN EMISSION. Den första versionen gav modellen en fast kall ljuston för att synas i
+	# mörkret (M74:s regel) — och MÄTT blev varje figur en blek, nästan vit form: Alex: "späkena blir
+	# bara helvita ... former". En fast emission lägger samma ljus över allt och späder ut figurens egna
+	# färger. Ljuskällan figuren redan har är auran (M72, den additiva kvadden som följer med billboarden
+	# — den finns kvar, för figurens nod finns kvar), och rummets facklor lyser modellen. Färgen ska
+	# komma från bilden, inte från en konstant.
 	mi.material_override = mat
 	return mi
 
