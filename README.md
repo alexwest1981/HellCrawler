@@ -10,7 +10,8 @@ väg ned. Referensbygget heter något annat och har egna namn, rum och konst; in
 
 ## Kom igång
 
-Kräver **Godot 4** (byggt och testat på 4.7.2) och **Linux**. Inget mer: GDScript, inga plugins, ingen
+Kräver **Godot 4** (byggt och testat på **4.8-dev7**; 4.7.2 fungerar också — ingen addon, ingen
+GDExtension) och **Linux**. Inget mer: GDScript, inga plugins, ingen
 byggnad. Spelkoden är källkoden — det du hämtar är det som körs.
 
 ```bash

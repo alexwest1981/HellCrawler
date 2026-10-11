@@ -16,7 +16,7 @@ skärmbilder jag själv mätt på. Källhänvisning per påstående finns i resp
   accessory; it's an excuse to justify the combat system."*
 - **Kan vi bygga en egen version?** Ja. Kärnan är fyra system, inte fyrtio: rutnätsrörelse, kortstrid med
   kedja, datadrivna kort/fiender, meta-progression. Det finns färdiga MIT-ramverk för två av dem.
-- **Stack:** **Godot 4.7.2** (redan installerad) + GDScript + två MIT-addons + CC0-grafik.
+- **Stack:** **Godot 4.8-dev7** (installerad i `~/.local/opt`, 4.7.2 finns kvar) + GDScript + CC0-grafik.
   **Unity behövs inte** — dess roll här är konsolutgivning (IL2CPP/Addressables/Odin), inte spelmekanik.
 - **Insats:** en spelbar vertical slice är kvällsarbete; den riktiga kostnaden är **innehållet**
   (58 gems, 17 evolutioner, 22 karaktärer) och **pixelarten** — inte koden.
@@ -153,7 +153,7 @@ level-skala 0.01, max hit 333, 99 % knockback-resist.
 
 | Lager | Val | Varför |
 |---|---|---|
-| Motor | **Godot 4.7.2** (redan installerad, MIT) | `GridMap` + `MeshLibrary`, `SubViewport` för lågupplöst pixel-look, `Resource`-datafiler, `Tween` för stegvis rörelse, inbyggd CSV-lokalisering, seedad RNG. Ingen inloggning, ingen licensserver. |
+| Motor | **Godot 4.8-dev7** (MIT) | `GridMap` + `MeshLibrary`, `SubViewport` för lågupplöst pixel-look, `Resource`-datafiler, `Tween` för stegvis rörelse, inbyggd CSV-lokalisering, seedad RNG. Ingen inloggning, ingen licensserver. |
 | Kort-UI | **chun92/card-framework** (MIT, 376★, aktiv) | Hand som arrangerar sig, drag & drop, högar. Den tråkiga biten, redan löst. |
 | Arkitektur-strömbak | **DesirePathGames/Slay-The-Robot** (MIT, 280★, senaste commit aug 2026) | Godot 4-ramverk för roguelike-deckbuilders: card packs, actions med timers, akter, deterministisk RNG. Läses och plockas isär — inte nödvändigtvis används rakt av. |
 | Blobber-rörelse | **Rebelion-Board-game/DungonCrawler** (CC0) + **uheartbeast/3d-dungeon** (MIT) | GridMap-rörelse att kopiera rakt in. |
