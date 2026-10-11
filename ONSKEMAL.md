@@ -583,3 +583,24 @@ och kompilerade aldrig — alltså ritades inga rekvisiter alls, och den tidigar
 ändrade 0 % av bilden" mätte en trasig shader, inte rekvisiter. Efter rättningen ritas de (A/B ger
 0,06 % skillnad, en kandelaber i bild). Ett prov fångar nu klassen: inget shadernamn får innehålla
 å/ä/ö — och headless KÖR inga shaders, så felet syns bara i en körning med bild.
+
+---
+
+## 33. Skylten som gungar ovanför spaden (Alex 11/10)
+
+**Önskemålet:** *"Vi behöver en liten skylt som gungar ovanför spaden efter man dödat bossen så man
+fattar att man skall klicka på spaden."*
+
+**Status:** KLAR 2026-10-11, mätt. En `Label3D` ("▼ spade") sitter 0,95 m över spaden och gungar i
+sidled (en evig tween, ±0,07 m, noll kod per bildruta). Den syns bara när spaden FÅR tas — samma svar
+(`_spade_redo`) som HUD-ledtråden läser, på ett ställe i `_refresh`, så skylten och klicket kan aldrig
+säga olika saker.
+
+**Mätt i `-- grävprov`:** med bossen levande `dold`; mitt i bossens kortval `redo nej`; efter bytet
+`redo ja` + `skylten syns ("▼ spade")` och ledtråden `KLICKA PÅ SPADEN …`. Med `lang=en`: `▼ shovel` och
+`CLICK THE SHOVEL …` — skylten följer språkvalet utan en ny nyckel (ordet kommer ur kartans
+teckenförklaring, `ui.map.nod.shovel`). Kontroll i bild: guldtexten med kontur läses mot både mörk vägg
+och ljust golv.
+
+**Kvar (med flit):** står spelaren PÅ spaden ligger både spaden och skylten över kameran och syns inte
+— det fallet bär HUD-ledtråden (`ui.hud.hint.grav_pa`: "DU STÅR PÅ SPADEN — klicka för att gräva ned").

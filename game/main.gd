@@ -221,7 +221,8 @@ var _bar_texture: ImageTexture
 var hit_flash: ColorRect
 var gräv_slöja: ColorRect       ## mörkret under en grävning (M44): bilden svartnar medan kameran sjunker
 var _spade_nod: Dungeon.FloorNode   ## spaden på våningen: den ENDA saken som klickas
-var _spade_sprite: Sprite3D         ## ... och dess skylt, så klicket kan räkna ut var den står
+var _spade_sprite: Sprite3D         ## dess sprite, så klicket kan räkna ut var den står
+var _spade_skylt: Label3D           ## skylten som gungar ovanför spaden när den får tas (se `_spade_skylt_bygg`)
 var _gräver := false                ## en grävning pågår: klicket får inte starta en till mitt i
 var attack_fx: AttackFx
 var reward_fx: RewardFx        ## stunden man får något: kortet som vänds in med glöd
@@ -1915,6 +1916,9 @@ func _gräv_prov() -> void:
 	await get_tree().create_timer(0.4).timeout   # kamerans projektion måste vara klar först
 	print("[grävprov] spaden på bild: vyn %s, kameran %.2f över golvet, ledtråd: \"%s\"" % [
 		str(_spade_på_bild()), cam.position.y, hint_label.text])
+	print("[grävprov]   skylten ovanför spaden: %s (\"%s\") — den ska vara OSYNLIG med bossen levande" % [
+		"syns" if _skylt_syns() else "dold",
+		_spade_skylt.text if _spade_skylt != null else ""])
 	# 1. FÖRTID: bossen lever. Klicket ska nekas och våningen stå kvar.
 	var våning_före := run.floor_index
 	var klickade := _klick_på_spaden()
@@ -1952,8 +1956,9 @@ func _gräv_prov() -> void:
 			break
 		_on_draft_pick(0)
 		await get_tree().process_frame
-	print("[grävprov] efter bytet: redo att gräva %s, ledtråd: \"%s\"" % [
-		"ja" if _spade_redo() else "nej", hint_label.text])
+	print("[grävprov] efter bytet: redo att gräva %s, ledtråd: \"%s\", skylten %s" % [
+		"ja" if _spade_redo() else "nej", hint_label.text,
+		"syns (\"%s\")" % _spade_skylt.text if _skylt_syns() else "dold — FEL, den ska synas nu"])
 	_spara_bild("user://shots/grav-01b-klar-att-grava.png")
 	# Kameran måste hinna byggas klart: unproject_position svarar (0,0) så länge projektionen inte
 	# är satt, och då hamnar klicket i hörnet (mätt: "Condition p.d == 0").
@@ -5033,6 +5038,7 @@ func _build_world() -> void:
 	# klick mot ett frigjort objekt är ett klick mot ingenting.
 	_spade_nod = null
 	_spade_sprite = null
+	_spade_skylt = null
 	# Droppställena hör till våningen som byggdes: utan rensningen ligger förra våningens ställen kvar
 	# med sina positioner, och `nodprov=dropp` flyger till ett ställe som inte finns längre.
 	_droppar.clear()
@@ -5176,10 +5182,11 @@ func _add_markör(n: Dungeon.FloorNode, namn: String) -> void:
 	spr.position = Vector3(n.pos.x + 0.5, 0.35, n.pos.y + 0.5)
 	world.add_child(spr)
 	if namn == "shovel":
-		# Spaden är den enda sak som KLICKAS (`_vy_klick`): spara noden och skylten, så klicket kan
+		# Spaden är den enda sak som KLICKAS (`_vy_klick`): spara noden och spriten, så klicket kan
 		# räkna ut var på skärmen den står och om den får tas (bossen måste vara besegrad).
 		_spade_nod = n
 		_spade_sprite = spr
+		_spade_skylt_bygg(n)
 
 
 ## Dekorationen (M84): gräs, rötter, mossa och småsten. Alex: *"saker i miljön som inte skall ha någon
@@ -7207,9 +7214,11 @@ func _refresh() -> void:
 	# var. Anropet är billigt — det skriver bara när våning, hp, xp eller leken ändrats.
 	_spara_körning()
 	var hint := Tr.t("ui.hud.hint", "WASD gå · 1-9 kort · P spela allt · E tur · S sortera (%s) · R om") % _sort_name()
+	# Spaden: ledtråden och skylten läser SAMMA svar, så de två aldrig kan säga olika saker.
+	var spade_redo := _spade_redo()
 	if _draft_pending():
 		hint = Tr.t("ui.draft.prompt", "VÄLJ KORT: 1-%d (eller klicka)") % run.pending_draft().size()
-	elif _spade_redo():
+	elif spade_redo:
 		# Spaden är den enda saken som klickas, och den ligger på bossens ruta: utan en rad som säger
 		# det ser våningen ut som en återvändsgränd (Alex: "spaden måste klickas på").
 		# Står spelaren PÅ spaden ligger den under fötterna och syns inte i kameran (mätt) — ledtråden
@@ -7217,6 +7226,10 @@ func _refresh() -> void:
 		hint = (Tr.t("ui.hud.hint.grav_pa", "DU STÅR PÅ SPADEN — klicka för att gräva ned")
 			if run.explore.pos == _spade_nod.pos
 			else Tr.t("ui.hud.hint.grav", "KLICKA PÅ SPADEN för att gräva ned till nästa våning"))
+	# Skylten ovanför spaden visar samma svar som ledtråden (Alex: en skylt som gungar så man fattar
+	# att man ska klicka på spaden). Ingen egen grind: syns den, går den att klicka.
+	if _spade_skylt != null and is_instance_valid(_spade_skylt):
+		_spade_skylt.visible = spade_redo
 	# Under en strid är det stridens HP som gäller — annars visar toppen ett gammalt värde medan
 	# panelen visar det levande.
 	var i_strid: bool = active_combat != null and not active_combat.over()
@@ -8410,6 +8423,51 @@ func _enter_node_here() -> void:
 	# shovel eller något annat: lös direkt och bygg om våningen
 	run.enter_node(node)
 	_after_state_change()
+
+## Skylten ovanför spaden (Alex: *"en liten skylt som gungar ovanför spaden efter man dödat bossen så
+## man fattar att man skall klicka på spaden"*).
+##
+## Skylten syns bara när spaden FÅR tas — samma villkor som klicket (`_spade_redo`), läst på ETT ställe
+## i `_refresh`. Då kan den aldrig peka på något som inte går att klicka, och den försvinner i samma
+## stund som klicket slutar fungera.
+##
+## TEXTEN är nyckeln `ui.map.nod.shovel` — ordet för spaden finns redan i alla tretton språk (det står
+## i kartans teckenförklaring). En hel mening ryms inte: skylten läses på en dryg meter i en 1 m-gång,
+## och vid 0,0017 m per tecken är nio tecken ~0,6 m breda. Meningen står i HUD-ledtråden, som redan
+## säger "KLICKA PÅ SPADEN" på spelarens språk; skylten svarar på "vilken då?".
+##
+## GUNGNINGEN sitter i POSITIONEN, inte i rotationen: en billboard lägger sin bas mot kameran, så
+## nodens egen vridning ritas inte. Sidledet är den gungning en billboard kan visa.
+func _spade_skylt_bygg(n: Dungeon.FloorNode) -> void:
+	_spade_skylt = Label3D.new()
+	_spade_skylt.text = "▼ %s" % Tr.t("ui.map.nod.shovel", "spade")
+	_spade_skylt.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_spade_skylt.no_depth_test = true
+	_spade_skylt.pixel_size = 0.0017
+	_spade_skylt.font_size = 40
+	# Konturen håller skylten läsbar mot både ljust golv och mörk vägg (samma grepp som slagets kvitto).
+	_spade_skylt.outline_size = 5
+	_spade_skylt.outline_modulate = Color(0.04, 0.03, 0.03, 0.95)
+	_spade_skylt.modulate = Palett.c(14)
+	_spade_skylt.position = Vector3(n.pos.x + 0.5, 0.95, n.pos.y + 0.5)
+	_spade_skylt.visible = false
+	world.add_child(_spade_skylt)
+	# En evig tween, noll kod per bildruta. Två tagningar åt var sitt håll så svingen blir en båge och
+	# inte ett hack (en tween tillbaka till samma värde hade stannat i ändläget).
+	var x := _spade_skylt.position.x
+	var gunga := _spade_skylt.create_tween().set_loops()
+	gunga.tween_property(_spade_skylt, "position:x", x + 0.07, 0.85) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	gunga.tween_property(_spade_skylt, "position:x", x - 0.07, 0.85) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## Syns skylten? `visible` på noden räcker inte som svar — den kan vara satt medan föräldern är dold.
+## Ett svar på ETT ställe, som grävprovet läser.
+func _skylt_syns() -> bool:
+	return _spade_skylt != null and is_instance_valid(_spade_skylt) \
+		and _spade_skylt.is_visible_in_tree()
+
 
 ## Ligger spaden på spelarens ruta OCH är bossen besegrad? Då är det enda som återstår att klicka på
 ## den, och ledtråden ska säga det — en grind utan besked ser ut som en trasig tangent.
