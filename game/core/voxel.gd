@@ -17,7 +17,8 @@ extends RefCounted
 ##
 ## Matt yta (0,9), precis som resten av pixelkonsten (M59): blank plast har ingen plats i källaren.
 
-const GRANS := 0.35                  ## alfavärde över vilket en källpixel räknas som figur
+const GRANS := 0.35                  ## täckning över vilken en cell räknas som figur
+const SVART_GRANS := 0.06            ## ljushet under vilken en pixel ser ut som bakgrund (svart duk)
 
 const HORN := {
 	Vector3i(1, 0, 0): [Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(1, 1, 1), Vector3(1, 1, 0)],
@@ -58,13 +59,16 @@ static func figur_ruta(tex: Texture2D, ruta: int, rutor: int) -> Rect2:
 		return Rect2()
 	var fw: int = img.get_width() / maxi(1, rutor)
 	var fh: int = img.get_height()
+	# Bakgrunden räknas EN gång per RUTA, inte per cell (flodfyllning från ramen), och bara den som
+	# hänger ihop med ramen tas bort — en svart mantel inuti figuren blir kvar som figur.
+	var bg := bakgrund(img, Rect2(Vector2(ruta * fw, 0), Vector2(fw, fh)))
 	var x_min := fw
 	var x_max := -1
 	var y_min := fh
 	var y_max := -1
 	for py in fh:
 		for px in fw:
-			if img.get_pixel(ruta * fw + px, py).a >= GRANS:
+			if bg[py * fw + px] == 0:
 				x_min = mini(x_min, px)
 				x_max = maxi(x_max, px)
 				y_min = mini(y_min, py)
@@ -78,6 +82,100 @@ static func figur_ruta(tex: Texture2D, ruta: int, rutor: int) -> Rect2:
 
 ## Bygg ur en ruta i ett ark. `ruta` är rutan i sidled (figurerna ligger som en vågrät remsa),
 ## `rutor` är antalet rutor i arket.
+## DUKENS FÄRG LÄSES UR KANTEN (M108). Alex: *"Eller om någon annan färg funkar bättre, typ rosa
+## eller vit, grön..."* — den behöver inte väljas alls. Den vanligaste ogenomskinliga färgen längs
+## ramen ÄR duken, så svart, vit, rosa, grön och alfa spelar samma roll, utan en inställning.
+##
+## Färgen kvantiseras (5 bitar per kanal) och kräver en majoritet av kanten: en bild utan duk — eller
+## en där figuren når ända ut — får ingen nyckel, och då avgör alfan ensam. Annars hade en fullmatad
+## bild kunnat äta upp sig själv.
+static func nyckelfärg(img: Image, r: Rect2) -> Color:
+	var räknare := {}
+	var w := int(r.size.x)
+	var h := int(r.size.y)
+	var röster: Array = []
+	for x in w:
+		for y in [0, h - 1]:
+			röster.append(Vector2i(x, y))
+	for y in h:
+		for x in [0, w - 1]:
+			röster.append(Vector2i(x, y))
+	for p in röster:
+		var c := img.get_pixel(int(r.position.x) + p.x, int(r.position.y) + p.y)
+		if c.a < GRANS:
+			continue
+		var nyckel := Vector3i(int(c.r * 32.0), int(c.g * 32.0), int(c.b * 32.0))
+		if not räknare.has(nyckel):
+			räknare[nyckel] = [0, Vector3.ZERO]
+		var post: Array = räknare[nyckel]
+		post[0] = int(post[0]) + 1
+		post[1] = Vector3(post[1]) + Vector3(c.r, c.g, c.b)
+	var bäst := 0
+	var färg := Color(0, 0, 0, 0)
+	for k in räknare:
+		var post: Array = räknare[k]
+		if int(post[0]) > bäst:
+			bäst = int(post[0])
+			färg = Color(post[1].x / post[0], post[1].y / post[0], post[1].z / post[0])
+	return färg if float(bäst) >= float(röster.size()) * 0.4 else Color(0, 0, 0, 0)
+
+
+## En pixel är TOM om den är genomskinlig eller ligger nära dukens färg. Toleransen är tilltagen (0,18)
+## för att en kant mot duken är halvtransparent och brusig — och den är ofarlig, för bara den bakgrund
+## som HÄNGER IHOP MED KANTEN tas bort. En mörk fläck inuti figuren ligger inte nära kanten.
+static func _tom(img: Image, x: int, y: int, nyckel: Color) -> bool:
+	var c := img.get_pixel(x, y)
+	if c.a < GRANS:
+		return true
+	if nyckel.a <= 0.0:
+		return false
+	return Vector3(c.r - nyckel.r, c.g - nyckel.g, c.b - nyckel.b).length() < 0.18
+
+
+## BAKGRUNDEN, på riktigt (M108). Alex: *"bygga någon motor som kan göra fiender i voxlar av en bild —
+## med färger från bilden, där den skiter i den svarta bakgrunden runtom men gör voxlar av allt inuti."*
+##
+## Flodfyllning från rektangelns kant: allt som hänger ihop med kanten OCH ser tomt ut är bakgrund.
+## En färgtröskel hade räckt ända till första svarta manteln — en svart yta INUTI figuren når inte
+## kanten och blir därför figur, precis som han beskrev det ("allt inuti").
+static func bakgrund(img: Image, r: Rect2) -> PackedByteArray:
+	var w := int(r.size.x)
+	var h := int(r.size.y)
+	var nyckel := nyckelfärg(img, r)
+	var bg := PackedByteArray()
+	bg.resize(w * h)
+	var kö: Array = []
+	var sådd := func(x: int, y: int) -> void:
+		var i := y * w + x
+		if bg[i] == 0 and _tom(img, int(r.position.x) + x, int(r.position.y) + y, nyckel):
+			bg[i] = 1
+			kö.append(i)
+	for x in w:
+		sådd.call(x, 0)
+		sådd.call(x, h - 1)
+	for y in h:
+		sådd.call(0, y)
+		sådd.call(w - 1, y)
+	var huvud := 0
+	while huvud < kö.size():
+		var i: int = kö[huvud]
+		huvud += 1
+		var x := i % w
+		var y := i / w
+		for d in [[1, 0], [-1, 0], [0, 1], [0, -1]]:
+			var nx: int = x + int(d[0])
+			var ny: int = y + int(d[1])
+			if nx < 0 or ny < 0 or nx >= w or ny >= h:
+				continue
+			if bg[ny * w + nx] == 1:
+				continue
+			if not _tom(img, int(r.position.x) + nx, int(r.position.y) + ny, nyckel):
+				continue
+			bg[ny * w + nx] = 1
+			kö.append(ny * w + nx)
+	return bg
+
+
 static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
 		antal_sidor: int = 32, antal_djup: int = 2) -> Voxel:
 	var v := Voxel.new()
@@ -95,13 +193,16 @@ static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
 	# figuren ungefär 34 px), så att sampla hela cellen gav en pyttefigur i ett hav av tomma celler.
 	# Alfans omfång hittas först och bara det sampas: då går hela rutnätet åt figuren, och höjden i
 	# meter betyder figurens höjd — samma mått som healthbaren räknar ur (34 x pixel_size).
+	# Bakgrunden räknas EN gång per RUTA, inte per cell (flodfyllning från ramen), och bara den som
+	# hänger ihop med ramen tas bort — en svart mantel inuti figuren blir kvar som figur.
+	var bg := bakgrund(img, Rect2(Vector2(ruta * fw, 0), Vector2(fw, fh)))
 	var x_min := fw
 	var x_max := -1
 	var y_min := fh
 	var y_max := -1
 	for py in fh:
 		for px in fw:
-			if img.get_pixel(ruta * fw + px, py).a >= GRANS:
+			if bg[py * fw + px] == 0:
 				x_min = mini(x_min, px)
 				x_max = maxi(x_max, px)
 				y_min = mini(y_min, py)
@@ -124,18 +225,19 @@ static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
 			var x0 := x_min + int(cx * cell)
 			var x1 := maxi(x0 + 1, x_min + int((cx + 1) * cell))
 			var summa := Vector3.ZERO
-			var alfa := 0.0
 			var n := 0
 			for py in range(y0, mini(y1, y_max + 1)):
 				for px in range(x0, mini(x1, x_max + 1)):
+					if bg[py * fw + px] == 1:
+						continue                       # bakgrund, och bara den som når kanten
 					var c := img.get_pixel(ruta * fw + px, py)
-					# Alfaviktat medel: en kantpixel med låg alfa får inte bleka hela cellen.
-					summa += Vector3(c.r, c.g, c.b) * c.a
-					alfa += c.a
+					summa += Vector3(c.r, c.g, c.b)
 					n += 1
-			if n == 0 or alfa / float(n) < GRANS:
+			# Cellen blir en voxel om tillräckligt mycket av den är figur — en tunn kant ska inte bli
+			# en klump, och en cell som bara snuddar figuren ska inte bli något alls.
+			if n == 0 or float(n) / float(maxi(1, (y1 - y0) * (x1 - x0))) < GRANS:
 				continue
-			var färg := Color(summa.x / alfa, summa.y / alfa, summa.z / alfa)
+			var färg := Color(summa.x / float(n), summa.y / float(n), summa.z / float(n))
 			for k in v.djup:
 				v.celler[Vector3i(cx, cy, k)] = färg
 	v._förskjutning = Vector3(-float(kol) * 0.5, -float(v.sidor) * 0.5, -float(v.djup) * 0.5)

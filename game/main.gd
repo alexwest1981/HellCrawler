@@ -5437,13 +5437,31 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	if tex == null or platser.is_empty() or not world:
 		return 0
 	var duk := Vector2(float(tex.get_width()), float(tex.get_height())) * DEKOR_PIXEL
-	var mesh := QuadMesh.new()
-	mesh.size = duk
-	var mat := ShaderMaterial.new()
-	mat.shader = _dekor_shader
-	mat.set_shader_parameter("textur", tex)
-	mat.set_shader_parameter("glod", GLÖD.get(art, 0.0))
-	mesh.material = mat
+	# FLORAN BLIR OCKSÅ VOXLAR (M108). Alex: "Kör även voxlar av all interiör med." MultiMesen behålls:
+	# den bär transformarna (plats, storlek, takhänget) och ritar hela våningens gräs i EN ritning, som
+	# en nod per tuva inte hade gjort. Det som byts är MESHEN inuti den — en quad mot en voxelmodell ur
+	# artens eget ark — och materialet, för den gamla dekor-shadern ritade en platt bild som billboard
+	# och läser atlasens UV; en mesh har ingen nytta av något av det.
+	var mesh: Mesh = null
+	var mat := StandardMaterial3D.new()
+	if VOXLAR:
+		var vx := Voxel.ur_ark(tex, 0, 1, duk.y, VOXEL_SIDOR, VOXEL_DJUP)
+		mesh = vx.mesh()
+		mat.vertex_color_use_as_albedo = true     # färgen sitter i hörnen, ur arkets egna pixlar
+		mat.roughness = 0.9                        # matt yta, som fienderna (M59)
+		var glod := float(GLÖD.get(art, 0.0))
+		if glod > 0.0:                             # samma glöd som dekor-shadern hade
+			mat.emission_enabled = true
+			mat.emission = LAGA_FARG
+			mat.emission_energy_multiplier = glod
+	else:
+		var quad := QuadMesh.new()
+		quad.size = duk
+		mat.shader = _dekor_shader
+		mat.set_shader_parameter("textur", tex)
+		mat.set_shader_parameter("glod", GLÖD.get(art, 0.0))
+		mesh = quad
+		(mesh as QuadMesh).material = mat         # en quad bär sin textur själv
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
@@ -5465,6 +5483,8 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	var nod := MultiMeshInstance3D.new()
 	nod.name = "dekor_" + art
 	nod.multimesh = mm
+	if not (mesh is QuadMesh):
+		nod.material_override = mat               # en mesh har ingen materialplats — den sätts på noden
 	world.add_child(nod)
 	return platser.size()
 
@@ -6014,6 +6034,19 @@ func _voxelprov() -> void:
 	# använder) och gav en modell på 0,41 m: den stod som ett litet grönt skräp på golvet medan spöket på
 	# skärmen är 1,26 m. Figurens EGET mått i arket gånger pixel_size är det som stämmer.
 	var figur_höjd: float = Voxel.figur_ruta(tex, 0, ENEMY_FRAMES).size.y * 0.012
+	# MOTPROVET (M108): samma figur på en ROSA duk, jämförd med det genomskinliga arket. Alex: "där den
+	# skiter i den svarta bakgrunden runtom men gör voxlar av allt inuti" och "om någon annan färg
+	# funkar bättre, typ rosa eller vit, grön...". Samma modell = duken lämnas därhän, och nyckelfärgen
+	# behövde aldrig ställas in.
+	var med_duk := Image.create(tex.get_width(), tex.get_width(), false, Image.FORMAT_RGBA8)
+	med_duk.fill(Color(1, 0, 1))
+	med_duk.blend_rect(tex.get_image(), Rect2i(0, 0, tex.get_width(), tex.get_height()), Vector2i.ZERO)
+	var duk_tex := ImageTexture.create_from_image(med_duk)
+	var vx_alfa := Voxel.ur_ark(tex, 0, ENEMY_FRAMES, figur_höjd, VOXEL_SIDOR, VOXEL_DJUP)
+	var vx_duk := Voxel.ur_ark(duk_tex, 0, ENEMY_FRAMES, figur_höjd, VOXEL_SIDOR, VOXEL_DJUP)
+	var n_duk_färg := Voxel.nyckelfärg(duk_tex.get_image(), Rect2(0, 0, tex.get_width(), tex.get_width()))
+	print("[voxelprov] dukprov: alfa-arket %d celler, rosa duk %d celler, nyckelfärg %s" % [
+		vx_alfa.antal_celler(), vx_duk.antal_celler(), str(n_duk_färg)])
 	var t0 := Time.get_ticks_usec()
 	var vx := Voxel.ur_ark(tex, 0, ENEMY_FRAMES, figur_höjd, VOXEL_SIDOR, VOXEL_DJUP)
 	var bygg_ms := float(Time.get_ticks_usec() - t0) / 1000.0

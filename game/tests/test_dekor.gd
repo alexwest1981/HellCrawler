@@ -32,9 +32,12 @@ func _init() -> void:
 	check(nod != null, "noden dekor_gräs finns i världen")
 	if nod != null:
 		check(nod.multimesh.instance_count == 1, "instansantalet är 1")
-		var duk: Vector2 = nod.multimesh.mesh.size
+		# M108: meshen är en voxelmodell, inte en quad — den har ingen `size`. HÖJDEN är den siffra som
+		# betyder något (den blir modellens höjd i meter), så det är den som mäts. Bredden följer figurens
+		# eget förhållande och ska inte vara arkets.
+		var mått: AABB = (nod.multimesh.mesh as Mesh).get_aabb()
 		var väntad: Vector2 = Vector2(float(tex.get_width()), float(tex.get_height())) * float(main.DEKOR_PIXEL)
-		check(duk.is_equal_approx(väntad), "quadden är %s, väntade %s" % [duk, väntad])
+		check(is_equal_approx(mått.size.y, väntad.y), "modellen är %.3f m hög, väntade %.3f" % [mått.size.y, väntad.y])
 		# 2) LÖFTET: ingen kollision. Ingen kropp, ingen form — och det går inte att glömma, för ingen
 		#    skapas. Provet letar efter dem i stället för att lita på att de inte finns.
 		check(_antal_kroppar(nod) == 0, "ingen fysikkropp under dekor_gräs")
