@@ -23,6 +23,11 @@ var _tom := Color.BLACK  ## kärlets insida ovanför vätskan
 ## nivå (mätt: 3/7 gav 43 %, precis som formeln säger), men en höjd går inte att jämföra med ett
 ## KORT som kostar 2. Siffran talar samma språk som korten, och rustningen får sin på samma sätt.
 var text := ""
+## SKAKNINGEN (M102): kärlet far till när man tar stryk. Alex länkade en glaskula vars vätska skakar
+## vid träff ("health/mana bar in ball container"), och det är den delen som går att bygga utan
+## shader. Två saker gör att det känns: det skakar SNETT (en rak sinus läses som en hiss) och det
+## lägger sig fort (0,25 s) — en kula som vinglar i en sekund ser trasig ut.
+var _skak := 0.0
 
 ## `färg` är vätskan; storleken sätts i fönsterpixlar och multipliceras med heltalsskalan, samma
 ## skala som spelvyn och ramen.
@@ -48,6 +53,22 @@ func sätt_nivå(nivå: float) -> void:
 	_nivå = ny
 	queue_redraw()
 
+## Skaka kärlet: en stöt som lägger sig på 0,25 s. Anropas där spelaren tar stryk (samma ställe som
+## den röda blinken), så varje väg in i skada — fiendenes tur, en fälla, vad som helst — skakar lika.
+func skaka(styrka: float = 1.0) -> void:
+	_skak = maxf(_skak, clampf(styrka, 0.0, 2.0))
+	set_process(true)
+
+func _process(delta: float) -> void:
+	_skak = maxf(0.0, _skak - delta * 4.0)
+	queue_redraw()
+	if _skak <= 0.001:
+		set_process(false)
+
+## Skakningens längd just nu — för provet, som annars inte kan se att stöten lägger sig.
+func skak() -> float:
+	return _skak
+
 ## Siffran som ritas mitt i kärlet. Ritas bara om när den ändras (kärlen redan vid varje bildruta i
 ## strid, och en text som sätts till samma sak ska inte kosta en omritning).
 func sätt_text(ny: String) -> void:
@@ -60,6 +81,11 @@ func sätt_text(ny: String) -> void:
 func _draw() -> void:
 	var r := _radie * _skala
 	var c := Vector2(r, r) + Vector2(KANT, KANT) * _skala
+	# Skakningen flyttar HELA kärlet (skål, vätska, glans och siffra) — allt ritas ur `c`, så det
+	# räcker med den ena raden. Snett: x och y ur samma klocka med olika fas.
+	if _skak > 0.001:
+		var t := float(Time.get_ticks_msec()) * 0.05
+		c += Vector2(sin(t), cos(t * 1.7)) * _skak * 3.0 * _skala
 	var sten := Palett.c(3)
 	var sten_ljus := Palett.c(6)
 	var järn := Palett.c(5)

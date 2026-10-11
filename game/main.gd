@@ -6722,11 +6722,11 @@ func _visa_gui(syns: bool) -> void:
 	for n in [hud_status, hud_logg, orb_hp, orb_mana, rust_bar]:
 		if n != null:
 			n.visible = syns
-	# Mana och rustning hör till striden: `_hud_sätt` trimmar dem efter läget, men kärlen får inte synas
-	# en bildruta utanför en strid medan den väntar på sin tur.
-	if orb_mana != null and active_combat == null:
-		orb_mana.visible = false
-		rust_bar.visible = false
+	# HÄR LÅG EN ANDRA REGEL OM SAMMA SAK (borttagen 11/10). Den gömde mana och rustning så fort
+	# `active_combat == null`, alltså i HELA gången mellan striderna — och den körde efter `_hud_sätt`,
+	# som säger motsatsen (M75: paret står sida vid sida hela körningen, rustningen är en pool man
+	# samlar). Alex: *"Det finns ju idag ingen hälso- eller manakula, var har du gömt dem? Jag vill se
+	# dem hela tiden, inte bara vid strid"*. Regeln bor nu på ETT ställe: `_hud_sätt`.
 
 ## Korthögarna (M34, punkt 8) i sidokolumnerna: leken till höger och de använda till vänster, båda i
 ## kortets egen storlek och med underkanten mot kärlen. Se `_hög_geometri` för räkningen.
@@ -7824,6 +7824,12 @@ func _blink_röd(skada: float) -> void:
 		return
 	hit_flash.color = Color(0.75, 0.10, 0.10, clampf(skada / 40.0, 0.10, 0.42))
 	create_tween().tween_property(hit_flash, "color:a", 0.0, 0.45)
+	# Kärlen far till av SAMMA stöt (M102): en blink över hela skärmen och ett kärl som står still
+	# säger två olika saker om samma slag. Styrkan följer skadan, som blinken.
+	if orb_hp != null:
+		orb_hp.skaka(clampf(skada / 12.0, 0.35, 1.0))
+	if orb_mana != null:
+		orb_mana.skaka(clampf(skada / 20.0, 0.25, 0.8))
 
 ## Ett kort träder fram eller undan: visa/dölj vad det skulle göra, och låt de andra vika undan.
 func _on_card_forward(index: int, on: bool) -> void:

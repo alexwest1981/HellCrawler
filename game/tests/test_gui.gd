@@ -421,6 +421,25 @@ func _initialize() -> void:
 		"hälsa, mana och rustning står på SAMMA sida (vänster)",
 		"mana %s, rust %s" % [str(main.orb_mana.get_rect()), str(main.rust_bar.get_rect())])
 	check(main.orb_mana.visible and main.rust_bar.visible, "mana och rustning syns i strid")
+	# KÄRLEN SYNS ÄVEN UTAN STRID (M102). Alex: *"Det finns ju idag ingen hälso- eller manakula, var har
+	# du gömt dem? Jag vill se dem hela tiden, inte bara vid strid"*. En gammal grind i `_visa_gui` gömde
+	# mana och rustning så fort `active_combat == null`, alltså i hela gången mellan striderna — och den
+	# körde EFTER `_hud_sätt`, som säger motsatsen (M75). Kontrollen stänger av striden och kör samma väg
+	# spelet kör, så den fäller grinden om den kommer tillbaka.
+	var sparat_combat = main.active_combat
+	main.active_combat = null
+	main._visa_gui(true)
+	check(main.orb_hp.visible and main.orb_mana.visible and main.rust_bar.visible,
+		"kärlen syns även när ingen strid pågår", "hp %s, mana %s, rust %s" % [
+			str(main.orb_hp.visible), str(main.orb_mana.visible), str(main.rust_bar.visible)])
+	main.active_combat = sparat_combat
+	main._visa_gui(true)
+	# SKAKNINGEN VID TRÄFF (M102) ska lägga sig: en kula som vinglar i en sekund ser trasig ut.
+	main.orb_hp.skaka(1.0)
+	var stöt: float = main.orb_hp.skak()
+	await create_timer(0.35).timeout
+	check(stöt > 0.9 and main.orb_hp.skak() < 0.05, "kärlet skakar av stöten och lägger sig",
+		"%.2f -> %.2f" % [stöt, main.orb_hp.skak()])
 	# MANAPOOLENS TAK (M80). Alex: *"Där det står 3/7, vad är det?"* — orben visade `run.base_mana + 4`,
 	# ett HÅRDKODAT +4 som bara råkade stämma för en spelare med exakt +4 i startmana. Taket ska vara
 	# stridens egen pool, samma tal som `Combat.start_turn` fyller till varje tur.
