@@ -37,6 +37,12 @@ const SVIKT_TID := 0.045          ## s: ned OCH upp igen — en blinkning, inte 
 ## och korten sätter sin minimistorlek till sin hemstorlek. Mätt: höjden stannade på exakt 80,0 px
 ## och ihoppressningen syntes inte alls när den drevs genom `size` — en osynlig rörelse.
 const KRAM := Vector2(1.02, 0.96)  ## kortet trycks ihop under svikten (bredare, lägre)
+## Det framträdda kortet LUTAR: överkanten skjuts bakåt medan det lyfter (8 % lägre), och rätar upp
+## sig när det satt sig. En framskjutning är perspektivets synliga del — kortet är lika brett men
+## kortare upptill — och den är den billiga vägen till "en aning 3D" i handen: en riktig vridning
+## kräver en egen yta per kort (se ui/reward_fx.gd), alltså 4-6 ytor i bildrutan.
+const LUTA := Vector2(1.0, 0.92)
+const LUTA_TID := 0.12            ## s: rätar upp sig efter lyftet
 const LYFT_TID := 0.16            ## s: lyftet till framträtt läge (BACK = översläng)
 const ÅTER_TID := 0.12            ## s: ned i ledet igen när pekaren lämnar
 const STÖT_SKALA := 1.12          ## stöten när kortet spelas, som andel av sin storlek
@@ -330,14 +336,20 @@ func set_forward(on: bool) -> void:
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		_tween.parallel().tween_method(_kram, 0.0, 1.0, SVIKT_TID * f) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		# FAS 2 — lyftet ur ledet: hela vägen upp med översläng, kramningen ut igen.
+		# FAS 2 — lyftet ur ledet: hela vägen upp med översläng, kramningen ut igen mot LUTA (kortet
+		# lutar bakåt medan det lyfter), och sist en egen fas där det rätar upp sig.
 		_tween.chain()
 		_tween.tween_method(_väx, 0.0, 1.0, LYFT_TID * f) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_property(self, "scale", Vector2.ONE, LYFT_TID * f) \
+		_tween.parallel().tween_property(self, "scale", LUTA, LYFT_TID * f) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		_tween.parallel().tween_property(self, "rotation", mål_rot, LYFT_TID * f) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		# Lutningen rätas ut i ett EGET steg efter lyftet: lade man den i samma fas skulle kortet stå
+		# kvar och luta medan det redan satt sig.
+		_tween.chain()
+		_tween.tween_property(self, "scale", Vector2.ONE, LUTA_TID * f) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	else:
 		# Tillbaka i ledet, med samma svikt: kortet kramas ihop när det sätter sig och rätar ut
 		# sig. Mätt: 3,2 px ihop (4 %) vid 60 ms, satt efter 107 ms.

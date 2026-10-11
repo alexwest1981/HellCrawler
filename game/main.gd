@@ -2071,10 +2071,18 @@ func _demo_chest() -> void:
 	var guld_före := run.gold
 	_enter_node_here()
 	_refresh()
-	# Bilden tas MEDAN stunden är som starkast: ekrarna når full längd vid 0,48 av stundens 1,7 s och
+	# FÖRST en bildruta mitt i VÄNDNINGEN: det är där perspektivet syns. En skalning i x ger en rak
+	# kant hela vägen in; en vridning ger en trapets, där kanten närmast oss är högre än den bortre.
+	# Provet skriver vinkeln bilden togs vid, så siffran i rapporten hör till just den bildrutan.
+	await get_tree().create_timer(RewardFx.LÄNGD * 0.20).timeout
+	print("kistprov: vändningen — fas %s, vriden %.1f grader, bredd %.2f" % [
+		reward_fx.fas(), float(reward_fx.stil()["vänd"]), float(reward_fx.stil()["bredd"])])
+	_spara_bild("user://shots/kista_vand.png")
+	print("kistprov: vändbild i %s" % ProjectSettings.globalize_path("user://shots/kista_vand.png"))
+	# Sedan bilden MEDAN stunden är som starkast: ekrarna når full längd vid 0,48 av stundens 1,7 s och
 	# gnistorna är som längst ut en bit in i utbrottet. En bildruta efter anropet hade visat kortet
 	# kant in (samma fälla som M10: siffran fanns inte i bilden därför att draget inte hunnit lösas).
-	await get_tree().create_timer(RewardFx.LÄNGD * 0.55).timeout
+	await get_tree().create_timer(RewardFx.LÄNGD * 0.35).timeout
 	print("kistprov: stundens fas %s, kortets bredd %.2f" % [
 		reward_fx.fas(), float(reward_fx.stil()["bredd"]) if reward_fx != null else 0.0])
 	print("kistprov: hp %.0f → %.0f · guld %d → %d · avklarad: %s"

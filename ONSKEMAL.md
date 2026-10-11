@@ -604,3 +604,41 @@ och ljust golv.
 
 **Kvar (med flit):** står spelaren PÅ spaden ligger både spaden och skylten över kameran och syns inte
 — det fallet bär HUD-ledtråden (`ui.hud.hint.grav_pa`: "DU STÅR PÅ SPADEN — klicka för att gräva ned").
+
+---
+
+## 34. Korten i en aning 3D (Alex 11/10)
+
+**Önskemålet:** *"korten tänker jag när man får ett kort som belöning, å liiiite när man för muspekaren
+över"* — ett kort som vrider sig i perspektiv (faux-3D), i den stund man får det, och en aning när man
+håller pekaren över ett kort i handen.
+
+**Status:** KLAR 2026-10-11, mätt.
+
+**Belöningskortet vrider sig i PERSPEKTIV.** Kortet ritas nu in i en egen yta — en `SubViewport` i
+kortets egen storlek, 54x74 — och vrids av `ui/kort3d.gdshader` (MIT, CodeVogel: "Faux 3D Perspective
+Shader for 2D CanvasItems", baserad på Hei's '2D-perspective'). Fram/baksida byts mitt i vändningen
+precis som förut; bara vridningen är ny.
+
+**Varför omvägen över en yta:** en canvas-shader läser `UV` som PLATSEN I RUTAN, och en glyfs UV är
+dess plats i fontatlaset. Ett träd av Controls (text, paneler) kan alltså inte vridas rakt av — bara EN
+textur kan. Skalningen i x som låg där förut (|cos v|) är en vändning UTAN djup: kanterna står still
+hela vägen in. Godot har ingen `skew` på en Control (den finns på `Node2D`), så ytan är den enda vägen.
+
+**Mätt** (`tools/prov.sh -- kistprov`, som nu också tar en bild MITT i vändningen):
+`kista_vand.png` togs vid `vriden 38,9 grader` och kortet läser som en **trapets** i bilden (höger kant
+högre, alltså kanten närmast betraktaren) — en skalning i x hade gett en rak kant.
+`kista.png` (fas `utbrott`, `bredd 1.00`) visar framsidan rakt framifrån, skarp: ytan är 1:1, så kortet
+går inte genom någon omskalning i vila. Åtta nya kontroller i `tests/test_reward.gd` mäter kopplingen
+mellan `stil()` och shaderns uniformer (ytan finns, shadern är rätt fil, ytan är 54x74 utan stretch,
+vridningen går 90° → 0°, baksidan visas bara medan kortet är vänt bort, och ytan slutar rita när
+stunden är över — den kostar ingenting i vila).
+
+**Handen LUTAR** i stället, och det är den ärliga skillnaden: det framträdda kortet skjuter överkanten
+bakåt 8 % medan det lyfter och rätar upp sig i ett eget steg efteråt. En framskjutning är perspektivets
+synliga del — kortet är lika brett men kortare upptill. Mätt i `tests/test_kortrorelse.gd`:
+`lutning 8,0 % bakåt vid 175 ms`, kortet satt efter 161 ms, underkanten still 0,0 px.
+
+**Kvar med flit:** en RIKTIG vridning i handen kräver en egen yta per kort (4-6 kort = 4-6 ytor i
+bildrutan varje bildruta medan man hovrar). Det är inte värt det för en kosmetisk vink — säg till om du
+vill se det.

@@ -70,6 +70,44 @@ func _init() -> void:
 	check(max_blixt > 0.2, "och en blixt syns när framsidan landar", "%.2f" % max_blixt)
 	check(max_alfa > 0.99, "kortet står helt framme en stund", "%.2f" % max_alfa)
 	check(faser.size() >= 4, "stunden har alla sina faser", str(faser.keys()))
+
+	# KORTETS YTA: vändningen sker i perspektiv, alltså ritas kortet in i en egen yta och vrids av
+	# shadern (ui/kort3d.gdshader). Provet mäter kopplingen mellan `stil()` och shaderns uniformer —
+	# siffrorna som styr bilden — i stället för att titta på en bildruta.
+	var f2 := RewardFx.new()
+	f2._bygg_kort3d()
+	var yta := f2.kort3d()
+	check(yta != null and yta.material is ShaderMaterial, "kortet ritas i en egen yta")
+	var mat := yta.material as ShaderMaterial
+	check(mat != null and mat.shader != null and mat.shader.resource_path.ends_with("kort3d.gdshader"),
+		"och ytan vrids av shadern",
+		str(mat.shader.resource_path) if mat != null and mat.shader != null else "-")
+	var inre := yta.get_child(0) as SubViewport
+	check(inre != null and inre.size == Vector2i(RewardFx.KORT) and not yta.stretch,
+		"ytan är i kortets egen storlek — 1:1, ingen uppskalning som gör kortet mjukt",
+		"%s / stretch %s" % [str(inre.size) if inre != null else "-", str(yta.stretch)])
+	f2.visa("KISTA", "+25 guld")
+	var v_start := float(f2.stil()["vänd"])
+	check(inre != null and inre.render_target_update_mode == SubViewport.UPDATE_ALWAYS,
+		"ytan ritar medan stunden spelar")
+	# Vändningen: 90° är kant in, 0° är framsidan mot betraktaren.
+	var v_min := 999.0
+	var backe_fel := 0
+	var varv_yta := 0
+	while f2.aktiv() and varv_yta < 1000:
+		varv_yta += 1
+		var s2 := f2.stil()
+		v_min = minf(v_min, float(s2["vänd"]))
+		if float(s2["vänd"]) > 45.0 and str(s2["sida"]) != "baksida":
+			backe_fel += 1
+		f2.stega(dt)
+	check(is_equal_approx(v_start, 90.0), "kortet kommer in kant in (90 grader)", "%.1f" % v_start)
+	check(v_min <= 0.01, "och vrider sig ända fram till betraktaren (0 grader)", "%.1f" % v_min)
+	check(backe_fel == 0, "baksidan visas bara medan kortet är vänt bort från oss",
+		"%d bildrutor fel" % backe_fel)
+	check(inre != null and inre.render_target_update_mode == SubViewport.UPDATE_DISABLED,
+		"och ytan slutar rita när stunden är över (den kostar ingenting i vila)")
+	f2.free()
 	check(faser.has("vänds") and faser.has("utbrott") and faser.has("håll") and faser.has("tonar"),
 		"vänds → utbrott → håll → tonar")
 	check(varv < 1000, "och den tar slut av sig själv", "%d bildrutor, %.2f s" % [varv, varv * dt])

@@ -213,11 +213,18 @@ func _fas_svikt() -> void:
 	var y := []
 	var h := []
 	var kram := []
+	# Svikten och LUTNINGEN hålls isär: svikten kramar ihop kortet kring sin underkant (mätt strax
+	# efter pekaringången), och lutningen skjuter överkanten bakåt medan kortet lyfter. Låg de i
+	# samma tal skulle "kramad" växa av lutningen och sluta säga något om svikten.
+	var lut := []
 	for rad in _logg:
 		var k: Dictionary = rad["k"][0]
 		y.append({"t": rad["t"], "v": k["y"] - hem})
 		h.append({"t": rad["t"], "v": k["h"]})
-		kram.append({"t": rad["t"], "v": CARD.y - k["h"] * k["sy"]})   # ihoppressningen i px
+		if rad["t"] <= 110.0:
+			kram.append({"t": rad["t"], "v": CARD.y - k["h"] * k["sy"]})   # ihoppressningen i px
+		else:
+			lut.append({"t": rad["t"], "v": 1.0 - float(k["sy"])})          # lutningen, som andel
 		print("     t %4.0f ms   y %+6.1f px   höjd %6.1f px   underkant %6.1f   kramad %4.1f px" % [
 			rad["t"], k["y"] - hem, k["h"], k["y"] + k["h"], CARD.y - k["h"] * k["sy"]])
 	# Efter svikten ska UNDERKANTEN stå still: kortet växer ur sin egen underkant. Räknades
@@ -233,19 +240,24 @@ func _fas_svikt() -> void:
 	var djup := _topp(y)
 	var topp := _topp(h)
 	var kramtopp := _topp(kram)
+	var luttopp := _topp(lut)
 	var mål: float = CARD.y * CardView.FORWARD
 	var satt := _satt(h, mål)
 	var översläng: float = topp[0] - mål
-	print("     => svikt %+.1f px ned vid %.0f ms | kramad %.1f px vid %.0f ms | lyftet: topp %.1f px (mål %.0f, översläng %+.1f) vid %.0f ms | satt %.0f ms" % [
-		djup[0], djup[1], kramtopp[0], kramtopp[1], topp[0], mål, översläng, topp[1], satt])
-	_matt.append("svikt: %+.1f px ned + %.1f px ihop vid %.0f ms | lyftets översläng %+.1f px | satt %.0f ms | underkanten still %.1f px" % [
-		djup[0], kramtopp[0], djup[1], översläng, satt, glid])
+	print("     => svikt %+.1f px ned vid %.0f ms | kramad %.1f px vid %.0f ms | lutad %.1f %% vid %.0f ms | lyftet: topp %.1f px (mål %.0f, översläng %+.1f) vid %.0f ms | satt %.0f ms" % [
+		djup[0], djup[1], kramtopp[0], kramtopp[1], luttopp[0] * 100.0, luttopp[1],
+		topp[0], mål, översläng, topp[1], satt])
+	_matt.append("svikt: %+.1f px ned + %.1f px ihop vid %.0f ms | lutning %.1f %% bakåt | lyftets översläng %+.1f px | satt %.0f ms | underkanten still %.1f px" % [
+		djup[0], kramtopp[0], djup[1], luttopp[0] * 100.0, översläng, satt, glid])
 	check(djup[0] >= 1.5 and djup[0] <= 7.0, "pekaren ger en svikt ned",
 		"%+.1f px (vill 2–6)" % djup[0])
 	check(djup[1] >= 15.0 and djup[1] <= 130.0, "svikten är en blinkning, inte en väntan",
 		"%.0f ms till botten" % djup[1])
 	check(kramtopp[0] >= 1.0 and kramtopp[0] <= 8.0, "kortet ger sig: det trycks ihop under pekaren",
 		"%.1f px lägre (skalan, inte rutan)" % kramtopp[0])
+	check(luttopp[0] >= 0.04 and luttopp[0] <= 0.14,
+		"och lutar bakåt medan det lyfter (framsjutning: en aning 3D i handen)",
+		"%.1f %% lägre överkant" % (luttopp[0] * 100.0))
 	check(översläng >= 1.0, "lyftet överslänger och sätter sig", "%+.1f px" % översläng)
 	check(satt >= 120.0 and satt <= 400.0, "kortet har satt sig i framträtt läge",
 		"%.0f ms" % satt)
