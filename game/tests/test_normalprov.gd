@@ -182,7 +182,12 @@ func _initialize() -> void:
 		# type here (StandardMaterial3D) killed the whole test with a script error. A type error in
 		# _initialize does NOT end the tree — it keeps running, so the suite reported a 420-second
 		# timeout with no reason at all, and the reason only showed in the raw output.
-		var mat: Material = (n as MultiMeshInstance3D).multimesh.mesh.material
+		# MATERIALET KAN SITTA PÅ NODEN (M108). Floran är en voxelmodell — en ArrayMesh — och en ArrayMesh
+		# har ingen `material`: den sätts på MultiMeshInstance3D. Att läsa `mesh.material` rakt av gav ett
+		# skriptfel, och precis som kommentaren ovan varnar för blir följden en timeout utan orsak.
+		var nod := n as MultiMeshInstance3D
+		var mk: Mesh = nod.multimesh.mesh
+		var mat: Material = mk.material if mk is PrimitiveMesh else nod.material_override
 		if not (mat is StandardMaterial3D):
 			continue
 		var m := mat as StandardMaterial3D
