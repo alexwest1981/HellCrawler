@@ -13,7 +13,7 @@
  "ui.battle.title": "WALKA",
  "ui.battle.play_all": "Zagraj wszystko (P)",
  "ui.battle.end_turn": "Koniec tury (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "HP %.0f/%.0f · pancerz %.0f",
  "ui.battle.chain_broken": "łańcuch przerwany",
  "ui.battle.no_mana": "za mało many",

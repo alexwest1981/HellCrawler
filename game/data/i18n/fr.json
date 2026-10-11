@@ -13,7 +13,7 @@
  "ui.battle.title": "COMBAT",
  "ui.battle.play_all": "Tout jouer (P)",
  "ui.battle.end_turn": "Fin de tour (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "PV %.0f/%.0f · armure %.0f",
  "ui.battle.chain_broken": "chaîne brisée",
  "ui.battle.no_mana": "mana insuffisant",

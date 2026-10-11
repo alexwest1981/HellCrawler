@@ -13,7 +13,7 @@
  "ui.battle.title": "COMBATTIMENTO",
  "ui.battle.play_all": "Gioca tutto (P)",
  "ui.battle.end_turn": "Fine turno (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "HP %.0f/%.0f · armatura %.0f",
  "ui.battle.chain_broken": "catena spezzata",
  "ui.battle.no_mana": "mana insufficiente",

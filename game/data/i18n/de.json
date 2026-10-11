@@ -13,7 +13,7 @@
  "ui.battle.title": "KAMPF",
  "ui.battle.play_all": "Alles spielen (P)",
  "ui.battle.end_turn": "Zug beenden (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "HP %.0f/%.0f · Rüstung %.0f",
  "ui.battle.chain_broken": "Kette unterbrochen",
  "ui.battle.no_mana": "zu wenig Mana",

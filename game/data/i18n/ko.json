@@ -13,7 +13,7 @@
  "ui.battle.title": "전투",
  "ui.battle.play_all": "전부 사용 (P)",
  "ui.battle.end_turn": "턴 종료 (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "HP %.0f/%.0f · 방어 %.0f",
  "ui.battle.chain_broken": "연쇄 끊김",
  "ui.battle.no_mana": "마나 부족",

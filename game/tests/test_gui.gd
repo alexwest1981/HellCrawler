@@ -196,6 +196,103 @@ func _initialize() -> void:
 		", ".join(skymda.slice(0, 3)))
 	check(mitt_fel.is_empty(), "främre radens mitt står mitt för spelaren (%d fel)" % mitt_fel.size(),
 		", ".join(mitt_fel.slice(0, 3)))
+	## FÖRHANDSVISNINGEN ÖVER FIENDEN (M103). Alex: *"Sen vill jag se den skada som kommer ske över varje
+	## fiende på närmaste rad (om det nu skulle finnas fiender bakom t ex) när jag hovrar över ett kort.
+	## Nu får man ju chansa. Jag vill då att det visar hur mycket varje fiende har i hälsa först, å sen
+	## var det landar efter attack."* Provet hovrar samma väg som musen (`_forward_index` +
+	## `_refresh_battle`), läser texten över figuren, spelar kortet och kräver att den var sann.
+	print("")
+	print("— förhandsvisningen över fienden —")
+	var visad := -1
+	var p_förhand := {}
+	for k in main.active_combat.hand.size():
+		var q: Dictionary = main.active_combat.preview(k)
+		if q.get("ok", false) and not q.get("hits", []).is_empty():
+			visad = k
+			p_förhand = q
+			break
+	check(visad >= 0, "det finns ett spelbart skadekort att förhandsvisa")
+	if visad >= 0:
+		var vy := -1
+		for v in main.active_combat.hand.size():
+			if main._hand_index(v) == visad:
+				vy = v
+				break
+		main._forward_index = vy
+		main._refresh_battle()
+		var över := []
+		for n in main._forhands_noder:
+			if is_instance_valid(n):
+				över.append(str(n.text))
+		var väntade := []
+		var hp_före := {}
+		for h in p_förhand["hits"]:
+			hp_före[h.enemy] = h.enemy.hp
+			väntade.append("%.0f → %.0f" % [h.enemy.hp, maxf(0.0, h.enemy.hp - float(h.damage))])
+		över.sort()
+		väntade.sort()
+		check(över == väntade, "texten över fienden är 'hp → efter'", "%s mot %s" % [str(över), str(väntade)])
+		# Och den är SANN: spelet kortet på riktigt och jämför varje träffads hp-tapp med siffran.
+		var fel := 0
+		for h in p_förhand["hits"]:
+			var e = h.enemy
+			var före: float = hp_före[e]
+			var skulle := float(h.damage)
+			main.active_combat.play(visad)
+			if absf(före - e.hp - skulle) > 0.001:
+				fel += 1
+		check(fel == 0, "siffran över fienden är den man får", "%d fel" % fel)
+		main._forward_index = -1
+		main._refresh_battle()
+		check(main._forhands_noder.is_empty(), "förhandsvisningen städas bort när inget kort är framme",
+			"%d kvar" % main._forhands_noder.size())
+
+	## KORTETS EGNA EFFEKTER (M103): glansen vid hover och förbränningen när kortet spelas. Båda bor i
+	## EN överläggning ovanpå kortet (ui/kortfx.gdshader), för kortet är ett träd av Controls och en
+	## canvas-shader ritar per del — en brinnfläck hade hamnat olika på ramen, konsten och texten.
+	print("")
+	print("— kortets glans och brand —")
+	var kortvy: CardView = main.hand_views[0]
+	check(kortvy != null and kortvy._fx != null and kortvy._fx_material != null
+		and kortvy._fx_material.shader != null
+		and kortvy._fx_material.shader.resource_path.ends_with("kortfx.gdshader"),
+		"kortet har en överläggning med kortfx-shadern")
+	await process_frame
+	check(kortvy._fx.size.is_equal_approx(kortvy.home_size),
+		"överläggningen har kortets eget mått", "%.1fx%.1f mot %.1fx%.1f"
+		% [kortvy._fx.size.x, kortvy._fx.size.y, kortvy.home_size.x, kortvy.home_size.y])
+	if kortvy.forward:
+		kortvy.set_forward(false)
+		await create_timer(0.2).timeout
+	kortvy.set_forward(true)
+	await create_timer(0.2).timeout
+	check(kortvy._param("glans") > 0.5 and kortvy._fx.visible,
+		"glansen tänds när pekaren är över kortet", "glans %.2f" % kortvy._param("glans"))
+	kortvy.set_forward(false)
+	await create_timer(0.2).timeout
+	check(kortvy._param("glans") < 0.5 and not kortvy._fx.visible,
+		"och släcks när pekaren lämnar", "glans %.2f" % kortvy._param("glans"))
+	kortvy.bränn(0.20, Vector2(12.0, 20.0))
+	check(kortvy._fx.visible, "förbränningen tänder överläggningen")
+	await create_timer(0.35).timeout
+	check(kortvy.brinnt() >= 1.0 and not kortvy._fx.visible,
+		"kortet brinner till slutet och överläggningen släcks", "brand %.2f" % kortvy.brinnt())
+
+	## DÖDSMÄLTAN (M103): bilden smälter nedåt när körningen tar slut i nederlag. Noden läser
+	## SCREEN_TEXTURE, så den behöver ingen egen yta — och den ska vara SLÄCKT i vanliga fall (en
+	## osynlig ruta som ligger och läser skärmen kostar en kopia av bilden varje bildruta).
+	print("")
+	print("— dödsmältan —")
+	var mält_mat := main.dödsmälta.material as ShaderMaterial if main.dödsmälta != null else null
+	check(mält_mat != null and mält_mat.shader != null
+		and mält_mat.shader.resource_path.ends_with("malt.gdshader"),
+		"dödsmältan finns med malt-shadern")
+	check(main.dödsmälta != null and not main.dödsmälta.visible, "och syns inte i vanliga fall")
+	main._dödsmälta_spela(0.15)
+	check(main.dödsmälta.visible, "smältan tänds när den spelas")
+	await create_timer(0.45).timeout
+	check(not main.dödsmälta.visible, "och släcks när den är klar")
+
 	# FIGUREN MÅSTE RITAS (M69). Mätt med `-- figurprov fienderödfärg` (figuren självlysande magenta,
 	# allt annat i bilden oförändrat): med `material_override` ritar Sprite3D 73 px av figuren, med
 	# Sprite3D:s EGET material 22 641 px. Rutan i arket väljs i motorns eget material, och en override
@@ -901,6 +998,27 @@ func _initialize() -> void:
 	# ut, men panelen centreras i spelvyn — blev den högre än 270 px klipptes rubriken (guld och fack)
 	# i överkant och kortraden i underkant. Mätt på Alex' skärmbild 23 sep. Måttet står här så en
 	# framtida rad i panelen inte tyst knuffar ut texten igen.
+	# VILKEN RAD SOM ÄR FÖR BRED (M104). Panelen mättes förr bara som en ruta, och felet syntes som
+	# "panelen är 544 px" utan att någon rad pekades ut. Här mäts VARJE rad med samma font som ritar
+	# den, så provet säger vilken rad som sprack — den bredaste raden är den som knuffar ut panelen.
+	var radbredd := []
+	var typsnitt := ThemeDB.fallback_font
+	var radstorlek := 16
+	for rad in main.jewel_label.text.split("\n"):
+		radbredd.append([typsnitt.get_string_size(str(rad), HORIZONTAL_ALIGNMENT_LEFT, -1, radstorlek).x, str(rad)])
+	radbredd.sort_custom(func(a, b): return float(a[0]) > float(b[0]))
+	print("    juvelerarens bredaste rader: %s" % str(radbredd.slice(0, 3)))
+	check(float(radbredd[0][0]) <= float(main.VY.x),
+		"ingen rad i juvelerarpanelen är bredare än vyn",
+		"%.0f px mot %.0f: '%s'" % [float(radbredd[0][0]), main.VY.x, radbredd[0][1]])
+	# PANELENS BARN, inte bara texten: en rad mäts ur sin font, men en CONTAINER mäts ur sina barn —
+	# och det var containern som var bred (texten var som mest 343 px i en 480 px vy).
+	var barninfo := []
+	for b in main.jewel_panel.get_children():
+		barninfo.append("%s %s" % [b.get_class(), str((b as Control).size)])
+	print("    juvelerarens barn: box %s (min %s, %d kort) | %s" % [
+		str(main.jewel_box.size), str(main.jewel_box.custom_minimum_size),
+		main.jewel_box.get_child_count(), ", ".join(barninfo)])
 	var jr: Rect2 = Rect2(main.jewel_panel.position, main.jewel_panel.size)
 	print("    juveleraren: panelen %.0fx%.0f px, y %.0f..%.0f, vyn är %.0f hög"
 		% [jr.size.x, jr.size.y, jr.position.y, jr.end.y, main.VY.y])

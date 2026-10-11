@@ -84,6 +84,14 @@ var _tween: Tween
 var _vänd_tween: Tween            ## vändningen, i sin egen tween: lyftet och vändningen får inte döda varandra
 var _bak: TextureRect
 static var _baksida: Texture2D   ## baksidan, laddad en gång för alla kort
+## KORTETS EGNA EFFEKTER (M103): glansen vid hover och förbränningen när kortet spelas, i EN överläggning
+## ovanpå kortet (se ui/kortfx.gdshader). Skälet att det är en överläggning och inte ett material på
+## kortets delar: kortet är ett träd, och en canvas-shader ritar per del med delens egen UV — en brinnande
+## fläck hade hamnat fel på var och en av dem.
+var _fx: ColorRect
+var _fx_material: ShaderMaterial
+var _glans_på := false
+var _brand_på := false
 
 ## Bygg ett färdigt kort. `icon` får vara null (11 av 67 kort har ingen bild än — de får en TYDLIG
 ## platshållare i stället för en tom ruta). `skala` förstorar både rutan och texten; handen ligger i
@@ -93,7 +101,88 @@ static func make(c: Cards.Card, i: int, icon: Texture2D, big: bool, skala := 1.0
 	v.index = i
 	v.card = c
 	v._build(icon, big, skala)
+	# Överläggningen läggs efter `_build`, alltså ÖVERST i trädet: den läser skärmen under sig, och då
+	# måste hela kortet vara ritat först.
+	v._bygg_fx()
 	return v
+
+## Överläggningen (M103). En egen ruta över kortet med kortets egna mått, osynlig i vila, och med
+## `mouse_filter` IGNORE så att den inte stjäl hover eller klick från kortet.
+func _bygg_fx() -> void:
+	_fx_material = ShaderMaterial.new()
+	_fx_material.shader = load("res://ui/kortfx.gdshader")
+	_fx_material.set_shader_parameter("storlek", home_size)
+	_fx = ColorRect.new()
+	_fx.material = _fx_material
+	_fx.color = Color.WHITE       # färgen kommer ur shadern (skärmen under); alfan ur rutan
+	_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fx.visible = false
+	add_child(_fx)
+
+## Tänd eller släck glansen. Medan den lyser följer strimman pekaren (`_process`), och rutan är synlig —
+## en överläggning som läser skärmen kostar en kopia av bilden varje bildruta, så den får inte stå på.
+func _tänd_glans(on: bool) -> void:
+	if _fx == null:
+		return
+	_glans_på = on
+	_fx.visible = on or _brand_på
+	set_process(on)
+	var t := create_tween()
+	t.tween_method(_sätt_glans, _glans_värde(), 1.0 if on else 0.0, 0.12)
+	# Muspekaren finns bara när kortet ligger i trädet: `set_forward` anropas också medan kortet byggs
+	# (kortvalet och samlingen sätter sitt läge innan de läggs in), och `get_local_mouse_position` fäller
+	# hela anropet då.
+	if on and is_inside_tree():
+		_sätt_glans_pos(get_local_mouse_position())
+
+## Uniformer som inte satts ännu svarar null (standardvärdet bor i shadern), och `float(null)` fäller
+## hela anropet. Läs dem genom den här, så både koden och proven får ett tal.
+func _param(namn: String) -> float:
+	if _fx_material == null:
+		return 0.0
+	var v: Variant = _fx_material.get_shader_parameter(namn)
+	return 0.0 if v == null else float(v)
+
+func _glans_värde() -> float:
+	return _param("glans")
+
+func _sätt_glans(v: float) -> void:
+	_fx_material.set_shader_parameter("glans", v)
+
+func _sätt_glans_pos(p: Vector2) -> void:
+	_fx_material.set_shader_parameter("glans_pos", p)
+
+func _process(_delta: float) -> void:
+	if _glans_på:
+		_sätt_glans_pos(get_local_mouse_position())
+
+## FÖRBRÄNNINGEN (M103). Alex: *"när ett kort man förbränner vid användning?"* — kortet som spelas
+## brinner bort från punkten man klickade, i stället för att bara blekna. Rutan tänds, radien växer till
+## hela kortet och släcks sedan: en överläggning som ligger kvar hade fortsatt att äta av skärmen.
+func bränn(varv: float = 0.38, punkt := Vector2.INF) -> void:
+	if _fx == null:
+		return
+	_brand_på = true
+	_fx.visible = true
+	_fx_material.set_shader_parameter("storlek", home_size)
+	_fx_material.set_shader_parameter("brand_punkt", home_size * 0.5 if punkt == Vector2.INF else punkt)
+	_fx_material.set_shader_parameter("brand", 0.0)
+	var t := create_tween()
+	t.tween_method(_sätt_brand, 0.0, 1.25, varv).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	t.tween_callback(_släck_brand)
+
+func _sätt_brand(v: float) -> void:
+	_fx_material.set_shader_parameter("brand", v)
+
+func _släck_brand() -> void:
+	_brand_på = false
+	if _fx != null:
+		_fx.visible = _glans_på
+
+## Hur långt förbränningen har kommit (0 = helt kort). För provet.
+func brinnt() -> float:
+	return _param("brand")
 
 func cost_text() -> String:
 	return "W" if card.is_wild() else str(card.cost)
@@ -323,6 +412,9 @@ func set_forward(on: bool) -> void:
 	z_index = 3 if on else 0
 	_effect.visible = on or _big
 	add_theme_stylebox_override("panel", _style(on))
+	# GLANSEN (M103): en ljusstrimma som följer pekaren medan den är över kortet. Tänds bara då — en
+	# överläggning som läser skärmen kostar en kopia av bilden, och det ska man inte betala i vila.
+	_tänd_glans(on)
 	var f := _fas()
 	_tween = create_tween()
 	if on:

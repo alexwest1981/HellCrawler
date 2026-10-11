@@ -117,12 +117,19 @@ var draft_box: HFlowContainer
 var map_view: MapView
 var hand_views: Array = []
 var _forward_index := -1
+## FÖRHANDSVISNINGEN ÖVER FIENDEN (M103). Alex: *"Sen vill jag se den skada som kommer ske över varje
+## fiende på närmaste rad (om det nu skulle finnas fiender bakom t ex) när jag hovrar över ett kort. Nu
+## får man ju chansa. Jag vill då att det visar hur mycket varje fiende har i hälsa först, å sen var det
+## landar efter attack."* Siffrorna kommer ur `Combat.preview()` — samma funktion som panelens rad och
+## provet "visad skada = utfall" läser, så det som står över figuren är det som händer.
+var _forhands_noder: Array = []
 var _play_all_btn: Button = null     ## medlemmar: språkbytet sätter om texten utan att bygga om HUD:en
 var _end_turn_btn: Button = null
 var _sort_mode := 0
 var _hand_order: Array[int] = []
 var meta: Meta = null
 var _banked := false
+var _mält := false          ## dödsmältan spelad (M103): en gång per körning
 ## Belöningen efter körningen (önskemål 24): de tre valen, raden för det valda, och om boxen är
 ## besvarad. Tom lista = ingen box väntar (den rullas en gång, i _after_state_change).
 var _box_val: Array = []
@@ -220,6 +227,9 @@ const BAR_H := 0.11
 var _bar_texture: ImageTexture
 var hit_flash: ColorRect
 var gräv_slöja: ColorRect       ## mörkret under en grävning (M44): bilden svartnar medan kameran sjunker
+## DÖDSMÄLTAN (M103): hela bilden smälter nedåt när körningen tar slut i nederlag (Alex länkade
+## DOOM-skärmen till just den övergången). Rutan läser SCREEN_TEXTURE, så den behöver ingen egen yta.
+var dödsmälta: ColorRect
 var _spade_nod: Dungeon.FloorNode   ## spaden på våningen: den ENDA saken som klickas
 var _spade_sprite: Sprite3D         ## dess sprite, så klicket kan räkna ut var den står
 var _spade_skylt: Label3D           ## skylten som gungar ovanför spaden när den får tas (se `_spade_skylt_bygg`)
@@ -2752,7 +2762,13 @@ func _show_jewel() -> void:
 			var m := "▸" if i == jewel_sten else " "
 			bitar.append("%s%s x%d" % [m, meta.gem_name(str(rad["fam"]), int(rad["grad"])),
 				int(rad["antal"])])
-		rader.append("  ".join(bitar))
+		# STENRADEN BRYTS (M104). Fickan växer medan man spelar — fler familjer, fler bitar — och raden
+		# växte ur panelen: med en stor ficka blev panelen 544 px i en 480 px vy och vänsterkanten sköt
+		# ut genom skärmen. Samma fel som tipsraden hade (M93), men den här raden bröts aldrig. Högst
+		# tre stenar per rad, så bredden är bunden oavsett hur mycket man samlar.
+		var per_rad := 3
+		for start in range(0, bitar.size(), per_rad):
+			rader.append("  ".join(bitar.slice(start, start + per_rad)))
 	# TIPS-RADEN BRÖTS I TVÅ (M93). Den är 1236 px på en rad ("← → kort · 1-4 fack · W/S sten ·
 	# Enter = öppna/sätt/plocka ur · Esc = tillbaka"), och panelen centreras i den 480 px breda vyn —
 	# hela vänsterkanten av varje rad hamnade utanför skärmen, rubriken med guldet först av allt.
@@ -2768,10 +2784,20 @@ func _show_jewel() -> void:
 		rader.append(" · ".join(bitar.slice(mitt)).strip_edges())
 	else:
 		rader.append(tips)
+	# BARA EN FLIK AV LEKEN SYNS (M104). Korten i raden är 19,5 px breda i JEWEL_RAD, så sju ryms i den
+	# 480 px breda vyn — men koden byggde ALLA lekens kort. Med Alex' 27-kortslek blev raden 536 px och
+	# panelen sköt ut genom vänsterkanten (mätt: x -32..512 av 480, panelen 544 px). ← → flyttar valet
+	# (det säger tipsraden), så en flik kring det VALDA kortet räcker — och fliken följer valet.
+	var flik := 7
+	var från := clampi(jewel_kort - flik / 2, 0, maxi(0, lek.size() - flik))
+	var till := mini(lek.size(), från + flik)
+	if lek.size() > flik:
+		# Ren siffra, inga ord: raden behöver ingen översättning (samma skäl som "?" på kartan).
+		rader.append("%d–%d / %d" % [från + 1, till, lek.size()])
 	jewel_label.text = "\n".join(rader)
 	# Raden: hela leken. Det valda kortet är det som lyfts fram (`set_forward`), och facken syns på
 	# korten som små märken (CardView) — förhandsvisningen ovanför togs bort i M93.
-	for i in lek.size():
+	for i in range(från, till):
 		var k: CardView = CardView.make(lek[i], i, _card_icon(lek[i].id), false, JEWEL_RAD)
 		k.set_forward(i == jewel_kort)
 		k.picked.connect(_jewel_klick)
@@ -4198,6 +4224,41 @@ func _refresh_enemy_bars() -> void:
 		# Grön -> gul -> röd. Färgen är den snabbaste läsningen: "den där faller snart".
 		fyllnad.modulate = Color(0.45, 0.85, 0.40) if andel > 0.5 else \
 			(Color(0.95, 0.75, 0.25) if andel > 0.25 else Color(0.90, 0.30, 0.25))
+
+## FÖRHANDSVISNINGEN ÖVER FIGUREN (M103). Siffrorna hamnar där man tittar — över fienden, i samma rad
+## som healthbaren — i stället för bara i panelen i marginalen. Noderna byggs om varje gång hoverläget
+## ändras (det är ett fåtal gånger i sekunden, inte per bildruta).
+func _visa_förhandsvisning(stryk: Dictionary) -> void:
+	_töm_förhandsvisning()
+	if stryk.is_empty() or active_combat == null:
+		return
+	for e in stryk:
+		var i: int = active_combat.enemies.find(e)
+		if i < 0 or i >= _enemies.size():
+			continue
+		var spr: Sprite3D = _enemies[i].get("spr")
+		if not is_instance_valid(spr):
+			continue
+		var kvar := maxf(0.0, e.hp - float(stryk[e]))
+		var lbl := Label3D.new()
+		lbl.text = "%.0f → %.0f" % [e.hp, kvar]
+		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		lbl.no_depth_test = true
+		lbl.pixel_size = 0.0022
+		lbl.font_size = 40
+		lbl.outline_size = 5
+		lbl.outline_modulate = Color(0.04, 0.03, 0.03, 0.95)
+		# Faller fienden av slaget är svaret viktigare än talet: rött läses som "dör".
+		lbl.modulate = Palett.c(11) if kvar <= 0.0 else Palett.c(14)
+		lbl.position = Vector3(spr.position.x, spr.position.y + 32.0 * spr.pixel_size, spr.position.z)
+		world.add_child(lbl)
+		_forhands_noder.append(lbl)
+
+func _töm_förhandsvisning() -> void:
+	for n in _forhands_noder:
+		if is_instance_valid(n):
+			n.queue_free()
+	_forhands_noder.clear()
 
 ## Nodens ruta om en strid pågår — striden äger positionen, inte markören.
 func active_node_pos() -> Vector2i:
@@ -5843,6 +5904,16 @@ func _träffprov() -> void:
 		if n is GPUParticles3D and n.name == "pixelregn":
 			skurar += 1
 			korn += (n as GPUParticles3D).amount
+	# HOVRINGEN MED I BILDEN (M103): siffrorna över fienden syns bara när ett kort är framme, så provet
+	# hovrar det första spelbara kortet innan bilden tas — annars visar bilden inget av det Alex bad om.
+	for k in active_combat.hand.size():
+		var q: Dictionary = active_combat.preview(k)
+		if q.get("ok", false) and not q.get("hits", []).is_empty():
+			_forward_index = k
+			break
+	_refresh_battle()
+	print("träffprov: förhandsvisning %s" % str(_forhands_noder.map(
+		func(n): return str(n.text) if is_instance_valid(n) else "-")))
 	_spara_bild("user://shots/träffprov.png")
 	print("[träffprov] %d skurar, %d korn i luften, hp %.0f -> %.0f, bilden sparad"
 		% [skurar, korn, hp_före, active_combat.total_enemy_hp()])
@@ -7034,6 +7105,15 @@ func _build_hud() -> void:
 	gräv_slöja.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gräv_slöja.visible = false
 	hud.add_child(gräv_slöja)
+	dödsmälta = ColorRect.new()
+	dödsmälta.color = Color.WHITE          # färgen kommer ur shadern (skärmen under); alfan ur rutan
+	var mält_material := ShaderMaterial.new()
+	mält_material.shader = load("res://ui/malt.gdshader")
+	dödsmälta.material = mält_material
+	dödsmälta.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dödsmälta.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dödsmälta.visible = false
+	hud.add_child(dödsmälta)
 
 	# Angreppet: ett eget lager över 3D-vyn men UNDER kartan, panelerna och korten — svepet ska
 	# skymma korridoren en blinkning, inte det man läser.
@@ -7657,6 +7737,7 @@ func _rada_hand(genast: bool = false) -> void:
 ## spelarens hp — samma siffror som toppraden och healthbaren — och lästes som en vägg av text
 ## (Alex: "Rutan med text är överväldigande"). Kvar: vem som träffas och för hur mycket.
 func _refresh_battle() -> void:
+	_töm_förhandsvisning()
 	if active_combat == null:
 		return
 	var vant := {}
@@ -7670,7 +7751,10 @@ func _refresh_battle() -> void:
 	for e in active_combat.alive_enemies():
 		var namn := Tr.name_of("enemy", e.id, e.name)
 		if vant.has(e):
-			rader.append(Tr.t("ui.battle.enemy_row", "▶ %s   −%.0f") % [namn, vant[e]])
+			# HP FÖRST, SEDAN VAR DEN LANDAR (M103): "−12" säger hur mycket, men man måste kunna
+			# räkna själv för att veta om fienden faller. "16 → 4" svarar på det.
+			var kvar: float = maxf(0.0, e.hp - float(vant[e]))
+			rader.append(Tr.t("ui.battle.enemy_row", "▶ %s   %.0f → %.0f") % [namn, e.hp, kvar])
 		else:
 			rader.append("   %s" % namn)
 	if p.get("ok", false):
@@ -7680,6 +7764,7 @@ func _refresh_battle() -> void:
 			rader.append("%s: %s" % [kort.title(), kort.describe()])
 		else:
 			rader.append("%s: %.0f · %s" % [kort.title(), p["damage"], "×%d" % p["multiplier"]])
+		_visa_förhandsvisning(vant)
 	elif p.get("reason", "") == "for_lite_mana":
 		rader.append(Tr.t("ui.battle.no_mana", "för lite mana"))
 	# Två fiender med samma namn gav två IDENTISKA rader, och panelen blev dubbelt så hög som sitt
@@ -8647,6 +8732,22 @@ func _gräv_upp(bas: float) -> void:
 	if gräv_slöja != null:
 		gräv_slöja.visible = false
 
+## DÖDSMÄLTAN (M103). Spelar smältan en gång och väntar tills den är klar — anroparen (tillståndsbytet
+## efter en förlorad körning) behöver inte veta något om hur länge den varar.
+func _dödsmälta_spela(tid: float = 1.1) -> void:
+	if dödsmälta == null:
+		return
+	var mat := dödsmälta.material as ShaderMaterial
+	if mat == null:
+		return
+	dödsmälta.visible = true
+	mat.set_shader_parameter("smalt", 0.0)
+	var t := create_tween()
+	# Rakt fram: en smälta som bromsar in ser ut som ett filter. Kurvan ligger i kolumnernas eget brus.
+	t.tween_method(func(v: float): mat.set_shader_parameter("smalt", v), 0.0, 1.25, tid)
+	await t.finished
+	dödsmälta.visible = false
+
 func _after_state_change() -> void:
 	# Händelserna töms HÄR, en gång per tillståndsbyte. Att bara tömma dem vid kortval gjorde att
 	# kistor, facklor och stridslut låg kvar i kön utan ljud eller logg (och det var därför en kista
@@ -8656,6 +8757,11 @@ func _after_state_change() -> void:
 	_refresh_enemy_bars()      # striden är slut: staplarna ska bort med den
 	if run.finished:
 		battle_panel.visible = false
+		# FÖRLORAD KÖRNING: bilden smälter ihop innan slutskärmen läggs fram (M103). Bara en gång per
+		# körning — `_banked` sätts i samma andetag — och aldrig på en seger, där ska bytet firas.
+		if run.hp <= 0.0 and not _mält:
+			_mält = true
+			await _dödsmälta_spela()
 		end_panel.visible = true
 		# Guldet går till banken EN gång, när körningen tar slut. Utan flaggan hade varje
 		# uppdatering av skärmen lagt till samma guld igen.
@@ -8740,6 +8846,10 @@ func _on_card(index: int) -> void:
 	if index < hand_views.size() and not run.finished:
 		# Kortet flyger till HÖGEN av använda (M34): vägen ut ur handen slutar där kortet hamnar.
 		var mål := hog_använd.mitt() if hog_använd != null and hog_använd.visible else Vector2.INF
+		# KORTET FÖRBRÄNNS (M103). Alex: *"när ett kort man förbränner vid användning?"* — kortet brinner
+		# bort från punkten man klickade i stället för att bara blekna på vägen till högen. Brinntiden är
+		# längre än flykten, så man hinner se det även sedan kortet landat.
+		hand_views[index].bränn(0.38, hand_views[index].get_local_mouse_position())
 		await hand_views[index].fly_out(mål)
 	var hi := _hand_index(index)
 	if active_combat == null or hi >= active_combat.hand.size():

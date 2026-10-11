@@ -13,7 +13,7 @@
  "ui.battle.title": "STRID",
  "ui.battle.play_all": "Spela allt (P)",
  "ui.battle.end_turn": "Avsluta turen (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "HP %.0f/%.0f · rust %.0f",
  "ui.battle.chain_broken": "kedjan bryts",
  "ui.battle.no_mana": "för lite mana",

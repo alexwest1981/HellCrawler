@@ -13,7 +13,7 @@
  "ui.battle.title": "戰鬥",
  "ui.battle.play_all": "全部打出 (P)",
  "ui.battle.end_turn": "結束回合 (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "HP %.0f/%.0f · 護甲 %.0f",
  "ui.battle.chain_broken": "連鎖中斷",
  "ui.battle.no_mana": "法力不足",

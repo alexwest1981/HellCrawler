@@ -13,7 +13,7 @@
  "ui.battle.title": "БОЙ",
  "ui.battle.play_all": "Сыграть всё (P)",
  "ui.battle.end_turn": "Конец хода (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "HP %.0f/%.0f · броня %.0f",
  "ui.battle.chain_broken": "цепочка прервана",
  "ui.battle.no_mana": "недостаточно маны",

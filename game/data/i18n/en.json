@@ -13,7 +13,7 @@
  "ui.battle.title": "COMBAT",
  "ui.battle.play_all": "Play all (P)",
  "ui.battle.end_turn": "End turn (E)",
- "ui.battle.enemy_row": "▶ %s   −%.0f",
+ "ui.battle.enemy_row": "▶ %s   %.0f → %.0f",
  "ui.battle.player_row": "HP %.0f/%.0f · armor %.0f",
  "ui.battle.chain_broken": "chain broken",
  "ui.battle.no_mana": "not enough mana",
