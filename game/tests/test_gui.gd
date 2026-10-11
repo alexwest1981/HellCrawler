@@ -278,6 +278,25 @@ func _initialize() -> void:
 	check(kortvy.brinnt() >= 1.0 and not kortvy._fx.visible,
 		"kortet brinner till slutet och överläggningen släcks", "brand %.2f" % kortvy.brinnt())
 
+	# PANELEN ÄR OCKSÅ HEL (M106). Kortets alfa stod rätt hela tiden (mätt: [1.0, 1.0, 1.0, 1.0] före
+	# och efter hover), men STILEN bar sin egen genomskinlighet: 0,94 i ledet och 0,97 framträdd. Det
+	# var den som släppte igenom fängelsehålan bakom handen. Provet läser alfan ur stilen som LIGGER på,
+	# i båda lägena, så en ny halvgenomskinlig stil fångas här och inte av en spelare.
+	if main.hand_views.size() >= 2:
+		var k0: CardView = main.hand_views[0]
+		var k1: CardView = main.hand_views[1]
+		if k0.forward:
+			k0.set_forward(false)
+			await create_timer(0.2).timeout
+		k0.set_forward(true)
+		k1.set_forward(false)
+		await create_timer(0.2).timeout
+		check(main._stylebox_alfa(k0) >= 0.999 and main._stylebox_alfa(k1) >= 0.999,
+			"kortets panel är hel både framträdd och i ledet",
+			"framträdd %.2f, i ledet %.2f" % [main._stylebox_alfa(k0), main._stylebox_alfa(k1)])
+		k0.set_forward(false)
+		await create_timer(0.2).timeout
+
 	## DÖDSMÄLTAN (M103): bilden smälter nedåt när körningen tar slut i nederlag. Noden läser
 	## SCREEN_TEXTURE, så den behöver ingen egen yta — och den ska vara SLÄCKT i vanliga fall (en
 	## osynlig ruta som ligger och läser skärmen kostar en kopia av bilden varje bildruta).

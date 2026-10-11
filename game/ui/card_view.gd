@@ -16,8 +16,11 @@ signal forward_changed(index: int, on: bool)
 ## Kortets yta. Alex: *"Korten behöver ännu bli större, de är för små för spelet, kanske rent av
 ## 80 % större."* Båda talen är därför 1,8x de gamla (58x80 -> 104x144, 84x118 -> 151x212). Allt som
 ## räknar ytor (högar, kortval, album, HUD) räknar ur de här, så en ändring här slår igenom överallt.
-const HAND_SIZE := Vector2(104, 144)
-const BIG_SIZE := Vector2(151, 212)
+# Alex 11/10: "Öka kortens storlek med 25% med." 104x144 -> 130x180, och den stora läsrutan följer med
+# (151x212 -> 189x265): stod den kvar hade det framträdda kortet bara varit 16 % större än ledet, och
+# hela poängen med läsrutan är att den är märkbart större.
+const HAND_SIZE := Vector2(130, 180)
+const BIG_SIZE := Vector2(189, 265)
 const FORWARD := 1.5              # så mycket växer kortet när det träder fram ur handen
 
 ## Rörelsen. Talen är MÄTTA av `tests/test_kortrorelse.gd`, som kör varje rörelse i en riktig
@@ -619,7 +622,12 @@ func _on_gui_input(event: InputEvent) -> void:
 ## Kanten bär kortets typ; det framträdda kortet får en ljus, tjock kant som i referensen.
 func _style(raised: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.10, 0.10, 0.15, 0.97) if raised else Color(0.07, 0.07, 0.11, 0.94)
+	# KORTET SKA VARA HELT (Alex 11/10: "Korten blir ännu transparenta vid hover, det får de inte
+	# bli. Det blir svårt att vara taktiskt då."). Panelen låg på 0,97 framträdd och 0,94 i ledet —
+	# alltså släppte korten igenom fängelsehålan bakom sig hela tiden, och ett kort man inte kan läsa
+	# är ett kort man inte kan planera med. Handen ligger ovanpå VYN, inte i marginalen, så det finns
+	# ingenting att släppa igenom. Alfa 1 i båda lägena; framträdandet syns på ramen, lyftet och skalan.
+	sb.bg_color = Color(0.10, 0.10, 0.15) if raised else Color(0.07, 0.07, 0.11)
 	sb.border_color = Color(0.95, 0.97, 1.0) if raised else type_colors()[0]
 	sb.set_border_width_all(_px(2) if raised else _px(1))
 	sb.set_corner_radius_all(_px(4))

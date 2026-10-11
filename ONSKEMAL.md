@@ -717,3 +717,30 @@ kartan med. Korn, fläckar och en nött kant gör att tonen läser som material 
 värme (R−B) gick från **−0,031** (svalt) till **+0,038** (varmt), medan ljuset stod still
 (36,5 → 36,9 av 255) — tonen ändrades, inte läsbarheten. I bild: kartan läser som åldrat papper med
 mörkare kanter och märkena syns kvar.
+
+## 38. Kortet ska vara helt, och 25 % större (Alex 11/10)
+
+Alex: *"Korten blir ännu transparenta vid hover, det får de inte bli. Det blir svårt att vara taktiskt
+då. Öka kortens storlek med 25% med."*
+
+**Status:** RÄTTAT 2026-10-11, mätt.
+
+**Vad som gjordes:**
+
+- **Panelen låg på 0,97 framträdd och 0,94 i ledet.** Korten släppte alltså igenom fängelsehålan bakom
+  sig hela tiden (handen ligger ovanpå VYN, inte i marginalen), och ett kort man inte kan läsa är ett
+  kort man inte kan planera med. Nu alfa 1 i båda lägena — framträdandet syns på ramen, lyftet, skalan
+  och glansen i stället.
+- **Glansen var den andra halvan av klagomålet.** 0,30 mot nästan vitt tvättade kortet medan strimman
+  svepte, och ett tvättat kort är just vad man kallar genomskinligt. Nu 0,14 mot papperets egen varma
+  ton och en smalare strimma (12 px) — en glimt, inte en slöja.
+- **25 % större:** 104x144 → 130x180. Läsrutan följer med (151x212 → 189x265), annars hade det
+  framträdda kortet bara varit 16 % större än ledet. Bågen blir djupare (13 px mot 10) eftersom den
+  räknas ur kortets höjd. Steget i sidled räknas ur fönstret och är oförändrat: 941 px fönster ger
+  901 px rad även med 10 kort (omlottet tar vid först då).
+
+**Mätt, inte gissat:** `-- handprov` skriver alfan på alla handens kort före och efter att ett av dem
+framträder — `[1.0, 1.0, 1.0, 1.0]` båda gångerna, så hoverrörelsen rörde aldrig alfan. Panelen läses
+ur den stil som LIGGER på (`_stylebox_alfa`): **0.97/0.94 → 1.00/1.00**. Kortstorleken: 130x180.
+
+Prov: `test_kortrorelse` 26 kontroller 0 fel, `test_gui` 227 kontroller 0 fel.

@@ -433,6 +433,20 @@ func _fas_valkort() -> void:
 # ---------------------------------------------------------------- sammanfattning
 
 func _sammanfatta() -> void:
+	# KORTET FÅR ALDRIG BLI GENOMSYNLIGT (M106). Alex 11/10: "Korten blir ännu transparenta vid hover,
+	# det får de inte bli. Det blir svårt att vara taktiskt då." Panelen låg på 0,94 i ledet, och handen
+	# ligger ovanpå VYN — kortet släppte alltså igenom fängelsehålan bakom sig. Loggen bär alfan för
+	# varje kort och varje bildruta i alla faser, så kravet är enkelt: den ska vara 1,0 hela vägen.
+	# Det är den enda siffran som skiljer "helt kort" från "genomskinligt".
+	var lägsta := 1.0
+	var varv := 0
+	for rad in _logg:
+		for k in rad["k"]:
+			lägsta = minf(lägsta, float(k["a"]))
+			varv += 1
+	if varv > 0:
+		check(lägsta >= 0.999, "kortet är helt i varje bildruta av rörelsen (alfa 1,0)",
+			"lägsta alfa %.3f över %d kortbildrutor" % [lägsta, varv])
 	print("")
 	print("— vad en rörelse gör, i siffror —")
 	for rad in _matt:

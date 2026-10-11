@@ -27,8 +27,11 @@ uniform vec2 storlek = vec2(104.0, 144.0);        // the overlay's own size in p
 // THE SHINE (hover): a light band that follows the pointer.
 uniform float glans : hint_range(0.0, 1.0) = 0.0;
 uniform vec2 glans_pos = vec2(52.0, 72.0);        // pointer, in the overlay's own px
-uniform float glans_vidd : hint_range(1.0, 60.0) = 16.0;
-uniform float glans_styrka : hint_range(0.0, 1.0) = 0.30;
+uniform float glans_vidd : hint_range(1.0, 60.0) = 12.0;
+// MILD (Alex ville ha "en mild version"): 0,30 mot nästan vitt tvättade kortet och lästes som
+// genomskinlighet — precis det han inte vill ha. 0,14 är en glimt, inte en slöja, och tonen är
+// papperets egen varma ton i stället för vitt.
+uniform float glans_styrka : hint_range(0.0, 1.0) = 0.14;
 
 // THE BURN (played): a noise-driven dissolve from the point where the card was clicked.
 uniform float brand : hint_range(0.0, 1.2) = 0.0; // 0 = whole card, >= 1 = gone
@@ -67,7 +70,7 @@ void fragment() {
 		if (band > 0.0) {
 			// Blue-white, not pure white: the palette's own highlight, so the card does not lose
 			// its colours where the light passes.
-			c.rgb = mix(c.rgb, vec3(0.86, 0.92, 1.0), band * glans_styrka * glans);
+			c.rgb = mix(c.rgb, vec3(0.92, 0.90, 0.82), band * glans_styrka * glans);
 		}
 	}
 

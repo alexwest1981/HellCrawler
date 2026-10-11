@@ -338,9 +338,16 @@ var inn_index := 0
 var inn_first := 0
 ## Skalorna för värdshusets kortvägg. Tre rader text + stort kort + rad + panelens kanter måste
 ## rymmas i spelvyns 270 px. Mätt i två omgångar: originalet (1.0/0.62) klippte RADEN, och 0.72/0.5
-## klippte TITELRADEN — panelen blev 280 px med kanterna. 0.66/0.45 ger 255 px med marginal.
-const INN_SKALA := 0.66
-const INN_RAD := 0.45
+## klippte TITELRADEN — panelen blev 280 px med kanterna. 0.66/0.45 gav 255 px med marginal.
+##
+## OCH DE MÄTNINGARNA GJORDES MED DET GAMLA KORTET (151x212). När Alex bad om 25 % större kort
+## (11/10) växte den stora rutan till 189x265, och panelen med den: 318 px i en 270 px-vy (mätt av
+## `test_hud`, "högsta panelen 318 px"). VÄRDEN ÄR DÄRFÖR DELADE MED 1,25 — 0,66/1,25 = 0,528 och
+## 0,45/1,25 = 0,36 — så att kortväggen blir EXAKT den den var i pixlar (189 x 0,528 = 99,8 ≈ det
+## gamla 151 x 0,66 = 99,7) medan handens kort är 25 % större. Ändras kortstorleken igen ska de här
+## två följa med samma faktor, annars spricker värdshuset på höjden.
+const INN_SKALA := 0.528
+const INN_RAD := 0.36
 ## Hur många tumnaglar raden visar. MÄTT: 16 kort i INN_RAD blir 16 x 89 x 0,45 + mellanrum = 640 px
 ## i en 480 px-vy — korten försvinner ut på båda sidor. Sex ryms i radens 240 px, och det valda
 ## kortet står ändå stort ovanför, så raden är för att välja och bläddra.
@@ -1265,6 +1272,22 @@ func _hand_prov() -> void:
 		% [fönster.x, fönster.y, kort_label.position.x, kort_label.position.y,
 			kort_label.size.x, kort_label.size.y,
 			kort_label.position.y + kort_label.size.y])
+	# HOVRINGEN FÅR INTE GÖRA DE ANDRA GENOMSYNLIGA (Alex: "Korten blir ännu transparenta vid hover,
+	# det får de inte bli. Det blir svårt att vara taktiskt då."). Mätt, inte gissat: alfan på ALLA
+	# handens kort före och efter att ett av dem framträder, plus panelens egen bakgrundsalfa.
+	var alfa_fore := hand_views.map(func(v: CardView): return v.modulate.a)
+	hand_views[0].set_forward(true)
+	for i in 20:
+		await get_tree().process_frame
+	print("[handprov] alfa före hover: %s" % str(alfa_fore))
+	print("[handprov] alfa efter hover: %s" % str(hand_views.map(func(v: CardView): return v.modulate.a)))
+	print("[handprov] self_modulate efter hover: %s"
+		% str(hand_views.map(func(v: CardView): return v.self_modulate.a)))
+	print("[handprov] panelalfa: framträdd %.2f, i ledet %.2f" % [
+		_stylebox_alfa(hand_views[0]), _stylebox_alfa(hand_views[1])])
+	hand_views[0].set_forward(false)
+	for i in 20:
+		await get_tree().process_frame
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
 	_spara_bild("user://shots/handprov.png")
 	print("[handprov] bild i %s" % ProjectSettings.globalize_path("user://shots/handprov.png"))
@@ -7659,6 +7682,12 @@ func _refresh_hand() -> void:
 	_förra_hand.clear()
 	for c in active_combat.hand:
 		_förra_hand.append(c.id)
+
+## Panelens egen bakgrundsalfa just nu. Kortet byter stil när det framträder (`_style(on)`), så den
+## här läser den stil som ligger på — inte en gissning om vilken som borde ligga där.
+func _stylebox_alfa(v: CardView) -> float:
+	var sb := v.get_theme_stylebox("panel")
+	return sb.bg_color.a if sb is StyleBoxFlat else 1.0
 
 ## Sortera handen: dragen -> kostnad -> roll. EN väg in, delad av tangenten och demoläget.
 func _cycle_sort() -> void:
