@@ -43,6 +43,22 @@ func _initialize() -> void:
 	main._start_run("stage_01", 20260919)
 	await process_frame
 
+	# SKRAFFERINGEN PÅ MINIKARTAN (M105). Alex skickade "hand-drawn hatch lines" till kartan uppe till
+	# höger. Våningens egna rutor är en eller två pixlar på en 50x50-våning, så de kan inte skrafferas —
+	# men kartan har tomrum runt våningen, och det är det en handritad karta skraffrar. Tomrummet är
+	# kartans EGEN bakgrundsfärg, och den går in i shadern som `tom_ton` ur samma konstant som rutan
+	# målas i (`MapView.TOM`), så de två inte kan glida isär.
+	var mm: ShaderMaterial = main.map_view.material as ShaderMaterial
+	check(mm != null and mm.shader != null and mm.shader.resource_path.ends_with("pergament.gdshader"),
+		"minikartan bär pergament-shadern")
+	check(mm != null and mm.get_shader_parameter("storlek") == Vector2(main.MapView.MAP_SIZE),
+		"och sin egen storlek som uniform", str(mm.get_shader_parameter("storlek")) if mm != null else "-")
+	var tom_ton: Variant = mm.get_shader_parameter("tom_ton") if mm != null else null
+	check(tom_ton != null and absf((tom_ton as Vector3).x - main.map_view.TOM.r) < 0.001
+		and absf((tom_ton as Vector3).y - main.map_view.TOM.g) < 0.001
+		and absf((tom_ton as Vector3).z - main.map_view.TOM.b) < 0.001,
+		"tomrummets färg kommer ur kartans egen konstant (en källa)", str(tom_ton))
+
 	check(main._vy != null and main._vy.size == main.VY, "spelvyn är 480x270",
 		"%dx%d" % [main._vy.size.x, main._vy.size.y])
 	check(main._vy.get_parent() == main._vy_korg,

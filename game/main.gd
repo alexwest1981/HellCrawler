@@ -4699,6 +4699,11 @@ func _start_lek() -> Array:
 class MapView extends Control:
 	const KARTA_HÖJD := 60.0         ## px i vyns skala: rutnätet
 	const MAP_BREDD := 76.0
+	## Tomrummet runt våningen. EN källa: rutan målas i den, och pergament-shadern får samma färg som
+	## `tom_ton` för att veta var den ska skraffera (se ui/pergament.gdshader). Två ställen hade glidit
+	## isär så fort någon justerade bakgrunden.
+	const TOM := Color(0.04, 0.04, 0.06, 0.85)
+
 	## Kartans ruta. Teckenförklaringen ligger UNDER den, i marginalen — aldrig inuti.
 	const MAP_SIZE := Vector2(MAP_BREDD, KARTA_HÖJD)
 	## Teckenförklaringen: ett ord per rad, sex rader, under kartan. MÄTT (se `-- kistnara` och
@@ -4731,6 +4736,8 @@ class MapView extends Control:
 		var papper := ShaderMaterial.new()
 		papper.shader = load("res://ui/pergament.gdshader")
 		papper.set_shader_parameter("storlek", MAP_SIZE)
+		# Skrafferingen ritas i tomrummet, och tomrummet är rutans EGET lager under våningen (se TOM).
+		papper.set_shader_parameter("tom_ton", Vector3(TOM.r, TOM.g, TOM.b))
 		material = papper
 		# KARTAN ÄR EN KNAPP (M75). Alex: *"Informationen om vad varje grej på kartan kan vara en ruta
 		# som visas om man trycker på kartan eller en knapp, men behöver inte vara synlig hela tiden."*
@@ -4791,7 +4798,7 @@ class MapView extends Control:
 		# Kartan ritar bara i SIN ruta: kolumnen med ord under den har ingen bottenplatta (den ligger
 		# i marginalen mot svart), och kartans rutor ska ha den takt de alltid haft.
 		var karta := MAP_SIZE
-		draw_rect(Rect2(Vector2.ZERO, karta), Color(0.04, 0.04, 0.06, 0.85))
+		draw_rect(Rect2(Vector2.ZERO, karta), TOM)
 		var cell: float = min(karta.x / float(f.w), karta.y / float(f.h))
 		var origin := (karta - Vector2(f.w, f.h) * cell) / 2.0
 		for y in f.h:
