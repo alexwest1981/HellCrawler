@@ -4597,8 +4597,11 @@ func _process(delta: float) -> void:
 			# girar visar sin ÖVERKANT när man ser den ovanifrån — den tredje vålnaden, den som stod längst
 			# bort, blev en vit linje: Alex: "3 vålnader, den vita linjen i mitten är en med." Att låna
 			# kamerans bas ger samma lutning som billboarden hade.
-			vox.global_transform = Transform3D(
-				cam.global_transform.basis.rotated(Vector3.UP, PI), vox.global_position)
+			# UTAN det halva varvet. Modellens +Z är dess FRAMSIDA (arket), och kamerans bas har -Z in i
+			# scenen — alltså möter framsidan kameran precis som basen är. Den 180-gradersgir jag la på för
+			# att få lutningen vände i stället figuren ryggen till: Alex: "ser ut som de står med ryggen
+			# emot en."
+			vox.global_transform = Transform3D(cam.global_transform.basis, vox.global_position)
 		var gn: Sprite3D = e.get("glans")
 		if gn != null:
 			# AURAN SLÄCKS PÅ EN VOXELFIGUR. Den är en ADDITIV glödquadd som lades över spriten för att
