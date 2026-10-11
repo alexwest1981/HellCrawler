@@ -4583,6 +4583,14 @@ func _process(delta: float) -> void:
 			sk2.scale = Vector3(SKUGGA_BREDD * s2, SKUGGA_BREDD * 0.55 * s2, 1.0)
 			sk2.modulate.a = SKUGGA_ALFA * (1.0 - hh * 1.5)
 		# GLANSEN andas den med: en aura som står still medan varelsen rör sig läses som ett klistermärke.
+		# VOXELN VÄNDS MOT KAMERAN, som billboarden alltid var. `billboard` är en flagga på SPRITEN och
+		# verkställs i dess shader, alltså på föräldern — den ärvs inte till barnet, så modellen stod fast
+		# i världen och sågs från sidan som ett papper på kant. Alex: "Ehm.. den vände sig mot mig?"
+		# Bara gir: modellen ska stå upp, och färgen sitter i cellerna så fram och bak är lika.
+		var vox: MeshInstance3D = spr.get_node_or_null("voxel")
+		if vox != null and cam != null:
+			var mot := cam.global_position - vox.global_position
+			vox.global_rotation = Vector3(0.0, atan2(mot.x, mot.z), 0.0)
 		var gn: Sprite3D = e.get("glans")
 		if gn != null:
 			var andning: float = 1.0 + sin(t * 2.3 + float(e["fas"])) * 0.06
