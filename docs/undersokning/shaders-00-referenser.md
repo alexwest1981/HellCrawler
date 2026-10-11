@@ -188,3 +188,25 @@ mönster som tre av tio i omgång 2 — författaren säljer koden på itch).
    sig.
 3. **Pergament, dither och formade övergångar** är skalsaker. De rör inte våningen, och sepia-mixen
    bryter mot palettregeln — de väntar tills någon skärm faktiskt ska se gammal ut.
+
+---
+
+# Omgång 4 (11/10): kortens falska 3D, och en sandstorm utan kod
+
+| Referens | Vad den gör | Vad den ger oss | Status |
+|---|---|---|---|
+| **faux 3d perspective for 2D canvas items** (CodeVogel, MIT) | Låtsas-3D på en canvas-item: roterar en textur i `rot_x`/`rot_y` med simulerad `fov`, med fram- och baksida (`use_front`) | **Korten** — men tricket kräver att rutan ritas som EN textur. `VERTEX += (UV - 0.5) / TEXTURE_PIXEL_SIZE` läser UV som plats i rutan, och vår `CardView` ritar konst OCH glyfer i samma CanvasItem: en glyfs UV är dess plats i fontatlaset, så texten skulle vrida sig till skräp. Författaren löser det med en SubViewport (rita kortet till en textur, vrid texturen) — och hans egen kommentarstråd handlar om att texten blir suddig där | **kandidat för EN plats: belöningskortets vändning** |
+| **sandstorm / fog** (MIT) | Volymetrisk dimma/sandstorm i en `FogVolume` | Ingen kod alls på sidan (curl: 0 kodblock, som `double-dither`). Vi har redan volymetrisk dimma, och den kostade 11 % gryn (mätt, ljus48-02) | nej |
+
+## Vad jag tar med mig ur omgång 4
+
+1. **Faux-3D hör till EN ruta, inte till handen.** I handen ligger 4-6 kort i en solfjäder där vridningen
+   redan finns (`FAN_*`), och ett SubViewport per kort är 4-6 nya texturvägar i bildrutan för en
+   kosmetisk vinst. Den plats där det faktiskt BERÄTTAR något är belöningskortet: det vänds in med en
+   glöd (M45) och en riktig vändning i rummet i stället för en platt skalning är hela poängen.
+2. **Kostnaden är en andra textväg, och den ska mätas.** Ett SubViewport-kort renderar sin text i
+   viewportens upplösning, medan resten av skalet ritar text i FÖNSTRETS px (`UiText`). Blir texten
+   mjuk märks det som löpmått på 1, 2 och 3 px om varandra — samma mätning som M78 använde för att
+   fälla den ojämna kortskalan. Mät före/efter och behåll bara om måtten håller.
+3. **Sandstormen behövs inte**: ingen kod publicerad, och vår dimma är redan mätt (den kostade gryn, och
+   anisotropin är satt för att facklorna ska synas i luften).
