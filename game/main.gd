@@ -7893,8 +7893,12 @@ func _hud_sätt(hp: float, i_strid: bool) -> void:
 	if hud_logg != null:
 		hud_logg.sätt_rubrik(Tr.t("ui.hud.logg", "LOGG"))
 	if hud_status != null:
-		var gammal := hud_status.visible
-		hud_status.visible = gammal and run != null
+		# KÖRNINGEN ÄGER SYNLIGHETEN (M114). Raden var `hud_status.visible = gammal and run != null`, och
+		# `gammal` var statusens eget värde: när skalet (byn/menyn) en gång kört `_visa_gui(false)` var
+		# `gammal` false, och sedan kunde ingen körning någonsin visa kloten igen — Alex: *"De syns vid
+		# load, men varför syns de inte annars?"* `_hud_sätt` anropas BARA från en körning (skalet ritar sin
+		# egen text), så `run != null` är hela villkoret; `gammal` kunde bara hålla dem gömda.
+		hud_status.visible = run != null
 		var s := _status_data(hp, i_strid)
 		hud_status.sätt(s)
 		# Kärlen följer SAMMA siffror som texten: nivån räknas ur värdet och taket, och mana/rustning
@@ -8417,7 +8421,11 @@ func _vapensving(kort: Cards.Card) -> void:
 		return
 	var m := MeshInstance3D.new()
 	var q := QuadMesh.new()
-	q.size = Vector2(0.85, 0.85)
+	# STORLEKEN ÄR MÄTT, INTE GISSAD (M114). Kortets bild är 0,85 m bred och sitter 0,7 m framför ögat:
+	# kameran ger 321 px/m på det djupet, alltså 273 px i en 480x270-vy — 57 % av bredden och MER än
+	# hela höjden. Alex: *"Vapnens svep - de är alldeles för stora, de behöver minskas ner till typ 30%
+	# nuvarande, de tar upp hela skärmen."* 0,85 x 0,30 = 0,255 m = 82 px, en sjättedel av vyn.
+	q.size = Vector2(0.255, 0.255)
 	m.mesh = q
 	var mat := StandardMaterial3D.new()
 	mat.albedo_texture = tex

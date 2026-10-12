@@ -224,6 +224,16 @@ func _initialize() -> void:
 	check(main.run.deck.size() == int(sparat.get("deck", []).size()), "leken är den sparade",
 		"%d kort" % main.run.deck.size())
 
+	# KÄRLEN TÄNDS AV KÖRNINGEN, OCKSÅ EFTER SKALET (M114). Skalet (byn/menyn) kör `_visa_gui(false)`,
+	# och raden som höll statusen gömd läste sitt EGET förra värde (`gammal and run != null`) — en gång
+	# gömd var den alltså gömd för alltid, och kloten sågs bara i den väg som byggde om HUD:en. Här
+	# stängs grinden som skalet gör, och sedan ska körningen tända dem. Utan fixen: [false, false, false].
+	main._visa_gui(false)
+	main._hud_sätt(main.run.hp, false)
+	check(main.orb_hp.visible and main.orb_mana.visible and main.orb_rust.visible,
+		"kärlen tänds av körningen även efter skalet",
+		"%s" % str([main.orb_hp.visible, main.orb_mana.visible, main.orb_rust.visible]))
+
 	# En avslutad körning lämnar inget att fortsätta: raden i menyn ska bli mörk igen.
 	main.run.finished = true
 	main._spara_körning()
