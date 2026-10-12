@@ -20,6 +20,19 @@ extends RefCounted
 const GRANS := 0.35                  ## täckning över vilken en cell räknas som figur
 const SVART_GRANS := 0.06            ## ljushet under vilken en pixel ser ut som bakgrund (svart duk)
 
+## CELLTÄTHETEN (M116). Alex 12/10: *"Öka grafiken på alla objekt med, dubblera om det behövs"*, efter
+## att föremålen lästs som grovhuggna. Det som avgör hur fin en modell är hur många CELLER varje
+## KÄLLPIXEL blir: anroparen ber om ett antal celler i höjd (`antal_sidor` — i praktiken `VOXEL_SIDOR`
+## eller figurens egen höjd i px), och den här ratten mångdubblar den. 2 = varje källpixel blir 2x2
+## celler, alltså halva kubstorleken i världen. EN ratt för ALLA modeller (fiender, kistor, rekvisita,
+## flora) — alla går genom `ur_ark`.
+##
+## TAKET ÄR KÄLLKONSTEN, inte en siffra: över två celler per källpixel finns ingen information kvar,
+## bara fler ytor. Mätt FÖRE ratten: en fiende på 92 px blev 0,70 celler per pixel (varannan rad borta),
+## medan en 16x5 px mossa fick 12,8 — 26 240 celler och 54 632 trianglar för en tuva. Taket
+## `DETALJ * figurens höjd i px` ger den stora figuren tillbaka sin detalj och den lilla sin form.
+const DETALJ := 2                    ## celler per källpixel (tak; se ovan)
+
 const HORN := {
 	Vector3i(1, 0, 0): [Vector3(1, 0, 0), Vector3(1, 0, 1), Vector3(1, 1, 1), Vector3(1, 1, 0)],
 	Vector3i(-1, 0, 0): [Vector3(0, 0, 0), Vector3(0, 1, 0), Vector3(0, 1, 1), Vector3(0, 0, 1)],
@@ -254,6 +267,9 @@ static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
 	var bw := x_max - x_min + 1
 	var bh := y_max - y_min + 1
 	v.ruta = Rect2(Vector2(x_min, y_min), Vector2(bw, bh))
+	# CELLTÄTHETEN (M116): anroparens begäran mångdubblas — men aldrig förbi `DETALJ` celler per
+	# källpixel, för över källkonstens egen pixelgrid finns ingen information kvar (se `DETALJ`).
+	v.sidor = clampi(antal_sidor * DETALJ, 1, maxi(1, bh * DETALJ))
 	# Cellen är LIKA många källpixlar i x och y (annars blir voxlarna rektanglar), och antalet celler i
 	# sidled följer figurens bredd — en smal figur ska inte töjas ut till en kvadrat.
 	var cell := float(bh) / float(v.sidor)
