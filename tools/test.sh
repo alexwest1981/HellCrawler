@@ -11,6 +11,17 @@ cd "$(dirname "$0")/../game" || exit 1
 # lastade, alltså ett rött svar som pekade på fel sak. Låset gör kollisionen till ett tydligt besked
 # i stället, och den som kommer efter väntar i upp till tjugo minuter. (Variabelnamnet är LAS, inte
 # LÅS: bash tillåter inte Å i ett namn, och felet den ger — "L: unbound variable" — pekar på fel rad.)
+# EGEN DATAKATALOG ÅT SVITEN (M108). `user://` ligger under $XDG_DATA_HOME. Utan den här raden läser
+# testerna SPELARENS riktiga sparfil, och ett test som lämnar ett tillstånd efter sig får nästa att
+# falla — MÄTT: test_kortbord "ett spelat kort hamnar i den använda högen (0)" är ensamt grönt (22/0)
+# och rött i sviten. Det är samma rot som M97-kommentaren nedan beskriver för två SAMTIDIGA körningar,
+# men för tester i FÖLJD. Egen katalog per körning, tömd vid start, så inget test kan se spelarens
+# filer eller ett annat tests rester. Namnet börjar med projektets eget (hc-), som skillen för
+# flakiga prov säger: egna kataloger ska heta efter projektet, aldrig tmp*.
+export XDG_DATA_HOME="${TMPDIR:-/tmp}/hc-svit-$$-data"
+rm -rf "$XDG_DATA_HOME"
+mkdir -p "$XDG_DATA_HOME"
+
 LAS=/tmp/hc_svitpass.lock
 exec 9>"$LAS"
 if ! flock -n 9; then
