@@ -298,28 +298,28 @@ func _init() -> void:
 		v.gå_till(i)
 		v.steg_kamera(0.0, true)
 		var p := v.plats(i)
-		if p.x < 6.0 or p.x > 474.0 or p.y < 6.0 or p.y > WorldMapView.KORT.position.y - 4.0:
+		if p.x < 6.0 or p.x > 474.0 or p.y < 6.0 or p.y > v.bar():
 			utanför_rutan.append("%d(%d,%d)" % [i, int(p.x), int(p.y)])
 	check(utanför_rutan.is_empty(),
-		"varje vald plats hamnar i kartytan, ovanför kortet och innanför ramen", ", ".join(utanför_rutan))
-	# Namnplaketten hör till kartytan: låg den inne i kortet skar den in i listen (mätt i bild, och
-	# klämmen gick förut till BAR-12 = 244 — alltså mitt i kortet, som slutar på 252).
+		"varje vald plats hamnar i kartytan, ovanför remsan och innanför ramen", ", ".join(utanför_rutan))
+	# Namnplaketten hör till kartytan: låg den inne i remsan skar den in i listen (mätt i bild, och
+	# klämmen gick förut till BAR-12 = 244 — alltså mitt i kortet, som slutade på 252).
 	var plåtar_i_listen := []
 	for i in v.antal():
 		v.gå_till(i)
 		v.steg_kamera(0.0, true)
 		var plåt := v.namnplåt(i)
-		if plåt.end.y > WorldMapView.KORT.position.y or plåt.position.y < 6.0:
+		if plåt.end.y > v.kort_ruta().position.y or plåt.position.y < 6.0:
 			plåtar_i_listen.append("%d(%.0f..%.0f)" % [i, plåt.position.y, plåt.end.y])
-	check(plåtar_i_listen.is_empty(), "namnplaketten ligger i kartytan, inte i listen",
+	check(plåtar_i_listen.is_empty(), "namnplaketten ligger i kartytan, inte i remsan",
 		", ".join(plåtar_i_listen))
 	# Fokus: kameran glider mot markeringen i stället för att hoppa — efter ett steg är den närmare.
 	v.gå_till(0)
 	v.steg_kamera(0.0, true)
 	v.gå_till(karta.antal() - 1)
-	var avstånd_före := (v.plats(karta.antal() - 1) - Vector2(240.0, (WorldMapView.BAR - 6.0) * 0.5)).length()
+	var avstånd_före := (v.plats(karta.antal() - 1) - v.fokus()).length()
 	v.steg_kamera(0.05)
-	var avstånd_efter := (v.plats(karta.antal() - 1) - Vector2(240.0, (WorldMapView.BAR - 6.0) * 0.5)).length()
+	var avstånd_efter := (v.plats(karta.antal() - 1) - v.fokus()).length()
 	check(avstånd_efter < avstånd_före, "kameran glider mot den valda platsen",
 		"%.1f -> %.1f px" % [avstånd_före, avstånd_efter])
 	# Vinkeln ska vara en vinkel: med lutning och komprimering hamnar platserna på andra ställen än utan.

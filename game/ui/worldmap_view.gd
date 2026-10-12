@@ -37,12 +37,21 @@ const PULS := [0, 1, 2, 1]             ## markörens puls i fyra bildrutor
 const BAS := 480.0 / Karta.BILD_BREDD  ## bildens px -> vyns px vid zoom 1
 const REMSOR := 96                     ## lutningen ritas i så här många horisontella remsor
 const KAMERA_FART := 5.0               ## hur fort fokus glider mot den valda noden (per sekund)
-const KORT := Rect2(6, 186, 468, 66)   ## nedre listen: platsen, svårigheten, framstegen, tecknen
-const LEGEND_X := [252.0, 322.0, 392.0]  ## teckenförklaringens tre märken i kortets högra halva
-const PANEL := Rect2(300, 144, 174, 108)  ## nedre högra: nivåerna (upp till tio)
+## INFORMATIONSREMSAN LIGGER PÅ KARTAN (M118). Alex såg kartan fylla ~50 % av fönstret med rutan
+## under, kontrollraden vid 75 % och en TOM svart yta med ram längst ned. Rutorna flyttade ned kartan
+## i stället för att ligga ovanpå den. Nu är kartytan HELA vyn (se `_kartruta`) och remsan en tunn
+## sak längst ned: 44 px i designmåttet, tre rader, och den täcker bara den nedersta åttondelen.
+## 40 och inte 66: den valda platsen längst ned på kartan (Nedre porten, 88 %) hamnar som mest
+## 0,12 x kartans höjd över vyns underkant — 50 px i 480x270 — och en remsa på 66 px hade lagt sig
+## över markören. `test_karta_full` är grinden: "varje vald plats hamnar i kartytan ovanför remsan".
+const KORT_H := 40.0
+const KORT_MARG := 6.0
+const PANEL_BREDD := 174.0             ## nivåpanelen: samma ruta som förut, ovanför remsan
+const PANEL_HÖJD := 108.0
+const LEGEND_STEG := 64.0              ## px mellan teckenförklaringens tre märken
+const LEGEND_BREDD := 192.0            ## teckenförklaringens yta, mätt från remsans högerkant
 const RAD_HÖJD := 9.0
-const BAR := 256.0                     ## kortens underkant; under den ligger ledtrådsraden
-const HINT_Y := 262.0
+const HINT_MARG := 6.0                 ## ledtrådsraden ligger I remsan (sista raden)
 
 var _noder: Array = []                 ## [{plats, nivåer, öppen, klar, delvis, finns, ...}]
 var _vald := 0
@@ -399,8 +408,9 @@ func steg_text() -> String:
 ## Måttet för en nivårad: samma siffror som `_panel_ruta` ritar ur, så provet kan mäta att raderna
 ## ryms i panelen.
 func nivå_rad(i: int, k: int) -> Rect2:
-	return Rect2(PANEL.position.x + 3.0, PANEL.position.y + 13.0 + float(k) * RAD_HÖJD,
-		PANEL.size.x - 6.0, RAD_HÖJD)
+	var pr := panel_ruta()
+	return Rect2(pr.position.x + 3.0, pr.position.y + 13.0 + float(k) * RAD_HÖJD,
+		pr.size.x - 6.0, RAD_HÖJD)
 
 ## Nivåns bana, eller "" om den inte finns i bandata. Upplåsningen sköts av SEKTIONEN (en plats i en
 ## öppen sektion har alla sina banor spelbara), och panelen ritas bara för en öppen plats.
@@ -452,7 +462,53 @@ func _vy() -> Vector2:
 ## hamnar bakom sitt eget kort.
 func _kartruta() -> Rect2:
 	var vp := _vy()
-	return Rect2(0.0, 0.0, vp.x, BAR - 6.0)
+	return Rect2(0.0, 0.0, vp.x, vp.y)
+
+## Informationsremsan (M118): platsen, svårigheten, framstegen och tecknen, som ett TUNT överlägg
+## längst ned PÅ kartan. Remsans underkant ligger på vyns underkant, så ingen tom yta blir kvar under
+## den (den gamla rutan slutade 14 px ovanför och lämnade bandet Alex såg).
+func kort_ruta() -> Rect2:
+	var vp := _vy()
+	return Rect2(KORT_MARG, vp.y - KORT_H, vp.x - 2.0 * KORT_MARG, KORT_H)
+
+## Nivåpanelen: samma ruta som förut (174x108, tio rader), men förankrad i remsan i stället för i en
+## hårdkodad 480x270-ruta — den ligger över kartan och flyttar den inte.
+func panel_ruta() -> Rect2:
+	var k := kort_ruta()
+	return Rect2(k.end.x - PANEL_BREDD, k.position.y - PANEL_HÖJD - 4.0, PANEL_BREDD, PANEL_HÖJD)
+
+## Kartytans nederkant: remsans överkant, med luft emellan. Allt som ska ligga i kartytan mäts mot
+## den (nodernas synlighet, namnplaketterna).
+func bar() -> float:
+	return kort_ruta().position.y - 4.0
+
+## Ledtrådsraden: remsans SISTA rad, inte en egen rad under en ruta.
+func hint_y() -> float:
+	return kort_ruta().end.y - HINT_MARG
+
+## Fokusets höjd: mitten av den FRIA kartytan ovanför remsan. Den valda platsen centreras där, så en
+## nod aldrig hamnar bakom sin egen information.
+func _fokus_y() -> float:
+	return (_vy().y - KORT_H) * 0.5
+
+## Kamerans mål: den valda noden i kartytans mitt, klämd så kartan TÄCKER vyn helt (ingen tom yta
+## ovanför eller under bilden). Klämmen är räknad ur fokuset och vyns höjd, inte ur en marginal: med
+## 0,35 x rutan kunde kartans kant stanna 50 px innanför vyns kant — och då syns en svart rand, som
+## Alex beskrev den ("kartans bild tar bara ~50 % av fönstret").
+func _kamera_mål() -> Vector2:
+	var ruta := _kartruta()
+	var b := _bbox()
+	var mål := _fort(_bild_px(_vald))
+	if b.size.x > ruta.size.x:
+		mål.x = clampf(mål.x, b.position.x + ruta.size.x * 0.5, b.end.x - ruta.size.x * 0.5)
+	else:
+		mål.x = b.get_center().x
+	if b.size.y > ruta.size.y:
+		var fy := _fokus_y()
+		mål.y = clampf(mål.y, b.position.y + fy, b.end.y + fy - ruta.size.y)
+	else:
+		mål.y = b.get_center().y
+	return mål
 
 func _zoom() -> float:
 	return karta.zoom if karta != null else 1.0
@@ -475,14 +531,17 @@ func _fort(p: Vector2) -> Vector2:
 		(p.x - Karta.BILD_BREDD * 0.5 + (p.y - Karta.BILD_HÖJD * 0.5) * _lutning()) * s,
 		(p.y - Karta.BILD_HÖJD * 0.5) * _komprimering() * s)
 
-## Kartans px -> vyns px, genom kameran.
+## Kartans px -> vyns px, genom kameran. ORIGO är FOKUSET (M118), inte vyns mitt: den valda platsen
+## ska stå i mitten av den FRIA kartytan ovanför remsan, och klämmen i `_kamera_mål` räknar ur samma
+## punkt. Använde klämmen ett annat origo än ritningen hamnade den nedersta platsen (Nedre porten,
+## 88 % av bildens höjd) UNDER remsan — mätt i `test_karta_full`.
 func _vy_px(p_bild: Vector2) -> Vector2:
-	return _fort(p_bild) - _kamera + _kartruta().get_center()
+	return _fort(p_bild) - _kamera + fokus()
 
 ## Vyns px -> bildens px (editorn: muspekaren ska bli ett tal i filen). Exakt invers av `_fort`.
 func _omvänt(vy: Vector2) -> Vector2:
 	var s := maxf(0.0001, _s())
-	var kart := vy + _kamera - _kartruta().get_center()
+	var kart := vy + _kamera - fokus()
 	var y := kart.y / (_komprimering() * s) + Karta.BILD_HÖJD * 0.5
 	var x := kart.x / s - (y - Karta.BILD_HÖJD * 0.5) * _lutning() + Karta.BILD_BREDD * 0.5
 	return Vector2(x, y)
@@ -496,23 +555,11 @@ func _bbox() -> Rect2:
 		r = r.expand(_fort(p))
 	return r
 
-## Kamerans mål: den valda noden i kartytans mitt, klämd så kartan täcker rutan när den är större.
-func _kamera_mål() -> Vector2:
-	var ruta := _kartruta()
-	var b := _bbox()
-	var mål := _fort(_bild_px(_vald))
-	if b.size.x > ruta.size.x:
-		mål.x = clampf(mål.x, b.position.x + ruta.size.x * 0.5, b.end.x - ruta.size.x * 0.5)
-	else:
-		mål.x = b.get_center().x
-	# Marginalen är 0,35 av rutan och inte 0,5: med halva rutan räknades en plats i kartans nederkant
-	# ut till y=199, alltså BAKOM det egna kortet (mätt: plats 0 på 88 % hamnade 13 px in i kortet).
-	# 0,35 håller markeringen i kartytan och lämnar ändå kartans kant utanför.
-	if b.size.y > ruta.size.y:
-		mål.y = clampf(mål.y, b.position.y + ruta.size.y * 0.35, b.end.y - ruta.size.y * 0.35)
-	else:
-		mål.y = b.get_center().y
-	return mål
+## Fokuset (M118): punkten den valda platsen centreras mot — vyns mitt i sidled och mitten av den FRIA
+## kartytan ovanför remsan i höjdled. Egen funktion så provet kan mäta kameraglidningen mot samma
+## punkt som kameran faktiskt siktar på.
+func fokus() -> Vector2:
+	return Vector2(_vy().x * 0.5, _fokus_y())
 
 ## Ett steg av kameraglidningen. Egen funktion för att provet ska kunna köra den utan en skärm —
 ## `_process` gör ingenting i en vy som inte sitter i trädet (se den gömd-vy-fällan i M37b).
@@ -705,12 +752,27 @@ func _bild() -> Texture2D:
 		_tex = load(karta.bild)
 	return _tex
 
+## Den RITADE kartytan i vyn (M118): unionen av remsorna `_kartbild` ritar — alltså exakt det som
+## hamnar i bild, inte en omslutande ram. Provet mäter den mot vyns fyra kanter: "kant i kant" är
+## kravet, och en remsa är en rak ruta så unionen är rätt mått (lutningen ligger i `_fort`).
+func kartyta() -> Rect2:
+	var h := Karta.BILD_HÖJD / float(REMSOR)
+	var hel := Rect2()
+	for r in REMSOR:
+		var y0 := float(r) * h
+		var a := _vy_px(Vector2(0.0, y0))
+		var b := _vy_px(Vector2(Karta.BILD_BREDD, y0))
+		var höjd := maxf(0.6, absf(_vy_px(Vector2(0.0, y0 + h)).y - a.y))
+		var ruta := Rect2(minf(a.x, b.x), a.y, absf(b.x - a.x), höjd)
+		hel = ruta if r == 0 else hel.merge(ruta)
+	return hel
+
 ## En karta som saknar bild är ett fel i data (laddaren säger det): rita ingen bakgrund alls i stället
 ## för att gissa, och låt noderna synas mot den mörka ytan.
 func _syns(i: int) -> bool:
 	var p := plats(i)
 	var vp := _vy()
-	return p.x > -30.0 and p.x < vp.x + 30.0 and p.y > -30.0 and p.y < BAR
+	return p.x > -30.0 and p.x < vp.x + 30.0 and p.y > -30.0 and p.y < vp.y + 30.0
 
 ## Den valda nodens glöd: skivor som växer och krymper med pulsen — en nod som LYser, inte en ram.
 func _glöd(i: int) -> void:
@@ -779,10 +841,11 @@ func namnplåt(i: int) -> Rect2:
 	var namn := str(_noder[i]["plats"])
 	var bredd: float = ThemeDB.fallback_font.get_string_size(namn, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 8.0
 	var x: float = clampf(p.x - bredd / 2.0, 3.0, vp.x - bredd - 3.0)
-	# Klämd mellan bården och kortet: med 2 låg plaketten mot ramen ("texten ligger klistrad mot den
-	# övre ramen"), och med BAR-12 hamnade den INUTI kortet (mätt i bild: Nedre portens skylt skar
-	# rakt in i kortets överkant). Plaketten hör till kartytan, inte till listen.
-	return Rect2(Vector2(x, clampf(p.y - NOD - 17.0 - float(PULS[_ram]), 10.0, KORT.position.y - 14.0)),
+	# Klämd mellan bården och remsan: med 2 låg plaketten mot ramen ("texten ligger klistrad mot den
+	# övre ramen"), och med kortets överkant hamnade den INUTI listen (mätt i bild: Nedre portens skylt
+	# skar rakt in i kortets överkant). Plaketten hör till kartytan, inte till remsan. M118: remsan
+	# ligger nu i vyns nederkant, så klämmen mäts mot dess ruta — inte mot ett designmått.
+	return Rect2(Vector2(x, clampf(p.y - NOD - 17.0 - float(PULS[_ram]), 10.0, kort_ruta().position.y - 14.0)),
 		Vector2(bredd, 12.0))
 
 ## Markeringen: fyra klamrar runt noden och namnet på en plakett ovanför. Klamrar pekar ut platsen —
@@ -819,20 +882,21 @@ func _bård(vp: Vector2) -> void:
 		draw_rect(Rect2(p, Vector2(6, 6)), Palett.c(6))
 		draw_rect(Rect2(p + Vector2(1, 1), Vector2(4, 4)), Palett.c(4))
 
-## Det nedre vänstra kortet: platsen, svårigheten, framstegen och teckenförklaringen. Texten står I
-## kortet — över pixelkonsten drunknar den.
+## Informationsremsan: platsen, svårigheten, framstegen och teckenförklaringen, i ett tunt band längst
+## ned PÅ kartan (M118). Texten står I remsan — över pixelkonsten drunknar den.
 func _kort(_vp: Vector2) -> void:
-	draw_rect(KORT.grow(1.0), Palett.c(1))
-	draw_rect(KORT, _a(Palett.c(2), 0.94))
-	draw_rect(Rect2(KORT.position, Vector2(KORT.size.x, 1.0)), Palett.c(14))
-	draw_rect(Rect2(KORT.position + Vector2(0.0, 1.0), Vector2(KORT.size.x, 1.0)), Palett.c(9))
-	# Teckenförklaringen: samma märken som kartan ritar, i kortets nedre rad. Utan den är tre
+	var r := kort_ruta()
+	draw_rect(r.grow(1.0), Palett.c(1))
+	draw_rect(r, _a(Palett.c(2), 0.94))
+	draw_rect(Rect2(r.position, Vector2(r.size.x, 1.0)), Palett.c(14))
+	draw_rect(Rect2(r.position + Vector2(0.0, 1.0), Vector2(r.size.x, 1.0)), Palett.c(9))
+	# Teckenförklaringen: samma märken som kartan ritar, i remsans ÖVRE rad till höger. Utan den är tre
 	# medaljonger tre medaljonger.
-	var y := KORT.end.y - 15.0
-	for k in [{"x": LEGEND_X[0], "slag": "låst"}, {"x": LEGEND_X[1], "slag": "öppen"},
-			{"x": LEGEND_X[2], "slag": "klar"}]:
-		var p := Vector2(KORT.position.x + float(k["x"]), y)
-		match str(k["slag"]):
+	var y := r.position.y + 8.5
+	var slag := ["låst", "öppen", "klar"]
+	for k in slag.size():
+		var p := Vector2(_legend_x(k), y)
+		match str(slag[k]):
 			"låst":
 				draw_circle(p, 5.0, Palett.c(3))
 				_lås(p, 0.8)
@@ -843,18 +907,30 @@ func _kort(_vp: Vector2) -> void:
 				draw_circle(p, 5.0, Palett.c(21))
 				draw_rect(Rect2(p.x - 2.0, p.y - 2.0, 4.0, 4.0), Palett.c(1))
 
+## Teckenförklaringens bredd, mätt från remsans högerkant. 192 px räcker för tre märken med sina ord i
+## en 480 px-vy; i en SMAL vy (941x1018 ger 313 px) krymper den, annars hamnade sista märket utanför
+## remsan — och ett märke utanför remsan är ett märke ingen ser.
+func _legend_bredd() -> float:
+	return clampf(kort_ruta().size.x * 0.34, 140.0, LEGEND_BREDD)
+
+## Märkenas x, mätt från remsans högerkant (se `_legend_bredd`).
+func _legend_x(k: int) -> float:
+	var r := kort_ruta()
+	return r.end.x - _legend_bredd() + 5.0 + float(k) * LEGEND_STEG
+
 ## Nivåpanelen: en rad per nivå, med grön bock på de klara och hänglås på de som inte är upplåsta.
 ## Provet mäter att raderna ryms i rutan.
 func _panel_ruta() -> void:
-	# Panelen är ett LOCK över kortets högra del (tio nivårader är 108 px, kortet är 66): därför en
-	# tät fyllnad och en ram runt om, så den inte flyter ihop med listen under sig (mätt i bild:
+	# Panelen är ett LOCK över kartans nedre högra hörn (tio nivårader är 108 px): därför en tät
+	# fyllnad och en ram runt om, så den inte flyter ihop med remsan under sig (mätt i bild:
 	# "panelen saknar tydlig bottenram och kliver rakt över skiljelinjen").
-	draw_rect(PANEL.grow(2.0), Palett.c(1))
-	draw_rect(PANEL.grow(1.0), Palett.c(6))
-	draw_rect(PANEL, Palett.c(2))
-	draw_rect(Rect2(PANEL.position, Vector2(PANEL.size.x, 1.0)), Palett.c(14))
-	draw_rect(Rect2(PANEL.position + Vector2(0.0, 1.0), Vector2(PANEL.size.x, 1.0)), Palett.c(9))
-	draw_rect(Rect2(PANEL.position.x, PANEL.end.y - 1.0, PANEL.size.x, 1.0), Palett.c(6))
+	var pr := panel_ruta()
+	draw_rect(pr.grow(2.0), Palett.c(1))
+	draw_rect(pr.grow(1.0), Palett.c(6))
+	draw_rect(pr, Palett.c(2))
+	draw_rect(Rect2(pr.position, Vector2(pr.size.x, 1.0)), Palett.c(14))
+	draw_rect(Rect2(pr.position + Vector2(0.0, 1.0), Vector2(pr.size.x, 1.0)), Palett.c(9))
+	draw_rect(Rect2(pr.position.x, pr.end.y - 1.0, pr.size.x, 1.0), Palett.c(6))
 	var l: Array = nivåer(_vald)
 	for k in l.size():
 		var r := nivå_rad(_vald, k)
@@ -878,7 +954,7 @@ func _editor_rutor() -> void:
 		var x := float(k) * 10.0
 		var vx := _vy_px(Vector2(Karta.BILD_BREDD * x / 100.0, 0.0)).x
 		var vy2 := _vy_px(Vector2(Karta.BILD_BREDD * x / 100.0, Karta.BILD_HÖJD)).x
-		draw_line(Vector2(vx, 0.0), Vector2(vy2, BAR), _a(Palett.c(26), 0.12), 1.0)
+		draw_line(Vector2(vx, 0.0), Vector2(vy2, bar()), _a(Palett.c(26), 0.12), 1.0)
 		var hy := _vy_px(Vector2(0.0, Karta.BILD_HÖJD * x / 100.0)).y
 		var hy2 := _vy_px(Vector2(Karta.BILD_BREDD, Karta.BILD_HÖJD * x / 100.0)).y
 		draw_line(Vector2(0.0, hy), Vector2(_vy().x, hy2), _a(Palett.c(26), 0.12), 1.0)
@@ -907,15 +983,20 @@ func etiketter(vp: Vector2) -> Array:
 			UiText.storlek_som_ryms([namn], r.size.x - 4.0, 8, 10, HORIZONTAL_ALIGNMENT_CENTER),
 			Palett.c(13) if i == _vald else Palett.c(8), r.size.x - 4.0,
 			HORIZONTAL_ALIGNMENT_CENTER, "plåt", Palett.c(1)))
-	# 2) Kortet: platsen (och bossen), svårigheten, framstegen och teckenförklaringens ord.
+	# 2) Remsan: platsen (och bossen), svårigheten, framstegen och teckenförklaringens ord. TÄTA rader:
+	# remsan är 44 px (M118), så raderna ligger på 13, 26 och 39 px — annars flyttar informationen
+	# ned kartan i stället för att ligga på den.
+	var rem := kort_ruta()
 	var n: Dictionary = _noder[_vald]
-	var x0 := KORT.position.x + 5.0
-	var bredd := KORT.size.x - 10.0
+	var leg := _legend_bredd()
+	var x0 := rem.position.x + 5.0
+	var namn_bredd := maxf(80.0, rem.size.x - 10.0 - leg - 6.0)
 	var rad1 := str(n["plats"]) if str(n["boss"]).is_empty() \
 		else "%s · %s" % [str(n["plats"]), str(n["boss"])]
-	rader.append(UiText.rad(rad1, Vector2(x0, KORT.position.y + 12.0),
-		UiText.storlek_som_ryms([rad1], bredd, 9, 12, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(14), bredd,
-		HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
+	rader.append(UiText.rad(rad1, Vector2(x0, rem.position.y + 12.0),
+		UiText.storlek_som_ryms([rad1], namn_bredd, 8, 12, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(14),
+		namn_bredd, HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
+	var bredd := rem.size.x - 10.0
 	var rad2 := "%s · %s" % [Tr.t("ui.map.diff", "sv%d") % int(n["svårighet"]), status_text(_vald)]
 	var steg := steg_text()
 	if not steg.is_empty():
@@ -923,30 +1004,29 @@ func etiketter(vp: Vector2) -> Array:
 	var vad := vad_text()
 	if not vad.is_empty():
 		rad2 += " · " + vad
-	rader.append(UiText.rad(rad2, Vector2(x0, KORT.position.y + 24.0),
-		UiText.storlek_som_ryms([rad2], bredd, 8, 10, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(8), bredd,
-		HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
-	var rad3 := "%s · %s · %s" % [Tr.t("ui.map.section", "SEKTION %d") % int(n["sektion"]),
+	rad2 += " · %s · %s · %s" % [Tr.t("ui.map.section", "SEKTION %d") % int(n["sektion"]),
 		Tr.t("ui.map.levels", "%d nivåer") % nivåer(_vald).size(),
 		Tr.t("ui.map.cleared", "%d klara") % int(n["klar_nivåer"])]
-	rader.append(UiText.rad(rad3, Vector2(x0, KORT.position.y + 36.0),
-		UiText.storlek_som_ryms([rad3], bredd, 8, 10, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(8), bredd,
+	rader.append(UiText.rad(rad2, Vector2(x0, rem.position.y + 24.0),
+		UiText.storlek_som_ryms([rad2], bredd, 8, 10, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(8), bredd,
 		HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
 	var kol := [["låst", Tr.t("ui.map.locked_short", "låst")],
 		["öppen", Tr.t("ui.map.legend.open", "öppen")],
 		["klar", Tr.t("ui.map.done", "klar")]]
 	for k in 3:
 		var ord := str(kol[k][1])
-		var bx := KORT.position.x + float(WorldMapView.LEGEND_X[k]) + 8.0
-		rader.append(UiText.rad(ord, Vector2(bx, KORT.end.y - 12.0),
-			UiText.storlek_som_ryms([ord], 56.0, 8, 9, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(7), 56.0,
+		var bx := _legend_x(k) + 8.0
+		rader.append(UiText.rad(ord, Vector2(bx, rem.position.y + 12.0),
+			UiText.storlek_som_ryms([ord], float(LEGEND_STEG) - 14.0, 8, 9, HORIZONTAL_ALIGNMENT_LEFT),
+			Palett.c(7), float(LEGEND_STEG) - 14.0,
 			HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
 	# 3) Nivåpanelen: rubriken och en rad per nivå — nummer och namn till vänster, status till höger.
 	if _panel:
 		var titel := Tr.t("ui.map.pick", "VÄLJ NIVÅ")
-		rader.append(UiText.rad(titel, Vector2(PANEL.position.x + 4.0, PANEL.position.y + 10.0),
-			UiText.storlek_som_ryms([titel], PANEL.size.x - 20.0, 8, 10, HORIZONTAL_ALIGNMENT_LEFT),
-			Palett.c(14), PANEL.size.x - 20.0, HORIZONTAL_ALIGNMENT_LEFT, "panel", Palett.c(1)))
+		var pr := panel_ruta()
+		rader.append(UiText.rad(titel, Vector2(pr.position.x + 4.0, pr.position.y + 10.0),
+			UiText.storlek_som_ryms([titel], pr.size.x - 20.0, 8, 10, HORIZONTAL_ALIGNMENT_LEFT),
+			Palett.c(14), pr.size.x - 20.0, HORIZONTAL_ALIGNMENT_LEFT, "panel", Palett.c(1)))
 		var l: Array = nivåer(_vald)
 		for k in l.size():
 			var r := nivå_rad(_vald, k)
@@ -969,11 +1049,11 @@ func etiketter(vp: Vector2) -> Array:
 	# 4) Editorn: talen för den nod man håller i, och kvittot efter en skrivning.
 	if editor:
 		var rad := nod_text(_vald)
-		rader.append(UiText.rad(rad, Vector2(6.0, KORT.position.y - 6.0),
+		rader.append(UiText.rad(rad, Vector2(6.0, kort_ruta().position.y - 6.0),
 			UiText.storlek_som_ryms([rad], vp.x - 12.0, 9, 11, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(14),
 			vp.x - 12.0, HORIZONTAL_ALIGNMENT_LEFT, "editor", Palett.c(1)))
 		if not _sparad.is_empty():
-			rader.append(UiText.rad(_sparad, Vector2(6.0, KORT.position.y - 18.0),
+			rader.append(UiText.rad(_sparad, Vector2(6.0, kort_ruta().position.y - 18.0),
 				UiText.storlek_som_ryms([_sparad], vp.x - 12.0, 9, 11, HORIZONTAL_ALIGNMENT_LEFT),
 				Palett.c(15), vp.x - 12.0, HORIZONTAL_ALIGNMENT_LEFT, "editor", Palett.c(1)))
 	# 5) Sist: beskedet (en låst plats) eller ledtråden. Beskedet MÅSTE ligga sist — provet jämför
@@ -986,9 +1066,10 @@ func etiketter(vp: Vector2) -> Array:
 		nederst = _besked
 		färg = Palett.c(11)
 		grupp = "besked"
-	rader.append(UiText.rad(nederst, Vector2(0.0, HINT_Y),
-		UiText.storlek_som_ryms([nederst], vp.x - 8.0, 8, 11, HORIZONTAL_ALIGNMENT_CENTER), färg,
-		vp.x, HORIZONTAL_ALIGNMENT_CENTER, grupp, Palett.c(1)))
+	var hint_bredd := rem.size.x - 10.0
+	rader.append(UiText.rad(nederst, Vector2(x0, rem.end.y - 4.0),
+		UiText.storlek_som_ryms([nederst], hint_bredd, 8, 11, HORIZONTAL_ALIGNMENT_LEFT), färg,
+		hint_bredd, HORIZONTAL_ALIGNMENT_LEFT, grupp, Palett.c(1)))
 	return rader
 
 func _a(c: Color, alfa: float) -> Color:

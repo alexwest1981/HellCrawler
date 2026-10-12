@@ -580,7 +580,9 @@ func _platshållare() -> Control:
 	p.name = "ikon_platshallare"
 	var sb := StyleBoxFlat.new()
 	var c: Color = type_colors()[0]
-	sb.bg_color = Color(c.r * 0.5, c.g * 0.5, c.b * 0.5, 0.85)
+	# TÄT (M118): kortet ska inte gå att se igenom NÅGONSTANS, och en del med alfa 0,85 är en genomsyn
+	# ett steg mindre. Platshållarens dämpning bärs av färgen (halva typfärgen), inte av alfan.
+	sb.bg_color = Color(c.r * 0.5, c.g * 0.5, c.b * 0.5)
 	sb.border_color = type_colors()[1]
 	sb.set_border_width_all(_px(1))
 	sb.set_corner_radius_all(_px(3))
@@ -694,7 +696,8 @@ func _style(raised: bool) -> StyleBoxFlat:
 func _banner_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	var c: Color = type_colors()[0]
-	sb.bg_color = Color(c.r, c.g, c.b, 0.85)
+	# TÄT (M118): bannern låg på 0,85 och lät kortets egen botten lysa igenom titelremsan.
+	sb.bg_color = Color(c.r, c.g, c.b)
 	sb.set_corner_radius_all(_px(2))
 	sb.set_content_margin_all(_px(1))
 	return sb

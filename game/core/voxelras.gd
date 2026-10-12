@@ -23,12 +23,19 @@ const MIN_LIV := 1.0             ## kortaste liv, sekunder
 const MAX_LIV := 2.2             ## längsta — höjt från 1,6 (M115): raset revs förut av stridens slut,
                                  ## och när det nu överlever måste det hinna LÄSAS innan det försvinner
 const SNURR := 3.2             ## rad/s, så bitarna tumlar i stället för att glida
+## SIDLEDESKNUFFEN FÖR FLISAN (M118). En träff som inte dödar lämnar kroppen kvar, och bitar som
+## stannar innanför figurens ruta syns inte. Provat i tests/test_flisa.gd, som faller utan den.
+const FLISA_SIDLED := 4.5
 
 var _bitar: Array = []
 var _golv := 0.0               ## golvets höjd i nodens EGET rum (sätts av `från`)
 
 
-static func från(vx: Voxel, plats: Transform3D, golv_y: float, material: Material, block: int = 4) -> VoxelRas:
+## `sidled` är en extra SIDLEDESKNUFF för flisan (M118). Se kommentaren vid `ut` nedan: en träff som
+## inte dödar lämnar kroppen kvar, och då måste bitarna ut ur silhuetten för att synas. Dödsraset
+## behåller 1,0 — där är kroppen borta och bitarna syns ändå.
+static func från(vx: Voxel, plats: Transform3D, golv_y: float, material: Material, block: int = 4,
+		sidled: float = 1.0) -> VoxelRas:
 	var ras := VoxelRas.new()
 	ras.global_transform = plats
 	ras._golv = golv_y - plats.origin.y      # golvet i nodens lokala rum: bitarna rör sig lokalt
@@ -68,6 +75,15 @@ static func från(vx: Voxel, plats: Transform3D, golv_y: float, material: Materi
 		var medel := Vector3(summor[nyckel]) / n - Vector3(mitten)
 		var m := maxf(vx.höjd, 0.2)
 		var ut := Vector3(medel.x, medel.y, 0.0).normalized() * (0.6 + randf() * 0.9) * m
+		# SIDLEDESKNUFFEN (M118). Farten ovan är UTÅT från modellens mitt, men höjdfarten (nedan) är
+		# mycket större — bitarna far alltså UPPÅT längs kroppen i stället för ut ur den. En kropp som
+		# står kvar (en träff som inte dödar) döljer dem då: mätt med `-- flisprov` låg bara 19-52 % av
+		# bitarna utanför kroppens ruta efter 0,5 s för de täta fienderna (salt_wretch 19 %, bone_wretch
+		# 22 %, mire_hound 32 %), medan spökenas genomsläppliga modeller visade dem ändå — Alex:
+		# *"voxlarna verkar mest gälla spökena"*. Knuffen går i SIDLED, bort från kroppens mittlinje, så
+		# biten lämnar silhuetten även när den flyger uppåt.
+		if sidled > 1.0:
+			ut.x += (1.0 if medel.x >= 0.0 else -1.0) * m * (sidled - 1.0) * (0.6 + randf() * 0.6)
 		ras._bitar.append({
 			"nod": nod,
 			"noll": noll,

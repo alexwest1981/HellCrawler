@@ -608,6 +608,12 @@ const KORT_RÄKNARE_BREDD := 120.0
 const RÄKN_GOLV := 90.0
 ## Högarnas golv: två kort i 0,4-skala står sida vid sida. Under det döljs högarna (se _placera_högarna).
 const HÖG_GOLV := 84.0
+## HUR BRED EN RITAD HÖG ÄR, MÄTT (M118). `HÖG_GOLV` är två kort i 0,4-skala (84 px) och används när
+## loggen och räknaren ska lämna plats. Men en hög som RITAS är 88 px bred — kortet 72,8 px plus ramen
+## och stegens spridning — alltså 176 för två. Med det gamla golvet rymdes högarna "enligt formeln" i
+## 800x600 och 941x1018 och lade ändå sina kort 40 respektive 28 px in i loggen (mätt med
+## `-- handprov`s packningsrad i fyra fönster). Synligheten kräver därför den ritade ytan.
+const HÖG_RITAD := 176.0
 const BAR_HOJD := 68
 ## GOLVET ÄR 144 PX — inte 100 (M113). Kartan i remsans högra kant är pixelkonst i skala 1 (heltal,
 ## se `_placera_karta`), och HELA KOLUMNEN (karta 60 + ordlista 6 x 14 = 144) måste rymmas i remsan:
@@ -1044,6 +1050,7 @@ func _ready() -> void:
 		or _normalprov >= 0.0
 		or not _glansprov_pose.is_empty()
 		or flags.has("guiprov") or flags.has("vinstprov") or flags.has("ljusprov") or flags.has("träffprov")
+		or flags.has("flisprov") or flags.has("genomsynprov") or flags.has("flissynprov")
 		or flags.has("voxelprov") or flags.has("voxelhund") or flags.has("dödsprov")
 		or not nodprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
 	if not kör:
@@ -1077,6 +1084,15 @@ func _ready() -> void:
 	await _sätt_prov_fönster()
 	if flags.has("träffprov"):
 		await _träffprov()
+		return
+	if flags.has("flisprov"):
+		await _flisprov()
+		return
+	if flags.has("genomsynprov"):
+		await _genomsynprov()
+		return
+	if flags.has("flissynprov"):
+		await _flissynprov()
 		return
 	if flags.has("voxelprov") or flags.has("voxelhund"):
 		# -- voxelhund bygger samma prov av Alex' eget exempel: hunden han inte kände igen.
@@ -1469,6 +1485,10 @@ func _hand_prov() -> void:
 		% [fönster.x, fönster.y, kort_label.position.x, kort_label.position.y,
 			kort_label.size.x, kort_label.size.y,
 			kort_label.position.y + kort_label.size.y])
+	# PACKNINGEN I REMSAN (M118): elementen mäts mot varandra med SAMMA ruta de ritas i — en bild
+	# visar att något krockar, de här talen visar vad. Provet körs i fyra fönsterstorlekar, så
+	# 800x600-gränsen syns som en siffra i stället för som ett omdöme.
+	print("[handprov] %s" % _packning_rad())
 	# HOVRINGEN FÅR INTE GÖRA DE ANDRA GENOMSYNLIGA (Alex: "Korten blir ännu transparenta vid hover,
 	# det får de inte bli. Det blir svårt att vara taktiskt då."). Mätt, inte gissat: alfan på ALLA
 	# handens kort före och efter att ett av dem framträder, plus panelens egen bakgrundsalfa.
@@ -4594,7 +4614,10 @@ func _butik_varor() -> void:
 ## råd med — priset och märket syns i texten, färgen bara förstärker dem.
 func _varu_stil(har_råd: bool, över: bool = false) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.11, 0.10, 0.10, 0.66) if har_råd else Color(0.06, 0.05, 0.05, 0.55)
+	# TÄT (M118): raden låg på 0,66 (har råd) och 0,55 (har inte råd) — alltså lyste bänkskivan och
+	# vyn bakom butiken rakt igenom varje varunamn. Dämpningen av det man INTE har råd med bärs av
+	# färgen (mörkare plåt) i stället för av genomsläpp, precis som kortens.
+	s.bg_color = Color(0.11, 0.10, 0.10) if har_råd else Color(0.06, 0.05, 0.05)
 	if över:
 		s.bg_color = s.bg_color.lightened(0.30)
 	s.border_color = Color(0.60, 0.54, 0.40) if har_råd else Color(0.32, 0.29, 0.25)
@@ -5755,6 +5778,41 @@ func _shot(dir: String, n: int, name: String) -> int:
 		kort_label.text, hint_label.text, _enemy_line(), _preview_text()])
 	return n + 1
 
+## PACKNINGEN I REMSAN, MÄTT (M118). Elementen i remsan läses i SAMMA rutor de ritas i, och paren
+## jämförs med varandra: en bild visar att två saker krockar, den här raden säger vilka och hur
+## mycket. Minikartan är med i listan fast den ligger i fönstrets övre hörn — den ska INTE längre
+## röra något i remsan, och det är samma mätning.
+func _packning_rad() -> String:
+	var rutor := {}
+	for par in [["status", hud_status], ["logg", hud_logg], ["räknare", kort_label],
+			["draghög", hog_drag], ["slänghög", hog_använd], ["manakärl", orb_mana],
+			["karta", map_view]]:
+		var c := par[1] as Control
+		if c == null or not c.visible or c.size.x < 1.0:
+			continue
+		var r := c.get_global_rect()
+		# FÖNSTRETS kant, inte en gissning: rutan får inte sticka ut.
+		rutor[par[0]] = r
+	var nycklar: Array = rutor.keys()
+	var krockar: Array = []
+	for i in nycklar.size():
+		for j in range(i + 1, nycklar.size()):
+			var a: Rect2 = rutor[nycklar[i]]
+			var b2: Rect2 = rutor[nycklar[j]]
+			var o := Vector2(minf(a.end.x, b2.end.x) - maxf(a.position.x, b2.position.x),
+				minf(a.end.y, b2.end.y) - maxf(a.position.y, b2.position.y))
+			if o.x > 1.0 and o.y > 1.0:
+				krockar.append("%s/%s %.0fx%.0f px vid %.0f,%.0f"
+					% [nycklar[i], nycklar[j], o.x, o.y, maxf(a.position.x, b2.position.x),
+						maxf(a.position.y, b2.position.y)])
+	var sammanfattning: Array = []
+	for n in nycklar:
+		sammanfattning.append("%s %.0fx%.0f@%.0f,%.0f" % [n, (rutor[n] as Rect2).size.x,
+			(rutor[n] as Rect2).size.y, (rutor[n] as Rect2).position.x, (rutor[n] as Rect2).position.y])
+	return "packning: %s | krockar: %s" % [", ".join(sammanfattning),
+		", ".join(krockar) if not krockar.is_empty() else "inga"]
+
+
 ## Förhandsvisningen som siffra bredvid bilden, så riktmarkeringen går att kontrollera utan ögon.
 func _preview_text() -> String:
 	if _forward_index < 0 or active_combat == null:
@@ -6772,6 +6830,489 @@ func _träffprov() -> void:
 	print("[träffprov] %d skurar, %d korn i luften, hp %.0f -> %.0f, bilden sparad"
 		% [skurar, korn, hp_före, active_combat.total_enemy_hp()])
 	get_tree().quit()
+
+
+## FLISAN PER FIENDETYP (M118). Alex 12/10: *"Ok, voxlarna verkar mest gälla spökena."* — alltså en
+## mätning PER TYP i stället för en enda siffra för den fiende som råkade stå i våningen. Samma väg
+## som spelet tar för varje typ i bestiariet (`_klä_voxel` + `_slag_kvitto` med en träff som INTE
+## dödar), och bitarna räknas ur `_ras_nod` precis som i `-- träffprov`. En typ som inte får en
+## voxelmodell alls (figurens ruta tom, ingen mesh) är det som gör att "bara spökena" tappar bitar —
+## raden skriver orsaken i klartext i stället för en nolla utan svar.
+func _flisprov() -> void:
+	if _ras_nod == null:
+		_ras_nod = Node3D.new()
+		_ras_nod.name = "ras"
+		_vy.add_child(_ras_nod)
+	var db := Enemies.load_all()
+	var ids := db.keys()
+	ids.sort()
+	var noll: Array = []
+	print("[flisprov] %d fiendetyper — en träff som INTE dödar, bitar ur `_ras_nod`" % ids.size())
+	for id in ids:
+		var eid := str(id)
+		var tex := _enemy_tex(eid)
+		var spr := Sprite3D.new()
+		spr.texture = tex
+		spr.hframes = ENEMY_FRAMES if tex != null else 1
+		spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		spr.pixel_size = 0.012
+		world.add_child(spr)
+		var r := Voxel.figur_ruta(tex, 0, ENEMY_FRAMES)
+		var byggd := _klä_voxel(spr, tex, ENEMY_FRAMES, spr.pixel_size)
+		var vx: Voxel = spr.get_meta("voxel", null)
+		var nod := spr.get_node_or_null("voxel") as MeshInstance3D
+		var celler := 0 if vx == null else vx.antal_celler()
+		var bitar := 0
+		var medelljus := 0.0
+		var orsak := ""
+		if tex == null:
+			orsak = "ingen bild"
+		elif r.size.y <= 0.0:
+			orsak = "figurens ruta är TOM (%s)" % str(r)
+		elif not byggd or vx == null or nod == null:
+			orsak = "ingen voxelmodell byggdes"
+		elif nod.mesh == null:
+			orsak = "modellen har ingen mesh"
+		else:
+			var före := _ras_nod.get_child_count()
+			_slag_kvitto(spr, 3.0, 1)
+			# DIREKT RÄKNING, som `-- träffprov`: bitarna ska FINNAS. En bildruta räcker — de ligger
+			# kvar där de lossnade, och fler bildrutor hade bara mätt hur fort provet kör.
+			await get_tree().process_frame
+			var ras_nya := _ras_nod.get_child_count() - före
+			var celler_efter := vx.antal_celler()
+			var ljus := 0.0
+			var provbitar := 0
+			for i in range(före, _ras_nod.get_child_count()):
+				var barn = _ras_nod.get_child(i)
+				if barn is VoxelRas:
+					bitar += (barn as VoxelRas).antal_bitar()
+					var lys := _bit_ljus(barn as VoxelRas)
+					if lys > 0.0:
+						ljus += lys
+						provbitar += 1
+			medelljus = ljus / float(maxi(1, provbitar))
+			# OCH SEDAN UT UR KROPPEN (M118). En träff som inte dödar lämnar kroppen kvar, och bitarna
+			# börjar på sina egna cellers plats INNE i modellen: så länge de ligger innanför kroppens
+			# ruta är de dolda för spelaren. En genomsläpplig spökmodell visar dem ändå — det är därför
+			# "voxlarna verkar mest gälla spökena" — en tät kropp gör det inte. Provet följer därför
+			# bitarna i tio korta steg medan de lever och skriver det BÄSTA värdet: provet bygger 17
+			# modeller och går långsamt, och en enda lång bildruta kan hinna döda hela raset (mätt:
+			# `liv` räknas i speltid, och vid ~1 bildruta/s försvann 13 av 17 ras innan mätningen).
+			var kropp := Rect2()
+			var kvar_nod := spr.get_node_or_null("voxel") as MeshInstance3D
+			if kvar_nod != null and kvar_nod.mesh != null:
+				# Bara x/y: modellen är två celler djup, och en bit som far i sidled är ute.
+				var låda := kvar_nod.mesh.get_aabb()
+				kropp = Rect2(låda.position.x, låda.position.y, låda.size.x, låda.size.y)
+			var bästa_ute := 0
+			var bästa_totalt := 0
+			var steg := 0
+			for runda in 10:
+				await get_tree().create_timer(0.05).timeout
+				steg += 1
+				var inne := 0
+				var totalt := 0
+				for i in range(före, _ras_nod.get_child_count()):
+					var barn = _ras_nod.get_child(i)
+					if not (barn is VoxelRas):
+						continue
+					for bit in (barn as VoxelRas)._bitar:
+						var bn: MeshInstance3D = bit["nod"]
+						if bn == null or not is_instance_valid(bn) or bn.mesh == null or not bn.visible:
+							continue
+						totalt += 1
+						var p: Vector3 = bn.position + bn.mesh.get_aabb().get_center()
+						if kropp.has_point(Vector2(p.x, p.y)):
+							inne += 1
+					if totalt - inne > bästa_ute:
+						bästa_ute = totalt - inne
+						bästa_totalt = totalt
+			if kvar_nod == null or kvar_nod.mesh == null:
+				orsak = "modellen försvann under mätningen"
+			elif bästa_totalt > 0:
+				orsak = "%d %% utanför kroppen (%d av %d kvar) · celler %d -> %d · %d steg" \
+					% [int(round(100.0 * float(bästa_ute) / float(bästa_totalt))),
+						bästa_totalt - bästa_ute, bästa_totalt, celler, celler_efter, steg]
+			else:
+				orsak = "raset hann dö: celler %d -> %d, %d nya ras, %d steg" \
+					% [celler, celler_efter, ras_nya, steg]
+		if bitar == 0:
+			noll.append(eid)
+		print("[flisprov] %-14s figur %3.0f px · modell %.2f m · celler %5d · bitar %3d · bitarnas ljus %3.0f/255%s"
+			% [eid, r.size.y, r.size.y * spr.pixel_size, celler, bitar, medelljus,
+				"" if orsak.is_empty() else "  ← " + orsak])
+		spr.queue_free()
+	print("[flisprov] %d av %d typer tappade INTE en enda bit: %s"
+		% [noll.size(), ids.size(), ", ".join(noll) if not noll.is_empty() else "-"])
+	get_tree().quit()
+
+
+## GENOMSYNS-PROVET (M118). Alex: *"kort blir transparenta i bakgrunden, det är ett stort nej"*.
+##
+## Provet mäter det som en A/B i EN körning: samma hand och samma paneler över fängelsehålan, och
+## sedan över en VIT vy (`world` av, miljön vit). Är en yta tät är dess pixlar IDENTISKA mellan de två
+## bilderna; läcker bakgrunden igenom ändras de. Kontrollen som gör mätningen ärlig är antalet ändrade
+## pixlar UTANFÖR rutorna: är det 0 hände ingenting med bakgrunden och då betyder en nolla inuti
+## rutorna ingenting.
+func _genomsynprov() -> void:
+	var nod: Dungeon.FloorNode = null
+	for n in run.explore.floor_ref.nodes_of_kind("encounter"):
+		nod = n
+		break
+	if nod == null:
+		print("[genomsyn] våningen har ingen strid att stå i")
+		get_tree().quit()
+		return
+	await _gå_till_och_vänd(nod.pos)
+	for i in 20:
+		await get_tree().process_frame
+	run.explore.pos = nod.pos
+	run.explore.facing = 0
+	_enter_node_here()
+	for i in 30:
+		await get_tree().process_frame
+	if active_combat == null:
+		print("[genomsyn] ingen strid startade")
+		get_tree().quit()
+		return
+	# Rutorna FÖRST: de är samma i båda bilderna (inget flyttas mellan dem).
+	var kort: Array = []
+	_kortnoder(self, kort)
+	var paneler: Array = []
+	for p in [stats_panel, battle_panel, butik_panel, inn_panel, jewel_panel, draft_panel, end_panel]:
+		if p != null and (p as Control).visible and (p as Control).size.x > 8.0:
+			paneler.append(p)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
+	var a := "user://shots/genomsyn-spelet.png"
+	var b := "user://shots/genomsyn-vit.png"
+	await get_tree().create_timer(0.2).timeout
+	if not _spara_bild(a):
+		get_tree().quit(1)
+		return
+	# DEN VITA VYN: världen av och bakgrunden vit. Ingen CRT (crt=0 i kommandot) så tonen är rå.
+	if world != null:
+		world.visible = false
+	if env != null:
+		env.background_mode = Environment.BG_COLOR
+		env.background_color = Color.WHITE
+		env.fog_enabled = false
+	await get_tree().create_timer(0.35).timeout
+	if not _spara_bild(b):
+		get_tree().quit(1)
+		return
+	var ia := Image.load_from_file(ProjectSettings.globalize_path(a))
+	var ib := Image.load_from_file(ProjectSettings.globalize_path(b))
+	if ia == null or ib == null:
+		print("[genomsyn] kunde inte läsa tillbaka bilderna")
+		get_tree().quit(1)
+		return
+	var kort_rutor := 0
+	var kort_px := 0
+	var kort_ändrade := 0
+	var kort_kärna := 0
+	for c in kort:
+		var r: Rect2 = _inre_ruta(c as Control, 5.0)
+		var m := _räkna(ia, ib, r)
+		kort_rutor += 1
+		kort_px += m[0]
+		kort_ändrade += m[1]
+		# KÄRNAN: 12 px indragen, alltså klart innanför den rundade kanten (radie 4 spelpixlar x skalan).
+		# Är den noll är själva ytan tät och de ändrade pixlarna bara hörnen.
+		kort_kärna += _räkna(ia, ib, _inre_ruta(c as Control, 12.0))[1]
+	var pan_rutor := 0
+	var pan_px := 0
+	var pan_ändrade := 0
+	var pan_namn: Array = []
+	for p in paneler:
+		var r := _inre_ruta(p as Control, 5.0)
+		var m := _räkna(ia, ib, r)
+		pan_rutor += 1
+		pan_px += m[0]
+		pan_ändrade += m[1]
+		pan_namn.append("%s(%.0fx%.0f)" % [(p as Control).name, (p as Control).size.x,
+			(p as Control).size.y])
+	# KONTROLLEN: hur mycket ändrades UTANFÖR alla rutor? Är den noll tog den vita vyn inte alls.
+	var allt := Rect2(Vector2.ZERO, Vector2(ia.get_width(), ia.get_height()))
+	var utanför: int = int(_räkna(ia, ib, allt)[1]) - kort_ändrade - pan_ändrade
+	print("[genomsyn] %d kortrutor (%d px): %d pixlar ändrades när vyn blev vit (%.2f %%)"
+		% [kort_rutor, kort_px, kort_ändrade, 100.0 * float(kort_ändrade) / maxf(1.0, float(kort_px))])
+	print("[genomsyn] kortens kärna (12 px indragen, innanför rundningen): %d px ändrades" % kort_kärna)
+	print("[genomsyn] %d paneler (%d px) %s: %d ändrade (%.2f %%)"
+		% [pan_rutor, pan_px, ", ".join(pan_namn), pan_ändrade,
+			100.0 * float(pan_ändrade) / maxf(1.0, float(pan_px))])
+	print("[genomsyn] kontroll: %d px ändrades utanför rutorna (0 = den vita vyn tog inte alls)" % utanför)
+	print("[genomsyn] bilder: %s och %s"
+		% [ProjectSettings.globalize_path(a), ProjectSettings.globalize_path(b)])
+	get_tree().quit()
+
+
+## Alla kortnoder i trädet (handen, butikernas kortväggar, kortvalet) — provet mäter dem alla.
+func _kortnoder(n: Node, ut: Array) -> void:
+	for barn in n.get_children():
+		if barn is CardView:
+			ut.append(barn)
+		_kortnoder(barn, ut)
+
+
+## FLISANS SYN I EN RIKTIG STRID (M118). Bug 2 hos Alex: *"Fienden tappar inte voxlar när man skadar
+## dem"* — och sedan: *"Ok, voxlarna verkar mest gälla spökena."*
+##
+## `-- flisprov` mäter MEKANISMEN på varje typ i bestiariet (en lös Sprite3D som kläs och slås), och
+## `-- träffprov` fotograferar bitarna EN bildruta efter hugget — då ligger de fortfarande inuti
+## kroppen, för de börjar på sina egna cellers plats och flyger därifrån. Provet här mäter i stället
+## den RIKTIGA vägen hela vägen ut: en strid ur körningen, ett kort ur HANDEN (`_on_card`, samma väg
+## spelaren tar), och sedan vad som faktiskt SYNS på skärmen.
+##
+## SYNLIGHETEN mäts som en trebilders A/B (ingen projektionsmatematik, ingen gissning):
+##   A = bilden med raset, B = samma bild med raset släckt, C = en till utan ras.
+##   Ett px räknas som en bit ENDAST om A skiljer sig från B men B är lika med C — alltså om det som
+##   ändrades var raset och inte fiendens andning eller pixelregnet. `B mot C` skrivs ut som
+##   brusgolv, så en nolla i bitmätningen kan skiljas från en trasig mätning.
+func _flissynprov() -> void:
+	if _ras_nod == null:
+		_ras_nod = Node3D.new()
+		_ras_nod.name = "ras"
+		_vy.add_child(_ras_nod)
+	var nod: Dungeon.FloorNode = null
+	for n in run.explore.floor_ref.nodes_of_kind("encounter"):
+		nod = n
+		break
+	if nod == null:
+		print("[flissyn] våningen har ingen strid")
+		get_tree().quit()
+		return
+	await _gå_till_och_vänd(nod.pos)
+	for i in 20:
+		await get_tree().process_frame
+	run.explore.pos = nod.pos
+	run.explore.facing = 0
+	_enter_node_here()
+	for i in 30:
+		await get_tree().process_frame
+	if active_combat == null or _enemies.is_empty():
+		print("[flissyn] ingen strid startade")
+		get_tree().quit()
+		return
+	# 1) FIENDERNA I STRIDEN: har de en voxelmodell alls? Utan modell kan ingen flisa lossna, och det
+	#    är den enda förklaringen till "bara spökena" som provet kan bekräfta eller avvisa.
+	for e in _enemies:
+		var s: Sprite3D = e.get("spr")
+		var v: Voxel = s.get_meta("voxel") if s != null and s.has_meta("voxel") else null
+		var mi: MeshInstance3D = null if s == null else s.get_node_or_null("voxel") as MeshInstance3D
+		print("[flissyn] fiende %d (%s): voxel %s, mesh %s, celler %d"
+			% [_enemies.find(e), "-" if s == null else s.name,
+				"ja" if v != null else "NEJ",
+				"ja" if (mi != null and mi.mesh != null) else "NEJ",
+				0 if v == null else v.antal_celler()])
+	var spr: Sprite3D = _enemies[0]["spr"]
+	var hp: float = float(active_combat.enemies[0].hp)
+	# 2) ETT KORT UR HANDEN SOM SKADAR MEN INTE DÖDAR.
+	var k := -1
+	for i in active_combat.hand.size():
+		var q: Dictionary = active_combat.preview(i)
+		if q.get("ok", false) and float(q.get("damage", 0.0)) > 0.0 \
+			and float(q.get("damage", 0.0)) < hp:
+			k = i
+			break
+	if k < 0:
+		print("[flissyn] handen har inget kort som skadar utan att döda (hp %.0f, %d kort)"
+			% [hp, active_combat.hand.size()])
+		get_tree().quit()
+		return
+	var före := _ras_nod.get_child_count()
+	await _on_card(k)
+	# BITARNA HINNER UT UR KROPPEN: de börjar på sina cellers plats, och en bildruta efter hugget
+	# ligger de kvar inne i figuren (det var därför `-- träffprov`s bild inte visade några bitar).
+	await get_tree().create_timer(0.45).timeout
+	var bitar := 0
+	var flisor := 0
+	for i in range(före, _ras_nod.get_child_count()):
+		var r = _ras_nod.get_child(i)
+		if r is VoxelRas:
+			flisor += 1
+			bitar += (r as VoxelRas).antal_bitar()
+	print("[flissyn] kortet gav %.0f skada, hp %.0f kvar — %d flisor, %d bitar i raset"
+		% [hp - float(active_combat.enemies[0].hp), float(active_combat.enemies[0].hp), flisor, bitar])
+	# VAR ÄR BITARNA? 182 bitar i världen som inte syns kan vara: innanför kroppen (kvar på sina
+	# cellers plats), utanför bilden, eller i en nod som inte rör sig. Raden nedan mäter vilket.
+	if not _ras_nod.visible:
+		print("[flissyn] VARNING: _ras_nod är släckt — allt nedan mäter ingenting")
+	for barn in _ras_nod.get_children():
+		var ras := barn as VoxelRas
+		if ras == null:
+			continue
+		print("[flissyn] ras: processar %s, golv %.3f, origo %s, %d bitar"
+			% [str(ras.is_processing()), ras.golv(), str(ras.global_transform.origin),
+				ras.antal_bitar()])
+		var visade := 0
+		for bit in ras._bitar:
+			if visade >= 4:
+				break
+			var bn: MeshInstance3D = bit["nod"]
+			if bn == null or not is_instance_valid(bn):
+				continue
+			visade += 1
+			var gp: Vector3 = bn.global_position
+			var skärm := cam.unproject_position(gp)
+			print("[flissyn]   bit %d: lokal %s, global %s, syns %s, fart %s, liv %.2f, ruta %.3f m"
+				% [visade, str(bn.position), str(gp), str(bn.visible), str(bit["fart"]),
+					float(bit["liv"]),
+					0.0 if bn.mesh == null else bn.mesh.get_aabb().size.length()])
+			print("[flissyn]   bit %d: skärm %s, bakom kameran %s, avstånd till fienden %.3f m"
+				% [visade, str(skärm), str(cam.is_position_behind(gp)),
+					gp.distance_to(spr.global_position)])
+		print("[flissyn] fienden står på %s, kameran på %s"
+			% [str(spr.global_position), str(cam.global_position)])
+	# 3) KONTROLLEN FÖRST, sedan synligheten: en lysande kula på EN bits plats. Syns kulan är
+	#    positionen synlig och felet sitter i bitarnas EGEN mesh/material; syns den inte ligger
+	#    bitarna bakom kroppen (eller utanför bilden) och då är det rörelsen som är felet.
+	var första: Vector3 = Vector3.ZERO
+	var hittad := false
+	for barn in _ras_nod.get_children():
+		var ras := barn as VoxelRas
+		if ras == null:
+			continue
+		for bit in ras._bitar:
+			var bn: Node3D = bit["nod"]
+			if bn != null and is_instance_valid(bn):
+				första = bn.global_position
+				hittad = true
+				break
+		if hittad:
+			break
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
+	var p1 := "user://shots/flissyn-probe1.png"
+	var p2 := "user://shots/flissyn-probe2.png"
+	var a := "user://shots/flissyn-a.png"
+	var b := "user://shots/flissyn-b.png"
+	var c := "user://shots/flissyn-c.png"
+	if hittad and world != null:
+		var kula := MeshInstance3D.new()
+		var sfär := SphereMesh.new()
+		sfär.radius = 0.06
+		sfär.height = 0.12
+		kula.mesh = sfär
+		var kmat := StandardMaterial3D.new()
+		kmat.albedo_color = Color(1.0, 0.0, 0.6)
+		kmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		kula.material_override = kmat
+		world.add_child(kula)
+		kula.global_position = första
+		await get_tree().create_timer(0.1).timeout
+		await _spara_bild(p1)
+		kula.queue_free()
+		await get_tree().create_timer(0.1).timeout
+		await _spara_bild(p2)
+		var i1 := Image.load_from_file(ProjectSettings.globalize_path(p1))
+		var i2 := Image.load_from_file(ProjectSettings.globalize_path(p2))
+		if i1 != null and i2 != null:
+			print("[flissyn] KONTROLL — en kula på bitarnas plats: %d px ändrade (0 = platsen syns inte)"
+				% _bit_pixlar(i1, i2, i1)["ab"])
+	# 4) SYNLIGHETEN: A, B, C. ETT VILA MELLAN VARJE BILD — `_spara_bild` läser VYNSTEXTUREN, som är
+	#    den senast ritade bildrutan: utan en väntan mellan avtrycken blir alla tre samma bild och
+	#    skillnaden noll, hur mycket raset än syns (mätt: tre byte-identiska filer).
+	_ras_nod.visible = true
+	await get_tree().create_timer(0.1).timeout
+	if not _spara_bild(a):
+		get_tree().quit(1)
+		return
+	_ras_nod.visible = false
+	await get_tree().create_timer(0.1).timeout
+	if not _spara_bild(b):
+		get_tree().quit(1)
+		return
+	await get_tree().create_timer(0.1).timeout
+	if not _spara_bild(c):
+		get_tree().quit(1)
+		return
+	var ia := Image.load_from_file(ProjectSettings.globalize_path(a))
+	var ib := Image.load_from_file(ProjectSettings.globalize_path(b))
+	var ic := Image.load_from_file(ProjectSettings.globalize_path(c))
+	if ia == null or ib == null or ic == null:
+		print("[flissyn] kunde inte läsa tillbaka bilderna")
+		get_tree().quit(1)
+		return
+	var m := _bit_pixlar(ia, ib, ic)
+	print("[flissyn] SYNLIGA bit-px: %d (brusgolv B mot C: %d) i rutan %s"
+		% [m["bitar"], m["brus"], str(m["ruta"])])
+	print("[flissyn] allt som ändrades mellan A och B (bitar + rörelse): %d px" % m["ab"])
+	print("[flissyn] bilder: %s, %s, %s"
+		% [ProjectSettings.globalize_path(a), ProjectSettings.globalize_path(b),
+			ProjectSettings.globalize_path(c)])
+	get_tree().quit()
+
+
+## Bitarnas SYNLIGA pixlar mellan tre bilder (se `_flissynprov`). Varannan rad och varannan kolumn
+## räknas: provet letar efter en storleksordning (noll eller hundratals), inte efter en pixel.
+func _bit_pixlar(ia: Image, ib: Image, ic: Image) -> Dictionary:
+	var w := mini(mini(ia.get_width(), ib.get_width()), ic.get_width())
+	var h := mini(mini(ia.get_height(), ib.get_height()), ic.get_height())
+	var bitar := 0
+	var brus := 0
+	var ab := 0
+	var låg := Vector2(1e9, 1e9)
+	var hög := Vector2(-1e9, -1e9)
+	for y in range(0, h, 2):
+		for x in range(0, w, 2):
+			var pa := ia.get_pixel(x, y)
+			var pb := ib.get_pixel(x, y)
+			var pc := ic.get_pixel(x, y)
+			var ab_olika := _olika(pa, pb)
+			if ab_olika:
+				ab += 1
+			if _olika(pb, pc):
+				brus += 1
+			if ab_olika and not _olika(pb, pc):
+				bitar += 1
+				låg = Vector2(minf(låg.x, x), minf(låg.y, y))
+				hög = Vector2(maxf(hög.x, x), maxf(hög.y, y))
+	var ruta := Rect2() if bitar == 0 else Rect2(låg, hög - låg)
+	return {"bitar": bitar, "brus": brus, "ab": ab, "ruta": ruta}
+
+
+func _olika(a: Color, b: Color) -> bool:
+	return maxf(maxf(absf(a.r - b.r), absf(a.g - b.g)), absf(a.b - b.b)) > 2.0 / 255.0
+
+
+## Rutan provet mäter: kortets GLOBALA ruta indragen `m` px, så kanten och rundningen (där alfa är halv
+## med flit) inte blandas in i mätningen.
+func _inre_ruta(c: Control, m: float = 5.0) -> Rect2:
+	var r := c.get_global_rect()
+	return Rect2(r.position + Vector2(m, m), (r.size - Vector2(2.0 * m, 2.0 * m)).max(Vector2.ZERO))
+
+
+## [antal px i rutan, antal px som skiljer mer än 2 steg] mellan två bilder.
+func _räkna(ia: Image, ib: Image, r: Rect2) -> Array:
+	var n := 0
+	var ändrade := 0
+	var w := mini(ia.get_width(), ib.get_width())
+	var h := mini(ia.get_height(), ib.get_height())
+	for y in range(maxi(0, int(r.position.y)), mini(h, int(ceilf(r.end.y)))):
+		for x in range(maxi(0, int(r.position.x)), mini(w, int(ceilf(r.end.x)))):
+			n += 1
+			var ca := ia.get_pixel(x, y)
+			var cb := ib.get_pixel(x, y)
+			if maxf(maxf(absf(ca.r - cb.r), absf(ca.g - cb.g)), absf(ca.b - cb.b)) > 2.0 / 255.0:
+				ändrade += 1
+	return [n, ändrade]
+
+
+## Medelljuset i en flisas egna bitar (0-255) — bitarna bär fiendens EGNA färger, så en mörk fiende
+## får mörka bitar. Siffran svarar på "syns flisan?" utan att blanda in rummets ljus: en bit på 30/255
+## mot ett golv på 40 läses inte, hur många de än är.
+func _bit_ljus(ras: VoxelRas) -> float:
+	var summa := 0.0
+	var n := 0
+	for barn in ras.get_children():
+		var mi := barn as MeshInstance3D
+		if mi == null or mi.mesh == null or mi.mesh.get_surface_count() == 0:
+			continue
+		var färger: PackedColorArray = mi.mesh.surface_get_arrays(0)[Mesh.ARRAY_COLOR]
+		for c in färger:
+			summa += (c.r + c.g + c.b) / 3.0 * 255.0
+			n += 1
+	return summa / float(maxi(1, n))
 
 
 ## VOXELPROVET (M108). Bygger en voxelfigur ur samma ark som billboarden, mäter byggtiden och hugget,
@@ -7812,9 +8353,12 @@ func _placera_gui(f: Vector2) -> void:
 	var radie := clampf((b.size.y - 2.0 * 6.0 - 4.0 * float(HudOrb.KANT) - KÄRL_MELLAN) / 4.0, 10.0, 40.0)
 	var ytter := radie + float(HudOrb.KANT)                 # klotets mitt → ytterkant, i fönsterpx
 	var hop := 2.0 * ytter * 2.0 + KÄRL_MELLAN              # hp + rustningen ovanpå den
-	# Manan ligger i högerkanten men INNANFÖR kartan: kartan äger barens ytterkant, och högerzonen
-	# nedan mäts ur dess ruta (`_karta_ruta`, satt av `_placera_karta` som därför körs först).
-	var kart := _karta_ruta()
+	# MANAN OCH HÖGERZONEN (M118): kartan ligger inte längre i remsan (den sitter i fönstrets övre
+	# högra hörn), så remsans högra kant är fri — förut ÄGDE kartan den kanten, och remsan tappade
+	# 76 px (kartans bredd i skala 1) till den. Det är de pixlarna som är den frigjorda platsen, och
+	# de går till loggen, korträknaren och högarna: `högerzon` mäts nu ur REMSANS kant, och manakärlet
+	# står i den, inte innanför en karta som inte är där.
+	var högerkant := b.end.x - MARGINAL
 	if orb_hp != null:
 		orb_hp.ställ_in(int(roundf(radie)), Palett.c(11), Palett.c(2), 1)
 		orb_mana.ställ_in(int(roundf(radie)), Palett.c(25), Palett.c(2), 1)
@@ -7825,13 +8369,12 @@ func _placera_gui(f: Vector2) -> void:
 		var hp_mitt := Vector2(b.position.x + KÄRL_KANT + ytter, mitt + hop * 0.5 - ytter)
 		orb_hp.placera_vid(hp_mitt)
 		orb_rust.placera_vid(hp_mitt - Vector2(0.0, 2.0 * ytter + KÄRL_MELLAN))
-		orb_mana.placera_vid(Vector2(kart.position.x - luft - ytter, mitt))
-	# --- DEN HÖGRA KOLUMNEN: kartan i barens ytterkant och manan innanför den. Allt annat håller sig
-	# till vänster om `högerzon`, så inget kan glida in i kartan eller i manaklotet.
-	var högerzon := kart.position.x
+		orb_mana.placera_vid(Vector2(högerkant - luft - ytter, mitt))
+	# --- HÖGERZONEN: allt annat (loggen, räknaren, högarna) håller sig till vänster om den, så inget
+	# kan glida in i manaklotet eller ut genom fönsterkanten.
+	var högerzon := högerkant - luft
 	if orb_mana != null:
-		högerzon = minf(högerzon, orb_mana.get_rect().position.x)
-	högerzon -= luft
+		högerzon = minf(högerzon, orb_mana.get_rect().position.x - luft)
 	if hud_status != null:
 		# SIFFERBLOCKET (M113): till höger om kloten (som äger barens vänstra kant), och KRYMPT så att
 		# loggen, korträknaren och högarna får plats i samma rad. MÄTT i 941x1018: med full bredd
@@ -7933,9 +8476,8 @@ func _placera_högarna() -> void:
 	# loggen, korträknaren, kloten och kartan hela raden. Då finns ingen plats kvar för två högar,
 	# och en hög som ligger över loggen är värre än ingen hög — provet mäter att inget överlappar.
 	# MÄTT: bandet är 84 px i 941x1018 (två kort i 0,4-skala ryms precis) och 96 px i 1896x1018.
-	var g := _hög_geometri(1)
-	var plats: float = g.get("fritt", 0.0)
-	_visa_högarna(active_combat != null and not active_combat.over() and plats >= HÖG_GOLV)
+	# Ingen egen räkning här: `_visa_högarna` äger både körnings- och utrymmesregeln (M118).
+	_visa_högarna(active_combat != null and not active_combat.over())
 
 ## Högens geometri: kortets mått, hur brett stapeln får sprida, och var högen står.
 ##
@@ -7993,12 +8535,17 @@ func _hög_geometri(antal: int = 1) -> Dictionary:
 	var kort: Vector2 = CardView.HAND_SIZE * kortskala
 	# SPRIDEN ryms i bandets halva (M113): golvet på 8 px kunde trycka korten utanför bandet i en
 	# smal ruta. Blir det ingen sprid alls står korten i en jämn stapel — så ser en hög ut.
-	var sprid: float = maxf(0.0, band * 0.5 - kort.x)
+	# PLACERINGEN ANVÄNDER DEN VERKLIGA YTAN (M118), inte `band`: den har ett golv på två kort i
+	# 0,4-skala (145,6 px) för att korten ska gå att se, och i 800x600 är den fria ytan bara 84 px —
+	# golvet lade då högens mitt 73 px in i loggen och draghögen krockade med den (MÄTT: 50x53 px vid
+	# 552,522). Golvet får röra kortets STORLEK, aldrig mitten och spriden.
+	var platsband: float = maxf(kort.x, fritt)
+	var sprid: float = maxf(0.0, platsband * 0.5 - kort.x)
 	# Underkanten mot BARENS underkant: högarna står i remsan tillsammans med allt annat HUD.
 	var botten := b.end.y - air
 	return {"kort": kort, "sprid": sprid, "air": air, "fritt": fritt,
-		"vy": Rect2(vänster, b.position.y, band, b.size.y),
-		"drag_botten": botten, "anv_botten": botten, "mitt": vänster + band * 0.5}
+		"vy": Rect2(vänster, b.position.y, platsband, b.size.y),
+		"drag_botten": botten, "anv_botten": botten, "mitt": vänster + platsband * 0.5}
 
 
 ## Ritar högarna: antalet i leken och bland de använda, och FLYTTEN när leken tar slut: blir draghögen
@@ -8027,15 +8574,24 @@ func _refresh_högarna(i_strid: bool) -> void:
 func _visa_högarna(i_strid: bool) -> void:
 	# HÖGARNA HÖR TILL REMSAN (M113): de syns bara i en körning, som allt annat i baren.
 	i_strid = i_strid and shell == "körning"
-	hog_drag.visible = i_strid
-	hog_använd.visible = i_strid
 	if not i_strid:
+		hog_drag.visible = false
+		hog_använd.visible = false
 		return
 	var drag: int = active_combat.draw_pile.size()
 	var använd: int = active_combat.discard_pile.size()
 	# Geometrin får det STÖRSTA antalet: kortet måste vara litet nog att både korten och kanterna i
 	# den fulla högen ryms i bandet (se _hög_geometri).
 	var g := _hög_geometri(maxi(drag, använd))
+	# OCH DE MÅSTE RYMMAS (M118). Regeln låg i `_placera_högarna`, men DEN HÄR vägen (via
+	# `_hud_sätt`, som körs varje gång striden ritas om) satte `visible = true` efteråt och tog
+	# tillbaka den: i 800x600 låg draghögen 40 px in i loggen (mätt med `-- handprov`s
+	# packningsrad). Nu fattas beslutet här, där synligheten sätts — EN väg in, som för skadan.
+	i_strid = float(g.get("fritt", 0.0)) >= HÖG_RITAD
+	hog_drag.visible = i_strid
+	hog_använd.visible = i_strid
+	if not i_strid:
+		return
 	# Högerhögen växer åt höger (leken, blå) och vänsterhögen åt vänster (de använda, röd), båda från
 	# BANDETS mitt: sidokolumnerna finns inte längre (M113), så "utåt" är nu ut från mitten av den yta
 	# i baren som står fri mellan statusblocket och loggen. Färgen är bara fallskärmen om baksidan
@@ -8062,36 +8618,33 @@ func _samla_högarna() -> void:
 	print("[kortbord] leken tog slut: de använda samlades ihop och lades tillbaka (%.0f px)" % från.distance_to(hog_drag.position))
 
 
-## Minikartan i BARENS HÖGRA KANT (M113). Den låg i fönstrets övre högra hörn (M32), i marginalen
-## ovanför vyn — den marginalen finns inte längre: vyn ligger i överkanten och allt HUD-innehåll i
-## baren under den. Kartan behåller fönstrets heltalsskala (samma pixelkonst som förut), men krymps om
-## baren är lägre än kartan: annars ritade den in över spelvyn (MÄTT: 180 px karta i en 208 px bar
-## ryms, och golvet BAR_HOJD 68 spelpixlar gör att skalan aldrig behöver gå under 1 i ett fönster som
-## rymmer vyn). HUD:en ligger i `_runt` och ritas i fönstrets upplösning, så kartan får sin plats i
-## fönsterpx — se `MapView` för mätningen.
+## MINIKARTAN I FÖNSTRETS ÖVRE HÖGRA HÖRN, DUBBELT SÅ STOR (M118).
+##
+## Alex: *"Kartan kan du lägga längst uppe till höger på skärmen, och dubbelt så stor så det faktiskt
+## går att se den."* Den låg i remsans högra kant (M113) och tog där den plats korten, högarna och
+## korträknaren behöver — och var dessutom liten: skalan var 1 i alla fönster han spelar i (taket var
+## remsans höjd och 14 % av fönsterbredden), alltså 76x60 px.
+##
+## DUBBELT BÅDE I BREDD OCH HÖJD: kartans skala är vyns heltal (`skala`), inte 1. MÄTT i bild:
+##   1280x720   76x60  -> 152x120 px
+##   1896x1018  76x60  -> 228x180 px
+##   941x1018   76x60  -> 152x120 px
+##   800x600    76x60  -> 152x120 px
+## Skalan är ett HELTAL (pixelkonsten ritas förstorad, aldrig omskalad), och den ligger över spelvyns
+## övre högra hörn — vyn ligger i fönstrets överkant (M113), så fönstrets hörn ÄR vyns. Legendens
+## ordkolumn hänger under kartan och syns bara när man klickat på den (M75), så den skymmer inget i
+## vila. Kartan syns bara i körningen (`map_view.visible = i_körning`), aldrig i byn/kartan/menyer.
 func _placera_karta(f: Vector2, skala: float) -> void:
 	if map_view == null:
 		return
-	var b := _bar(f)
-	# KARTANS SKALA (M113): barens HÖJD begränsar den (kartan får inte sticka ut över/under remsan) och
-	# BREDDEN gör det också — i en smal ruta tar en fullskalig karta ytan som högarna behöver. MÄTT i
-	# 941x1018: skala 3 gav en 228 px karta, alltså 180 px hög i en 150 px remsa; med 14 %-taket på
-	# bredden blir skalan 1 (76x60), och de 76 px som blev över räcker till båda högarna (123 px band).
-	# HELA KOLUMNEN, inte bara kartan: kartans ordlista ligger UNDER den (LEGEND_HÖJD), och med bara
-	# kartans höjd i nämnaren stack ordlistan ut genom remsans underkant (mätt i 1280x720: 228 px
-	# kolumn i en 136 px remsa). Med hela kolumnen blir skalan 1 där och kartan 76x60 + 54 px ordlista.
-	var kolumnh := MapView.MAP_SIZE.y + MapView.LEGEND_HÖJD
-	var kartskala: float = maxf(1.0, minf(skala, minf(floorf((b.size.y - 2.0 * MARGINAL) / kolumnh),
-		floorf(f.x * 0.14 / MapView.MAP_SIZE.x))))
+	# GOLVET 2 (M118): i 800x600 är vyns heltal 1, och då blev kartan kvar i sin gamla storlek — Alex
+	# bad om DUBBELT. Skalan följer vyns heltal uppåt (3 i 1896x1018 och 941x1018) men går aldrig
+	# under 2, så den är dubbelt så stor i alla fönster han spelar i.
+	var kartskala: float = maxf(2.0, skala)
 	map_view.size = MapView.MAP_SIZE
 	map_view.scale = Vector2(kartskala, kartskala)
-	# HELA KOLUMNEN CENTRERAS, inte bara kartan: ordlistan hänger under den, och centrerades bara
-	# kartan stack ordlistan ut genom remsans underkant (mätt i 1280x720: kolumnens underkant 766 i
-	# en remsa som slutar på 720).
-	map_view.position = Vector2(f.x - MapView.MAP_SIZE.x * kartskala - MARGINAL,
-		roundf(b.position.y + (b.size.y - kolumnh * kartskala) * 0.5))
-	# Tipsraden sätts av `_placera_gui` (M40/M113): den ligger i barens övre kant, högerställd mot
-	# kartans och manans kolumn. Allt som hör till baren sätts på ett ställe.
+	map_view.position = Vector2(f.x - MapView.MAP_SIZE.x * kartskala - MARGINAL, MARGINAL)
+
 
 ## HUD:en i ytan runtom spelvyn, i fönstrets upplösning.
 ##
@@ -8201,10 +8754,11 @@ func _bygg_runt() -> void:
 	# ALTERNATIV: en liten panel över menyn. Tangentbord OCH klick, som menyraderna.
 	alt_panel = PanelContainer.new()
 	alt_panel.name = "alternativ"
-	# Egen stil, inte `_panel_style()`: den är halvgenomskinlig (0,93), och över splashbilden lyste
-	# facklor och sten igenom texten ("panelens bakgrund är inte helt ogenomskinlig", granskningen).
+	# Egen stil, inte `_panel_style()`: över splashbilden lyste facklor och sten igenom texten
+	# ("panelens bakgrund är inte helt ogenomskinlig", granskningen). M118: TÄT — den sista 2 %:en
+	# (0,98) var samma läckage ett steg mindre, och en panel över en bild ska inte släppa igenom alls.
 	var alt_stil := _panel_style()
-	alt_stil.bg_color = Color(0.04, 0.04, 0.06, 0.98)
+	alt_stil.bg_color = Color(0.04, 0.04, 0.06)
 	alt_stil.set_border_width_all(2)
 	alt_panel.add_theme_stylebox_override("panel", alt_stil)
 	alt_panel.visible = false
@@ -8791,9 +9345,14 @@ func _place_panel(panel: Control, at_top: bool) -> void:
 
 ## Panelernas bakgrund: standardpanelen i Godot smälter in i den mörka 3D-vyn (sett på bild:
 ## texten såg ut att flyta fritt). En egen stil med kant ger texten ett fäste.
+##
+## TÄT (M118). Alfa var 0,93 — alltså släppte varje panel igenom 7 % av fängelsehålan bakom sig, och
+## `-- genomsynprov` mätte det: 2 840 av panelens 2 976 px (95 %) ändrade färg när vyn blev vit.
+## Alex: *"kort blir transparenta i bakgrunden, det är ett stort nej"*. Panelen ligger ovanpå 3D-vyn
+## (det finns ingenting att släppa igenom), så alfa 1 och ingenting annat.
 func _panel_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.05, 0.05, 0.08, 0.93)
+	sb.bg_color = Color(0.05, 0.05, 0.08)
 	sb.border_color = Color(0.45, 0.48, 0.60)
 	sb.set_border_width_all(1)
 	sb.set_content_margin_all(4)
@@ -8824,7 +9383,9 @@ func _bench_style() -> StyleBoxTexture:
 	# Ljummet också: den gamla tonen (0,32 0,27 0,23) var mörk nog att texten försvann i träet.
 	sb.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
 	sb.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
-	sb.modulate_color = Color(0.72, 0.64, 0.55, 0.97)
+	# TÄT (M118): 0,97 släppte igenom 3 % av det som låg bakom bänkskivan — och bänken ligger BAKOM
+	# korten i värdshuset, kortvalet och butiken, alltså precis den bakgrund Alex pekade på.
+	sb.modulate_color = Color(0.72, 0.64, 0.55)
 	sb.set_content_margin_all(4)
 	return sb
 
@@ -9332,6 +9893,9 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 				# vid attack?"* — de lossnade, men de FLÖG inte: cellerna ströks ur modellen och ingenting
 				# syntes. Samma `VoxelRas` som bär dödsraset bär flisan, byggd ur de celler `lossna`
 				# lämnade tillbaka. Efter en hel strid är figuren sargad men inte borta.
+				# `2,6` i sidled: bitarna ska UT ur kroppen och inte flyga upp längs med den. Mätt med
+				# `-- flisprov`: andelen bitar utanför kroppens ruta gick från 19-100 % (snitt 49 %) till
+				# 100 % för alla 17 typer, och antalet bitar var oförändrat (94-346 per träff).
 				var borta: Dictionary = vx.lossna(maxi(4, int(float(vx.antal_celler()) * 0.05)))
 				voxel_nod.mesh = vx.mesh()
 				if not borta.is_empty():
@@ -9343,7 +9907,7 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 					flisa._förskjutning = vx._förskjutning
 					flisa.celler = borta
 					_ras_nod.add_child(VoxelRas.från(flisa, voxel_nod.global_transform, golv_y,
-						voxel_nod.material_override))
+						voxel_nod.material_override, 4, VoxelRas.FLISA_SIDLED))
 	var grund: Color = spr.get_meta("modulate_bas", spr.modulate)
 	var b := create_tween().set_parallel(true)
 	b.tween_property(spr, "modulate", Color(2.4, 2.4, 2.4, grund.a), 0.04)

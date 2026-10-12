@@ -62,18 +62,17 @@ func _initialize() -> void:
 	print("— kartan läggs i FÖNSTRETS lager, och får sin plats vid start —")
 	check(main.map_view.get_viewport() == main.get_viewport(),
 		"minikartan ritas i fönstret, inte i den lilla vyn")
-	check(main.map_view.scale.x == skala, "kartan skalas med fönstrets heltal",
-		"x%.0f mot x%.0f" % [main.map_view.scale.x, skala])
+	# SKALAN (M118): 2x vyns heltal, med golvet 2 — i en liten ruta (den här körningen är 64x64, där
+	# vyns heltal är 1) står kartan ändå i skala 2, och DEN rutan är det Alex bad om.
+	check(main.map_view.scale.x == maxf(2.0, skala), "kartan skalas med fönstrets heltal, golvet 2",
+		"x%.0f mot x%.0f (vyn)" % [main.map_view.scale.x, skala])
 	# Formeln står här med flit som en egen rad: det är DEN kontrollen som fällde den gamla koden,
 	# där kartan aldrig blev placerad och stod kvar i (0,0) över statusraden.
-	# KARTAN LIGGER I REMSANS HÖGRA KANT (M113), lodrätt centrerad i baren — inte i fönstrets övre
-	# marginal. Provet räknar samma ruta ur barens egen ruta.
-	var bar_ruta: Rect2 = main._bar(fönster)
-	# KOLUMNEN (karta + ordlista) centreras i remsan — ordlistan hänger under kartan och måste rymmas.
-	var kolumnh: float = main.MapView.MAP_SIZE.y + main.MapView.LEGEND_HÖJD
-	check(main.map_view.position == Vector2(fönster.x - main.MapView.MAP_SIZE.x * skala - main.MARGINAL,
-			roundf(bar_ruta.position.y + (bar_ruta.size.y - kolumnh * skala) * 0.5)),
-		"kartan har sin plats i remsan (inte kvar i 0,0)",
+	# KARTAN LIGGER I FÖNSTRETS ÖVRE HÖGRA HÖRN (M118), i MARGINAL från ramen — inte i remsan och
+	# inte kvar i 0,0 över statusraden. Provet räknar samma ruta ur fönstret.
+	check(main.map_view.position == Vector2(
+			fönster.x - main.MapView.MAP_SIZE.x * maxf(2.0, skala) - main.MARGINAL, main.MARGINAL),
+		"kartan har sin plats i övre högra hörnet (inte kvar i 0,0)",
 		"@ %.0f,%.0f" % [main.map_view.position.x, main.map_view.position.y])
 	# Och att platsen sätts EFTER att kartan byggts. Kontrollen läser källan, och det är med flit:
 	# i en huvudlös körning byter fönstret storlek av sig självt (100x100 → 64x64), så
@@ -115,22 +114,35 @@ func _initialize() -> void:
 			bar.size.y, karta.size.x, karta.size.y, karta.position.x, karta.position.y])
 
 	print("")
-	print("— kartan ligger i REMSANS högra kant —")
-	check(bar.has_point(karta.get_center()), "kartan ligger i remsan under spelvyn",
+	print("— kartan ligger i fönstrets ÖVRE HÖGRA HÖRN, och är DUBBELT så stor —")
+	check(not bar.has_point(karta.get_center()), "kartan ligger över spelvyn, inte i remsan",
 		"kartan %s mot remsan %s" % [str(karta), str(bar)])
-	check(karta.position.x >= vy.size.x * 0.5 and karta.end.x <= mål.x,
-		"i remsans högra del, och ryms i fönstret",
-		"x %.0f..%.0f av %.0f" % [karta.position.x, karta.end.x, mål.x])
+	check(karta.position.x >= vy.size.x * 0.5 and karta.position.y <= main.MARGINAL + 0.5
+		and karta.end.x <= mål.x and karta.end.y <= mål.y,
+		"i övre högra hörnet, innanför ramen",
+		"x %.0f..%.0f av %.0f, y %.0f..%.0f" % [karta.position.x, karta.end.x, mål.x,
+			karta.position.y, karta.end.y])
+	# DUBBELT SÅ STOR (M118): den gamla skalan var 1 (taket var remsan), så 2x vyns heltal är både
+	# det Alex bad om och samma pixelkonst som världen. Provet mäter den RITADE rutan.
+	check(main.map_view.scale.x >= 2.0 and main.map_view.scale.x == mål_skala,
+		"kartan är dubbelt så stor (2x vyns heltal, både bredd och höjd)",
+		"skala x%.0f, ruta %.0fx%.0f px (var %.0fx%.0f vid skala 1)"
+			% [main.map_view.scale.x, karta.size.x, karta.size.y,
+				main.MapView.MAP_SIZE.x, main.MapView.MAP_SIZE.y])
+	# Den får inte skymma spelvyn mer än nödvändigt: en fjärdedel av bredden och en femtedel av höjden.
+	check(karta.size.x <= mål.x * 0.25 and karta.size.y <= mål.y * 0.22,
+		"kartan tar en liten del av spelvyn",
+		"%.0f %% av bredden, %.0f %% av höjden"
+			% [100.0 * karta.size.x / mål.x, 100.0 * karta.size.y / mål.y])
 	var kolumn := Rect2(karta.position,
 		Vector2(karta.size.x, (main.MapView.MAP_SIZE.y + main.MapView.LEGEND_HÖJD) * main.map_view.scale.x))
-	# ORDLISTAN LIGGER UNDER KARTAN och måste rymmas i REMSAN (M113): kartans skala räknas ur hela
-	# kolumnen (karta + ordlista), så underkanten ska ligga innanför barens underkant.
-	check(kolumn.end.y <= bar.end.y + 0.5, "kartans ordkolumn ryms i remsan",
-		"underkant %.0f av %.0f" % [kolumn.end.y, bar.end.y])
+	# ORDLISTAN HÄNGER UNDER KARTAN och ligger kvar i fönstret när man fällt ut den.
+	check(kolumn.end.y <= mål.y + 0.5, "kartans ordkolumn ryms i fönstret",
+		"underkant %.0f av %.0f" % [kolumn.end.y, mål.y])
+
 	# Den BREDASTE raden i något av de 13 språken, mätt ur tabellerna (MapView.steg) och räknad om
 	# till fönsterpx: märket och luften ligger till vänster om ordet.
-	# KARTANS EGEN SKALA, inte vyns (M113): kartan krymper för att karta + ordlista ska rymmas i
-	# remsan (här blir den 1 medan vyn ligger i skala 2), och ordens mått följer kartans skala.
+	# KARTANS EGEN SKALA (M118): 2x vyns heltal, med golvet 2, och ordens mått följer kartans skala.
 	var kort_skala: float = main.map_view.scale.x
 	var text_vänster: float = karta.position.x + (main.MapView.MÄRKE_PX + main.MapView.LUFT) * kort_skala
 	var rad_bredd: float = main.map_view.steg() * kort_skala
@@ -242,5 +254,34 @@ func _initialize() -> void:
 	check(not main.map_view.visa_legend, "ett SLÄPP växlar inte (annars blev det två slag per klick)")
 
 	print("")
+	# RUTAN I ALEX' FYRA FÖNSTER (M118). Mätt, inte gissad: provet sätter fönstret och kör spelets
+	# EGEN väg (`_placera_vy`), och läser kartans ritade ruta. Kolumnen visar att den ligger i övre
+	# högra hörnet, att skalan är DUBBELT den gamla (1 -> vyns heltal) och att den ryms.
+	print("")
+	print("— kartans ruta i Alex' fyra fönster —")
+	for storlek in [Vector2i(1896, 1018), Vector2i(1280, 720), Vector2i(941, 1018), Vector2i(800, 600)]:
+		root.size = storlek
+		main.get_viewport().size = storlek
+		main._placera_vy()
+		await process_frame
+		var f: Vector2 = Vector2(storlek)
+		var sk: float = main._vy_korg.scale.x
+		var r := Rect2(main.map_view.position, main.MapView.MAP_SIZE * main.map_view.scale)
+		var bar2: Rect2 = main._bar(f)
+		print("  %dx%d: karta %.0fx%.0f @ %.0f,%.0f (skala x%.0f, vyn x%.0f) remsan %.0f..%.0f"
+			% [storlek.x, storlek.y, r.size.x, r.size.y, r.position.x, r.position.y,
+				main.map_view.scale.x, sk, bar2.position.y, bar2.end.y])
+		check(r.end.x <= f.x + 0.5 and r.position.y <= main.MARGINAL + 0.5,
+			"%dx%d: kartan ligger i övre högra hörnet" % [storlek.x, storlek.y],
+			"@ %.0f,%.0f" % [r.position.x, r.position.y])
+		check(main.map_view.scale.x >= 2.0,
+			"%dx%d: och är dubbelt så stor som förut (skala 1)" % [storlek.x, storlek.y],
+			"%.0fx%.0f px" % [r.size.x, r.size.y])
+		check(not bar2.has_point(r.get_center()),
+			"%dx%d: utan att ligga i remsan" % [storlek.x, storlek.y])
+		check(r.size.x <= f.x * 0.30 and r.size.y <= f.y * 0.30,
+			"%dx%d: och skymmer bara en liten del av spelvyn" % [storlek.x, storlek.y],
+			"%.0f %% x %.0f %%" % [100.0 * r.size.x / f.x, 100.0 * r.size.y / f.y])
+
 	print("— %d kontroller, %d fel —" % [checks, fails])
 	quit(1 if fails > 0 else 0)

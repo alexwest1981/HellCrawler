@@ -241,7 +241,8 @@ func _ur_bild(x: float, y: float) -> Vector2:
 
 func _panel_stil() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.05, 0.05, 0.08, 0.96)
+	# TÄT (M118): samma regel som `Main._panel_style` — en panel över vyn släpper inte igenom något.
+	sb.bg_color = Color(0.05, 0.05, 0.08)
 	sb.border_color = Color(0.45, 0.48, 0.60)
 	sb.set_border_width_all(1)
 	sb.set_content_margin_all(4)

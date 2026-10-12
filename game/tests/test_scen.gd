@@ -125,22 +125,29 @@ func _init() -> void:
 				fel_ordning.append("%d/%d" % [i, j])
 	check(fel_ordning.is_empty(), "en plats längre ned på bilden ritas längre ned i vyn",
 		", ".join(fel_ordning))
-	# Kortet, panelen och ledtråden ligger i vyn, i den ordningen.
-	check(WorldMapView.KORT.end.y <= WorldMapView.BAR, "kortet slutar ovanför ledtrådsraden",
-		"%.0f mot %.0f" % [WorldMapView.KORT.end.y, WorldMapView.BAR])
-	check(WorldMapView.KORT.end.x <= VY.x - 6.0, "och kortet ryms i vyn", str(WorldMapView.KORT))
-	check(WorldMapView.PANEL.end.y <= WorldMapView.BAR and WorldMapView.PANEL.end.x <= VY.x - 6.0,
-		"nivåpanelen ryms i vyn", str(WorldMapView.PANEL))
+	# Remsan, panelen och ledtråden: remsan ligger i vyns NEDERKANT (M118 — ingen tom yta under den),
+	# panelen ovanför den, och båda ryms i vyn.
+	check(v.kort_ruta().end.y <= VY.y + 0.01, "informationsremsan slutar på vyns nederkant",
+		"%.0f mot %.0f" % [v.kort_ruta().end.y, VY.y])
+	check(v.kort_ruta().position.y >= v.bar(), "och kartytan slutar ovanför remsan",
+		"%.0f mot %.0f" % [v.bar(), v.kort_ruta().position.y])
+	# TUNN: remsan är ett överlägg PÅ kartan, inte ett band som flyttar ned den. 48 px i 480x270 är
+	# 18 % — den gamla rutan var 66 px och kartan under den bara halva vyn.
+	check(v.kort_ruta().size.y <= 48.0, "remsan är ett tunt överlägg, inte ett band",
+		"%.0f px" % v.kort_ruta().size.y)
+	check(v.kort_ruta().end.x <= VY.x - 6.0, "och remsan ryms i vyn", str(v.kort_ruta()))
+	check(v.panel_ruta().end.y <= v.bar() and v.panel_ruta().end.x <= VY.x - 6.0,
+		"nivåpanelen ryms ovanför remsan", str(v.panel_ruta()))
 	# Panelen har plats för tio nivårader (Alex' tak) innanför sin ram.
 	var sista_rad: Rect2 = v.nivå_rad(0, Karta.MAX_NIVÅER - 1)
-	check(sista_rad.end.y <= WorldMapView.PANEL.end.y - 1.0, "panelen rymmer tio nivårader",
-		"%.0f mot %.0f" % [sista_rad.end.y, WorldMapView.PANEL.end.y])
+	check(sista_rad.end.y <= v.panel_ruta().end.y - 1.0, "panelen rymmer tio nivårader",
+		"%.0f mot %.0f" % [sista_rad.end.y, v.panel_ruta().end.y])
 	# Namnplaketterna på de platser som syns samtidigt får inte gå i varandra: två namn på samma rad är
 	# oläsligt (mätt i bild: plaketterna kläms ihop mot kartans kanter).
 	var plåtar := []
 	for i in n:
 		var p: Vector2 = v.plats(i)
-		if p.x < 0.0 or p.x > VY.x or p.y < 0.0 or p.y > WorldMapView.BAR:
+		if p.x < 0.0 or p.x > VY.x or p.y < 0.0 or p.y > v.bar():
 			continue
 		plåtar.append([i, v.namnplåt(i)])
 	var plåtkrockar := []
