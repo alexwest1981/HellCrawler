@@ -514,6 +514,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "fackla",
         "ui.map.nod.shovel": "spade",
         "ui.map.nod.player": "spelare",
+        "ui.spade.skylt": "Gräv nedåt",
 
         "ui.shop.title": "BUTIKEN — guld i banken: %d",
         "ui.shop.hint": "klick = köp · Esc = tillbaka till byn",
@@ -604,6 +605,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "torch",
         "ui.map.nod.shovel": "shovel",
         "ui.map.nod.player": "player",
+        "ui.spade.skylt": "Dig down",
 
         "ui.shop.title": "THE SHOP — gold in the bank: %d",
         "ui.shop.hint": "click = buy · Esc = back to the village",
@@ -680,6 +682,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "Fackel",
         "ui.map.nod.shovel": "Spaten",
         "ui.map.nod.player": "Spieler",
+        "ui.spade.skylt": "Grab nach unten",
 
         "ui.shop.title": "DER LADEN — Gold in der Bank: %d",
         "ui.shop.hint": "klicken = kaufen · Esc = zurück ins Dorf",
@@ -741,6 +744,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "torche",
         "ui.map.nod.shovel": "pelle",
         "ui.map.nod.player": "joueur",
+        "ui.spade.skylt": "Creusez plus bas",
 
         "ui.shop.title": "LA BOUTIQUE — or en banque : %d",
         "ui.shop.hint": "clic = acheter · Esc = retour au village",
@@ -802,6 +806,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "antorcha",
         "ui.map.nod.shovel": "pala",
         "ui.map.nod.player": "jugador",
+        "ui.spade.skylt": "Cava más abajo",
 
         "ui.shop.title": "LA TIENDA — oro en el banco: %d",
         "ui.shop.hint": "clic = comprar · Esc = volver al pueblo",
@@ -863,6 +868,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "torcia",
         "ui.map.nod.shovel": "pala",
         "ui.map.nod.player": "giocatore",
+        "ui.spade.skylt": "Scava in basso",
 
         "ui.shop.title": "IL NEGOZIO — oro in banca: %d",
         "ui.shop.hint": "clic = compra · Esc = torna al villaggio",
@@ -924,6 +930,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "pochodnia",
         "ui.map.nod.shovel": "łopata",
         "ui.map.nod.player": "gracz",
+        "ui.spade.skylt": "Kop w dół",
 
         "ui.shop.title": "SKLEP — złoto w banku: %d",
         "ui.shop.hint": "klik = kup · Esc = powrót do wsi",
@@ -985,6 +992,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "tocha",
         "ui.map.nod.shovel": "pá",
         "ui.map.nod.player": "jogador",
+        "ui.spade.skylt": "Cave mais fundo",
 
         "ui.shop.title": "A LOJA — ouro no banco: %d",
         "ui.shop.hint": "clique = comprar · Esc = voltar à vila",
@@ -1046,6 +1054,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "факел",
         "ui.map.nod.shovel": "лопата",
         "ui.map.nod.player": "игрок",
+        "ui.spade.skylt": "Копай вниз",
 
         "ui.shop.title": "ЛАВКА — золото в банке: %d",
         "ui.shop.hint": "клик = купить · Esc = назад в деревню",
@@ -1107,6 +1116,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "松明",
         "ui.map.nod.shovel": "シャベル",
         "ui.map.nod.player": "自分",
+        "ui.spade.skylt": "下へ掘る",
 
         "ui.shop.title": "商店 — 銀行のゴールド: %d",
         "ui.shop.hint": "クリック = 購入 · Esc = 村へ戻る",
@@ -1168,6 +1178,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "횃불",
         "ui.map.nod.shovel": "삽",
         "ui.map.nod.player": "플레이어",
+        "ui.spade.skylt": "아래로 파",
 
         "ui.shop.title": "상점 — 은행 골드: %d",
         "ui.shop.hint": "클릭 = 구매 · Esc = 마을로",
@@ -1229,6 +1240,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "火把",
         "ui.map.nod.shovel": "铁锹",
         "ui.map.nod.player": "玩家",
+        "ui.spade.skylt": "向下挖掘",
 
         "ui.shop.title": "商店 — 银行金币：%d",
         "ui.shop.hint": "点击 = 购买 · Esc = 返回村庄",
@@ -1290,6 +1302,7 @@ UI_SKARMAR: dict[str, dict[str, str]] = {
         "ui.map.nod.torch": "火把",
         "ui.map.nod.shovel": "鐵鏟",
         "ui.map.nod.player": "玩家",
+        "ui.spade.skylt": "向下挖掘",
 
         "ui.shop.title": "商店 — 銀行金幣：%d",
         "ui.shop.hint": "點擊 = 購買 · Esc = 返回村莊",

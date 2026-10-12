@@ -219,6 +219,11 @@ const PUFF := 8.0               ## vidvinkeln öppnar sig 8 grader mitt i steget
 const SPADE_KLICKRADIE := 26.0  ## px i VYNS mått: spaden är ~30 px bred på en meters håll
 const GRÄV_DJUP := 1.2          ## hur långt kameran sjunker genom golvet under en grävning (m)
 const GRÄV_TID := 0.9           ## hela grävningen: ned, svart, upp (s)
+## Skyltens gungning (M109): en sinus på dess HÖJD, ±0,07 m och 1,7 s per varv. Siffrorna är den
+## gamla sidledsgungningen (±0,07 m, 0,85 s per tagning = 1,7 s per varv) — gungningen flyttade bara
+## från x till y, rytmen och amplituden är desamma.
+const SKYLT_HÖJD := 0.07
+const SKYLT_FART := 3.7
 const KRÄNG := 0.022            ## svängens rullning i radianer (~1,3 grader åt sidan)
 
 # Fötterna står på dukens rad 99 (båda generatorerna — mätt), alltså 39 px under dukens mitt. Därför
@@ -248,7 +253,9 @@ var gräv_slöja: ColorRect       ## mörkret under en grävning (M44): bilden s
 var dödsmälta: ColorRect
 var _spade_nod: Dungeon.FloorNode   ## spaden på våningen: den ENDA saken som klickas
 var _spade_sprite: Sprite3D         ## dess sprite, så klicket kan räkna ut var den står
-var _spade_skylt: Label3D           ## skylten som gungar ovanför spaden när den får tas (se `_spade_skylt_bygg`)
+var _spade_skylt: Label3D           ## skylten som gungar ovanför spaden när den syns (se `_spade_skylt_bygg`)
+var _spade_skylt_bas := 0.0         ## skyltens viloläge i höjd: sinusen i `_process` gungar kring den
+var _gunga := 0.0                   ## tiden för skyltens gungning, nollställs när skylten göms
 var _gräver := false                ## en grävning pågår: klicket får inte starta en till mitt i
 var attack_fx: AttackFx
 var reward_fx: RewardFx        ## stunden man får något: kortet som vänds in med glöd
@@ -4565,6 +4572,16 @@ func _process(delta: float) -> void:
 	_frame_worst = maxf(_frame_worst, delta)
 	_fladdra(delta)          # facklorna brinner även i ett tomt rum — och det är de som lyser upp det
 	_droppa(delta)           # takdroppet droppar, det rinner inte (se _droppa)
+	# SKYLTEN GUNGA UPP OCH NER (M109). Gungningen ligger i POSITIONEN, inte i rotationen: en billboard
+	# lägger sin bas mot kameran, så nodens egen vridning ritas inte. En sinus per bildruta i stället
+	# för en evig tween, så den stannar i samma stund skylten göms och börjar om från viloläget nästa
+	# gång spaden syns. Klockan nollas därför när skylten inte syns — en tween som legat och gått i
+	# bakgrunden hade gett ett hopp i gungningen första bildrutan.
+	if _spade_skylt != null and is_instance_valid(_spade_skylt) and _spade_skylt.visible:
+		_gunga += delta
+		_spade_skylt.position.y = _spade_skylt_bas + sin(_gunga * SKYLT_FART) * SKYLT_HÖJD
+	else:
+		_gunga = 0.0
 	if _enemies.is_empty():
 		return
 	var t := Time.get_ticks_msec() / 1000.0
@@ -5219,6 +5236,7 @@ func _build_world() -> void:
 	_spade_nod = null
 	_spade_sprite = null
 	_spade_skylt = null
+	_spade_skylt_bas = 0.0
 	# Droppställena hör till våningen som byggdes: utan rensningen ligger förra våningens ställen kvar
 	# med sina positioner, och `nodprov=dropp` flyger till ett ställe som inte finns längre.
 	_droppar.clear()
@@ -5323,6 +5341,12 @@ func _build_world() -> void:
 			continue
 		if n.kind == "encounter" or n.kind == "boss":
 			_add_enemies(n, n.kind == "boss")
+			continue
+		# SPADEN DELAS UT AV BOSSEN (M109). Hon står på spadens ruta, och byggdes spaden redan med
+		# bossen levande stod den inne i figuren: MÄTT i `-- grävprov` (spaden syntes i kameran både
+		# före och efter striden), och i bossbilden läses den som ett föremål bossen håller i.
+		# Nu ritas den först när bossen på rutan är besegrad — samma svar som klicket läser.
+		if n.kind == "shovel" and _boss_lever(n):
 			continue
 		_add_markör(n, n.kind)
 
@@ -7604,7 +7628,8 @@ func _refresh() -> void:
 	# var. Anropet är billigt — det skriver bara när våning, hp, xp eller leken ändrats.
 	_spara_körning()
 	var hint := Tr.t("ui.hud.hint", "WASD gå · 1-9 kort · P spela allt · E tur · S sortera (%s) · R om") % _sort_name()
-	# Spaden: ledtråden och skylten läser SAMMA svar, så de två aldrig kan säga olika saker.
+	# Spaden: ledtråden och klicket läser SAMMA svar (`_spade_redo`), så de två aldrig kan säga olika
+	# saker.
 	var spade_redo := _spade_redo()
 	if _draft_pending():
 		hint = Tr.t("ui.draft.prompt", "VÄLJ KORT: 1-%d (eller klicka)") % run.pending_draft().size()
@@ -7616,10 +7641,13 @@ func _refresh() -> void:
 		hint = (Tr.t("ui.hud.hint.grav_pa", "DU STÅR PÅ SPADEN — klicka för att gräva ned")
 			if run.explore.pos == _spade_nod.pos
 			else Tr.t("ui.hud.hint.grav", "KLICKA PÅ SPADEN för att gräva ned till nästa våning"))
-	# Skylten ovanför spaden visar samma svar som ledtråden (Alex: en skylt som gungar så man fattar
-	# att man ska klicka på spaden). Ingen egen grind: syns den, går den att klicka.
+	# SKYLTEN SYNS SÅ LÄNGE SPADEN SYNS (M109). Grinden är inte längre klickregeln — den kräver att
+	# spelaren står på eller intill rutan, och då var skylten borta så snart man tog ett steg ifrån
+	# bytet. Svaret är i stället om spaden alls är byggd (bossen besegrad, se `_build_world`), och det
+	# är samma bildruta som ritade spaden. Ledtråden får behålla sin egen grind: den säger vad man kan
+	# göra NU, skylten visar VAR.
 	if _spade_skylt != null and is_instance_valid(_spade_skylt):
-		_spade_skylt.visible = spade_redo
+		_spade_skylt.visible = _spade_sprite != null and is_instance_valid(_spade_sprite)
 	# Under en strid är det stridens HP som gäller — annars visar toppen ett gammalt värde medan
 	# panelen visar det levande.
 	var i_strid: bool = active_combat != null and not active_combat.over()
@@ -8954,20 +8982,21 @@ func _enter_node_here() -> void:
 ## Skylten ovanför spaden (Alex: *"en liten skylt som gungar ovanför spaden efter man dödat bossen så
 ## man fattar att man skall klicka på spaden"*).
 ##
-## Skylten syns bara när spaden FÅR tas — samma villkor som klicket (`_spade_redo`), läst på ETT ställe
-## i `_refresh`. Då kan den aldrig peka på något som inte går att klicka, och den försvinner i samma
-## stund som klicket slutar fungera.
+## Skylten syns så länge SPADEN SYNS (Alex: *"gör det så den åker upp och ner, över spaden när spaden
+## är synlig"*), alltså från samma svar som bygger spaden: bossen på rutan är besegrad. Den gamla
+## grinden var klickregeln (`_spade_redo`), som också kräver att spelaren står på eller intill rutan
+## — skylten var alltså borta så snart man tog ett steg ifrån bytet, fast spaden stod kvar och syntes.
 ##
-## TEXTEN är nyckeln `ui.map.nod.shovel` — ordet för spaden finns redan i alla tretton språk (det står
-## i kartans teckenförklaring). En hel mening ryms inte: skylten läses på en dryg meter i en 1 m-gång,
-## och vid 0,0017 m per tecken är nio tecken ~0,6 m breda. Meningen står i HUD-ledtråden, som redan
-## säger "KLICKA PÅ SPADEN" på spelarens språk; skylten svarar på "vilken då?".
+## TEXTEN är nyckeln `ui.spade.skylt` — en egen nyckel, för skylten säger något annat än kartans
+## teckenförklaring gör: teckenförklaringen NAMNGER noden ("spade"), skylten SÄGER VAD MAN GÖR ("Dig
+## down" / "Gräv nedåt"). Texten hålls kort med flit: vid 0,0017 m per tecken är tio tecken ~0,7 m
+## breda, och skylten hänger i en gång som är en meter.
 ##
 ## GUNGNINGEN sitter i POSITIONEN, inte i rotationen: en billboard lägger sin bas mot kameran, så
-## nodens egen vridning ritas inte. Sidledet är den gungning en billboard kan visa.
+## nodens egen vridning ritas inte. Sinusen räknas i `_process` (se `SKYLT_HÖJD`).
 func _spade_skylt_bygg(n: Dungeon.FloorNode) -> void:
 	_spade_skylt = Label3D.new()
-	_spade_skylt.text = "▼ %s" % Tr.t("ui.map.nod.shovel", "spade")
+	_spade_skylt.text = Tr.t("ui.spade.skylt", "Dig down")
 	_spade_skylt.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_spade_skylt.no_depth_test = true
 	_spade_skylt.pixel_size = 0.0017
@@ -8977,16 +9006,23 @@ func _spade_skylt_bygg(n: Dungeon.FloorNode) -> void:
 	_spade_skylt.outline_modulate = Color(0.04, 0.03, 0.03, 0.95)
 	_spade_skylt.modulate = Palett.c(14)
 	_spade_skylt.position = Vector3(n.pos.x + 0.5, 0.95, n.pos.y + 0.5)
+	# VILOLÄGET sparas: sinusen i `_process` gungar kring den siffran i stället för att bygga sin egen
+	# höjd. Två ställen som räknar samma höjd är två ställen som glider isär.
+	_spade_skylt_bas = _spade_skylt.position.y
 	_spade_skylt.visible = false
 	world.add_child(_spade_skylt)
-	# En evig tween, noll kod per bildruta. Två tagningar åt var sitt håll så svingen blir en båge och
-	# inte ett hack (en tween tillbaka till samma värde hade stannat i ändläget).
-	var x := _spade_skylt.position.x
-	var gunga := _spade_skylt.create_tween().set_loops()
-	gunga.tween_property(_spade_skylt, "position:x", x + 0.07, 0.85) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	gunga.tween_property(_spade_skylt, "position:x", x - 0.07, 0.85) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## Lever bossen på spadens ruta? Spaden ligger på hennes ruta och får man först när hon är besegrad
+## (se `Dungeon`: `shovel_pos = boss_pos`). Både ritandet (`_build_world`) och klicket (`_spade_redo`)
+## frågar här, så de två kan inte säga olika saker — den gamla raden låg inbakad i `_spade_redo`.
+func _boss_lever(spade: Dungeon.FloorNode) -> bool:
+	if run == null or spade == null:
+		return false
+	for n in run.explore.floor_ref.nodes:
+		if n.kind == "boss" and n.pos == spade.pos and not n.cleared:
+			return true
+	return false
 
 
 ## Syns skylten? `visible` på noden räcker inte som svar — den kan vara satt medan föräldern är dold.
@@ -9009,10 +9045,7 @@ func _spade_redo() -> bool:
 	# "jag ser spaden", och bara den som ser den kan klicka på den.
 	if run.explore.pos != _spade_nod.pos and run.explore.ahead() != _spade_nod.pos:
 		return false
-	for n in run.explore.floor_ref.nodes:
-		if n.kind == "boss" and n.pos == _spade_nod.pos and not n.cleared:
-			return false
-	return true
+	return not _boss_lever(_spade_nod)
 
 ## Var spaden står på SKÄRMEN (vyns px). Står man på dess ruta ligger den under spelaren, och då går
 ## den inte att projicera alls (kamerans plan: `unproject_position` svarar (0,0) och skriver

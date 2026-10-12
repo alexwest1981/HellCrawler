@@ -94,6 +94,7 @@
  "ui.map.nod.torch": "torch",
  "ui.map.nod.shovel": "shovel",
  "ui.map.nod.player": "player",
+ "ui.spade.skylt": "Dig down",
  "ui.shop.title": "THE SHOP — gold in the bank: %d",
  "ui.shop.hint": "click = buy · Esc = back to the village",
  "ui.inn.title": "THE INN — gold in the bank: %d",

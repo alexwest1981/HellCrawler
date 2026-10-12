@@ -79,6 +79,7 @@
  "ui.map.nod.torch": "antorcha",
  "ui.map.nod.shovel": "pala",
  "ui.map.nod.player": "jugador",
+ "ui.spade.skylt": "Cava más abajo",
  "ui.shop.title": "LA TIENDA — oro en el banco: %d",
  "ui.shop.hint": "clic = comprar · Esc = volver al pueblo",
  "ui.inn.title": "LA POSADA — oro en el banco: %d",

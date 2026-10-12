@@ -79,6 +79,7 @@
  "ui.map.nod.torch": "torcia",
  "ui.map.nod.shovel": "pala",
  "ui.map.nod.player": "giocatore",
+ "ui.spade.skylt": "Scava in basso",
  "ui.shop.title": "IL NEGOZIO — oro in banca: %d",
  "ui.shop.hint": "clic = compra · Esc = torna al villaggio",
  "ui.inn.title": "LA LOCANDA — oro in banca: %d",

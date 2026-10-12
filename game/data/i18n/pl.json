@@ -79,6 +79,7 @@
  "ui.map.nod.torch": "pochodnia",
  "ui.map.nod.shovel": "łopata",
  "ui.map.nod.player": "gracz",
+ "ui.spade.skylt": "Kop w dół",
  "ui.shop.title": "SKLEP — złoto w banku: %d",
  "ui.shop.hint": "klik = kup · Esc = powrót do wsi",
  "ui.inn.title": "GOSPODA — złoto w banku: %d",

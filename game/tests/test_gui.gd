@@ -1170,6 +1170,133 @@ func _initialize() -> void:
 	main.shell = "hem"
 	main._refresh_shell()
 
+	## SPADEN EFTER STRIDEN (M109). Alex: *"gör spaden synlig efter fighten, samt att gungandet med
+	## texten, gör det så den åker upp och ner, över spaden när spaden är synlig."*
+	##
+	## MÄTT FÖRE ÄNDRINGEN (det här provet + `-- grävprov`): spaden RITADES hela tiden — `visible ja`
+	## både med bossen levande och efter striden — och det som gömdes var SKYLTEN, vars grind var
+	## klickregeln `_spade_redo()`: den kräver att spelaren står PÅ eller INVID spadens ruta. Varken
+	## spadnodens `cleared`-flagga eller bossens status gjorde spaden osynlig; `_build_world` byggde
+	## den så länge spadnoden var oklarad, alltså även med bossen levande (i bossbilden läses den som
+	## ett föremål bossen håller i). Nu ritas spaden först när bossen på rutan är besegrad.
+	print("")
+	print("— spaden efter striden —")
+	var spade: Dungeon.FloorNode = null
+	var bossen: Dungeon.FloorNode = null
+	for n in main.run.explore.floor_ref.nodes:
+		if n.kind == "shovel" and spade == null:
+			spade = n
+		elif n.kind == "boss" and bossen == null:
+			bossen = n
+	check(spade != null and bossen != null, "våningen har både en spade och en boss")
+	check(bossen.pos == spade.pos, "spaden ligger på bossens ruta", str(spade.pos))
+	var granne: Vector2i = spade.pos + Vector2i(0, 1)
+	if not main.run.explore.floor_ref.is_floor_at(granne):
+		granne = spade.pos + Vector2i(-1, 0)
+	main.run.explore.pos = granne
+	main.run.explore.face(spade.pos)
+	# MED BOSSEN LEVANDE byggs ingen spade alls: den är hennes byte och ritas först när hon fallit.
+	if not bossen.cleared:
+		main._build_world()
+		await process_frame
+		check(main._spade_sprite == null and main._spade_skylt == null,
+			"med bossen levande är spaden inte byggd — den låg förut inne i figuren")
+		check(not main._skylt_syns(), "och skylten syns inte")
+		# Bossen besegras SAMMA väg som striden tar: `enter_node` startar striden, `auto_play`
+		# slåss klart, `finish_fight` räknar in resultatet — sedan byggs våningen om som spelet gör.
+		var c = main.run.enter_node(bossen)
+		if c != null:
+			c.hp = 5000.0
+			c.max_hp = 5000.0
+			var varv := 0
+			while not c.over() and varv < 200:
+				varv += 1
+				c.auto_play()
+				if not c.over():
+					c.end_turn()
+			main.run.finish_fight(bossen, c)
+			for i in 12:
+				if not main._draft_pending():
+					break
+				main._on_draft_pick(0)
+				await process_frame
+	else:
+		print("    bossen var redan besegrad av provets egen strid — före-mätningen hoppas över")
+	main._after_state_change()
+	await process_frame
+	await process_frame
+	var spr: Sprite3D = main._spade_sprite
+	check(spr != null and is_instance_valid(spr) and spr.get_parent() == main.world,
+		"efter striden är spaden byggd och står i världen")
+	check(spr != null and spr.visible and spr.is_visible_in_tree(),
+		"och den SYNS — det var hela kravet: spaden synlig efter fighten")
+	check(spr != null and main.cam != null and main.cam.is_position_in_frustum(spr.global_position),
+		"spaden står i kameran från rutan intill", str(main._spade_på_bild()))
+	check(main._spade_redo(), "och klickregeln är orörd: spaden får tas från rutan intill",
+		"ledtråd: \"%s\"" % main.hint_label.text)
+	# KLICKREGELN SKA INTE HA RÖRTS: står spelaren långt bort får spaden fortfarande inte tas.
+	main.run.explore.pos = main.run.explore.floor_ref.start
+	main._refresh()
+	check(not main._spade_redo(), "på andra sidan våningen får spaden fortfarande inte tas")
+	# SKYLTEN SYNS SÅ LÄNGE SPADEN SYNS (M109) — inte bara från rutan intill, som förut.
+	check(main._skylt_syns(), "men skylten syns ändå: den visar VAR, klicket säger NÄR")
+	var skylt: Label3D = main._spade_skylt
+	check(skylt != null and is_instance_valid(skylt), "och det är en Label3D över spadens ruta",
+		"" if skylt == null else str(skylt.position))
+	# TEXTEN UR I18N, INTE HÅRDKODAD: provet bygger om skylten i två språk och läser samma nyckel som
+	# koden. Stod svenskan kvar efter språkbytet vore nyckeln inte inkopplad.
+	if skylt != null and is_instance_valid(skylt):
+		skylt.free()
+	Tr.set_lang("sv")
+	main._spade_skylt_bygg(spade)
+	check(main._spade_skylt.text == "Gräv nedåt" and main._spade_skylt.text == Tr.t("ui.spade.skylt"),
+		"skylten bär den svenska nyckeln ui.spade.skylt", main._spade_skylt.text)
+	Tr.set_lang("en")
+	skylt = main._spade_skylt
+	skylt.free()
+	main._spade_skylt_bygg(spade)
+	check(main._spade_skylt.text == "Dig down",
+		"och engelskan ger 'Dig down' — texten kommer ur i18n, inte ur en hårdkodad sträng",
+		main._spade_skylt.text)
+	var utan_rad := []
+	for kod in Tr.codes():
+		Tr.set_lang(kod)
+		var v: String = Tr.t("ui.spade.skylt")
+		if v.strip_edges().is_empty() or (kod != "en" and v == "Dig down"):
+			utan_rad.append(kod)
+	Tr.set_lang("sv")
+	check(utan_rad.is_empty(), "nyckeln finns på alla tretton språk med eget värde",
+		", ".join(utan_rad))
+	# GUNGNINGEN: en SINUS PÅ HÖJDEN, räknad per bildruta i `_process` (förut en evig tween i sidled).
+	# Provet mäter den i riktig tid: klockan nollas, och en kvarts period (0,42 s vid 3,7 rad/s) ska
+	# ge toppen, ett halvt varv viloläget och tre kvarts varv botten. Båda sidor om viloläget krävs:
+	# en rörelse som bara går uppåt är en drift, inte en gungning.
+	var bas: float = main._spade_skylt_bas
+	var x_före: float = main._spade_skylt.position.x
+	var z_före: float = main._spade_skylt.position.z
+	main._refresh()                    # samma väg som spelet tar: skylten tänds när spaden är byggd
+	main._gunga = 0.0
+	await create_timer(0.42).timeout
+	var topp: float = main._spade_skylt.position.y
+	await create_timer(0.43).timeout
+	var mitten: float = main._spade_skylt.position.y
+	await create_timer(0.42).timeout
+	var botten: float = main._spade_skylt.position.y
+	print("    skyltens höjd kring viloläget %.3f (SKYLT_HÖJD %.2f, SKYLT_FART %.1f): topp %.3f, mitten %.3f, botten %.3f"
+		% [bas, main.SKYLT_HÖJD, main.SKYLT_FART, topp, mitten, botten])
+	check(main._skylt_syns(), "skylten är tänd medan den gungar")
+	check(topp - bas > main.SKYLT_HÖJD * 0.8, "kvarts varv upp: skylten når toppen",
+		"%.3f över viloläget (%+.3f)" % [main.SKYLT_HÖJD, topp - bas])
+	check(absf(mitten - bas) < main.SKYLT_HÖJD * 0.5, "halvt varv: tillbaka i viloläget",
+		"%.3f mot %.3f" % [mitten, bas])
+	check(bas - botten > main.SKYLT_HÖJD * 0.8, "och tre kvarts varv: skylten når botten",
+		"%.3f under viloläget (%+.3f)" % [main.SKYLT_HÖJD, botten - bas])
+	check(is_equal_approx(main._spade_skylt.position.x, x_före)
+		and is_equal_approx(main._spade_skylt.position.z, z_före),
+		"och den gungar bara i HÖJD — inte i sidled som förut",
+		"x/z %.3f,%.3f mot %.3f,%.3f" % [main._spade_skylt.position.x, main._spade_skylt.position.z,
+			x_före, z_före])
+
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
 	quit(1 if fails > 0 else 0)

@@ -79,6 +79,7 @@
  "ui.map.nod.torch": "Fackel",
  "ui.map.nod.shovel": "Spaten",
  "ui.map.nod.player": "Spieler",
+ "ui.spade.skylt": "Grab nach unten",
  "ui.shop.title": "DER LADEN — Gold in der Bank: %d",
  "ui.shop.hint": "klicken = kaufen · Esc = zurück ins Dorf",
  "ui.inn.title": "DAS WIRTSHAUS — Gold in der Bank: %d",

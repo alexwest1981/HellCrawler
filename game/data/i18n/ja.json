@@ -79,6 +79,7 @@
  "ui.map.nod.torch": "松明",
  "ui.map.nod.shovel": "シャベル",
  "ui.map.nod.player": "自分",
+ "ui.spade.skylt": "下へ掘る",
  "ui.shop.title": "商店 — 銀行のゴールド: %d",
  "ui.shop.hint": "クリック = 購入 · Esc = 村へ戻る",
  "ui.inn.title": "宿屋 — 銀行のゴールド: %d",

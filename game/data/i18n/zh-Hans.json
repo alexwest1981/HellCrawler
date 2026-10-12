@@ -79,6 +79,7 @@
  "ui.map.nod.torch": "火把",
  "ui.map.nod.shovel": "铁锹",
  "ui.map.nod.player": "玩家",
+ "ui.spade.skylt": "向下挖掘",
  "ui.shop.title": "商店 — 银行金币：%d",
  "ui.shop.hint": "点击 = 购买 · Esc = 返回村庄",
  "ui.inn.title": "客栈 — 银行金币：%d",

@@ -79,6 +79,7 @@
  "ui.map.nod.torch": "факел",
  "ui.map.nod.shovel": "лопата",
  "ui.map.nod.player": "игрок",
+ "ui.spade.skylt": "Копай вниз",
  "ui.shop.title": "ЛАВКА — золото в банке: %d",
  "ui.shop.hint": "клик = купить · Esc = назад в деревню",
  "ui.inn.title": "ПОСТОЯЛЫЙ ДВОР — золото в банке: %d",

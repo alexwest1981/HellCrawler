@@ -79,6 +79,7 @@
  "ui.map.nod.torch": "torche",
  "ui.map.nod.shovel": "pelle",
  "ui.map.nod.player": "joueur",
+ "ui.spade.skylt": "Creusez plus bas",
  "ui.shop.title": "LA BOUTIQUE — or en banque : %d",
  "ui.shop.hint": "clic = acheter · Esc = retour au village",
  "ui.inn.title": "L'AUBERGE — or en banque : %d",

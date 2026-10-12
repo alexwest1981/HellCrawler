@@ -94,6 +94,7 @@
  "ui.map.nod.torch": "fackla",
  "ui.map.nod.shovel": "spade",
  "ui.map.nod.player": "spelare",
+ "ui.spade.skylt": "Gräv nedåt",
  "ui.shop.title": "BUTIKEN — guld i banken: %d",
  "ui.shop.hint": "klick = köp · Esc = tillbaka till byn",
  "ui.inn.title": "VÄRDSHUSET — guld i banken: %d",
