@@ -388,8 +388,11 @@ func hugg(lokal_punkt: Vector3, radie: float) -> Array:
 ## LOSSA BITAR (M108). Alex: "Det kan lossna random bitar av fienden om de inte dör direkt av
 ## attacken." Ytterkanten först — en flisa slås av en figur som står kvar, och mittcellerna håller
 ## ihop den tills den faller.
-func lossna(antal: int) -> Array:
-	var borta: Array = []
+## Returnerar de borttagna cellerna som {cell: värde} — inte bara värdena (M115). Den som tar emot flisan
+## ska kunna bygga bitar av den SOM FLYGER (se `VoxelRas`), inte bara bygga om modellen: Alex 12/10:
+## *"Vad hände med att det skulle lossna voxlar vid attack?"* — cellerna lossnade, men flög aldrig.
+func lossna(antal: int) -> Dictionary:
+	var borta: Dictionary = {}
 	if antal <= 0 or celler.is_empty():
 		return borta
 	# Hur många grannar varje cell har: ju färre, desto mer utsatt kant.
@@ -407,7 +410,7 @@ func lossna(antal: int) -> Array:
 		yttre.append(kandidater[i][1])
 	yttre.shuffle()
 	for i in mini(antal, yttre.size()):
-		borta.append(celler[yttre[i]])
+		borta[yttre[i]] = celler[yttre[i]]
 		celler.erase(yttre[i])
 	if not borta.is_empty():
 		_mesh = null

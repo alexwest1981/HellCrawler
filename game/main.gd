@@ -6319,6 +6319,20 @@ func _träffprov() -> void:
 		# väntar 45 % av sveptiden, där bågen står som tydligast.
 		await get_tree().create_timer(HUGG_TID * 0.45).timeout
 	print("[träffprov] hugg: %d kvar från striden, 1 friskt för bilden (fram 0.45)" % hugg_kvar)
+	# FLISAN MÄTS (M115): en träff som INTE dödar ska lämna bitar i världen — inte bara en modell med
+	# färre celler. Alex 12/10: *"Vad hände med att det skulle lossna voxlar vid attack?"* — de lossnade,
+	# men flög inte. Mätningen sker på den FRISKA figuren, så siffran inte blandas med dödsraset från
+	# korten ovan (som också lämnar bitar i samma nod).
+	var flisor := 0
+	if prov_spr != null and is_instance_valid(prov_spr):
+		var före := _ras_nod.get_child_count()
+		_slag_kvitto(prov_spr, 3.0, 1)
+		await get_tree().process_frame
+		for i in range(före, _ras_nod.get_child_count()):
+			var r = _ras_nod.get_child(i)
+			if r is VoxelRas:
+				flisor += (r as VoxelRas).antal_bitar()
+	print("[träffprov] flisan: %d bitar flög vid en träff som INTE dödade" % flisor)
 	_spara_bild("user://shots/träffprov.png")
 	print("[träffprov] %d skurar, %d korn i luften, hp %.0f -> %.0f, bilden sparad"
 		% [skurar, korn, hp_före, active_combat.total_enemy_hp()])
@@ -8565,24 +8579,37 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 	if vx != null:
 		var voxel_nod: MeshInstance3D = spr.get_node_or_null("voxel")
 		if voxel_nod != null and voxel_nod.mesh != null:
+			# GOLVET (M112) behövs av BÅDA grenarna nu: dödsraset och flisan som lossnar vid en vanlig
+			# träff (M115) lägger sina bitar på golvet. Modellens mitt är nodens origo, så foten räknas ur
+			# den TRANSFORMERADE rutan — att dra halva höjden från origot antog en symmetri som inte finns.
+			var golv_y := voxel_nod.global_transform.origin.y \
+				+ (voxel_nod.global_transform * voxel_nod.mesh.get_aabb()).position.y
 			if död:
 				# BITARNA LÄGGS I VÄRLDEN, inte på fienden (se `VoxelRas`). Striden tar bort figuren strax
 				# efter dödsögonblicket, och allt som hänger på den rivs med — det var därför Alex "varken
 				# såg att de dog eller att voxlarna raskade omkring dem". Modellen lämnar över sina celler
 				# till raset, som faller, studsar och försvinner i egen takt.
-				# GOLVET ÄR MODELLENS EGEN NEDERKANT (M112), räknad ur den TRANSFORMERADE rutan: modellens
-				# mitt är nodens origo, och att dra halva höjden från origo antog att rutan satt symmetriskt
-				# kring den (mätt: modellen är förskjuten, så foten hamnade fel).
-				var golv_y := voxel_nod.global_transform.origin.y \
-					+ (voxel_nod.global_transform * voxel_nod.mesh.get_aabb()).position.y
+				# GOLVET ÄR MODELLENS EGEN NEDERKANT (M112) — räknat ovanför grenen, se kommentaren där.
 				var ras := VoxelRas.från(vx, voxel_nod.global_transform, golv_y, voxel_nod.material_override)
 				_ras_nod.add_child(ras)
 				voxel_nod.visible = false
 			else:
-				# En flisa på några procent av figuren per träff: efter en hel strid är den sargad, men
-				# den ska inte försvinna av att man tittar på den.
-				vx.lossna(maxi(4, int(float(vx.antal_celler()) * 0.05)))
+				# EN FLISA SOM FLYGER (M108/M115). Alex 12/10: *"Vad hände med att det skulle lossna voxlar
+				# vid attack?"* — de lossnade, men de FLÖG inte: cellerna ströks ur modellen och ingenting
+				# syntes. Samma `VoxelRas` som bär dödsraset bär flisan, byggd ur de celler `lossna`
+				# lämnade tillbaka. Efter en hel strid är figuren sargad men inte borta.
+				var borta: Dictionary = vx.lossna(maxi(4, int(float(vx.antal_celler()) * 0.05)))
 				voxel_nod.mesh = vx.mesh()
+				if not borta.is_empty():
+					var flisa := Voxel.new()
+					flisa.sidor = vx.sidor
+					flisa.djup = vx.djup
+					flisa.höjd = vx.höjd
+					flisa.kolumner = vx.kolumner
+					flisa._förskjutning = vx._förskjutning
+					flisa.celler = borta
+					_ras_nod.add_child(VoxelRas.från(flisa, voxel_nod.global_transform, golv_y,
+						voxel_nod.material_override))
 	var grund: Color = spr.get_meta("modulate_bas", spr.modulate)
 	var b := create_tween().set_parallel(true)
 	b.tween_property(spr, "modulate", Color(2.4, 2.4, 2.4, grund.a), 0.04)
