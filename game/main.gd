@@ -686,6 +686,25 @@ func _ready() -> void:
 	# Språket ur sparfilen, innan HUD:en byggs — annars står första bildrutan på svenska.
 	if not Tr.set_lang(meta.language):
 		meta.language = Tr.DEFAULT
+	# TITELN SÄGER VILKEN KOD SOM KÖR (M113). Alex letade i timmar efter varför "menyn" gav ett spel utan
+	# klot: ett gammalt exportbygge ser EXAKT ut som källkoden, och det gick inte att se skillnad på
+	# fönstret. Titeln bär därför källkodens commit, läst ur `.git/HEAD` — ett bygge har ingen `.git` och
+	# skriver "UTAN KÄLLKOD". Mätt: titeln står i `hyprctl clients`, så den går att kontrollera utifrån.
+	var titel := str(ProjectSettings.get_setting("application/config/name", "HellCrawler"))
+	var git_head := ProjectSettings.globalize_path("res://").path_join("../.git/HEAD").simplify_path()
+	var head := FileAccess.open(git_head, FileAccess.READ)
+	if head == null:
+		titel += " · UTAN KÄLLKOD (gammalt bygge)"
+	else:
+		var rad := head.get_as_text().strip_edges()
+		var rev := rad.left(7)
+		if rad.begins_with("ref: "):
+			var ref := FileAccess.open(git_head.path_join("../" + rad.substr(5)).simplify_path(),
+				FileAccess.READ)
+			rev = ref.get_as_text().strip_edges().left(7) if ref != null else "?"
+		titel += " · källkod %s" % rev
+	get_window().title = titel
+	print("titel: %s" % titel)
 	# Felsökningsflagga: `-- lang=de` visar spelet på ett annat språk. Den rör inte sparfilen —
 	# språkbytet i spelet sparar, och en granskning ska inte skriva över spelarens val.
 	for f in OS.get_cmdline_user_args():
