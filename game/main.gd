@@ -3467,6 +3467,11 @@ func _demo_gui() -> void:
 		print("guiprov: %s ritar %.0f px innanför spelvyn (ska vara 0), ligger i %s"
 			% [n[0], över_vy, "övre marginalen" if r.end.y <= vy.position.y
 				else ("nedre marginalen" if r.position.y >= vy.end.y else "ÖVER VYN")])
+	# VAR kärlen faktiskt ritas, i FÖNSTERpixlar — inte bara att de är synliga. Alex såg dem inte i sina
+	# bilder medan provet sa "syns [true, true, true]"; att mäta rutan skiljer "ritas utanför det som syns"
+	# från "syns men går inte att se".
+	print("guiprov: kärlens rutor i fönstret: hp %s | mana %s | rust %s" % [
+		str(orb_hp.get_global_rect()), str(orb_mana.get_global_rect()), str(rust_bar.get_global_rect())])
 	print("guiprov: statusrad %s | kärl hp %.2f, mana %.2f, rust %.2f, syns %s" % [
 		hud_status.vital_label.text, orb_hp.nivå(), orb_mana.nivå(), rust_bar.andel(),
 		str([orb_hp.visible, orb_mana.visible, rust_bar.visible])])
