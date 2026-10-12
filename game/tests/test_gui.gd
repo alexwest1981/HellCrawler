@@ -883,17 +883,29 @@ func _initialize() -> void:
 		"%d arter, %d ljus" % [main._låg_material.size(), main._låg_ljus.size()])
 	if not main._låg_material.is_empty():
 		var art: String = main._låg_material.keys()[0]
-		var eld: StandardMaterial3D = main._låg_material[art]
-		check(eld.emission_enabled and eld.emission.is_equal_approx(main.LAGA_FARG),
-			"modellens material har en emission i lågans färg (%s)" % art)
+		# MATERIALET KAN VARA TVÅ SLAG (M115). De lysande rekvisiterna bär nu en shader som bara släpper
+		# igenom lågcellerna, och styrkan ligger i parametern `glod` i stället för i
+		# `emission_energy_multiplier`. En typad `StandardMaterial3D` här fällde HELA provet ("Trying to
+		# assign value of type 'ShaderMaterial'"), och efter det körde ingenting: sviten stannade på
+		# exit 124 (timeout) UTAN en FEL-rad — 174 kontroller försvann tyst.
+		var eld = main._låg_material[art]
+		var eld_shader: ShaderMaterial = eld as ShaderMaterial
+		check(eld_shader != null and eld_shader.shader != null
+				and eld_shader.shader.resource_path.ends_with("voxel_rekvisit.gdshader"),
+			"modellens glöd är låg-shadern, inte ett material över hela modellen (%s)" % art)
 		var lägst := 1e9
 		var högst := -1e9
 		var ljus_lägst := 1e9
 		var ljus_högst := -1e9
 		for i in 45:
 			await process_frame
-			lägst = minf(lägst, eld.emission_energy_multiplier)
-			högst = maxf(högst, eld.emission_energy_multiplier)
+			var glod := 0.0
+			if eld_shader != null:
+				var v = eld_shader.get_shader_parameter("glod")
+				if v != null:
+					glod = float(v)
+			lägst = minf(lägst, glod)
+			högst = maxf(högst, glod)
 			if not main._låg_ljus.is_empty():
 				ljus_lägst = minf(ljus_lägst, (main._låg_ljus[0] as OmniLight3D).light_energy)
 				ljus_högst = maxf(ljus_högst, (main._låg_ljus[0] as OmniLight3D).light_energy)

@@ -19,8 +19,9 @@ extends Node3D
 const TYGND := 9.5             ## m/s², nedåt
 const STUDSTAL := 0.35         ## hur mycket en bit behåller av farten när den slår i golvet
 const MARKFRIKTION := 0.72     ## sidofarten bromsas i varje studs
-const MIN_LIV := 0.75          ## kortaste liv, sekunder
-const MAX_LIV := 1.6           ## längsta
+const MIN_LIV := 1.0             ## kortaste liv, sekunder
+const MAX_LIV := 2.2             ## längsta — höjt från 1,6 (M115): raset revs förut av stridens slut,
+                                 ## och när det nu överlever måste det hinna LÄSAS innan det försvinner
 const SNURR := 3.2             ## rad/s, så bitarna tumlar i stället för att glida
 
 var _bitar: Array = []

@@ -56,13 +56,15 @@ const GRANN_SVIKT := 0.015         ## andel av korthöjden som grannarna svarar 
 # Solfjädern (M34): korten läggs på en båge i stället för i rad. Pivoten ligger i kortets
 # NEDERKANT (se CardView._recenter_pivot), så vridningen svänger kortets överkant utåt — det är
 # därför en solfjäder ser ut som en hand och en rad ser ut som en hylla.
-const FAN_STEG := 0.055            ## rad vridning per kort i bågen (~3,2 grader)
+const FAN_STEG := 0.035            ## rad vridning per kort i bågen (~2,0 grader). Var 0,055 (3,2°):
+                                   ## Alex 12/10: *"kanske inte så hårt utfjädrat som det är just nu?"*
 ## Kortets steg i sidled, som andel av kortets bredd. Sänkt från 0,62 när korten blev 80 % större:
 ## med 0,62 rymdes tolv kort bara om skalan krympte tillbaka (1,52 i stället för 1,75), och då hade
 ## korten inte blivit större alls på skärmen. Vid 0,50 ryms tolv kort i full skala — och mer av varje
 ## kort syns än förut (91 px mot 63 px), trots att omlottet är större.
 const FAN_OMLOTT := 0.50           ## kortets steg i sidled, som andel av kortets bredd
-const FAN_SJUNK := 0.07            ## andel av korthöjden som ytterkortet sitter lägre per steg
+const FAN_SJUNK := 0.035           ## andel av korthöjden som ytterkortet sitter lägre per steg. Var 0,07:
+                                   ## fem kort sänkte ytterkanterna 14 % — en fläkt, inte en solfjäder
 
 ## Ljud: genererade av tools/gen_sfx.py, hämtade från res://assets/sfx. Saknas filen tiger
 ## spelet i stället för att krascha — konsten och ljudet ska aldrig vara ett krav för att köra.
@@ -72,6 +74,12 @@ var sfx_players: Array[AudioStreamPlayer] = []
 var sfx_next := 0
 
 var world: Node3D
+## Bitarna från fiendernas ras (M115). DE FÅR INTE BO I `world`: `_build_world` kör `world.queue_free()`
+## vid VARJE tillståndsändring — och stridens slut ÄR en tillståndsändring — så raset revs i samma
+## ögonblick som fienden dog (mätt i `-- dödsprov`: 132 bitar före stridens slut, 0 bitar efter).
+## Alex: *"raset syntes INTE"*. Egen nod i samma vy, skapad en gång och rörd av ingen annan:
+## koordinaterna är desamma (båda ligger i vyns rum), och bitarna städar sig själva efter sitt liv.
+var _ras_nod: Node3D
 var cam: Camera3D
 var hud: CanvasLayer               ## lagret INNE i spelvyn (480x270): byn, kartan, panelerna, FX
 var _vy: SubViewport               ## spelvyns ruta: 3D:n ritas i 480x270 och skalas upp med heltal
@@ -3554,7 +3562,7 @@ func _dödsprov() -> void:
 		var spann := Vector2.ZERO
 		var golv := 0.0
 		var lägst := 0.0
-		for barn in world.get_children():
+		for barn in _ras_nod.get_children():
 			if barn is VoxelRas:
 				bitar += (barn as VoxelRas).antal_bitar()
 				spann = (barn as VoxelRas).höjdspann()
@@ -3563,6 +3571,23 @@ func _dödsprov() -> void:
 		print("dödsprov: %.2f s efter dråpet: %d bitar kvar, höjd %.2f..%.2f m, lägsta ritade punkt %.2f m (golvet %.2f)"
 			% [(steg + 1) * 0.18, bitar, spann.x, spann.y, lägst, golv])
 		_spara_bild("user://shots/dod-%02d.png" % (steg + 2))
+	# STRIDENS SLUT MÄTS OCKSÅ (M115). Provet stannade förut vid själva dråpet, och Alex såg inget ras i
+	# SPEL — där följer `_end_or_continue()` i nästa andetag. Om stridens slut river världen försvinner
+	# bitarna innan de hunnit läsas, och då mäter ett prov som stannar vid dråpet en väg ingen spelar.
+	if active_combat != null:
+		for f in active_combat.enemies:
+			f.hp = 0.0
+		_enemy_reaktion(1)
+		_end_or_continue()
+		await get_tree().process_frame
+		for steg in 3:
+			await get_tree().create_timer(0.2).timeout
+			var kvar := 0
+			for barn in _ras_nod.get_children():
+				if barn is VoxelRas:
+					kvar += (barn as VoxelRas).antal_bitar()
+			print("dödsprov: %.2f s efter STRIDENS SLUT: %d bitar kvar i världen" % [(steg + 1) * 0.2, kvar])
+			_spara_bild("user://shots/dod-slut-%02d.png" % (steg + 1))
 	print("dödsprov: bilderna i %s" % ProjectSettings.globalize_path("user://shots"))
 	get_tree().quit()
 
@@ -5414,6 +5439,12 @@ func _build_world() -> void:
 	world = Node3D.new()
 	# Världen ritas i SPELVYN (480x270), inte i fönstret: det är den som ska vara pixelkonst.
 	_vy.add_child(world)
+	# RASKROPPEN (M115): skapas EN gång och rivs aldrig av `_build_world`. Bitarna låg i `world` förut, och
+	# eftersom stridens slut bygger om världen försvann de i samma bildruta som fienden dog (mätt).
+	if _ras_nod == null:
+		_ras_nod = Node3D.new()
+		_ras_nod.name = "ras"
+		_vy.add_child(_ras_nod)
 	var f: Dungeon.Floor = run.explore.floor_ref
 	# Dropparnas frö: samma regel som resten av våningen (samma våning ser likadan ut varje gång), så
 	# takten går att fotografera och jämföra i stället för att vara olika varje gång.
@@ -5679,6 +5710,16 @@ static func _dekor_y(art: String, duk_höjd: float, s: float) -> float:
 	return duk_höjd * 0.5 * s
 
 
+## Shadern för de lysande rekvisiterna (M115). Laddas EN gång — `_dekor_nod` körs per våning och en
+## `load` per gång läste samma fil på nytt.
+var _laga_shader_res: Shader
+
+func _laga_shader() -> Shader:
+	if _laga_shader_res == null:
+		_laga_shader_res = load("res://ui/voxel_rekvisit.gdshader")
+	return _laga_shader_res
+
+
 func _dekor_nod(art: String, platser: Array) -> int:
 	var tex := _prop(art)
 	if tex == null or platser.is_empty() or not world:
@@ -5690,7 +5731,11 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	# artens eget ark — och materialet, för den gamla dekor-shadern ritade en platt bild som billboard
 	# och läser atlasens UV; en mesh har ingen nytta av något av det.
 	var mesh: Mesh = null
-	var mat := StandardMaterial3D.new()
+	# OTYPAT med flit: materialet BYTS mot ett ShaderMaterial för de lysande rekvisiterna (M115), och en
+	# typad deklaration (`:= StandardMaterial3D`) fällde hela skriptet — "Value of type ShaderMaterial
+	# cannot be assigned to a variable of type StandardMaterial3D" (mätt: main.gd gick inte att ladda,
+	# provet skrev "1 Parse Error" och ingen bild). Egenskaperna nedan sätts dynamiskt i stället.
+	var mat = StandardMaterial3D.new()
 	if VOXLAR:
 		var vx := Voxel.ur_ark(tex, 0, 1, duk.y, VOXEL_SIDOR, VOXEL_DJUP)
 		mesh = vx.mesh()
@@ -5704,9 +5749,14 @@ func _dekor_nod(art: String, platser: Array) -> int:
 		# elden pulserar, men modellen behåller sina egna färger. Bara de rekvisiter som REDAN lyser
 		# (REKVISIT_LYSER) får den — glöden hör till deras ljus, inte till modellen.
 		if REKVISIT_LYSER.has(art):
-			mat.emission_enabled = true
-			mat.emission = LAGA_FARG
-			mat.emission_energy_multiplier = LAGA_GLÖD * _ljus_f
+			# BARA LÅGORNA LYSR (M115). Emissionen satt på HELA modellen förut — ett material för alla
+			# celler, så metall, kedja och armar glödde med. Alex: *"dessutom 'lyser' hela kandelabern i
+			# taket, inte toppen på ljusen som jag bad om"*. Shadern släpper bara igenom celler som är
+			# lågans färg (palettens 12/13/14), och `glod` rörs av `_fladdra` precis som förut.
+			var sm := ShaderMaterial.new()
+			sm.shader = _laga_shader()
+			sm.set_shader_parameter("glod", LAGA_GLÖD * _ljus_f)
+			mat = sm
 			_låg_material[art] = mat
 	else:
 		var quad := QuadMesh.new()
@@ -6972,11 +7022,14 @@ func _fladdra(delta: float) -> void:
 			continue
 		var f := 1.0 + 0.10 * sin(_fladder * (6.3 + i * 1.7)) + 0.05 * sin(_fladder * (17.0 + i * 3.1))
 		(_låg_ljus[i] as OmniLight3D).light_energy = LAGA_ENERGI * 0.6 * _ljus_f * f
-		var m: StandardMaterial3D = _låg_mat[i]
-		if m != null:
-			# SAMMA faktor på modellens glöd som på ljuset. Ingen konstant glöd: slocknar ljuset
-			# (ljus=0) slocknar elden med, och den pulserar mellan 0,85 och 1,15 av LAGA_GLÖD.
-			m.emission_energy_multiplier = LAGA_GLÖD * _ljus_f * f
+		# GLÖDEN SITTER I TVÅ SLAGS MATERIAL (M115): de lysande rekvisiterna bär shadern som bara släpper
+		# igenom lågorna (och läser sin styrka ur `glod`), allt annat är kvar på standardmaterialet.
+		# Samma faktor på glöden som på ljuset, som förut.
+		var m: Material = _låg_mat[i]
+		if m is ShaderMaterial:
+			(m as ShaderMaterial).set_shader_parameter("glod", LAGA_GLÖD * _ljus_f * f)
+		elif m is StandardMaterial3D:
+			(m as StandardMaterial3D).emission_energy_multiplier = LAGA_GLÖD * _ljus_f * f
 	if _lykta != null:
 		_lykta.light_energy = _lykta_energi * _ljus_f * (1.0 + 0.02 * sin(_fladder * 3.1))
 func _tile(name: String, tyst: bool = false) -> Texture2D:
@@ -8523,7 +8576,7 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 				var golv_y := voxel_nod.global_transform.origin.y \
 					+ (voxel_nod.global_transform * voxel_nod.mesh.get_aabb()).position.y
 				var ras := VoxelRas.från(vx, voxel_nod.global_transform, golv_y, voxel_nod.material_override)
-				world.add_child(ras)
+				_ras_nod.add_child(ras)
 				voxel_nod.visible = false
 			else:
 				# En flisa på några procent av figuren per träff: efter en hel strid är den sargad, men

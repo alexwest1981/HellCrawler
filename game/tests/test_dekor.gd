@@ -76,6 +76,24 @@ func _init() -> void:
 	check(main.REKVISIT_HÄNGER.has("bur") and not main.REKVISIT_HÄNGER.has("spricka_eld"),
 		"buren hänger, sprickan i golvet ligger kvar på golvet")
 
+	# GLÖDEN SITTER BARA PÅ LÅGORNA (M115) — SIST I PROVET MED FLIT: `_dekor_nod` SKAPAR noder, och
+	# kontrollen strax ovan räknar dem ("dekor=0 lägger inte till något"). Låg de här först blev svaret 3
+	# i stället för 1 — ett prov som rör tillståndet förstör proven efter sig (mätt: sviten röd på det).
+	# Emissionen låg förut på HELA materialet, så metall, kedja och armar glödde med (Alex: *"lyser hela
+	# kandelabern i taket, inte toppen på ljusen"*). Kontrollen kräver shadern som släpper igenom
+	# lågfärgen — och att en rekvisit som inte lyser inte får något alls.
+	main._dekor_nod("kandelaber", [Transform3D(Basis(), Vector3(1.5, 0.0, 2.5))])
+	var mat_låga: Material = main._låg_material.get("kandelaber")
+	check(mat_låga is ShaderMaterial,
+		"kandelaberns glöd är shadern, inte ett material över hela modellen (%s)"
+		% (mat_låga.get_class() if mat_låga != null else "inget material"))
+	if mat_låga is ShaderMaterial:
+		var sh: Shader = (mat_låga as ShaderMaterial).shader
+		check(sh != null and sh.resource_path.ends_with("voxel_rekvisit.gdshader"),
+			"och den är låg-shadern (%s)" % (sh.resource_path if sh != null else "ingen shader"))
+	main._dekor_nod("bur", [Transform3D(Basis(), Vector3(1.5, 0.0, 2.5))])
+	check(not main._låg_material.has("bur"), "en rekvisit som inte lyser får ingen glöd")
+
 	print("= %d kontroller, %d fel" % [kontroller, fel])
 	# Noden lades aldrig i trädet (provets hela poäng), så den städas för hand — annars gnäller Godot om
 	# resurser "still in use at exit" och det ser ut som ett fel i ett grönt prov.
