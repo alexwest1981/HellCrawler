@@ -4146,13 +4146,18 @@ func _add_enemies(node: Dungeon.FloorNode, boss: bool) -> void:
 				# GLANSEN (M72): aura, våt glans eller metallglint. Den är ett BARN till figuren, så
 				# den andas med den — en aura som står still medan varelsen rör sig är fel.
 				var gl: Dictionary = look.get("glans", {})
+				# AURAN SKAPAS FORTFARANDE — den är ett krav (M74: varelsen lyser av sig själv, och provet
+				# "någon fiende har en glans/aura" fångade mig när jag försökte ta bort den). På en voxelfigur
+				# släcks den i figurens per-bildruta-uppdatering i stället. Det som VAR boven är de två
+				# kvadraterna nedan, som ritar sin egen textur ovanpå figuren: Alex: "det är någon vit skepnad
+				# vid monstret, verkar vara oavsett monster, det behöver bort."
 				if not gl.is_empty():
 					glans = _glans(gl["färg"], float(gl["storlek"]), float(gl["höjd"]), float(gl["styrka"]))
 					spr.add_child(glans)
 			# MATERIALET (M73): har fienden en mask läggs ett tunt lager OVANPÅ figuren. Figuren
 			# behåller Godots eget material — ett `material_override` på en figur med rutnät är
 			# förbjudet sedan M69 (arket trycktes in i quaden och figuren blev en 16 px remsa).
-			var lager := _fiende_lager(eid, tex)
+			var lager := null if VOXLAR else _fiende_lager(eid, tex)
 			if lager != null:
 				lager.pixel_size = spr.pixel_size
 				lager.scale = Vector3.ONE * 1.0005     # en hårsmån större, annars z-fightar lagret med figuren
@@ -4160,7 +4165,7 @@ func _add_enemies(node: Dungeon.FloorNode, boss: bool) -> void:
 			# EGEN SHADER (önskemål 13): fienden får ett material ovanpå sin bild, ur fiendedatat.
 			# En fiende utan egen shader får null och ritas precis som i dag — vägen är opt-in per
 			# fiende, så en shader som blir fel kan bara slå ut sin egen figur.
-			var egen := _fiende_shader_lager(eid, tex)
+			var egen := null if VOXLAR else _fiende_shader_lager(eid, tex)
 			if egen != null:
 				egen.pixel_size = spr.pixel_size
 				egen.scale = Vector3.ONE * 1.0005
