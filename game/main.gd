@@ -434,10 +434,38 @@ const TEMA_LJUS := {
 ## Lyktan i handen: det enda ljus som följer spelaren. Falloffen är spelets viktigaste ljussiffra —
 ## för kort räckvidd och man ser inte rummet man går in i, för lång och mörkret (hela stämningen)
 ## försvinner.
-const LYKTA_FALLOFF := 2.0
-const LYKTA_ENERGI := 3.0
-const LYKTA_RACKVIDD := 9.0
+##
+## M117: NED från 2,0 (ren inverskvadrat) till 1,3. Alex: *"man måste få lite bättre 'ficklampa' med,
+## så man ser något, det är väldigt mörkt"*. MÄTT i `-- ljusprov` (posterna L1/L2 i svepet: samma scen
+## i SAMMA process — mellan två körningar skiljer eldens fladder medelljuset mer än lyktbytet gör):
+##
+##   lykta                       spelvyns medel  mörkt   ljust   högdagrar   lyktans EGEN fot
+##   L2 gammal (3,0/9/68/2,0)    0,1944          47,8 %  1,9 %   490         2,6 % av spelvyn
+##   L1 ny     (4,6/12/76/1,3)   0,2004          47,4 %  2,5 %   768         5,8 % av spelvyn
+##
+## Siffrorna är räknade på SPELVYN för sig (890x535 px av fönstret — HUD:ens ram ligger utanför och
+## späder ut hela-fönstret-siffran i loggen till ~0,14). "Lyktans egen fot" = andelen bildpunkter i
+## spelvyn som ändras när lyktan stängs av helt (post L0 i samma körning): den nya käglan träffar
+## alltså mer än DUBBELT så mycket golv och vägg som den gamla, och högdagrarna (där man ser formen på
+## det ljuset faller på) blir 57 % fler.
+##
+## Att bara HÖJA energin gjorde nästan ingenting: 3,0 → 4,6 med falloff 2,0 flyttade 2,3 % av
+## bildpunkterna, och 6,0 gav samma medelljus som 3,0. Golvet framför spelaren ligger redan i taket på
+## sin ljushet, och det som var mörkt var mörkt för att ljuset inte NÅDDE dit. Räckvidden och falloffen
+## är därför ändringen, inte styrkan.
+##
+## Färgen rörs inte: skenet ska bli större, inte vitare — stämningen sitter i LYKTA_FARG och i
+## facklornas värme. Taket är fortfarande mörkt (käglan är rund, +-38 grader, och taket ligger strax
+## utanför den), och det är meningen: taktonen gör rummet till en krypta och inte till en hall.
+const LYKTA_FALLOFF := 1.3
+const LYKTA_ENERGI := 4.6
+const LYKTA_RACKVIDD := 12.0
 const LYKTA_FARG := Color(1.0, 0.86, 0.68)
+## Hur brett ljuset faller. 68 grader behöll rummet och gav ändå en riktning (se M77); 76 grader
+## lyser upp golvet och väggarna runtom spelaren bättre, vilket är vad "så man ser något" betyder i en
+## ruta som är en meter hög. 84 grader mättes också och gav ingen vinst (0,191 mot 0,200 i spelvyn,
+## och en rundare boll i dimman).
+const LYKTA_VIDD := 76.0
 ## Facklorna i våningen: ett eget ljus per fackla, med fladdret i `_process`.
 ## Facklans styrka. Halverad från 1,5 (Alex: "väggarna har alldeles för hög effekt av ljuset
 ## från facklorna ... testa med 50% av nuvarande styrka") — det varma ljuset tvättade bort
@@ -1036,6 +1064,9 @@ func _ready() -> void:
 		# går inte att skilja från en flagga som inte gjorde något.
 		print("startar på %s våning %d" % [pt.get("stage_id", "stage_01"), int(pt.get("floor", 0)) + 1])
 		_start_run(str(pt.get("stage_id", "stage_01")), 20260919, int(pt.get("floor", 0)))
+	# FÖNSTRET FÖR ALLA PROV (M117): `fönster=1896x1018` gäller vilket prov som helst, inte bara
+	# HUD-provet — samma rum ska kunna fotograferas i Alex' storlek och i projektets.
+	await _sätt_prov_fönster()
 	if flags.has("träffprov"):
 		await _träffprov()
 		return
@@ -1756,7 +1787,17 @@ func _ljusprov() -> void:
 	# och GI:n sätter sig olika mellan två processer, så en A/B över två körningar går inte att skilja
 	# från att bygget självt skiljer sig. `-- shot` duger inte som mätbild — den fotograferar
 	# startplatsen, som är en mörk vägg (mätt: 83 % av rutan under mörkertröskeln).
+	# LYKTAN ENSAM FÖRST (M117), med flit: posterna nedan ÄRVER varandras rattar (en post utan
+	# nyckel behåller föregående värde), så en post sist i svepet mäter 12-allts dimma och falloff i
+	# stället för spelets EGET läge. Facklorna släcks (`fackel_glod` 0) så att det som mäts är
+	# spelarens eget ljus: vid en fackla drunknar ficklampan i fackelskenet, och det är rummen UTAN
+	# fackla Alex menar när han säger att det är mörkt. L1 är spelets eget läge, L2 är SAMMA scen med
+	# den GAMLA lyktan (3,0 / 9 m / 68 grader) — A/B:n ligger i EN process, för mellan två körningar
+	# skiljer eldens fladder medelljuset mer än lyktbytet gör.
 	var svep := [
+		{"namn": "L1-lyktan-utan-facklor", "fackel_glod": 0.0},
+		{"namn": "L2-gammal-lykta", "fackel_glod": 0.0, "lykta": 3.0, "falloff": 2.0,
+			"vidd": 68.0, "rackvidd": 9.0},
 		{"namn": "00-gammal-standard", "kontrast": 1.0, "omgivning": 0.18, "dimma": 0.0128,
 			"fackel_luft": 6.0, "sken": false, "falloff": 2.0, "fackel_glod": 2.2},
 		{"namn": "01-ny-standard"},
@@ -1795,8 +1836,12 @@ func _ljusprov_bild(post: Dictionary) -> void:
 		l.light_energy = float(post.get("fackel_glod", l.light_energy))
 	if _lykta != null:
 		_lykta.light_energy = float(post.get("lykta", _lykta_energi)) * _ljus_f
-		if post.has("falloff"):
-			_lykta.spot_attenuation = float(post["falloff"])
+		# Vidden, räckvidden och falloffen sätts varje post, med spelets EGNA tal som fallback: stod
+		# en posts värde kvar färgade den varje post efter sig, och då mäter "posten utan ratt" inte
+		# spelets eget läge (samma fälla som rattarna ovan).
+		_lykta.spot_angle = float(post.get("vidd", LYKTA_VIDD))
+		_lykta.spot_range = float(post.get("rackvidd", LYKTA_RACKVIDD))
+		_lykta.spot_attenuation = float(post.get("falloff", LYKTA_FALLOFF))
 	for i in 4:
 		await get_tree().process_frame
 	await get_tree().create_timer(0.25).timeout
@@ -3666,6 +3711,20 @@ func _dödsprov() -> void:
 	print("dödsprov: bilderna i %s" % ProjectSettings.globalize_path("user://shots"))
 	get_tree().quit()
 
+## `fönster=<B>x<H>` — storleken ett PROV fotograferas i. M117: lyft ur HUD-provet så att vilket prov
+## som helst kan tas i samma storlek (Alex tittar på bilder i både 1896x1018 och 1280x720).
+## `--resolution` biter inte: projektets `window_width_override` vinner.
+func _sätt_prov_fönster() -> void:
+	# Fönstret sätts FÖRE mätningen: `_placera_vy` hakar på `size_changed`, och utan en bildruta
+	# emellan mäts den gamla storleken (mätt: rutan blev kvar på 1280x720).
+	if _prov_fönster.x <= 0:
+		return
+	get_window().size = _prov_fönster
+	await get_tree().process_frame
+	await get_tree().create_timer(0.3).timeout
+	_placera_vy()
+
+
 ## Provet för HUD:ens rutor (M40) i ett RIKTIGT fönster: provet i tests/test_gui.gd mäter logiken
 ## huvudlöst, men där är fönstret 64x64 och vyn ryms inte — layouten (rutorna i marginalen, inga
 ## krockar) går bara att mäta med ett fönster som rymmer 1280x720. Provet fyller också loggen och
@@ -3686,12 +3745,7 @@ func _demo_gui() -> void:
 		_enter_node_here()
 	await get_tree().process_frame
 	if _prov_fönster.x > 0:
-		# Fönstret sätts FÖRE mätningen: `_placera_vy` hakar på `size_changed`, och utan en bildruta
-		# emellan mäts den gamla storleken (mätt: rutan blev kvar på 1280x720).
-		get_window().size = _prov_fönster
-		await get_tree().process_frame
-		await get_tree().create_timer(0.3).timeout
-		_placera_vy()
+		await _sätt_prov_fönster()
 	await get_tree().create_timer(1.0).timeout          # shaders och 3D:n hinner ritas
 	_placera_vy()
 	var f := get_viewport().get_visible_rect().size
@@ -5786,6 +5840,30 @@ func _bygg_dekor(golv: Array) -> void:
 			if not lysande.has(art):
 				lysande[art] = []
 			(lysande[art] as Array).append(t)
+	# TOMRUMMEN FYLLS (M117). Alex: *"alla rum som är tomma på kartan måste fyllas ut lite"*. Ett rum
+	# som hashen inte lade en enda rekvisit i är en tom yta att gå genom, och på kartan är det en ruta
+	# utan något i. Det får en KANDELABER: något att SE och ett ljus (samma låg-glöd som de andra, se
+	# REKVISIT_LYSER) — och ingen ny konst. Rummen kommer ur generatorn (`Floor.rum`), så en handritad
+	# våning har inga rum här och får vara precis som Alex ritade den.
+	var f := run.explore.floor_ref
+	var per_rum := _rekvisiter_per_rum(f, _dekor_täthet)
+	var fyllnad := 0
+	for i in f.rum.size():
+		if int(per_rum.get(i, 0)) > 0:
+			continue
+		var p := _rum_fyllnad(f, f.rum[i])
+		if p.x < 0:
+			continue
+		var sf := 0.8 + _slump(p.x, p.y, 991) * 0.4
+		if not per_art.has("kandelaber"):
+			per_art["kandelaber"] = []
+		if not lysande.has("kandelaber"):
+			lysande["kandelaber"] = []
+		var tf := Transform3D(Basis().scaled(Vector3(sf, sf, sf)),
+			Vector3(float(p.x) + 0.5, 0.0, float(p.y) + 0.5))
+		(per_art["kandelaber"] as Array).append(tf)
+		(lysande["kandelaber"] as Array).append(tf)
+		fyllnad += 1
 	var antal := 0
 	for art in per_art:
 		var n := _dekor_nod(art, per_art[art])
@@ -5794,6 +5872,9 @@ func _bygg_dekor(golv: Array) -> void:
 	print("  dekor: %d st på %d golvrutor (var %d:e ruta)" % [antal, golv.size(), _dekor_täthet])
 	print("  rekvisiter: %d st i rummet (var %d:e golvruta, %d av dem hänger i taket)" % [
 		antal_föremål, REKVISIT_TÄTHET, antal_hängande])
+	# Siffran för tomrummen: 0 betyder att varje rum på våningen har något att se (eller att våningen är
+	# handritad och inte har några rum att fylla).
+	print("  rum: %d av %d var tomma på rekvisiter och fick en kandelaber" % [fyllnad, f.rum.size()])
 	# LJUSET I REKVISITERNA: en glimt per glödande föremål, upp till taket, utan skuggor — de ska ge
 	# mörkret en rytm att gå mellan (som referensen), inte bära rummet. Facklorna bär skuggorna.
 	var ljus := 0
@@ -5846,6 +5927,63 @@ static func _dekor_y(art: String, duk_höjd: float, s: float) -> float:
 	if REKVISIT_HÄNGER.has(art):
 		return float(TAK_HÖJD) - duk_höjd * 0.5 * s
 	return duk_höjd * 0.5 * s
+
+
+## Antal REKVISITER per RUM (index i `Floor.rum`), räknat med spelets EGEN regel ur hashen: samma två
+## rader som `_bygg_dekor` använder, och de står här i stället för på två ställen. Rutor i gångarna
+## mellan rummen hör inte till något rum och räknas inte. Provet (tests/test_rum.gd) läser samma
+## funktion — annars mätte det en kopia av regeln i stället för regeln.
+static func _rekvisiter_per_rum(f, täthet: int) -> Dictionary:
+	var ut := {}
+	if f == null or täthet <= 0:
+		return ut
+	for y in f.h:
+		for x in f.w:
+			var p := Vector2i(x, y)
+			if not f.is_floor_at(p):
+				continue
+			if _slump(p.x, p.y, f.index) < 1.0 / float(täthet):
+				continue                               # markdekor (gräs, mossa), ingen rekvisit
+			if _slump(p.x, p.y, f.index + 5011) >= 1.0 / float(REKVISIT_TÄTHET):
+				continue
+			var i := _rum_index(f, p)
+			if i >= 0:
+				ut[i] = int(ut.get(i, 0)) + 1
+	return ut
+
+
+## Vilket rum rutan ligger i. -1 = ingenstans (en gång mellan rummen, eller en handritad våning).
+static func _rum_index(f, p: Vector2i) -> int:
+	if f == null:
+		return -1
+	for i in f.rum.size():
+		if (f.rum[i] as Rect2i).has_point(p):
+			return i
+	return -1
+
+
+## Rutan ett TOMT rum fylls på: den lediga golvrutan närmast rummets mitt. REN räkning (ingen nod
+## byggs), så provet kan mäta regeln i huvudlöst läge — MultiMesh-instansernas transformar går inte att
+## läsa där (dummyns lagring är tom). (-1,-1) = rummet har ingen ledig ruta att fylla.
+static func _rum_fyllnad(f, rum: Rect2i) -> Vector2i:
+	if f == null:
+		return Vector2i(-1, -1)
+	var upptagna := {}
+	for n in f.nodes:
+		upptagna[n.pos] = true
+	var mitt := Vector2i(rum.position.x + rum.size.x / 2, rum.position.y + rum.size.y / 2)
+	var bäst := Vector2i(-1, -1)
+	var bäst_avstånd := 1 << 30
+	for y in range(rum.position.y, rum.position.y + rum.size.y):
+		for x in range(rum.position.x, rum.position.x + rum.size.x):
+			var p := Vector2i(x, y)
+			if not f.is_floor_at(p) or upptagna.has(p):
+				continue
+			var d := absi(p.x - mitt.x) + absi(p.y - mitt.y)
+			if d < bäst_avstånd:
+				bäst_avstånd = d
+				bäst = p
+	return bäst
 
 
 ## Shadern för de lysande rekvisiterna (M115). Laddas EN gång — `_dekor_nod` körs per våning och en
@@ -6726,7 +6864,7 @@ func _add_lykta() -> void:
 	_lykta.light_color = LYKTA_FARG
 	_lykta.light_energy = _lykta_energi * _ljus_f
 	_lykta.spot_range = LYKTA_RACKVIDD
-	_lykta.spot_angle = 68.0
+	_lykta.spot_angle = LYKTA_VIDD
 	_lykta.spot_angle_attenuation = 1.0
 	_lykta.spot_attenuation = _lykta_falloff   # mjukare falloff än ren inverskvadrat, för pixelkonsten
 	_lykta.light_specular = _ljus_glans          # GLANSEN: ljuset ska kunna ge högdagrar (se LJUS_GLANS)
