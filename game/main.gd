@@ -895,6 +895,8 @@ func _ready() -> void:
 			# tradzoom=<tal>: fotografera trädet vid en bestämd zoom. Utan den går bara HELHETSVYN
 			# (centrera(), zoom 0,47) att mäta, och "naturlig storlek" blev ett omdöme. Mätt: vid
 			# zoom 1,0 ritas de djupaste noderna 19 px mot 9 — se docs/skilltree.md.
+			# ETT NEGATIVT TAL ÄR HELHETSVYN (`F`) själv, med den zoom centrera() räknar fram — den
+			# enda vägen att fotografera precis det spelaren ser när hon trycker F.
 			_tradzoom = float(f.substr(9))
 	if not _fiendeprov.is_empty():
 		print("fiendevisprov: %s tvingas fram i våningens strider" % _fiendeprov)
@@ -3113,7 +3115,15 @@ func _shot_skarm(skarm: String) -> void:
 	# ur spelet i stället för ut ur en bild: deras globala rutor säger om containrarna har lagt ut
 	# dem. Raden tas bort när layouten är bevisad.
 	if skarm == "trad" and trad_view != null:
-		if _tradzoom > 0.0:
+		if _tradzoom < 0.0:
+			# NEGATIVT TAL = HELHETSVYN SJÄLV (`F`): centrera() räknar zoomen ur trädets utsträckning.
+			# Utan den gick bara en påtvingad zoom att fotografera, och bilden visade då ett utsnitt
+			# som inte är det spelaren ser när hon trycker F (mätt: spiralen hamnade i övre kanten).
+			trad_view.centrera()
+			for i in 3:
+				await get_tree().process_frame
+			await get_tree().create_timer(0.3).timeout
+		elif _tradzoom > 0.0:
 			# Mätflaggan: samma vy, samma noder, en bestämd zoom. Panoreringen nollas så bilden
 			# visar trädets topp — det är där en ny spelare möter det. Bildrutan måste väntas in:
 			# annars sparas den bild som REDAN var ritad, och två "olika" skärmbilder blir identiska

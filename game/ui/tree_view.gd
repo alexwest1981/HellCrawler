@@ -41,6 +41,9 @@ extends Control
 ## Formen är grenarna i kolumner och nivåerna i rader. Inuti en ruta står den grenens noder på den
 ## nivån sida vid sida.
 ##
+## SEDAN M100 är formen en SPIRAL UR MITTEN: grenarna är spiralens armar, nivån är avståndet utåt.
+## Se konstanterna nedan.
+##
 ## Ikonen är grenens (8 bilder räcker — nivån syns på HUR DEN LYser, inte på att den byter bild).
 ## Färgen är tillståndet: släckt metall = låst, blek = köpbar, varm = fullt uppgraderad. Det är
 ## samma information som vyn hade i text förut, men läst i ett svep i stället för rad för rad.
@@ -57,30 +60,23 @@ const FILNAMN := {
 ## Nivåerna kommer ur DATAT, inte ur en konstant: konstanten nedan är bara ett golv för en tom fil.
 const HÖGSTA := 6
 
-## ETT VANLIGT NODTRÄD (M97) SOM GRENAR UT SIG (M99). Alex: *"Ta bort bilden i bakgrunden, vi gör ett
-## vanligt nodträd enligt länken jag skickade innan, så får vi lösa grafiken senare."* Alltså ingen
-## målad platta och inga uppmätta sockets: noderna läggs ut ur DATAT, och bilden kommer när formen
-## sitter.
+## ETT NODTRÄD SOM ÄR EN SPIRAL UR MITTEN (M100). Alex: *"Jag tänker mig mer som 3 st spiraler som
+## utgår från centrum, runt varandra så man konstant arbetar sig utåt i spiralen från de 3 olika
+## armarna."* Grenarna är alltså spiralens tre ARMAR: samma radie per nivå, 120 grader ifrån varandra,
+## så de snurrar runt varandra och DJUPET är avståndet utåt — inte en rad nedåt.
 ##
-## Rutnätet: grenarna blir kolumner, nivåerna rader med fast avstånd nedåt. Grenen LUTAR UTÅT med
-## djupet och dess två led skiljs åt mer och mer — en gren som grenar ut sig. Förr stod grenarna 0,33
-## ifrån varandra och syskonen 3,2 nodradier isär på VARJE nivå, och då blev formen tre band som
-## hängde rakt ned (Alex: *"jag är inte nöjd med utseendet av själva trädet ... inte som 3 draperier
-## som hänger ned"*). En nod vars socketpost har `pin` ligger där den ligger (handplacerad i
-## trädeditorn) — alla andra följer rutnätet. Rymden är samma som förut: andelar, oändlig, panorering
-## och zoom.
-const RAD_TOPP := 0.06         ## nivå 1:s rad
-const RAD_STEG := 0.13         ## avståndet mellan två nivåer
-const LED_FOT := 0.30          ## ledens avstånd vid nivå 2, i andelar: gaffeln skall SYNAS direkt
-const LED_VIDD := 0.45         ## hur mycket mer leden skiljs åt nedåt (öppnar fort, planar ut)
-const LED_FART := 3.0          ## hur snabbt öppningen planar ut, i nivåer
-const STAGGER := 1.0           ## leden ligger en halv rad isär i höjdled: en slingrande väg, inte en stege
-const GREN_AVSTÅND := 0.85     ## grenens kolumnavstånd vid nivå 1, i andelar (de tre huvudnoderna)
-const GREN_LUTNING := 0.010    ## hur mycket grenen lutar utåt per nivå
-
-## Radens höjd i trädrymden.
-func _slot_y(nivå: int) -> float:
-	return RAD_TOPP + float(maxi(1, nivå) - 1) * RAD_STEG
+## Formen är en arkimedisk spiral (radien växer jämnt med vinkeln), alltså ligger varven jämnt med
+## SPIRAL_VARV nivåer per varv — samma jämna varv som i Alex' referensbilder. Nodens två led ligger i
+## SIDLED, radiellt UTÅT från armens mittlinje, som två räls: de är parallella hela vägen ut.
+## Förr var formen kolumner och rader (M97) med en gaffel som öppnade sig nedåt (M99); Alex: *"inte som
+## 3 draperin som hänger ned"* — den formen är borta.
+##
+## En nod vars socketpost har `pin` ligger där den ligger (handplacerad i trädeditorn) — alla andra
+## följer spiralen. Rymden är samma som förut: andelar, oändlig, panorering och zoom.
+const SPIRAL_R0 := 0.21        ## armens startradie: grenens huvudnod
+const SPIRAL_DRAD := 0.036     ## radietillväxt per nivå
+const SPIRAL_VARV := 8.0       ## nivåer per varv (45 grader per nivå, 1,9 varv på 16 nivåer)
+const SPIRAL_LED := 0.16       ## ledets steg UTÅT per syskon: de två spåren ligger 0,16 andelar (43 px) isär
 
 
 ## Grennamnen ur DATAT, i den ordning de dyker upp. En ny gren (noder med ett nytt `branch`) blir en
@@ -271,7 +267,6 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 	var sloträknare := {}
 	var räknare := {}
 	var steg := {}
-	var antal := {}                 ## "gren|nivå" -> antal noder, så syskonen kan fördelas jämnt
 	for d in meta.defs:
 		var g := str(d.get("branch", ""))
 		if g.is_empty():
@@ -279,8 +274,6 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 		räknare[g] = int(räknare.get(g, 0)) + 1
 		_högsta = maxi(_högsta, int(d.get("tier", räknare[g])))
 		steg[str(d.get("id", ""))] = mini(_högsta, räknare[g])
-		var n: int = int(d.get("tier", räknare[g]))
-		antal["%s|%d" % [g, n]] = int(antal.get("%s|%d" % [g, n], 0)) + 1
 
 	for def in meta.defs:
 		var gren: String = def.get("branch", "")
@@ -336,25 +329,21 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 			fx = float(sock["x"])
 			fy = float(sock["y"])
 		else:
-			# RUTNÄTET: grenens kolumn, nivåns rad, och syskonen sida vid sida kring kolumnen.
+			# SPIRALEN (M100): armen, nivåns vinkel och ledet i sidled. Se konstanterna ovan.
 			var gren_nr: int = maxi(0, _grenlista.find(gren))
 			var antal_grenar: int = maxi(1, _grenlista.size())
-			# UT = -1 för grenen längst till vänster, +1 för den längst till höger, 0 i mitten. Grenen
-			# lutar utåt med djupet (GREN_LUTNING per nivå), och de två leden i den skiljs åt mer och
-			# mer (LED_SPRIDNING per nivå): en gren som grenar ut sig, inte ett band som hänger ned.
-			var ut: float = float(gren_nr) - (float(antal_grenar) - 1.0) * 0.5
 			var ålder: float = float(maxi(0, nivå - 1))
-			var nyckel: String = "%s|%d" % [gren, nivå]
-			var syskon: int = maxi(1, int(antal.get(nyckel, 1)))
-			fx = 0.5 + ut * (GREN_AVSTÅND + ålder * GREN_LUTNING)
-			var sida: float = float(plats) - float(syskon - 1) * 0.5
-			# Gaffeln öppnar sig FORT och planar sedan ut: annars står de två leden nästan parallellt
-			# hela vägen ned, och grenen läser som en stege (mätt på bild: "parallel strips").
-			var led: float = LED_FOT + (1.0 - exp(-ålder / LED_FART)) * LED_VIDD
-			fx += sida * led
-			# HÖJDEN STAGGER (M99): de två leden ligger en halv rad isär, så grenen blir en slingrande
-			# väg nedåt i stället för två parallella stegar. Kopplingarna blir diagonala och syns.
-			fy = _slot_y(nivå) + sida * RAD_STEG * STAGGER
+			var sida: float = float(plats)
+			# Armarna ligger 120 grader ifrån varandra och vrider sig lika mycket per nivå, alltså
+			# snurrar de runt varandra hela vägen ut. Vinkeln står still mellan nivåerna; det är
+			# RADIEN som är djupet.
+			var vinkel: float = TAU * float(gren_nr) / float(antal_grenar) + ålder * TAU / SPIRAL_VARV
+			# Ledet (syskonet) ligger UTÅT om armens mittlinje: två spår 38 px isär, parallella hela
+			# vägen. Låg de i stället ett på var sida om linjen klev det inre spåret in i nivån innan
+			# (mätt: 27 px mellan huvudnoden och det inre spåret på nivå 2 — noderna är 26 och 32 px).
+			var radie: float = SPIRAL_R0 + ålder * SPIRAL_DRAD + sida * SPIRAL_LED
+			fx = 0.5 + cos(vinkel) * radie
+			fy = 0.5 + sin(vinkel) * radie
 		var post: Dictionary = sock
 		post["id"] = id
 		post["x"] = fx
@@ -691,7 +680,8 @@ func zooma(punkt: Vector2, faktor: float) -> void:
 ## att följa — medan helhetsvyn (`centrera`, `F`) ritar de djupaste noderna 9 px, precis på golvet för
 ## att kunna hovra. Mätt i 480x270: zoom 1 visar 8 av 16 nivåer och hela grenen man står i.
 func visa_front() -> void:
-	var mål := Vector2(0.5, _slot_y(1))
+	# Mitten av spiralen: fronten när inget är köpt är de tre armarnas huvudnoder kring den.
+	var mål := Vector2(0.5, 0.5)
 	var djupast := 0
 	for id in _rader:
 		if _meta == null or _meta.rank(id) <= 0:

@@ -1184,22 +1184,26 @@ func _initialize() -> void:
 			nivåer[int(datad.get("tier", 0))] = true
 	check(ytor.size() == nivåer.size(), "varje nivå i datat har noder i vyn",
 		"%d i vyn av %d i datat" % [ytor.size(), nivåer.size()])
-	# Nivåerna skall läsa uppifrån och ner, MÄTT PÅ HUVUDNODERNA: de är grenens topp och skall ligga
-	# ovanför sina egna sista undernoder. Rutnätets rader håller samma ordning, men när noderna är
-	# placerade för hand (trädeditorn) får de sitta var de vill — det är placeringen, inte lagen.
+	# ARMEN LÄSES UTÅT, MÄTT PÅ HUVUDNODERNA: grenens huvudnod är armens start och skall ligga närmast
+	# spiralens mitt (0,5 / 0,5). Radordningen ("ovanför") gällde när formen var kolumner och rader
+	# (M97); spiralen (M100) mäter samma sak i radie. Noderna mäts i trädrymden, inte på skärmen.
 	for id in main.trad_view._ikoner:
 		if not str(id).ends_with("_main"):
 			continue
-		var topp: Control = main.trad_view._ikoner[id]
 		var gren: String = str(main.trad_view._rader[id].get("gren", ""))
-		var lägst := -1.0
+		var egen: float = (Vector2(float(main.trad_view._snäpp[id].get("x", 0.5)),
+			float(main.trad_view._snäpp[id].get("y", 0.5))) - Vector2(0.5, 0.5)).length()
+		var längst := 0.0
 		for annat in main.trad_view._rader:
 			var rad: Dictionary = main.trad_view._rader[annat]
-			if str(rad.get("gren", "")) == gren:
-				var annan: Control = main.trad_view._ikoner[annat]
-				lägst = maxf(lägst, annan.position.y)
-		check(topp.position.y < lägst, "huvudnoden i %s ligger ovanför grenens sista nod" % gren,
-			"%.0f mot %.0f" % [topp.position.y, lägst])
+			if str(rad.get("gren", "")) != gren:
+				continue
+			var post: Dictionary = main.trad_view._snäpp.get(annat, {})
+			if not post.has("x"):
+				continue
+			längst = maxf(längst, (Vector2(float(post["x"]), float(post["y"])) - Vector2(0.5, 0.5)).length())
+		check(egen < längst, "huvudnoden i %s ligger närmast spiralens mitt" % gren,
+			"%.2f mot %.2f andelar" % [egen, längst])
 	check(main.trad_view._ikoner.size() > 0, "och ikonerna hamnade i dem",
 		"%d ikoner" % main.trad_view._ikoner.size())
 	# Ingen kontroll för flaggan -- skarm=<namn>: den läser SKAL_LÄGEN nu, och att kontrollera att en

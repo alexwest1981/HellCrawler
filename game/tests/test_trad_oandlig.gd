@@ -48,59 +48,68 @@ func _initialize() -> void:
 	for id in vy._ikoner:
 		minsta = mini(minsta, int((vy._ikoner[id] as Control).size.x))
 	check(minsta >= 9, "ingen nod ritas mindre än 9 px", "%d px" % minsta)
-	# Raderna: högsta nodens mitt per nivå, och luften till nästa nivås högsta nod.
-	var nivå_mitt := {}
-	var nivå_störst := {}
-	var per_nivå := {}
+	# SPIRALEN (M100). Alex: *"Jag tänker mig mer som 3 st spiraler som utgår från centrum, runt
+	# varandra så man konstant arbetar sig utåt i spiralen från de 3 olika armarna."* Formen mäts
+	# därför i RADIE ur mitten (0,5 / 0,5) — samma andelar som vyn räknar med, ingen kamera inblandad.
+	print("— spiralen —")
+	var ring := {}
+	var vinkel := {}
+	var per := {}                  ## gren -> nivå -> [id]
 	for id in vy._ikoner:
-		var ik: Control = vy._ikoner[id]
+		var post: Dictionary = vy._snäpp[id]
+		var p := Vector2(float(post["x"]), float(post["y"])) - Vector2(0.5, 0.5)
+		var g: String = str(vy._rader[id].get("gren", ""))
 		var n: int = int(vy._rader[id].get("nivå", 0))
-		nivå_mitt[n] = maxf(float(nivå_mitt.get(n, -1e9)), ik.position.y + ik.size.y * 0.5)
-		nivå_störst[n] = maxi(int(nivå_störst.get(n, 0)), int(ik.size.x))
-		per_nivå[n] = per_nivå.get(n, []) + [id]
-	var nr: Array = nivå_mitt.keys()
-	nr.sort()
-	var luft := 1e9
-	for i in range(nr.size() - 1):
-		var n1: int = nr[i]
-		var n2: int = nr[i + 1]
-		luft = minf(luft, float(nivå_mitt[n2]) - float(nivå_mitt[n1])
-			- (float(nivå_störst[n1]) + float(nivå_störst[n2])) * 0.5)
-	check(luft > 0.0, "nivåerna ligger inte i varandra", "minsta luft %.1f px" % luft)
-	# Syskonen i sidled, samma räkning (60 px = samma gren; längre bort är nästa kolumn).
-	var syskon := 1e9
-	for n in per_nivå:
-		var ids: Array = per_nivå[n]
-		ids.sort_custom(func(a, b): return (vy._ikoner[a] as Control).position.x < (vy._ikoner[b] as Control).position.x)
-		for i in range(ids.size() - 1):
-			var a: Control = vy._ikoner[ids[i]]
-			var b: Control = vy._ikoner[ids[i + 1]]
-			if b.position.x - a.position.x < 60.0:
-				syskon = minf(syskon, b.position.x - a.position.x - (a.size.x + b.size.x) * 0.5)
-	check(syskon > 0.0, "syskonen ligger inte i varandra", "minsta luft %.1f px" % syskon)
-
-	# GAFFELN (M99): leden skall vara BREDARE längst ned än vid nivå 2. En fast separation gav två nästan
-	# parallella led hela vägen ned, och formen läste som tre band som hängde rakt ned (Alex: "inte som 3
-	# draperier som hänger ned"). Kontrollen faller om någon sätter tillbaka ett fast avstånd.
-	# Gaffeln mäts INOM EN GREN (grenarna står närmare varandra längst ned än leden gör), alltså ur
-	# nodens egen gren och inte ur "den minsta luckan på nivån".
-	var gaffel := {}
-	for n in per_nivå:
-		var per_gren := {}
-		for id in per_nivå[n]:
-			var g: String = str(vy._rader[id].get("gren", ""))
-			var mittersta: float = (vy._ikoner[id] as Control).position.x + (vy._ikoner[id] as Control).size.x * 0.5
-			per_gren[g] = per_gren.get(g, []) + [mittersta]
-		for g in per_gren:
-			var xs: Array = per_gren[g]
-			xs.sort()
-			gaffel[n] = maxf(float(gaffel.get(n, 0.0)), float(xs[xs.size() - 1]) - float(xs[0]))
-	var grund: float = float(gaffel.get(2, 0.0))
-	var gaffel_djup: float = float(gaffel.get(int(nr[nr.size() - 1]), 0.0))
-	check(grund > 0.0 and gaffel_djup > grund * 1.5, "gaffeln öppnar sig nedåt — leden skiljs åt med djupet",
-		"nivå 2: %.0f px, nivå %d: %.0f px" % [grund, int(nr[nr.size() - 1]), gaffel_djup])
-	# Och trädet öppnas i NATURLIG storlek (M99), inte helt inzoomat: 9 px-noder gick att hovra men inte
-	# att läsa, och ingen koppling gick att följa.
+		ring[n] = maxf(float(ring.get(n, 0.0)), p.length())
+		vinkel[id] = atan2(p.y, p.x)
+		per[g] = per.get(g, {})
+		var pg: Dictionary = per[g]
+		pg[n] = pg.get(n, []) + [id]
+	var rn: Array = ring.keys()
+	rn.sort()
+	var stigning := 1e9
+	for i in range(rn.size() - 1):
+		stigning = minf(stigning, float(ring[rn[i + 1]]) - float(ring[rn[i]]))
+	check(stigning > 0.0, "nivåerna är ringar som går UTÅT — djupast längst ut",
+		"minsta stigning %.3f andelar (%.0f px)" % [stigning, stigning * vy._sida()])
+	# LEDET: de två syskonen på samma nivå ligger på SAMMA vinkel men olika radie — två spår, som
+	# räls, parallella hela vägen ut. Låg de i stället ett på var sida om armens mittlinje klev det
+	# inre spåret in i nivån innanför (mätt: 27 px mellan huvudnoden och nivå 2:s inre spår).
+	var samma_vinkel := true
+	var spår := 1e9
+	for g in per:
+		for n in per[g]:
+			var ids: Array = per[g][n]
+			if ids.size() < 2:
+				continue
+			var v0: float = float(vinkel[ids[0]])
+			var radier: Array = []
+			for id in ids:
+				if absf(float(vinkel[id]) - v0) > 0.01:
+					samma_vinkel = false
+				radier.append((Vector2(float(vy._snäpp[id]["x"]), float(vy._snäpp[id]["y"])) - Vector2(0.5, 0.5)).length())
+			radier.sort()
+			spår = minf(spår, (float(radier[1]) - float(radier[0])) * vy._sida()
+				- (vy._ikoner[ids[0]] as Control).size.x)
+	check(samma_vinkel, "syskonen ligger på samma vinkel i sin arm")
+	check(spår > 0.0, "och i två spår som inte går i varandra", "minsta luft %.0f px" % spår)
+	# INGEN NOD PÅ EN ANNAN: spiralen möter sig själv ett varv längre ut, och det är där en kollision
+	# skulle sitta. Kontrollen fångar både ledet (17,6 px mellan spåren gav 26 px-noder på varandra)
+	# och varven.
+	var närmast := 1e9
+	var par := ""
+	var alla: Array = vy._ikoner.keys()
+	for i in range(alla.size()):
+		for j in range(i + 1, alla.size()):
+			var a: Control = vy._ikoner[alla[i]]
+			var b: Control = vy._ikoner[alla[j]]
+			var luft: float = (a.position + a.size * 0.5).distance_to(b.position + b.size * 0.5) \
+				- (a.size.x + b.size.x) * 0.5
+			if luft < närmast:
+				närmast = luft
+				par = "%s/%s" % [alla[i], alla[j]]
+	check(närmast > 0.0, "ingen nod ligger på en annan", "minsta luft %.0f px (%s)" % [närmast, par])
+	# Trädet öppnas i NATURLIG storlek (M99) och i spiralens MITT — där står man när inget är köpt.
 	check(absf(vy._zoom - 1.0) < 0.001, "trädet öppnas i naturlig storlek (zoom 1)", "zoom %.3f" % vy._zoom)
 
 	# HOVRINGEN GENOM EN RIKTIG MUSRÖRELSE, inte genom att kalla _peka: det är spelarens väg, och det
@@ -175,9 +184,15 @@ func _initialize() -> void:
 	check(ny_ikon != null and ny_ikon.texture != null,
 		"och den har en ikon att ritas med (lånad, tills grenen får en egen)")
 	var post: Dictionary = vy._snäpp.get("prov_djup", {})
-	check(post.has("x") and float(post.get("y", 0.0)) > 1.0,
+	# PLATSEN LIGGER UTANFÖR PLATTAN (M96). Förr var plattans kant rymdens kant och en nod utanför
+	# fick ingen plats. Med spiralen (M100) är rymden rund: gränsen går en halv andel från mitten,
+	# alltså en radie på 0,5 — en nivå-14-nod ligger 0,68 andelar ut, långt förbi rutans kant.
+	var px := float(post.get("x", 0.5)) - 0.5
+	var py := float(post.get("y", 0.5)) - 0.5
+	check(post.has("x") and sqrt(px * px + py * py) > 0.5,
 		"dess plats fortsätter FÖRBI plattans kant i stället för att sluta vid den",
-		"x %.2f y %.2f" % [float(post.get("x", 0.0)), float(post.get("y", 0.0))])
+		"x %.2f y %.2f (radie %.2f)" % [float(post.get("x", 0.0)), float(post.get("y", 0.0)),
+			sqrt(px * px + py * py)])
 	# F visar hela trädet — vägen tillbaka till noderna när trädet vuxit förbi skärmen.
 	vy.centrera()
 	var p: Vector2 = vy.nod_punkt("prov_djup")

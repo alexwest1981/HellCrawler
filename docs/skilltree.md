@@ -87,41 +87,54 @@ Fyra länkar: en webbeditor, en Godot-plugin, ett addon och en shader. Alla fyra
 ## Trädet vid naturlig storlek — nu standarden (M99)
 
 Alex valde "Inzoomat": trädet **öppnas i zoom 1,0** på spelarens front (den djupaste köpta noden,
-annars huvudnoderna). `F` visar hela trädet. Mätt ur `-- shot skarm=trad`:
+annars spiralens mitt). `F` visar hela trädet. Mätt ur `-- shot skarm=trad` (M100:s spiral):
 
-| | Zoom 1,0 (öppnas så) | `F`: hela trädet (0,465) |
+| | Zoom 1,0 (öppnas så) | `F`: hela trädet (0,517) |
 |---|---|---|
-| Noder som syns | ~48 (8 av 16 nivåer) | 93 (alla) |
-| Minsta nod | 19 px | 9 px |
-| Största nod | 32 px | 15 px |
-| Nivåavstånd | 35 px | 16 px |
-| Trädets bredd | 761 px (panoreras) | 354 av 480 px |
-| **Kopplingarnas längd** | 20–60 px — grenen går att följa | 0,3–3 px — ritas men drunknar i noderna |
+| Noder som syns | ~50 (9 av 16 nivåer) | 93 (alla) |
+| Minsta nod | 19 px | 9 px (golvet; klassens radie ger 5) |
+| Största nod | 32 px | 16 px |
+| Radie i vyn | 57–246 px | 29–126 px (hela ryms, mitten i mitten 245,135) |
+| **Kopplingarnas längd** | 26–53 px — grenen går att följa | 15–30 px — går att se, inte att läsa |
 
 `-- tradzoom=<tal> skarm=trad shot` fotograferar trädet vid vilken zoom som helst, så jämförelsen går
 att göra om (`main.gd` väntar in en bildruta först: utan det sparades samma bild två gånger, mätt som
-samma md5).
+samma md5). **Ett negativt tal är helhetsvyn (`F`) själv**, med den zoom `centrera()` räknar fram — utan
+det fotograferades ett utsnitt med panoreringen nollad, alltså inte det spelaren ser när hon trycker `F`
+(mätt: bilden såg "felcentrerad och klippt" ut, vilket var mätflaggan och inte vyn).
 
-## Formen: en gaffel per gren (M99)
+## Formen: en spiral ur mitten (M100)
 
-Alex: *"jag är inte nöjd med utseendet av själva trädet, jag vill att det skall vara lite mer som ett
-snyggare nodträd. inte som 3 draperin som hänger ned."* Trädet var tre kolumner med två led tätt
-intill sig, 31 noder rakt ned — tre band. Nu grenar varje gren ut sig:
+Alex skickade en bildserie med spiraler och skrev: *"Jag tänker mig mer som 3 st spiraler som utgår från
+centrum, runt varandra så man konstant arbetar sig utåt i spiralen från de 3 olika armarna."* Grenarna
+är därför spiralens **armar**, och **djupet är avståndet utåt** — inte en rad nedåt. Det gamla rutnätet
+(M97: kolumner och rader, M99: en gaffel som öppnade sig nedåt) är borta.
 
-- **Gaffeln öppnar sig direkt.** Leden ligger `LED_FOT` 0,30 andelar isär på nivå 2 och vidgar sig mot
-  `LED_FOT + LED_VIDD` = 0,75 längst ned (`LED_FART` 3,0 nivåer styr hur fort öppningen planar ut). Ett
-  rakt pådrag gav två nästan parallella led hela vägen ned — mätt på bild: "parallel strips".
-- **Höjden är staggrad.** De två leden ligger en halv rad isär (`STAGGER`), så vägen nedåt slingrar och
-  kopplingarna blir diagonala och synliga, i stället för två stegar.
-- **Grenarna står 0,85 andelar isär** (`GREN_AVSTÅND`) och lutar utåt med djupet (`GREN_LUTNING` 0,010
-  per nivå). Mätt: hela trädet är 354 px brett i helhetsvyn (av 480) och 761 px i zoom 1 — där ryms
-  mitten­grenens hela gaffel, och de två yttre grenarnas inre led.
-- **Systerns avstånd räknas i andelar, inte i nodradier.** Den gamla regeln (3,2 nodradier) gav de
-  djupaste noderna 20 px isär, och formeln är borta — storleken kommer ur nivån, avståndet ur ledet.
+- **Armen vrider sig `SPIRAL_VARV` = 8 nivåer per varv** (45 grader per nivå) och radien växer
+  `SPIRAL_DRAD` 0,036 per nivå, ur `SPIRAL_R0` 0,21. 15 nivåer blir alltså **1,9 varv** — samma
+  varvantal som i Alex' referensbilder.
+- **De tre armarna ligger 120 grader ifrån varandra och vrider sig lika mycket per nivå**, så de snurrar
+  runt varandra hela vägen ut: vid varje radie står tre noder jämnt fördelade, och en nivå är en ring.
+- **Ledet (de två syskonen) ligger UTÅT om armens mittlinje**, `SPIRAL_LED` 0,16 andelar isär (43 px):
+  två spår, parallella hela vägen ut. Låg de i stället ett på var sida om linjen klev det inre spåret in
+  i nivån innanför — mätt: 27 px mellan huvudnoden och nivå 2:s inre spår, med 26 och 32 px noder.
+- **Varvtalet är en avvägning, inte ett tycke.** Varje nytt varv måste rada upp sig utanför det förra
+  med plats för ledet och noderna emellan, så radietillväxten per varv måste överstiga `SPIRAL_LED` +
+  nodernas diameter. Vid 8 nivåer per varv går det; vid 6 eller 7 kolliderar armarna (mätt: vid 8 är
+  minsta luften mellan två noder **5 px**, och trädet ryms ändå i helhetsvyn med zoom 0,517). Ett
+  lösare, galaxlikt träd med flera varv kräver alltså antingen färre nivåer per arm eller en större vy.
+- **Syskons avstånd i andelar, inte i nodradier**, och den gamla `SYSKON_AVSTÅND` är borta: storleken
+  kommer ur nivån, avståndet ur ledet.
 
-Provet `game/tests/test_trad_oandlig.gd` mäter fortfarande att nivåerna och syskonen inte ligger i
-varandra, och `test_gui` att noden ritas där trädrymden säger. Färre nivåer i taget syns alltså inte som
-ett fel: det är utsnittet som är valt.
+Provet `game/tests/test_trad_oandlig.gd` mäter formen i **radie ur mitten** i stället för i rader:
+nivåerna är ringar som går utåt, syskonen ligger på samma vinkel i två spår, **ingen nod ligger på en
+annan** (det är den mätningen som fångade ledet: 17,6 px mellan spåren satte 26 px-noder på varandra,
+och 17 par kolliderade innan konstanterna var rätt), och trädet öppnas i zoom 1. `test_gui` mäter i
+stället att grenens huvudnod ligger närmast mitten — "ovanför" fanns inte längre att mäta.
+
+**Vad formen inte är.** Vid zoom 1 syns 9 av 16 nivåer, som förut: 93 noder på 19–32 px får inte plats
+i en 480×270-ruta på en gång, och `F` ritar dem vid 9 px-golvet. Det är utsnittet som är valt, inte ett
+fel. Läsbarheten är densamma som före M100 — men riktningen utåt är nu ritad.
 
 ## Förslaget: flera rang på de tunga noderna
 
