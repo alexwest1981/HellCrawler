@@ -687,6 +687,25 @@ func _initialize() -> void:
 		", ".join(krockar.slice(0, 4)))
 	check(värde_utanför.is_empty(), "och värdet i varje kärl ligger innanför fönstret i alla fyra",
 		", ".join(värde_utanför.slice(0, 4)))
+	# ALEX' EGET FÖNSTER (941x1018). Där är vyn 480x270 i skala 1, mitt i ett HÖGT fönster (överkant
+	# 374), medan korthögarna sitter i botten med överkant 293 — alltså OVANFÖR vyns överkant. Bandet
+	# mellan dem är negativt, och kärlen klämdes till minsta radien (mätt: 20x20 px) fastän marginalen
+	# under högarna har 356 px fritt. Kontrollen fångar att de är minst 100 px breda där — och att de
+	# ändå står i vänstermarginalen och innanför fönstret.
+	root.size = Vector2i(941, 1018)
+	main.get_viewport().size = Vector2i(941, 1018)
+	main._placera_vy()
+	await process_frame
+	check(main.orb_hp.size.x >= 100.0 and main.orb_mana.size.x >= 100.0,
+		"kärlen är minst 100 px breda i 941x1018",
+		"hp %.0fx%.0f, mana %.0fx%.0f" % [main.orb_hp.size.x, main.orb_hp.size.y,
+			main.orb_mana.size.x, main.orb_mana.size.y])
+	check(main.orb_hp.get_rect().end.x <= main._vy_korg.position.x
+			and main.orb_mana.get_rect().end.x <= main._vy_korg.position.x
+			and main.orb_hp.position.y >= 0.0 and main.rust_bar.get_rect().end.y <= 1018.0,
+		"och de ligger i vänstermarginalen och ryms i fönstret",
+		"hp %s, mana %s, rust %s" % [str(main.orb_hp.get_rect()), str(main.orb_mana.get_rect()),
+			str(main.rust_bar.get_rect())])
 	# Tillbaka till provets eget fönster: resten av provet mäter layouten i 1280x720.
 	root.size = Vector2i(1280, 720)
 	main.get_viewport().size = Vector2i(1280, 720)

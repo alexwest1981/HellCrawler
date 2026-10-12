@@ -530,9 +530,13 @@ const HÖGDAGER_TRÖSKEL := 0.85
 ## MÄTT: med 1280x720 är vyn 960x540, alltså 160 px svart marginal på sidorna och 90 px ovanför —
 ## kartan (76x60 i vyns skala = 152x120 i fönstret) ryms i hörnet med MARGINAL till godo.
 const MARGINAL := 6.0
-## Kärlens radie i fönsterpixlar (gånger heltalsskalan). Mätt i M36: 34 px ger 152 px brett med
-## stenkanten, och marginalen är 160 px vid 1280x720 — 38 px gick 14 px in i spelvyn.
-const R_STOR := 34
+## Kärlens radie i fönsterpixlar (gånger heltalsskalan). Det är ett TAK, inte måttet: den radie som
+## gäller räknas ur marginalens bredd och det fria bandets höjd i `_placera_gui`, så taket behöver bara
+## ligga över allt som förekommer. MÄTT: i 941x1018 (skala 1) är marginalen 230 px och rymmer radie 52
+## = 112 px kärl — med taket 34 blev kärlet 76 px, under de 100 px Alex ville ha. 50 ger 108 px där och
+## rör ingen annan storlek: i 1280x720, 1896x1030, 1600x900 och 1024x768 sätter marginalen själv radien
+## (15, 14, 6 och 6).
+const R_STOR := 50
 const R_LITEN := 22
 const RAD_2_Y := 44.0
 ## Pixlar som räknas som ÄNDRADE i närprovet (`-- kistnara`): en kanal måste skilja mer än så.
@@ -6964,12 +6968,22 @@ func _placera_gui(f: Vector2) -> void:
 		var kolumn := _vy_korg.position.x / 2.0      # mitten av vänsterkolumnen
 		var fri_topp := _vy_korg.position.y
 		var fri_botten := f.y - 6.0 - float(HudLogg.HÖJD)
+		var hög_botten := 0.0
 		# HÖGARNA ÄGER SIN ÖVERKANT. Förut stod `h.position.y > fri_topp` i villkoret: en hög vars
 		# överkant låg OVANFÖR den fria ytan hoppades då över, och ingenting hindrade kärlet från att
 		# hamna över korten (Alex: *"Den använda korthögen ligger över mana"*). Klämmen gäller alltid.
 		for h in [hog_drag, hog_använd]:
 			if h != null and h.visible:
 				fri_botten = minf(fri_botten, h.position.y - 8.0)
+				hög_botten = maxf(hög_botten, h.position.y + h.size.y)
+		# HÖGEN KAN LIGGA OVANFÖR VYN. I ett högt fönster står vyn mitt i fönstret medan högarna sitter
+		# i botten, och då blir bandet mellan dem NEGATIVT: mätt i 941x1018 (vyns överkant 374,
+		# högarnas 293) blev `fri_h` -89 och kärlet klämdes till minsta radien (20x20 px), fastän
+		# marginalen under högarna har 356 px fritt. Är bandet ovanför högarna för litet flyttar paret
+		# därför ned till bandet mellan högarnas underkant och loggen i stället.
+		if fri_botten < fri_topp:
+			fri_topp = hög_botten + 8.0
+			fri_botten = f.y - 6.0 - float(HudLogg.HÖJD)
 		var rust_h := HudBar.HÖJD
 		# PARET (M75): hälsan och manan SIDA VID SIDA med samma radie, rustningen som en rad under.
 		# Radien räknas ur BÅDE kolumnens bredd och det fria utrymmets höjd. Förut var HP-kärlet
