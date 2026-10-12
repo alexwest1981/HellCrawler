@@ -3039,10 +3039,10 @@ func _refresh_shell() -> void:
 	elif shell == "trad":
 		# Trädet är sin egen plats i byn nu (M95) och betalas med CS (se meta.buy).
 		trad_view.visa(meta, Tr.t("ui.tree.title", "TRÄDET"))
-		# HELA TRÄDET NÄR MAN ÖPPNAR DET (M97): 16 nivåer ryms inte i vyn på zoom 1, och en öppnad vy
-		# som bara visar de sju översta raderna ser ut som ett avklippt träd. Vyn kommer ihåg ett eget
-		# utsnitt under tiden man är där; hit kommer man för att se hela.
-		trad_view.centrera()
+		# NATURLIG STORLEK PÅ SPELARENS FRONT (M99). Förr öppnades trädet helt inzoomat (M97: 16 nivåer
+		# ryms inte i vyn på zoom 1), men 93 noder i en 480 px ruta blev 9 px-punkter där ingen koppling
+		# gick att följa. Alex: "Inzoomat." `F` visar hela trädet.
+		trad_view.visa_front()
 	elif shell == "album":
 		_show_album()
 	elif shell == "karta":

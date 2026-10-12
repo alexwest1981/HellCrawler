@@ -57,26 +57,30 @@ const FILNAMN := {
 ## Nivåerna kommer ur DATAT, inte ur en konstant: konstanten nedan är bara ett golv för en tom fil.
 const HÖGSTA := 6
 
-## ETT VANLIGT NODTRÄD (M97). Alex: *"Ta bort bilden i bakgrunden, vi gör ett vanligt nodträd enligt
-## länken jag skickade innan, så får vi lösa grafiken senare."* Alltså ingen målad platta och inga
-## uppmätta sockets: noderna läggs ut ur DATAT, och bilden kommer när formen sitter.
+## ETT VANLIGT NODTRÄD (M97) SOM GRENAR UT SIG (M99). Alex: *"Ta bort bilden i bakgrunden, vi gör ett
+## vanligt nodträd enligt länken jag skickade innan, så får vi lösa grafiken senare."* Alltså ingen
+## målad platta och inga uppmätta sockets: noderna läggs ut ur DATAT, och bilden kommer när formen
+## sitter.
 ##
-## Rutnätet: grenarna blir kolumner jämnt fördelade över bredden, nivåerna rader med fast avstånd
-## nedåt. En nod vars socketpost har `pin` ligger där den ligger (handplacerad i trädeditorn) — alla
-## andra följer rutnätet. Rymden är samma som förut: andelar, oändlig, panorering och zoom.
+## Rutnätet: grenarna blir kolumner, nivåerna rader med fast avstånd nedåt. Grenen LUTAR UTÅT med
+## djupet och dess två led skiljs åt mer och mer — en gren som grenar ut sig. Förr stod grenarna 0,33
+## ifrån varandra och syskonen 3,2 nodradier isär på VARJE nivå, och då blev formen tre band som
+## hängde rakt ned (Alex: *"jag är inte nöjd med utseendet av själva trädet ... inte som 3 draperier
+## som hänger ned"*). En nod vars socketpost har `pin` ligger där den ligger (handplacerad i
+## trädeditorn) — alla andra följer rutnätet. Rymden är samma som förut: andelar, oändlig, panorering
+## och zoom.
 const RAD_TOPP := 0.06         ## nivå 1:s rad
 const RAD_STEG := 0.13         ## avståndet mellan två nivåer
-const SYSKON_AVSTÅND := 3.2    ## syskonens avstånd i sidled, räknat i nodradier
+const LED_FOT := 0.30          ## ledens avstånd vid nivå 2, i andelar: gaffeln skall SYNAS direkt
+const LED_VIDD := 0.45         ## hur mycket mer leden skiljs åt nedåt (öppnar fort, planar ut)
+const LED_FART := 3.0          ## hur snabbt öppningen planar ut, i nivåer
+const STAGGER := 1.0           ## leden ligger en halv rad isär i höjdled: en slingrande väg, inte en stege
+const GREN_AVSTÅND := 0.85     ## grenens kolumnavstånd vid nivå 1, i andelar (de tre huvudnoderna)
+const GREN_LUTNING := 0.010    ## hur mycket grenen lutar utåt per nivå
 
 ## Radens höjd i trädrymden.
 func _slot_y(nivå: int) -> float:
 	return RAD_TOPP + float(maxi(1, nivå) - 1) * RAD_STEG
-
-
-## Kolumnen för gren nummer `nr` av `antal`, jämnt fördelade över bredden.
-func _kolumn(nr: int, antal: int) -> float:
-	var n: int = maxi(1, antal)
-	return (float(clampi(nr, 0, n - 1)) + 0.5) / float(n)
 
 
 ## Grennamnen ur DATAT, i den ordning de dyker upp. En ny gren (noder med ett nytt `branch`) blir en
@@ -334,11 +338,23 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 		else:
 			# RUTNÄTET: grenens kolumn, nivåns rad, och syskonen sida vid sida kring kolumnen.
 			var gren_nr: int = maxi(0, _grenlista.find(gren))
+			var antal_grenar: int = maxi(1, _grenlista.size())
+			# UT = -1 för grenen längst till vänster, +1 för den längst till höger, 0 i mitten. Grenen
+			# lutar utåt med djupet (GREN_LUTNING per nivå), och de två leden i den skiljs åt mer och
+			# mer (LED_SPRIDNING per nivå): en gren som grenar ut sig, inte ett band som hänger ned.
+			var ut: float = float(gren_nr) - (float(antal_grenar) - 1.0) * 0.5
+			var ålder: float = float(maxi(0, nivå - 1))
 			var nyckel: String = "%s|%d" % [gren, nivå]
 			var syskon: int = maxi(1, int(antal.get(nyckel, 1)))
-			fx = _kolumn(gren_nr, _grenlista.size())
-			fx += (float(plats) - float(syskon - 1) * 0.5) * r_kvar * SYSKON_AVSTÅND
-			fy = _slot_y(nivå)
+			fx = 0.5 + ut * (GREN_AVSTÅND + ålder * GREN_LUTNING)
+			var sida: float = float(plats) - float(syskon - 1) * 0.5
+			# Gaffeln öppnar sig FORT och planar sedan ut: annars står de två leden nästan parallellt
+			# hela vägen ned, och grenen läser som en stege (mätt på bild: "parallel strips").
+			var led: float = LED_FOT + (1.0 - exp(-ålder / LED_FART)) * LED_VIDD
+			fx += sida * led
+			# HÖJDEN STAGGER (M99): de två leden ligger en halv rad isär, så grenen blir en slingrande
+			# väg nedåt i stället för två parallella stegar. Kopplingarna blir diagonala och syns.
+			fy = _slot_y(nivå) + sida * RAD_STEG * STAGGER
 		var post: Dictionary = sock
 		post["id"] = id
 		post["x"] = fx
@@ -358,9 +374,10 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 	# om — samma skäl som gör att ett prov inte kan mäta layouten.
 	await get_tree().process_frame
 	placera_om()
-	# HELA TRÄDET FRÅN BÖRJAN, så länge ingen valt ett utsnitt själv (F gör samma sak när som helst).
+	# NATURLIG STORLEK FRÅN BÖRJAN (M99), på spelarens front, så länge ingen valt ett utsnitt själv.
+	# `F` (centrera) visar hela trädet när som helst. Alex: *"Inzoomat."*
 	if not _rörd:
-		centrera()
+		visa_front()
 
 
 ## Tillstånden är fyra, inte tre. Alex' stegbild visar dem i ordning: låst (död metall), köpt (inre
@@ -666,6 +683,31 @@ func zooma(punkt: Vector2, faktor: float) -> void:
 	_rörd = true
 	_zoom = clampf(_zoom * faktor, ZOOM_MIN, ZOOM_MAX)
 	_pan += punkt - _ur_bild(före.x, före.y)
+	placera_om()
+
+
+## Öppna trädet i NATURLIG storlek (zoom 1) med spelarens FRONT i mitten: den djupaste nod som är
+## köpt, annars grenarnas huvudnoder. Zoom 1 är nodernas egen skala — 19–32 px med kopplingar som går
+## att följa — medan helhetsvyn (`centrera`, `F`) ritar de djupaste noderna 9 px, precis på golvet för
+## att kunna hovra. Mätt i 480x270: zoom 1 visar 8 av 16 nivåer och hela grenen man står i.
+func visa_front() -> void:
+	var mål := Vector2(0.5, _slot_y(1))
+	var djupast := 0
+	for id in _rader:
+		if _meta == null or _meta.rank(id) <= 0:
+			continue
+		var nivå: int = int(_rader[id].get("nivå", 0))
+		if nivå <= djupast:
+			continue
+		var post: Dictionary = _snäpp.get(id, {})
+		if not post.has("x"):
+			continue
+		djupast = nivå
+		mål = Vector2(float(post["x"]), float(post["y"]))
+	# Panoreringen räknas som i centrera(): nollställ först, annars mäts avståndet mot den gamla pan.
+	_zoom = 1.0
+	_pan = Vector2.ZERO
+	_pan = _yta() * 0.5 - _ur_bild(mål.x, mål.y)
 	placera_om()
 
 

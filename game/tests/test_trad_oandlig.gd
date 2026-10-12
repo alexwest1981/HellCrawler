@@ -79,6 +79,30 @@ func _initialize() -> void:
 				syskon = minf(syskon, b.position.x - a.position.x - (a.size.x + b.size.x) * 0.5)
 	check(syskon > 0.0, "syskonen ligger inte i varandra", "minsta luft %.1f px" % syskon)
 
+	# GAFFELN (M99): leden skall vara BREDARE längst ned än vid nivå 2. En fast separation gav två nästan
+	# parallella led hela vägen ned, och formen läste som tre band som hängde rakt ned (Alex: "inte som 3
+	# draperier som hänger ned"). Kontrollen faller om någon sätter tillbaka ett fast avstånd.
+	# Gaffeln mäts INOM EN GREN (grenarna står närmare varandra längst ned än leden gör), alltså ur
+	# nodens egen gren och inte ur "den minsta luckan på nivån".
+	var gaffel := {}
+	for n in per_nivå:
+		var per_gren := {}
+		for id in per_nivå[n]:
+			var g: String = str(vy._rader[id].get("gren", ""))
+			var mittersta: float = (vy._ikoner[id] as Control).position.x + (vy._ikoner[id] as Control).size.x * 0.5
+			per_gren[g] = per_gren.get(g, []) + [mittersta]
+		for g in per_gren:
+			var xs: Array = per_gren[g]
+			xs.sort()
+			gaffel[n] = maxf(float(gaffel.get(n, 0.0)), float(xs[xs.size() - 1]) - float(xs[0]))
+	var grund: float = float(gaffel.get(2, 0.0))
+	var gaffel_djup: float = float(gaffel.get(int(nr[nr.size() - 1]), 0.0))
+	check(grund > 0.0 and gaffel_djup > grund * 1.5, "gaffeln öppnar sig nedåt — leden skiljs åt med djupet",
+		"nivå 2: %.0f px, nivå %d: %.0f px" % [grund, int(nr[nr.size() - 1]), gaffel_djup])
+	# Och trädet öppnas i NATURLIG storlek (M99), inte helt inzoomat: 9 px-noder gick att hovra men inte
+	# att läsa, och ingen koppling gick att följa.
+	check(absf(vy._zoom - 1.0) < 0.001, "trädet öppnas i naturlig storlek (zoom 1)", "zoom %.3f" % vy._zoom)
+
 	# HOVRINGEN GENOM EN RIKTIG MUSRÖRELSE, inte genom att kalla _peka: det är spelarens väg, och det
 	# var den som var död — en 3 px-ikon gick i praktiken aldrig att träffa, och raden stod kvar efter
 	# att pekaren lämnat noden.

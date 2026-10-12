@@ -31,9 +31,10 @@ gå djupt i en linje eller brett över båda.
 
 Plattan är borta. Ingen bakgrundsbild, inga uppmätta sockets — bilden kommer när formen sitter.
 
-- **Gren → kolumn, nivå → rad.** Grenarna fördelas jämnt över bredden, nivåerna ligger 0,13 ifrån
-  varandra nedåt (nivå 1 på 0,06). Syskonen i samma nivå ligger sida vid sida, 2,6 nodradier ifrån
-  varandra, kring grenens kolumn.
+- **Gren → kolumn, nivå → rad.** Grenarna fördelas över bredden, nivåerna ligger 0,13 ifrån varandra
+  nedåt (nivå 1 på 0,06). Syskonen i samma nivå ligger sida vid sida kring grenens kolumn — formen är
+  omgjord i M99 (gafflar, staggrad höjd, se "Formen" nedan); M97:s jämna fördelning och 2,6 nodradier
+  mellan syskonen är borta.
 - **Kopplingarna ritas ur `requires`** — en linje per kant, kortad till nodernas kanter. Varje nod pekar
   på sin föregångare i datat, så linjen från föregående nod till den kommande finns utan att någon
   ritar den för hand.
@@ -83,29 +84,44 @@ Fyra länkar: en webbeditor, en Godot-plugin, ett addon och en shader. Alla fyra
 **Inget av de fyra skall in.** Det som *är* värt att göra är saker ingen av dem äger: trädets innehåll
 (se "Trädet vid naturlig storlek" nedan) och flera rang på de tunga noderna (förslaget ovan).
 
-## Trädet vid naturlig storlek (mätt, inte tyckt)
+## Trädet vid naturlig storlek — nu standarden (M99)
 
-Trädet är 16 nivåer djupt och öppnar sig **helt inzoomat** (`centrera()`: zoom 0,465). Mätt ur
-`-- shot skarm=trad` står 93 noder då i en 248 px bred remsa i en 480 px ruta, och de djupaste noderna
-ritas 9 px — precis golvet ("går att se och hovra"), medan deras ikoner är 32 px konst. Vid
-**naturlig storlek (zoom 1,0)** blir samma noder 19/22/26/32 px och nivåerna 35 px isär i stället för
-16, men bara 8 av 16 nivåer får plats i vyn — resten kräver panoreringen som redan finns (`hjul`,
-högerdrag, `F` = hela trädet).
+Alex valde "Inzoomat": trädet **öppnas i zoom 1,0** på spelarens front (den djupaste köpta noden,
+annars huvudnoderna). `F` visar hela trädet. Mätt ur `-- shot skarm=trad`:
 
-| | Hela trädet (i dag) | Naturlig storlek (`-- tradzoom=1.0`) |
+| | Zoom 1,0 (öppnas så) | `F`: hela trädet (0,465) |
 |---|---|---|
-| Noder som syns | 93 (alla) | ~48 (8 av 16 nivåer) |
-| Minsta nod | 9 px | 19 px |
-| Största nod | 15 px | 32 px |
-| Nivåavstånd | 16 px | 35 px |
-| Trädets bredd | 248 av 480 px | 248 av 480 px |
-| **Kopplingarnas längd** | **0,3–3 px** — noderna ligger 16 px isär och är 9–12 px stora, så röret mellan förälder och barn ritas men försvinner i noderna | 9–12 px rakt ned, 15 px snett (rot → barn) — går att följa |
+| Noder som syns | ~48 (8 av 16 nivåer) | 93 (alla) |
+| Minsta nod | 19 px | 9 px |
+| Största nod | 32 px | 15 px |
+| Nivåavstånd | 35 px | 16 px |
+| Trädets bredd | 761 px (panoreras) | 354 av 480 px |
+| **Kopplingarnas längd** | 20–60 px — grenen går att följa | 0,3–3 px — ritas men drunknar i noderna |
 
-Det sista raden är hela poängen med ett nodträd: vid 0,47 går det inte att se vad som hänger i vad.
-Det är ett val, inte ett fel — helheten mot läsbarheten — och siffrorna står här så att nästa ändring
-kan jämföras med dem i stället för med ett omdöme. `-- tradzoom=<tal> skarm=trad shot` fotograferar
-trädet vid vilken zoom som helst, så jämförelsen går att göra om (och `main.gd` väntar in en bildruta
-först: utan det sparades samma bild två gånger, mätt som samma md5).
+`-- tradzoom=<tal> skarm=trad shot` fotograferar trädet vid vilken zoom som helst, så jämförelsen går
+att göra om (`main.gd` väntar in en bildruta först: utan det sparades samma bild två gånger, mätt som
+samma md5).
+
+## Formen: en gaffel per gren (M99)
+
+Alex: *"jag är inte nöjd med utseendet av själva trädet, jag vill att det skall vara lite mer som ett
+snyggare nodträd. inte som 3 draperin som hänger ned."* Trädet var tre kolumner med två led tätt
+intill sig, 31 noder rakt ned — tre band. Nu grenar varje gren ut sig:
+
+- **Gaffeln öppnar sig direkt.** Leden ligger `LED_FOT` 0,30 andelar isär på nivå 2 och vidgar sig mot
+  `LED_FOT + LED_VIDD` = 0,75 längst ned (`LED_FART` 3,0 nivåer styr hur fort öppningen planar ut). Ett
+  rakt pådrag gav två nästan parallella led hela vägen ned — mätt på bild: "parallel strips".
+- **Höjden är staggrad.** De två leden ligger en halv rad isär (`STAGGER`), så vägen nedåt slingrar och
+  kopplingarna blir diagonala och synliga, i stället för två stegar.
+- **Grenarna står 0,85 andelar isär** (`GREN_AVSTÅND`) och lutar utåt med djupet (`GREN_LUTNING` 0,010
+  per nivå). Mätt: hela trädet är 354 px brett i helhetsvyn (av 480) och 761 px i zoom 1 — där ryms
+  mitten­grenens hela gaffel, och de två yttre grenarnas inre led.
+- **Systerns avstånd räknas i andelar, inte i nodradier.** Den gamla regeln (3,2 nodradier) gav de
+  djupaste noderna 20 px isär, och formeln är borta — storleken kommer ur nivån, avståndet ur ledet.
+
+Provet `game/tests/test_trad_oandlig.gd` mäter fortfarande att nivåerna och syskonen inte ligger i
+varandra, och `test_gui` att noden ritas där trädrymden säger. Färre nivåer i taget syns alltså inte som
+ett fel: det är utsnittet som är valt.
 
 ## Förslaget: flera rang på de tunga noderna
 
