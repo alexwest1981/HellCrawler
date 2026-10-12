@@ -8111,24 +8111,11 @@ func _klä_voxel(spr: Sprite3D, tex: Texture2D, rutor: int, ps: float) -> bool:
 	mi.position = Vector3((r.position.x + r.size.x * 0.5 - fw * 0.5) * ps,
 		-(r.position.y + r.size.y * 0.5 - fh * 0.5) * ps, 0.02)
 	spr.add_child(mi)
-	# AURAN SOM LIGGER RUNT VOXLARNA (M108). Alex: "fyrkantig aura runt monstren, det måste ligga runt
-	# voxlarna." Sprite-auran är en KVADRAT: den var ritad för bildens ruta och sticker ut som en rektangel
-	# runt en modell. I stället får modellen sin EGEN kontur — samma mesh en hårsmån större, med framsidan
-	# bortklippt och additivt ljus. Glöden följer då silhuetten per konstruktion och kan inte bli fyrkantig,
-	# och den kostar ingen ny geometri: samma mesh, ett annat material.
-	var kontur := MeshInstance3D.new()
-	kontur.name = "aura"
-	kontur.mesh = mi.mesh
-	var km := StandardMaterial3D.new()
-	km.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	km.cull_mode = BaseMaterial3D.CULL_FRONT                 # bara baksidorna: en cell utanför figuren
-	km.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	km.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	km.albedo_color = Color(0.52, 0.68, 0.82, 0.26)
-	km.grow = true
-	km.grow_amount = 0.010                                   # en cell är 0,012 m — alltså en cell ut
-	kontur.material_override = km
-	mi.add_child(kontur)
+	# INGEN KONTUR-MESH. Försöket att lösa "fyrkantig aura" med modellens egen mesh (samma geometri en
+	# hårsmån större, additiv) blev i stället en VIT DUBLETT av kroppen — mätt i Alex' bild: "an identical
+	# white copy of the whole voxel body, offset slightly behind". Additivt ljus över en hel kropp läses som
+	# en kopia, inte som en kant, hur tunn den än är. Auran runt voxlarna får lösas i modellens EGET material
+	# (en rim-effekt i shadern), inte med en andra kropp.
 	spr.set_meta("voxel", vx)
 	spr.texture = null
 	return true
