@@ -54,7 +54,14 @@ static func _strids_tak(stage) -> int:
 ## får bli några fler: de är landmärken i en fyra gånger större våning, och ljuset är redan mätt
 ## (60 fps med skuggor på, se `-- fpsprov`).
 const KISTOR_PER_VÅNING := 1
-const FACKLOR_PER_VÅNING := 3
+## FACKLORNA (M117). Alex: *"Det behöver ut lite random facklor på väggarna ... det är väldigt mörkt"*
+## och *"alla rum som är tomma på kartan måste fyllas ut lite"*. Antalet styrs av ANDELEN rum som får
+## en fackla, med ett GOLV (en våning ska aldrig vara utan ljus, och test_fackla behöver en fackla att
+## mäta på) och ett TAK (en fackla per rum är en eldfest, och varje fackla är ett skuggande ljus som
+## kostar). Se `_facklor`: rummen och rutorna kommer ur våningens eget frö.
+const FACKLOR_MIN := 3
+const FACKLOR_ANDEL := 0.33
+const FACKLOR_TAK := 12
 
 class FloorNode extends RefCounted:
 	var kind: String            ## encounter | chest | torch | boss | shovel | start
@@ -72,6 +79,10 @@ class Floor extends RefCounted:
 	var h: int
 	var tiles: Array = []          ## Array[Array[int]]
 	var nodes: Array = []
+	## Rummens rektanglar (BSP-bladen), i den ordning de byggdes. Används av påfyllningen av tomma rum
+	## (`_bygg_dekor` i main.gd) och av proven. En HANDritad våning har inga rum här — den är ritad som
+	## Alex ritade den, och då finns inget "tomt rum" att fylla.
+	var rum: Array = []
 	## Material per ruta ("x,y" -> material-id, se assets/tiles/material/): en ruta med eget material
 	## ritas med det i stället för temats ruta. Tomt = temat gäller, precis som förut. Id:t är en
 	## sökväg utan ändelse under assets/tiles/, så motorn hittar bilden utan en egen tabell.
@@ -125,6 +136,7 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 	# Rummen. BSP-delningen går djupare än förr (6 i stället för 4), så den större ytan får FLER rum i
 	# stället för bara större: det är rummen man går mellan, och det är de som gör våningen lång.
 	var rooms := _split(rng, Rect2i(1, 1, f.w - 2, f.h - 2), 4, 6)
+	f.rum = rooms                      # rummen följer med våningen: påfyllningen och proven läser dem
 	for r in rooms:
 		_carve_room(f, r)
 	for i in rooms.size() - 1:
@@ -211,7 +223,6 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 			kvar -= 1
 		runda += 1
 	var kistor := 0
-	var facklor := 0
 	for i in platser.size():
 		var rum: Array = platser[i]
 		for j in per_rum[i]:
@@ -230,13 +241,73 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 			c.gold = 10 + stage.difficulty * 5
 			f.nodes.append(c)
 			kistor += 1
-		if facklor < FACKLOR_PER_VÅNING and rum.size() > per_rum[i] + 1:
-			var t := FloorNode.new()
-			t.kind = "torch"
-			t.pos = rum[per_rum[i] + 1]
-			f.nodes.append(t)
-			facklor += 1
+	_facklor(f, rng, rooms)
 	return f
+
+
+## FACKLORNA PÅ VÄGGARNA. Alex: *"Det behöver ut lite random facklor på väggarna ... det är väldigt
+## mörkt."* En fackla i ungefär en tredjedel av rummen — men MINST FACKLOR_MIN, så en våning aldrig blir
+## mörk (och tests/test_fackla.gd har en fackla att mäta på), och HÖGST FACKLOR_TAK: en våning ska
+## kännas upplyst, inte som en eldfest.
+##
+## Rutan måste ha en VÄGG intill. `_add_lagor` i main.gd sätter lågan mot väggen, och en fackla utan
+## vägg blir en ställning på golvet i stället för en fackla på väggen — den gamla placeringen tog sina
+## rutor ur `_spots`, som bara ger rummets INRUTOR, så varenda genererad fackla stod fritt på golvet.
+##
+## Vilka rum och vilka rutor som får en fackla kommer ur våningens EGET rng, så samma frö ger samma
+## facklor varje körning. Lagd EFTER striderna och kistan: de drar sitt ur samma ström först, och då är
+## fiendernas och kistans rutor oförändrade när facklorna blir fler.
+static func _facklor(f: Floor, rng: RandomNumberGenerator, rooms: Array) -> void:
+	if rooms.size() < 3:
+		return
+	var upptagna := {}
+	for n in f.nodes:
+		upptagna[n.pos] = true
+	# Rummen mellan startrummet och det sista: samma rum som striderna delas ut i.
+	var kandidater := []
+	for i in range(1, rooms.size() - 1):
+		var rutor := _väggrutor(f, rooms[i], upptagna)
+		if not rutor.is_empty():
+			kandidater.append(rutor)
+	if kandidater.is_empty():
+		return
+	var nyckel := {}
+	for j in kandidater.size():
+		nyckel[j] = rng.randf()
+	var ordning := range(kandidater.size())
+	ordning.sort_custom(func(a, b): return nyckel[a] < nyckel[b])
+	var antal: int = mini(maxi(int(round(float(kandidater.size()) * FACKLOR_ANDEL)), FACKLOR_MIN),
+		mini(FACKLOR_TAK, kandidater.size()))
+	for j in antal:
+		var rutor: Array = kandidater[ordning[j]]
+		var p: Vector2i = rutor[rng.randi_range(0, rutor.size() - 1)]
+		var t := FloorNode.new()
+		t.kind = "torch"
+		t.pos = p
+		f.nodes.append(t)
+		upptagna[p] = true
+
+
+## Rutor i ett rum som har en VÄGG intill och är lediga, i läsordning. Sidorna läses i samma ordning
+## som `_vägg_sida` i main.gd, så lågan hamnar mot den vägg rutan faktiskt gränsar till.
+static func _väggrutor(f: Floor, room: Rect2i, upptagna: Dictionary) -> Array:
+	var ut := []
+	for y in range(room.position.y, room.position.y + room.size.y):
+		for x in range(room.position.x, room.position.x + room.size.x):
+			var p := Vector2i(x, y)
+			if not f.is_floor_at(p) or upptagna.has(p):
+				continue
+			if _vägg_intill(f, p):
+				ut.append(p)
+	return ut
+
+
+## Har rutan en vägg bland sina fyra grannar?
+static func _vägg_intill(f: Floor, p: Vector2i) -> bool:
+	for d in [Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, 1)]:
+		if not f.is_floor_at(p + d):
+			return true
+	return false
 
 # --- rutnät -----------------------------------------------------------------
 static func _blank(w: int, h: int) -> Array:
