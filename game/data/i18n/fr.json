@@ -112,6 +112,7 @@
  "ui.shop.hint": "clic = acheter · Esc = retour au village",
  "ui.inn.title": "L'AUBERGE — or en banque : %d",
  "ui.inn.hired": "ENGAGÉ",
+ "ui.inn.hyr": "ENGAGER",
  "ui.inn.hint": "1-%d = engager · Esc = retour au village",
  "ui.inn.explain": "Le compagnon devient une carte à part entière dans le deck. Tant que la carte reste, son effet tient.",
  "ui.smith.title": "LA FORGE · %s — or en banque : %d",

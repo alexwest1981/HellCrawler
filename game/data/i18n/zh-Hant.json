@@ -112,6 +112,7 @@
  "ui.shop.hint": "點擊 = 購買 · Esc = 返回村莊",
  "ui.inn.title": "客棧 — 銀行金幣：%d",
  "ui.inn.hired": "已雇用",
+ "ui.inn.hyr": "雇用",
  "ui.inn.hint": "1-%d = 雇用 · Esc = 返回村莊",
  "ui.inn.explain": "同伴會成為牌組中獨立的一張牌。只要那張牌還在，效果就一直生效。",
  "ui.smith.title": "鐵匠鋪 · %s — 銀行金幣：%d",

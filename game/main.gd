@@ -367,41 +367,49 @@ var butik_label: Label
 var butik_rader: GridContainer
 var butik_fot: Label
 var inn_panel: PanelContainer
+## Hjältarna som FIGURER i ett rutnät (Alex' referensbild), inte en kortvägg av CardView. Panelen
+## bär rubriken, rullaren med rutnätet, och detaljraden för den valda figuren under.
 var inn_label: Label
-## Värdshuset som kortvägg (önskemål 16): det valda kortet stort, raden med alla under.
-var inn_stor: CenterContainer
-var inn_box: HBoxContainer
+var inn_rutnät: GridContainer
+var inn_scroll: ScrollContainer
+var inn_detalj: HBoxContainer
+var inn_porträtt       ## detaljradens porträtt (en `CardView.Ikon`, bytt per val)
+var inn_det_namn: Label
+var inn_det_text: Label
+var inn_det_pris: Label
+var inn_hyr: Button              ## BEKRÄFTA-knappen (Alex' referens: Confirm när man är klar)
 var inn_index := 0
-## Första kortet i raden som ritas. Raden är mätt för sex tumnaglar (se inn_box), så med sexton
-## hjältar ritas ett fönster kring det valda kortet i stället för alla på en gång.
-var inn_first := 0
-## Skalorna för värdshusets kortvägg. Tre rader text + stort kort + rad + panelens kanter måste
-## rymmas i spelvyns 270 px. Mätt i två omgångar: originalet (1.0/0.62) klippte RADEN, och 0.72/0.5
-## klippte TITELRADEN — panelen blev 280 px med kanterna. 0.66/0.45 gav 255 px med marginal.
-##
-## OCH DE MÄTNINGARNA GJORDES MED DET GAMLA KORTET (151x212). När Alex bad om 25 % större kort
-## (11/10) växte den stora rutan till 189x265, och panelen med den: 318 px i en 270 px-vy (mätt av
-## `test_hud`, "högsta panelen 318 px"). VÄRDEN ÄR DÄRFÖR DELADE MED 1,25 — 0,66/1,25 = 0,528 och
-## 0,45/1,25 = 0,36 — så att kortväggen blir EXAKT den den var i pixlar (189 x 0,528 = 99,8 ≈ det
-## gamla 151 x 0,66 = 99,7) medan handens kort är 25 % större. Ändras kortstorleken igen ska de här
-## två följa med samma faktor, annars spricker värdshuset på höjden.
-const INN_SKALA := 0.528
-const INN_RAD := 0.36
-## Hur många tumnaglar raden visar. MÄTT: 16 kort i INN_RAD blir 16 x 89 x 0,45 + mellanrum = 640 px
-## i en 480 px-vy — korten försvinner ut på båda sidor. Sex ryms i radens 240 px, och det valda
-## kortet står ändå stort ovanför, så raden är för att välja och bläddra.
-const INN_SYNLIGA := 6
-## JUVELERAREN (M58): samma kortvägg som värdshuset, men raden är LEKEN och raderna ovanför är
-## facken och fickan. Skalan är mätt mot spelvyns 480x270: hela leken ska rymmas i EN rad, och
-## måttet kommer ur vyn, inte ur ögat (M93). Vid 0,5 blev raden 1236 px i en 480 px vy — panelen
-## centreras, så x hamnade på -378 och vänsterkanten av varje rad låg utanför skärmen. Mätt nedåt i
-## steg: 0,5 gav 1236 px, 0,18 gav 510 (kortet är ~340 px brett, alltså 8 x 0,18 x 340 + mellanrum),
-## och 0,15 ger 436 + etikettens 440 → panelen 456, alltså innanför vyns 480. Vill man läsa namnen i
-## raden krävs scroll eller radbrytning, och det är ett större ingrepp än att få allt att synas.
-const JEWEL_RAD := 0.15
+## KORTVÄGGARNAS GEMENSAMMA REGLER (Alex: "högst 4 per rad, helst 3 ... storlek före packning").
+## Regeln bor HÄR och inte i varje butik: värdshuset, juveleraren och butiken/smeden bryter raden
+## med samma funktion (`kortvägg_kolumner`), så en ny butik får den i samma ändring.
+const KORT_KOLUMNER := 3       ## helst tre per rad
+const KORT_TAK := 4           ## fler får ALDRIG ritas i en rad
+const KORT_MELLANRUM := 6.0   ## px mellan två kort/figurer i rutnätet
+const KORT_TAKBREDD := 468.0  ## hur brett ett rutnät får bli i den 480 px vida vyn
+## Figurens ruta i värdshuset. Hjältearket är 128x128 och korten 64x64; `CardView.Ikon` ritar båda
+## i den här rutan (helt steg där det går, proportionellt annars) — ingen ny grafik behövs.
+const INN_FIGUR := 64
+const INN_DET := 44            ## porträttets ruta i detaljraden
+const INN_RUTNÄT := 156        ## så högt rutnätet syns innan det rullar (panelen mäts mot vyns 270)
+## JUVELERAREN (M58): samma kortvägg som värdshuset, men rutnätet är LEKEN och raderna ovanför är
+## facken och fickan. STORLEK FÖRE PACKNING (Alex: "hellre 3 stora kort än 6 små"): korten var 0,15
+## (19,5 px breda) för att HELA leken skulle rymmas i en rad — namnen gick ändå inte att läsa, och
+## radens bredd mättes mot vyns 480. Nu bryts raden vid 3 med samma regel som värdshuset, storleken
+## får bestämma, och resten rullar: 3 x 130 x 0,5 + mellanrum = 207 px.
+const JEWEL_RAD := 0.5
+## Så högt juvelerarens rutnät syns innan det rullar (kortet är 90 px högt i 0,5; etiketten ovanför
+## är elva rader och panelen mäts mot vyns 270 px).
+const JEWEL_RUTNÄT := 96
+## Butikens tak för rutnätet. Varorna är ~50 px höga och åtta stycken i två kolumner är fyra rader —
+## de ryms; taket finns för att fler varor ska rulla i stället för att knuffa ut panelen ur vyn.
+const BUTIK_RUTNÄT := 196
+var butik_scroll: ScrollContainer
 var jewel_panel: PanelContainer
 var jewel_label: Label
-var jewel_box: HBoxContainer
+## Lekens kort i ett RUTNÄT med samma radbrytning som värdshuset (se `kortvägg_kolumner`), i en
+## rullare — hela leken får inte plats på höjden längre när korten är läsbara.
+var jewel_box: GridContainer
+var jewel_scroll: ScrollContainer
 var jewel_kort := 0        ## valt kort i leken
 var jewel_fack := 0        ## valt fack (0-3)
 var jewel_sten := 0        ## vald sten i fickan
@@ -2800,62 +2808,168 @@ func _buy_node(i: int) -> void:
 	else:
 		print("kan inte köpa %s: %s" % [id, res.reason])
 
+## KORTVÄGGARNAS RADBRYTNING (Alex: "högst 4 per rad, helst 3", och "storlek före packning").
+## Raden bryts vid KORT_KOLUMNER (3), och vid KORT_TAK (4) bara när det behövs för att fylla: 3
+## kolumner lämnar EN ensam cell på sista raden precis när antalet är 3n+1, och delar 4 jämnt
+## (4, 16) är den fjärde kolumnen det som fyller raden i stället för att lämna en efter sig.
+## Sedan kapas talet av vad som RYMS i bredden: butikens varor är 205 px breda och 3 av dem hade
+## blivit 631 px i en 480 px-vy — då står hellre 2 stora än 3 avklippta. Aldrig fler än KORT_TAK.
+func kortvägg_kolumner(antal: int, cell: float) -> int:
+	var regel := KORT_KOLUMNER
+	if antal > KORT_KOLUMNER and antal % KORT_KOLUMNER == 1 and antal % KORT_TAK == 0:
+		regel = KORT_TAK
+	var ryms := int(floor((KORT_TAKBREDD + KORT_MELLANRUM) / maxf(cell + KORT_MELLANRUM, 1.0)))
+	return clampi(mini(regel, ryms), 1, KORT_TAK)
+
+## Lägg rutnätet i en rullare. Höjden är innehållets — eller `tak` när innehållet är högre, och då
+## rullar resten (Alex: "det är OK att man får scrolla upp och ned"). `custom_minimum_size` är det
+## som ger rullaren en FAST höjd: utan den mäter den sitt innehåll och panelen blir lika hög som
+## hela listan, alltså inget att rulla i. I sidled rullas aldrig — rutnätet ryms i bredden.
+func _kortvägg(rutnät: GridContainer, tak: float) -> ScrollContainer:
+	rutnät.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var rull := ScrollContainer.new()
+	rull.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	rull.custom_minimum_size = Vector2(0.0, minf(rutnät.get_combined_minimum_size().y, tak))
+	rull.add_child(rutnät)
+	return rull
+
+## Skjut den valda cellen i bild — rutnätet är högre än sin ruta, så valet kan hamna nedanför kanten.
+## VÄNTAR TVÅ BILDRUTOR FÖRST: containern har inte lagt ut cellerna ännu, och en rullare som mäts
+## innan dess har ingen höjd att rulla inom — mätt: rullningen hamnade på MAXVÄRDET varje gång valet
+## låg utanför den första raden, alltså längst ned i stället för på valet.
+func _kortvägg_visa(rull: ScrollContainer, nod: Control) -> void:
+	if rull == null or nod == null:
+		return
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# Cellen kan ha bytts ut under väntan (två omritningar i samma ram frigör den gamla): rulla bara
+	# ett barn som fortfarande ligger i rullaren. `is_instance_valid` FÖRST — en frigjord nod fäller
+	# hela anropet på `is_inside_tree`.
+	if not (is_instance_valid(rull) and is_instance_valid(nod)):
+		return
+	if nod.is_inside_tree() and rull.is_ancestor_of(nod):
+		rull.ensure_control_visible(nod)
+
 ## Värdshuset: hjältar man hyr för guld. De blir EGNA KORT i startleken, och deras passiva verkan
 ## gäller varje tur så länge kortet finns i leken — en gång per tur, inte en gång per kopia i handen.
-## Skärmen: kortväggen. Texten ovanför bär det som INTE står på kortet — den hyrdes passiva verkan,
-## priset och hur man gör — och korten under är samma CardView som i leken. Texten byggs här och
-## inte i en egen funktion som lämnar tillbaka en sträng: raden behöver veta vilket kort som är valt.
+##
+## Skärmen är RUMMET (Alex' referensbild): hjältarna står som FIGURER i ett rutnät, den valda är
+## markerad, och detaljraden under bär porträtt, namn, förmågetext och priset. Rutnätet rullar när
+## listan är längre än vad som får plats; detaljraden står still. Porträtten är hjältens EGET kort
+## (`_card_icon`) — formen byts, ingen ny grafik och ingen ny förmåga.
 func _show_inn() -> void:
 	var linjer := meta.crawler_lines()
 	inn_index = clampi(inn_index, 0, maxi(0, linjer.size() - 1))
-	# BARNEN UR TRÄDET FÖRST (önskemål 16). `queue_free` lämnar kvar korten i containern under resten av
-	# ramen, så raden bar BÅDE de gamla och de nya: sexton kort i stället för sex, 12 x 47,8 + 11
-	# mellanrum ≈ 616 px. Godot tvingar en Control till minst sin minsta storlek, så panelen växte
-	# till 616 px i en 480 px-vy — och krympte aldrig tillbaka, för _place_panel:s cache såg samma
-	# mått och hoppade över placeringen. Mätt i tests/test_hud.gd. Att lyfta ur barnet ur trädet
-	# först och frigöra det efteråt behåller queue_free:s trygghet: en nod som frigörs medan den
-	# skickar sin egen signal är ett kraschläge, och klicket på ett kort går just den vägen.
-	for barn in inn_stor.get_children():
-		inn_stor.remove_child(barn)
-		barn.queue_free()
-	for barn in inn_box.get_children():
-		inn_box.remove_child(barn)
+	# BARNEN UR TRÄDET FÖRST (M16). `queue_free` lämnar kvar cellerna i containern under resten av
+	# ramen, så rutnätet bar BÅDE de gamla och de nya figurerna. Att lyfta ur barnet ur trädet först
+	# och frigöra det efteråt behåller queue_free:s trygghet: en nod som frigörs medan den skickar
+	# sin egen signal är ett kraschläge, och klicket på en figur går just den vägen.
+	for barn in inn_rutnät.get_children():
+		inn_rutnät.remove_child(barn)
 		barn.queue_free()
 	inn_panel.visible = true
 	if linjer.is_empty():
 		inn_label.text = Tr.t("ui.inn.tom", "inga hjältar att hyra")
+		inn_det_namn.text = ""
+		inn_det_text.text = ""
+		inn_det_pris.text = ""
+		inn_hyr.disabled = true
 		_place_panel(inn_panel, false)
 		return
-	var vald: Dictionary = linjer[inn_index]
-	var id := str(vald["id"])
-	var c: Cards.Card = db.get(id)
-	# Priset står i guld — samma nyckel som byns prislappar, så en hjälte och en butiks­vara inte kan
-	# säga olika saker om samma mynt. Tangenterna (W/S, piltangenterna och siffrorna) står i
-	# marginalens tipsrad: se _refresh_shell.
-	# TRE RADER, INGA TIPS (önskemål 16). Panelen mäts mot sin bredaste rad: med tangenttipsen i etiketten
-	# blev raden 76 tecken = 608 px i en 480 px-vy, och texten skars av i båda ändar (mätt; felet
-	# fanns med de sex gamla korten också, 75 tecken). Tipsen står nu i marginalens tipsrad där
-	# körningen skriver sina tangenter (se _refresh_shell) — panelen har kvar titel, namn, verkan
-	# och pris, och ingen rad är längre än 53 tecken (~424 px).
-	inn_label.text = "%s\n%s — %s\n%s" % [
-		Tr.t("ui.inn.title", "VÄRDSHUSET — guld i banken: %d") % meta.gold,
-		str(vald["name"]), str(vald["text"]),
-		(Tr.t("ui.inn.hired", "I LEEK") if bool(vald["hired"])
-			else Tr.t("ui.village.price", "%d guld") % int(vald["price"]))]
-	# Det valda kortet stort, och hela raden under. Kortet är hjältens EGET kort (samma id som
-	# kamraten), så det man läser om är exakt det som hamnar i leken.
-	if c != null:
-		inn_stor.add_child(CardView.make(c, inn_index, _card_icon(id), true, INN_SKALA))
-	# Raden ritar ett fönster av INN_SYNLIGA kort kring det valda. Klicket bär det ABSOLUTA numret
-	# (i), inte platsen i fönstret, så _inn_klick och hyrandet pekar på samma rad som förut.
-	inn_first = clampi(inn_index - INN_SYNLIGA / 2, 0, maxi(0, linjer.size() - INN_SYNLIGA))
-	for i in range(inn_first, mini(inn_first + INN_SYNLIGA, linjer.size())):
-		var kid := str(linjer[i]["id"])
-		var k: CardView = CardView.make(db.get(kid), i, _card_icon(kid), false, INN_RAD)
-		k.set_forward(i == inn_index)
-		k.picked.connect(_inn_klick)
-		inn_box.add_child(k)
+	# Rubriken är EN rad: namn, förmåga och pris står i detaljraden nu, där de hör till figuren man
+	# valt (förut var de tre rader i etiketten). Panelen mäts mot sin bredaste rad, och en rad på
+	# 76 tecken blev 608 px i en 480 px-vy — därför står tangenterna i marginalens tipsrad.
+	inn_label.text = Tr.t("ui.inn.title", "VÄRDSHUSET — guld i banken: %d") % meta.gold
+	inn_rutnät.columns = kortvägg_kolumner(linjer.size(), float(INN_FIGUR))
+	var vald: Control = null
+	for i in linjer.size():
+		var rad: Dictionary = linjer[i]
+		var figur := _inn_figur(str(rad["id"]), str(rad["name"]), i == inn_index)
+		figur.gui_input.connect(_inn_figur_klick.bind(i))
+		inn_rutnät.add_child(figur)
+		if i == inn_index:
+			vald = figur
+	_inn_detalj(linjer[inn_index])
+	# Rullarens höjd räknas om varje gång: antalet figurer (och därmed antalet rader) ändras när man
+	# hyr eller när listan växer, och en höjd som satt fast hade klippt en ny rad.
+	inn_scroll.custom_minimum_size = Vector2(0.0,
+		minf(inn_rutnät.get_combined_minimum_size().y, float(INN_RUTNÄT)))
+	_kortvägg_visa(inn_scroll, vald)
 	_place_panel(inn_panel, false)
+
+## EN HJÄLTE SOM FIGUR (Alex' referensbild: "figurer uppställda i rummet"). Porträttet är hjältens
+## EGET kort — samma bild som kortväggen ritade — med namnet under, och den VALDA figuren bär en ljus
+## ram, en svag glöd och en markör under fötterna. Markören ligger alltid i trädet (en rad som bara
+## fanns på den valda hade ändrat rutnätets höjd varje gång valet flyttade).
+func _inn_figur(id: String, namn: String, vald: bool) -> Control:
+	var ram := PanelContainer.new()
+	ram.custom_minimum_size = Vector2(INN_FIGUR, 0)
+	ram.add_theme_stylebox_override("panel", _inn_figur_style(vald))
+	# Verktygstipset behövs för ett namn som är bredare än figuren.
+	ram.tooltip_text = namn
+	var låda := VBoxContainer.new()
+	låda.add_theme_constant_override("separation", 1)
+	ram.add_child(låda)
+	var ikon := CardView.Ikon.new()
+	ikon.textur = _card_icon(id)
+	ikon.custom_minimum_size = Vector2(INN_FIGUR, INN_FIGUR)
+	låda.add_child(ikon)
+	var markör := ColorRect.new()
+	markör.color = Color(0.98, 0.90, 0.50)
+	markör.custom_minimum_size = Vector2(0, 2)
+	markör.visible = vald
+	låda.add_child(markör)
+	var etikett := Label.new()
+	etikett.text = namn
+	etikett.add_theme_font_size_override("font_size", 7)
+	etikett.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# BREDDEN LÅSES TILL FIGURENS RUTA. En Label med `autowrap` rapporterar sin NUVARANDE storlek som
+	# minimistorlek, så höjden beror på vilken bredd den råkade ha när den mättes (samma fälla som
+	# panelen föll i: 594 px i en 270 px-vy). Med bredden pinnad är radbrytningen densamma varje gång,
+	# och radens höjd är ett tal i stället för en tillfällighet.
+	etikett.custom_minimum_size = Vector2(INN_FIGUR, 0)
+	etikett.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	låda.add_child(etikett)
+	# Bara RAMEN tar emot klicket: barnen är genomsläppliga, annars äter ikonen trycket.
+	for n in låda.get_children():
+		if n is Control:
+			(n as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return ram
+
+## Figurens ram. Ingen bakgrund i vila — figuren står i rummet, inte på ett kort.
+func _inn_figur_style(vald: bool) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.95, 0.90, 0.70, 0.14) if vald else Color(0, 0, 0, 0)
+	sb.border_color = Color(0.98, 0.92, 0.60) if vald else Color(0, 0, 0, 0)
+	sb.set_border_width_all(1 if vald else 0)
+	sb.set_content_margin_all(2)
+	return sb
+
+## DETALJRADEN för den valda figuren: porträtt, namn, förmågetext och läget (pris eller I LEEK).
+## Raden ligger utanför rullaren med flit — den står still medan rutnätet rullar.
+func _inn_detalj(rad: Dictionary) -> void:
+	inn_porträtt.textur = _card_icon(str(rad["id"]))
+	inn_porträtt.queue_redraw()
+	inn_det_namn.text = str(rad["name"])
+	inn_det_text.text = str(rad["text"])
+	inn_det_pris.text = (Tr.t("ui.inn.hired", "I LEEK") if bool(rad["hired"])
+		else Tr.t("ui.village.price", "%d guld") % int(rad["price"]))
+	# Knappen är BEKRÄFTELSEN (Alex' referens: Confirm när man är klar) och går samma väg som Enter
+	# och klicket på den valda figuren. Redan hyrd = ingenting att trycka.
+	inn_hyr.text = Tr.t("ui.inn.hyr", "HYR")
+	inn_hyr.disabled = bool(rad["hired"])
+
+## Ett tryck på en figur: ett tryck väljer den, ett tryck på den redan valda hyr den (samma två tryck
+## som förut — priset står i detaljraden mellan dem).
+func _inn_figur_klick(event: InputEvent, i: int) -> void:
+	if event is InputEventMouseButton and event.pressed \
+			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		_inn_klick(i)
+
+## BEKRÄFTA-knappen i detaljraden: hyr den valda figuren.
+func _inn_bekräfta() -> void:
+	_hire(inn_index + 1)
+	_show_inn()
 
 ## Välj ett kort (piltangenterna). Ren förflyttning — klicket har sin egen väg, för ett klick på det
 ## valda ska köpa och ett klick på ett annat ska bara flytta markeringen.
@@ -3018,24 +3132,24 @@ func _show_jewel() -> void:
 		rader.append(" · ".join(bitar.slice(mitt)).strip_edges())
 	else:
 		rader.append(tips)
-	# BARA EN FLIK AV LEKEN SYNS (M104). Korten i raden är 19,5 px breda i JEWEL_RAD, så sju ryms i den
-	# 480 px breda vyn — men koden byggde ALLA lekens kort. Med Alex' 27-kortslek blev raden 536 px och
-	# panelen sköt ut genom vänsterkanten (mätt: x -32..512 av 480, panelen 544 px). ← → flyttar valet
-	# (det säger tipsraden), så en flik kring det VALDA kortet räcker — och fliken följer valet.
-	var flik := 7
-	var från := clampi(jewel_kort - flik / 2, 0, maxi(0, lek.size() - flik))
-	var till := mini(lek.size(), från + flik)
-	if lek.size() > flik:
-		# Ren siffra, inga ord: raden behöver ingen översättning (samma skäl som "?" på kartan).
-		rader.append("%d–%d / %d" % [från + 1, till, lek.size()])
 	jewel_label.text = "\n".join(rader)
-	# Raden: hela leken. Det valda kortet är det som lyfts fram (`set_forward`), och facken syns på
-	# korten som små märken (CardView) — förhandsvisningen ovanför togs bort i M93.
-	for i in range(från, till):
+	# RADEN: hela leken, i ett rutnät som rullar (den DELADE radbrytningen, se `kortvägg_kolumner`).
+	# FLIKEN ÄR BORTA (M104): den fanns för att korten var 19,5 px breda och hela leken inte fick
+	# plats i en rad. Nu bryts raden vid 3, storleken får bestämma ("hellre 3 stora kort än 6 små"),
+	# och resten rullar i stället för att klippas. Det valda kortet är det som lyfts fram
+	# (`set_forward`), och facken syns på korten som små märken (CardView).
+	jewel_box.columns = kortvägg_kolumner(lek.size(), CardView.HAND_SIZE.x * JEWEL_RAD)
+	var vald: Control = null
+	for i in lek.size():
 		var k: CardView = CardView.make(lek[i], i, _card_icon(lek[i].id), false, JEWEL_RAD)
 		k.set_forward(i == jewel_kort)
 		k.picked.connect(_jewel_klick)
 		jewel_box.add_child(k)
+		if i == jewel_kort:
+			vald = k
+	jewel_scroll.custom_minimum_size = Vector2(0.0,
+		minf(jewel_box.get_combined_minimum_size().y, float(JEWEL_RUTNÄT)))
+	_kortvägg_visa(jewel_scroll, vald)
 	_place_panel(jewel_panel, false)
 
 func _jewel_klick(i: int) -> void:
@@ -3223,7 +3337,7 @@ func _refresh_shell() -> void:
 		skal_hint = "%s · %s" % [
 			Tr.t("ui.meny.hint", "W/S välj · Enter bekräfta"),
 			Tr.t("ui.inn.hint", "1-%d = hyr · Esc = tillbaka till byn")
-				% mini(meta.crawler_lines().size(), INN_SYNLIGA)]
+				% mini(meta.crawler_lines().size(), 9)]
 	elif shell == "juvelerare":
 		_show_jewel()
 	elif shell == "banverkstad":
@@ -3272,6 +3386,15 @@ func _show_home() -> void:
 func _shot_skarm(skarm: String) -> void:
 	for i in 3:
 		await get_tree().process_frame
+	# FÖNSTERFLAGGANS STORLEK GÄLLER ÄVEN HÄR. `fönster=` lästes förut bara av guiprovet, så två
+	# skärmbilder med olika storlek blev BYTE-IDENTISKA (mätt: samma md5) — flaggan såg ut att göra
+	# något och gjorde ingenting. Den spelar roll för HUD:en runt vyn, alltså för bilden.
+	if _prov_fönster.x > 0:
+		get_window().size = _prov_fönster
+		await get_tree().process_frame
+		for i in 3:
+			await get_tree().process_frame
+		_placera_vy()
 	await get_tree().create_timer(0.6).timeout
 	# MÄTRADEN PER LÄGE (M113): remsan hör till körningen, och den frågan ska besvaras av en siffra —
 	# inte av en bild man tolkar. `i baren` = remsans ruta, `syns` = hud_ram ritar den, `scen` = hur
@@ -3308,10 +3431,32 @@ func _shot_skarm(skarm: String) -> void:
 				var k: Control = r
 				delar.append("%s=%.1f,%.1f,%.0f" % [k.name, k.global_position.x, k.global_position.y, k.size.x])
 			print("trädprov: %d ikoner vyn %s :: %s" % [rutor.size(), trad_view.size, " ".join(delar)])
+	# BUTIKERNAS KORTVÄGGAR MÄTS I SAMMA KÖRNING SOM BILDEN TAS (Alex: "mät i varje butik").
+	_kortvägg_prov()
 	_spara_bild("user://shot.png")
 	print("skärmbild (%s): %s" % [skarm if not skarm.is_empty() else "by",
 		ProjectSettings.globalize_path("user://shot.png")])
 	get_tree().quit()
+
+## EN RAD PER BUTIKS KORTVÄGG (Alex: "mät i varje butik"). Skärmbilden säger hur butiken ser ut;
+## den här raden säger hur mycket plats kortväggen tar — panelen, rullaren och rutnätet som rutor,
+## antalet celler, kolumnerna och hur många rader som ryms. Utan siffran går en bild bara att titta
+## på, och "korten fick plats" blir ett omdöme i stället för en mätning.
+func _kortvägg_prov() -> void:
+	for par in [["vardshus", inn_panel, inn_scroll, inn_rutnät],
+			["juvelerare", jewel_panel, jewel_scroll, jewel_box],
+			["butik/smed", butik_panel, butik_scroll, butik_rader]]:
+		var panel = par[1]
+		var rull = par[2]
+		var rutnät = par[3]
+		if panel == null or not (panel as Control).visible:
+			continue
+		var r: Rect2 = (rull as Control).get_rect()
+		var n: int = (rutnät as Node).get_child_count()
+		print("[kortvägg] %s: panel %s · rullare %.0fx%.0f (y %.0f..%.0f) · rutnät %.0fx%.0f · %d celler i %d kolumner"
+			% [str(par[0]), str((panel as Control).get_rect().size), r.size.x, r.size.y,
+				r.position.y, r.end.y, (rutnät as Control).size.x, (rutnät as Control).size.y,
+				n, (rutnät as GridContainer).columns])
 
 ## En tom 3D-vy: skalet har ingen våning att bygga, men vyn klagar varje bildruta utan kamera.
 ## --- STARTMENYN (M39) -------------------------------------------------------------------------
@@ -4097,23 +4242,27 @@ func _input_shell(key: int) -> void:
 		elif key == KEY_ESCAPE:
 			shell = "hem"
 	elif shell == "vardshus":
-		# Piltangenter (och W/S/A/D) väljer, Enter hyr det valda, siffrorna hyr direkt. Ett klick
-		# gör samma sak: ett tryck väljer, ett tryck på det redan valda hyr.
+		# RUTNÄTET (Alex): vänster/höger flyttar ett steg, upp/ned en HEL rad — lika många steg som
+		# rutnätet är brett, annars hoppar markeringen snett genom listan. Enter hyr det valda, och
+		# ett klick gör samma sak: ett tryck väljer, ett tryck på det redan valda hyr.
+		var kol := kortvägg_kolumner(meta.crawler_lines().size(), float(INN_FIGUR))
 		match key:
-			KEY_LEFT, KEY_A, KEY_UP, KEY_W:
+			KEY_LEFT, KEY_A:
 				_inn_välj(inn_index - 1)
-			KEY_RIGHT, KEY_D, KEY_DOWN, KEY_S:
+			KEY_RIGHT, KEY_D:
 				_inn_välj(inn_index + 1)
+			KEY_UP, KEY_W:
+				_inn_välj(inn_index - kol)
+			KEY_DOWN, KEY_S:
+				_inn_välj(inn_index + kol)
 			KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
 				_hire(inn_index + 1)
 				_show_inn()
-			KEY_ESCAPE:
-				shell = "hem"
 			_:
-				# Siffrorna hyr inom det SYNLIGA fönstret: "1" är kortet längst till vänster i raden,
-				# precis som raden ser ut. Är listan sex kort eller kortare är fönstret hela listan,
-				# så siffran pekar på samma kort som förut.
-				var nr := inn_first + key - KEY_1
+				# Siffran pekar på LISTANS hjälte (1 = den första), inte på en plats i en flik:
+				# rutnätet rullar, så det finns ingen synlig flik att räkna ur längre. Esc, som förut,
+				# går tillbaka till byn — den grinden ligger först i `_input_shell`.
+				var nr := key - KEY_1
 				if key >= KEY_1 and key <= KEY_9 and nr < meta.crawler_lines().size():
 					inn_index = nr
 					_hire(nr + 1)
@@ -4398,7 +4547,7 @@ func _village_text(läge: String = "by") -> String:
 ## `_village_text`s gamla kommentar). Siffrorna 1-8 fungerar fortfarande som genväg, men inget står
 ## skrivet om dem: det är klicket som är vägen.
 func _butik_varor() -> void:
-	if butik_rader == null:
+	if butik_rader == null or butik_scroll == null:
 		return
 	# UT UR TRÄDET FÖRST: en nod som bara är `queue_free()`ad ligger kvar i sin grupp och i containern
 	# till nästa bildruta, och då bar rutnätet både de gamla och de nya varorna (samma läxa som
@@ -4409,6 +4558,9 @@ func _butik_varor() -> void:
 	if butik_panel == null or not butik_panel.visible:
 		return
 	var linjer := meta.village_lines()
+	# DEN BREDASTE VARAN MÄTS MEDAN DE BYGGS: radbrytningen kapas av vad som ryms i bredden, och
+	# bara den som känner varans mått kan säga om 3 ryms (se `kortvägg_kolumner`).
+	var bredaste := 0.0
 	for i in linjer.size():
 		var v: Dictionary = linjer[i]
 		var har_råd := bool(v["affordable"])
@@ -4430,6 +4582,13 @@ func _butik_varor() -> void:
 		knapp.pressed.connect(_buy.bind(i + 1))
 		knapp.add_to_group("butik_rad")
 		butik_rader.add_child(knapp)
+		bredaste = maxf(bredaste, knapp.get_combined_minimum_size().x)
+	# RADBRYTNINGEN OCH RULLAREN (Alex' regel, delad med värdshuset och juveleraren). Två kolumner
+	# om varorna är 205 px breda — 3 hade blivit 631 px i en 480 px-vy — och taket gör att fler
+	# varor rullar i stället för att knuffa ut panelen.
+	butik_rader.columns = kortvägg_kolumner(linjer.size(), bredaste)
+	butik_scroll.custom_minimum_size = Vector2(0.0,
+		minf(butik_rader.get_combined_minimum_size().y, float(BUTIK_RUTNÄT)))
 
 ## Varans ruta. Samma mörka plåt som panelen, en hårfin ram och ett grått märke för det man inte har
 ## råd med — priset och märket syns i texten, färgen bara förstärker dem.
@@ -8227,10 +8386,13 @@ func _build_hud() -> void:
 				låda.add_child(l)
 				butik_rader = GridContainer.new()
 				butik_rader.name = "varor"
-				butik_rader.columns = 2
-				butik_rader.add_theme_constant_override("h_separation", 8)
+				# Kolumnerna sätts per omritning (`kortvägg_kolumner`): den DELADE radbrytningen (högst
+				# 4 per rad, helst 3, storlek före packning) gäller butikens varor också.
+				butik_rader.columns = KORT_KOLUMNER
+				butik_rader.add_theme_constant_override("h_separation", int(KORT_MELLANRUM))
 				butik_rader.add_theme_constant_override("v_separation", 3)
-				låda.add_child(butik_rader)
+				butik_scroll = _kortvägg(butik_rader, float(BUTIK_RUTNÄT))
+				låda.add_child(butik_scroll)
 				butik_fot = Label.new()
 				butik_fot.add_theme_font_size_override("font_size", 10)
 				butik_fot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -8293,31 +8455,69 @@ func _build_hud() -> void:
 	abox.add_child(album_box)
 	hud.add_child(album_panel)
 
-	# VÄRDSHUSET (önskemål 16). Alex: "Där skall korten på alla hjältar radas upp, så man kan välja dem, läsa
-	# om dem innan man köper dem, och sedan läggs de till i ens kortlek." Samma bygge som albumet —
-	# en stor visning och en rad tumnaglar — så hjälte­korten är SAMMA kort som i leken, ritade av
-	# samma CardView. Det som inte står på kortet (hans passiva verkan och priset) står i etiketten.
+	# VÄRDSHUSET (önskemål 16, ombyggt efter Alex' referensbild). Alex: "Där skall korten på alla
+	# hjältar radas upp, så man kan välja dem, läsa om dem innan man köper dem, och sedan läggs de
+	# till i ens kortlek." Hjältarna står nu som FIGURER i ett rutnät i stället för som en kortvägg:
+	# porträttet är hjältens eget kort (`_card_icon`), den valda figuren är markerad, och raden under
+	# bär porträtt, namn, förmågetext och pris + BEKRÄFTA. Rutnätet rullar; detaljraden står still.
 	inn_panel = PanelContainer.new()
 	inn_panel.set_anchors_preset(Control.PRESET_CENTER)
 	inn_panel.add_theme_stylebox_override("panel", _bench_style())
 	inn_panel.visible = false
 	var ibox := VBoxContainer.new()
+	ibox.add_theme_constant_override("separation", 3)
 	inn_panel.add_child(ibox)
 	inn_label = Label.new()
 	inn_label.add_theme_font_size_override("font_size", 8)
 	inn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ibox.add_child(inn_label)
-	inn_stor = CenterContainer.new()
-	# Mätt mot spelvyn (480x270): etiketten är tre rader (~36 px), så kortet och raden får 228 px
-	# tillsammans. Med full BIG_SIZE (212) plus en rad i 0.62 (89) blev panelen 337 px och radens
-	# nederkant skars av — sett på bild. Skalorna nedan ger 152 + 72 + 36 = 260 px.
-	inn_stor.custom_minimum_size = Vector2(CardView.BIG_SIZE.x * INN_SKALA + 8.0,
-		CardView.BIG_SIZE.y * INN_SKALA + 4.0)
-	ibox.add_child(inn_stor)
-	inn_box = HBoxContainer.new()
-	inn_box.custom_minimum_size = Vector2(CardView.HAND_SIZE.x * INN_RAD * 6.0 + 5.0 * 4.0, 0)
-	inn_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	ibox.add_child(inn_box)
+	inn_rutnät = GridContainer.new()
+	# Kolumnerna sätts per omritning (`kortvägg_kolumner`): antalet figurer styr om raden bryts vid 3
+	# eller 4, och bara den som räknar listan vet det. 3 är det normala (Alex: "helst 3").
+	inn_rutnät.columns = KORT_KOLUMNER
+	inn_rutnät.add_theme_constant_override("h_separation", int(KORT_MELLANRUM))
+	inn_rutnät.add_theme_constant_override("v_separation", 3)
+	inn_scroll = _kortvägg(inn_rutnät, float(INN_RUTNÄT))
+	ibox.add_child(inn_scroll)
+	# DETALJRADEN ligger utanför rullaren: rutnätet får scrolla, den valdas uppgifter ska stå still
+	# medan man letar. Porträtt, namn, förmågetext, pris och BEKRÄFTA (Alex' "Confirm").
+	inn_detalj = HBoxContainer.new()
+	inn_detalj.add_theme_constant_override("separation", 6)
+	inn_detalj.alignment = BoxContainer.ALIGNMENT_CENTER
+	ibox.add_child(inn_detalj)
+	inn_porträtt = CardView.Ikon.new()
+	inn_porträtt.custom_minimum_size = Vector2(INN_DET, INN_DET)
+	inn_porträtt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	inn_detalj.add_child(inn_porträtt)
+	var icol := VBoxContainer.new()
+	icol.add_theme_constant_override("separation", 0)
+	icol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	icol.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	inn_detalj.add_child(icol)
+	inn_det_namn = Label.new()
+	inn_det_namn.add_theme_font_size_override("font_size", 8)
+	icol.add_child(inn_det_namn)
+	inn_det_text = Label.new()
+	inn_det_text.add_theme_font_size_override("font_size", 7)
+	# INGEN RADBRYTNING PÅ FÖRMÅGETEXTEN. En Label med `autowrap` rapporterar sin NUVARANDE storlek
+	# som minimistorlek (Godots eget skydd mot layoutloopar), och då beror panelens HÖJD på vilken
+	# bredd etiketten råkade ha när den mättes: i den fönsterade körningen kollapsade kolumnen till
+	# ett par tecken och texten bröt sig i ~37 rader — panelen blev 594 px i en 270 px-vy och hela
+	# rutan hamnade utanför vyn (mätt med `_kortvägg_prov`: panel (306, 594)). En rad text är kort
+	# nog att rymmas: den längsta förmågan är ~42 tecken = ~150 px.
+	icol.add_child(inn_det_text)
+	inn_det_pris = Label.new()
+	inn_det_pris.add_theme_font_size_override("font_size", 7)
+	inn_det_pris.add_theme_color_override("font_color", Color(0.98, 0.86, 0.45))
+	icol.add_child(inn_det_pris)
+	# FOKUS AV: Enter och piltangenterna hör till skalet (`_unhandled_input`), och en knapp som tar
+	# fokus stjäl dem — samma skäl som butikens varor har FOCUS_NONE.
+	inn_hyr = Button.new()
+	inn_hyr.add_theme_font_size_override("font_size", 8)
+	inn_hyr.focus_mode = Control.FOCUS_NONE
+	inn_hyr.custom_minimum_size = Vector2(0, INN_DET)
+	inn_hyr.pressed.connect(_inn_bekräfta)
+	inn_detalj.add_child(inn_hyr)
 	hud.add_child(inn_panel)
 
 	# JUVELERAREN (M58). Två stationer i samma vy, som Alex beskrev dem: en för att göra PLATS i
@@ -8349,10 +8549,15 @@ func _build_hud() -> void:
 	# blev panelen 352 px i en 270 px hög vy — rubriken (guld, fack) klipptes i överkant och kortraden
 	# i underkant. Kortet som visas stort ligger redan i raden under, och det VALDA kortet är det som
 	# lyfts fram där, så ingen information försvann med förhandsvisningen.
-	jewel_box = HBoxContainer.new()
-	jewel_box.custom_minimum_size = Vector2(CardView.HAND_SIZE.x * JEWEL_RAD * 8.0 + 7.0 * 4.0, 0)
-	jewel_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	jbox.add_child(jewel_box)
+	jewel_box = GridContainer.new()
+	# Raden bryts vid 3 med samma regel som värdshuset (se `kortvägg_kolumner`), och rutnätet rullar
+	# när leken är längre än vad som syns. Korten är 0,5 (65x90) i stället för 0,15 — STORLEK FÖRE
+	# PACKNING (Alex: "hellre 3 stora kort än 6 små").
+	jewel_box.columns = KORT_KOLUMNER
+	jewel_box.add_theme_constant_override("h_separation", int(KORT_MELLANRUM))
+	jewel_box.add_theme_constant_override("v_separation", 3)
+	jewel_scroll = _kortvägg(jewel_box, float(JEWEL_RUTNÄT))
+	jbox.add_child(jewel_scroll)
 	hud.add_child(jewel_panel)
 
 	# BANVERKSTADEN (M60): en panel och en etikett, som smeden och butiken — den visar en bana i
@@ -8560,14 +8765,19 @@ func _place_panel(panel: Control, at_top: bool) -> void:
 	# så en centrering hamnar dubbelt så långt åt höger (sett på bild).
 	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	var s := panel.get_combined_minimum_size()
+	var vyn := _vy_mått()
 	var nyckel := panel.get_instance_id()
 	# MÅTTET RÄCKER INTE SOM BEVIS (önskemål 16): en Control som växt (t.ex. av en tillfällig minsta storlek
 	# medan gamla och nya barn låg i raden samtidigt) behåller sin storlek när minimum sjunker igen.
 	# Cachen såg samma mått som förut och hoppade över placeringen, så panelen låg kvar på 616 px i
 	# en 480 px-vy. Storleken själv måste stämma också.
-	if _panel_last_size.get(nyckel) == s and panel.size == s:
+	# OCH VYN MÅSTE MED I NYCKELN (M113 + M116): positionen räknas ur vyns AKTUELLA mått (`_vy_mått`),
+	# och vyn följer fönstret — men cachen såg bara panelens mått och rensas aldrig. Mätt: hjältepanelen
+	# stod kvar centrerad i den huvudlösa vyn 160x270 (x -73..233, y 22..248) efter att fönstret blivit
+	# 1280x720 (vy 640x360) — 240 px utanför vyns vänsterkant, och provet i tests/test_hud.gd föll.
+	if _panel_last_size.get(nyckel) == [s, vyn] and panel.size == s:
 		return
-	_panel_last_size[nyckel] = s
+	_panel_last_size[nyckel] = [s, vyn]
 	panel.size = s
 	# Panelerna ritar INNE i spelvyn (480x270): måttet är vyns, inte fönstrets.
 	# Stridspanelen låg förut ovanför minikartans ORDRAD (där orden gick tvärs över vyns övre halva).
@@ -8576,8 +8786,7 @@ func _place_panel(panel: Control, at_top: bool) -> void:
 	# den kan uppstå (litet fönster, där marginalen är noll): tests/test_minikarta.gd jämför panelens
 	# ruta i fönstret mot kartans.
 	# Vyns AKTUELLA mått (M113): vyn är bredare än 480 nu, och en panel som centreras mot 480 hade
-	# hamnat 76 px till vänster om mitten i en 632 px-vy (mätt).
-	var vyn := _vy_mått()
+	# hamnat 76 px till vänster om mitten i en 632 px-vy (mätt). `vyn` mäts högst upp, en gång.
 	panel.position = Vector2((vyn.x - s.x) / 2.0, 40.0 if at_top else (vyn.y - s.y) / 2.0)
 
 ## Panelernas bakgrund: standardpanelen i Godot smälter in i den mörka 3D-vyn (sett på bild:

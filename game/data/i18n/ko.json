@@ -112,6 +112,7 @@
  "ui.shop.hint": "클릭 = 구매 · Esc = 마을로",
  "ui.inn.title": "여관 — 은행 골드: %d",
  "ui.inn.hired": "고용됨",
+ "ui.inn.hyr": "고용",
  "ui.inn.hint": "1-%d = 고용 · Esc = 마을로",
  "ui.inn.explain": "동료는 덱의 별도 카드가 된다. 그 카드가 남아 있는 한 효과는 계속된다.",
  "ui.smith.title": "대장간 · %s — 은행 골드: %d",
