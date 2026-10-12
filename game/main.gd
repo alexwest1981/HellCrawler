@@ -154,6 +154,9 @@ const ENEMY_STRIKE := 3         ## hugger
 ## `_on_end_turn`): en håll-beat man hinner se, i stället för ett hugg som kommer mitt i spänningen.
 const FÖRVARNING_TID := 0.6
 const ENEMY_HIT := 4            ## träffad
+## Hur mycket större kärlen ritas än resten av HUD:en. Mätt: 20x20 px i ett 941x1018-fönster, och Alex
+## bad om minst 100 px breda — 100/20 = 5.
+const ORB_SKALA := 5
 const ENEMY_DEAD := 5           ## död
 const ENEMY_FRAMES := 6
 ## VOXLARNA (M108). Alex: "jag bad ju om att göra om dem till voxlar eller liknande som kan gå sönder
@@ -6991,8 +6994,12 @@ func _placera_gui(f: Vector2) -> void:
 		# att siffrorna i båda kärlen syns. Paret är 4*par_halv + luft brett, alltså ligger dess vänstra
 		# kant på `kolumn - 2*par_halv - luft/2` när det står mitt i kolumnen.
 		var par_vänster := maxf(0.0, kolumn - par_halv * 2.0 - luft * 0.5)
-		orb_hp.ställ_in(par_r, Palett.c(11), Palett.c(2), skala)
-		orb_mana.ställ_in(par_r, Palett.c(25), Palett.c(2), skala)
+		# KÄRLEN SKA SYNAS. Mätt i Alex' egen fönsterstorlek (941x1018) var de 20x20 px — de ritades, men
+		# försvann bredvid statusraden, och han bad om "iaf 100px breda". 100/20 = 5, alltså samma skala som
+		# resten av HUD:en gång fem. Skalan följer fortfarande fönstret (den är räknad ur vy-skalan), så ett
+		# större fönster ger större kärl.
+		orb_hp.ställ_in(par_r, Palett.c(11), Palett.c(2), skala * ORB_SKALA)
+		orb_mana.ställ_in(par_r, Palett.c(25), Palett.c(2), skala * ORB_SKALA)
 		orb_hp.placera_vid(Vector2(par_vänster + par_halv, par_mitt))
 		orb_mana.placera_vid(Vector2(par_vänster + par_halv * 3.0 + luft, par_mitt))
 		var stapel := maxf(60.0, 2.0 * par_halv + luft)
