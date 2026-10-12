@@ -154,9 +154,6 @@ const ENEMY_STRIKE := 3         ## hugger
 ## `_on_end_turn`): en håll-beat man hinner se, i stället för ett hugg som kommer mitt i spänningen.
 const FÖRVARNING_TID := 0.6
 const ENEMY_HIT := 4            ## träffad
-## Hur mycket större kärlen ritas än resten av HUD:en. Mätt: 20x20 px i ett 941x1018-fönster, och Alex
-## bad om minst 100 px breda — 100/20 = 5.
-const ORB_SKALA := 5
 const ENEMY_DEAD := 5           ## död
 const ENEMY_FRAMES := 6
 ## VOXLARNA (M108). Alex: "jag bad ju om att göra om dem till voxlar eller liknande som kan gå sönder
@@ -6994,12 +6991,8 @@ func _placera_gui(f: Vector2) -> void:
 		# att siffrorna i båda kärlen syns. Paret är 4*par_halv + luft brett, alltså ligger dess vänstra
 		# kant på `kolumn - 2*par_halv - luft/2` när det står mitt i kolumnen.
 		var par_vänster := maxf(0.0, kolumn - par_halv * 2.0 - luft * 0.5)
-		# KÄRLEN SKA SYNAS. Mätt i Alex' egen fönsterstorlek (941x1018) var de 20x20 px — de ritades, men
-		# försvann bredvid statusraden, och han bad om "iaf 100px breda". 100/20 = 5, alltså samma skala som
-		# resten av HUD:en gång fem. Skalan följer fortfarande fönstret (den är räknad ur vy-skalan), så ett
-		# större fönster ger större kärl.
-		orb_hp.ställ_in(par_r, Palett.c(11), Palett.c(2), skala * ORB_SKALA)
-		orb_mana.ställ_in(par_r, Palett.c(25), Palett.c(2), skala * ORB_SKALA)
+		orb_hp.ställ_in(par_r, Palett.c(11), Palett.c(2), skala)
+		orb_mana.ställ_in(par_r, Palett.c(25), Palett.c(2), skala)
 		orb_hp.placera_vid(Vector2(par_vänster + par_halv, par_mitt))
 		orb_mana.placera_vid(Vector2(par_vänster + par_halv * 3.0 + luft, par_mitt))
 		var stapel := maxf(60.0, 2.0 * par_halv + luft)
@@ -8122,22 +8115,6 @@ func _klä_voxel(spr: Sprite3D, tex: Texture2D, rutor: int, ps: float) -> bool:
 	spr.texture = null
 	return true
 
-## DÖDEN: FIGUREN RASAR I HOP, I STEG (M108). Alex: "de ramlar sönder i bitar när de dör, eller så går
-## det för fort. I så fall får du sakta ner det ordentligt."
-##
-## Modellen töms NEDIFRÅN och upp medan spillror fortsätter att flyga, så kroppen faller ihop och bitarna
-## syns falla i stället för att allt slocknar på en bildruta. Stegen är tio över RASA_TID, och varje steg
-## lägger en skur — samma `pixelregn` som träffen använder.
-func _rasa(spr: Sprite3D, vx: Voxel, nod: MeshInstance3D) -> void:
-	var t := create_tween()
-	t.tween_method(func(f: float) -> void:
-		vx.rasa_till(f)
-		nod.mesh = vx.mesh()
-		_pixelregn(spr, 7)
-	, 0.0, 1.0, RASA_TID)
-	t.tween_callback(func() -> void: nod.visible = false)
-
-
 ## Healthbarens plats räknas ur figurens position. Egen funktion för att uppställningen flyttar
 ## figurerna EFTER att staplarna byggts — utan det stod staplarna kvar där fienden stod först.
 func _place_bar(e: Dictionary) -> void:
@@ -8253,7 +8230,14 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 		var voxel_nod: MeshInstance3D = spr.get_node_or_null("voxel")
 		if voxel_nod != null and voxel_nod.mesh != null:
 			if död:
-				_rasa(spr, vx, voxel_nod)
+				# BITARNA LÄGGS I VÄRLDEN, inte på fienden (se `VoxelRas`). Striden tar bort figuren strax
+				# efter dödsögonblicket, och allt som hänger på den rivs med — det var därför Alex "varken
+				# såg att de dog eller att voxlarna raskade omkring dem". Modellen lämnar över sina celler
+				# till raset, som faller, studsar och försvinner i egen takt.
+				var golv_y: float = voxel_nod.global_position.y - voxel_nod.mesh.get_aabb().size.y * 0.5
+				var ras := VoxelRas.från(vx, voxel_nod.global_transform, golv_y, voxel_nod.material_override)
+				world.add_child(ras)
+				voxel_nod.visible = false
 			else:
 				# En flisa på några procent av figuren per träff: efter en hel strid är den sargad, men
 				# den ska inte försvinna av att man tittar på den.
