@@ -68,6 +68,45 @@ funktionslista är en bra checklista, och M97 är svaret på den. *Godot-variant
 | Spara/ladda trädet | Ja (`tree.json` + `trad_sockets.json`) | — |
 | Inkrementell/idle-inkomst (auto-guld per sekund) | **Nej, och ska inte ha:** vårt spel är körningsbaserat, själarna kommer från bossar | Medvetet valt bort |
 
+## Verktygen Alex skickade (okt 2026): domen, och vad vi tar av dem
+
+Fyra länkar: en webbeditor, en Godot-plugin, ett addon och en shader. Alla fyra är lästa i källan
+(addonerna nedladdade och genomgångna, inte bara deras README), inte gissade.
+
+| Verktyget | Vad det är | Domen |
+|---|---|---|
+| `skilltree.akcan.cloud` (forum-tråden, Muhi) | Webbeditor som exporterar JSON **eller GDScript** med enum som dict-nycklar | **Nej.** Den redigerar ett *datablad* (nod, namn, beskrivning, pris, koppling, position). Vår nod bär dessutom `branch`, `tier`, `effect{}`, `soul_cost[]`, `max_rank`, `crown` och sina rader i 13 språk — och `tools/gen_tree.py` skriver filen. Verktyget skulle bli ett andra hem för trädet och ett handjobb mellan dem. Enum-nycklarna är en GDScript-bekvämlighet som `Meta.def_for(id)` redan täcker. |
+| `Michael-Jalloh/SkillEditor` (MIT, 3 commits, 267 rader) | Godot-plugin: `GraphEdit` + `GraphNode`, varje nod bär en **fri textblob** och sin position, exporterar `{träd: {nodes:[{name,data,offsetx,offsety}], connections}}` | **Nej.** Vår `game/editor/trad_editor.gd` (807 rader) gör samma sak och vet dessutom vad en nod ÄR: effekt, rang, gren, klass, ikon, krav — och skriver `requires` till samma fil spelet läser, med spelets egen vy som förhandsvisning. Pluginen har ingen effektmodell alls, så den måste byggas ut till vår form innan den ger något. Dess enda försprång är att `GraphEdit` bjuder zoom/panorering/drag/marquee gratis i editorn. |
+| `don-tnowe/godot-worldmap-builder` (asset 2270) | Addon med **både** editor i vyn och en runtime-vy: `WorldmapView` med punkter/kopplingar, tillstånd, återbetalning med säkerhetskontroll, `dependency_min_state`, `hide_inactive`, stil per nod, `get_state`/`load_state` | **Nej, men det är den enda som hade kunnat ersätta vyn** — och priset är att trädet flyttar in i Godot-resurser och scen-noder (`WorldmapNodeData`, `WorldmapViewItem`) med sitt tillstånd i vyns dict, i stället för `tree.json` + `Meta` + generatorn + 13 språk + de mätta grindarna (`gen_tree.py --check`, `test_trad_oandlig`, `test_i18n`, `test_gui`). Två idéer är värda att låna: **`dependency_min_state`** (en nod kräver N poäng i sina föräldrar — samma sak som "flera rang"-förslaget nedan) och **`hide_inactive`** (dölj noder som inte gränsar till en tagen; billigt att lägga i vyn den dag trädet blir stort). Att addonet bygger en editor I vyn med ritade kopplingar är dessutom ett kvitto på att vårt val var rätt. |
+| `godotshaders.com/shader/normal-map-only-shader` | `shader_type canvas_item; render_mode light_only, blend_mul;` — lägger `COLOR.rgb` i `NORMAL_MAP` och ritar bara ljuspasset | **Går inte att använda, och vore en nedgradering.** Shadern är till för **2D-ljus** (`CanvasItem`/`Light2D`): spelet har ingen `Light2D` alls. Våra golv är riktiga 3D-ytor (`MultiMeshInstance3D`) med `StandardMaterial3D`: albedo + normal + ORM, upplysta av en riktig `SpotLight3D`, och `test_normalprov` mäter att kartorna når shadern (normal_scale 1,0 mot 0,0 ger 5,26 i medel och 60 i p99 per pixel). Normalkartorna ligger alltså redan i ett eget lager i materialet, vilket är precis vad shadern försöker uppnå i 2D. |
+
+**Inget av de fyra skall in.** Det som *är* värt att göra är saker ingen av dem äger: trädets innehåll
+(se "Trädet vid naturlig storlek" nedan) och flera rang på de tunga noderna (förslaget ovan).
+
+## Trädet vid naturlig storlek (mätt, inte tyckt)
+
+Trädet är 16 nivåer djupt och öppnar sig **helt inzoomat** (`centrera()`: zoom 0,465). Mätt ur
+`-- shot skarm=trad` står 93 noder då i en 248 px bred remsa i en 480 px ruta, och de djupaste noderna
+ritas 9 px — precis golvet ("går att se och hovra"), medan deras ikoner är 32 px konst. Vid
+**naturlig storlek (zoom 1,0)** blir samma noder 19/22/26/32 px och nivåerna 35 px isär i stället för
+16, men bara 8 av 16 nivåer får plats i vyn — resten kräver panoreringen som redan finns (`hjul`,
+högerdrag, `F` = hela trädet).
+
+| | Hela trädet (i dag) | Naturlig storlek (`-- tradzoom=1.0`) |
+|---|---|---|
+| Noder som syns | 93 (alla) | ~48 (8 av 16 nivåer) |
+| Minsta nod | 9 px | 19 px |
+| Största nod | 15 px | 32 px |
+| Nivåavstånd | 16 px | 35 px |
+| Trädets bredd | 248 av 480 px | 248 av 480 px |
+| **Kopplingarnas längd** | **0,3–3 px** — noderna ligger 16 px isär och är 9–12 px stora, så röret mellan förälder och barn ritas men försvinner i noderna | 9–12 px rakt ned, 15 px snett (rot → barn) — går att följa |
+
+Det sista raden är hela poängen med ett nodträd: vid 0,47 går det inte att se vad som hänger i vad.
+Det är ett val, inte ett fel — helheten mot läsbarheten — och siffrorna står här så att nästa ändring
+kan jämföras med dem i stället för med ett omdöme. `-- tradzoom=<tal> skarm=trad shot` fotograferar
+trädet vid vilken zoom som helst, så jämförelsen går att göra om (och `main.gd` väntar in en bildruta
+först: utan det sparades samma bild två gånger, mätt som samma md5).
+
 ## Förslaget: flera rang på de tunga noderna
 
 Det som saknas är det tillägget är byggt kring: en nod som går att köpa mer än en gång. Det är också

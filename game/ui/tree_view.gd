@@ -479,8 +479,12 @@ func _peka(id: String) -> void:
 	# Är uppgraderingarna ikryssade i trädeditorn gäller DE, inte den genererade raden: annars visar
 	# hovringen en effekt noden inte har (och i18n-värdet för texten vore dessutom fel).
 	var egen: String = TreeSockets.text_of(_snäpp.get(id, {}))
+	# RADEN ÄR ÖVERSATT, som namnet: texten kommer ur trädets i18n-rad och faller tillbaka på datats
+	# svenska. Förr läste vyn `def.text` rakt av — alltså den svenska raden — så en tysk spelare såg
+	# "Geschliffene Schneide — +2 % might" medan smedens lista (tree_lines) visade den översatta.
+	var rad_text: String = Tr.t("tree.%s.text" % id, String(def.get("text", "")))
 	var text: String = "%s — %s" % [_meta.def_name(id),
-		egen if not egen.is_empty() else String(def.get("text", ""))]
+		egen if not egen.is_empty() else rad_text]
 	var rang: int = _meta.rank(id)
 	var max_rank: int = int(def.get("max_rank", 1))
 	if _meta.is_maxed(id):

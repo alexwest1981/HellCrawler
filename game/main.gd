@@ -310,6 +310,7 @@ var _dekor_täthet := DEKOR_TÄTHET     ## `-- dekor=<n>` rattar tätheten, `-- 
 var _mask_cache := {}
 var _shader_cache := {}              ## per-fiende-shaders (önskemål 13), läses i `_fiende_shader`
 var _fiendeprov := ""            ## fiendevisprov=<id>: tvinga fram en fiendetyp i striden (prov)
+var _tradzoom := 0.0             ## tradzoom=<tal>: fotografera trädet vid den zoomen (prov, se _shot_skarm)
 var _skugg_tex: Texture2D = null
 var _panel_last_size := {}     ## panel-id -> senast uppmätta storlek (se _place_panel)
 var stats_panel: PanelContainer
@@ -890,6 +891,11 @@ func _ready() -> void:
 			# sin egen fiende i stället för mot den tier-1-figur som råkar stå där. Tvingar bara VILKEN
 			# fiende som ställs upp — hur den ställs upp, och allt annat, är spelets egen väg.
 			_fiendeprov = f.substr(14)
+		elif f.begins_with("tradzoom="):
+			# tradzoom=<tal>: fotografera trädet vid en bestämd zoom. Utan den går bara HELHETSVYN
+			# (centrera(), zoom 0,47) att mäta, och "naturlig storlek" blev ett omdöme. Mätt: vid
+			# zoom 1,0 ritas de djupaste noderna 19 px mot 9 — se docs/skilltree.md.
+			_tradzoom = float(f.substr(9))
 	if not _fiendeprov.is_empty():
 		print("fiendevisprov: %s tvingas fram i våningens strider" % _fiendeprov)
 	var kör: bool = (not pt.is_empty() or flags.has("shots") or flags.has("shot")
@@ -3107,6 +3113,17 @@ func _shot_skarm(skarm: String) -> void:
 	# ur spelet i stället för ut ur en bild: deras globala rutor säger om containrarna har lagt ut
 	# dem. Raden tas bort när layouten är bevisad.
 	if skarm == "trad" and trad_view != null:
+		if _tradzoom > 0.0:
+			# Mätflaggan: samma vy, samma noder, en bestämd zoom. Panoreringen nollas så bilden
+			# visar trädets topp — det är där en ny spelare möter det. Bildrutan måste väntas in:
+			# annars sparas den bild som REDAN var ritad, och två "olika" skärmbilder blir identiska
+			# (mätt: samma md5 för zoom 0,47 och 1,0).
+			trad_view._zoom = _tradzoom
+			trad_view._pan = Vector2.ZERO
+			trad_view.placera_om()
+			for i in 3:
+				await get_tree().process_frame
+			await get_tree().create_timer(0.3).timeout
 		var rutor := trad_view._ikoner.values()
 		if not rutor.is_empty():
 			var delar: Array = []

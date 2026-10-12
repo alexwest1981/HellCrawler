@@ -16,7 +16,7 @@
     ],
     "max_rank": 1,
     "requires": [],
-    "text": "+8 % skada och +5 % area"
+    "text": "+8 % skada och +5 % områdesskada"
   },
   {
     "id": "iron_1",
@@ -36,7 +36,7 @@
     "requires": [
       "iron_main"
     ],
-    "text": "+2 % might"
+    "text": "+2 % skada"
   },
   {
     "id": "iron_2",
@@ -56,7 +56,7 @@
     "requires": [
       "iron_main"
     ],
-    "text": "+2 % area"
+    "text": "+2 % områdesskada"
   },
   {
     "id": "iron_3",
@@ -76,7 +76,7 @@
     "requires": [
       "iron_1"
     ],
-    "text": "+3 % might"
+    "text": "+3 % skada"
   },
   {
     "id": "iron_4",
@@ -96,7 +96,7 @@
     "requires": [
       "iron_2"
     ],
-    "text": "+3 % area"
+    "text": "+3 % områdesskada"
   },
   {
     "id": "iron_5",
@@ -116,7 +116,7 @@
     "requires": [
       "iron_3"
     ],
-    "text": "+4 % might"
+    "text": "+4 % skada"
   },
   {
     "id": "iron_6",
@@ -136,7 +136,7 @@
     "requires": [
       "iron_4"
     ],
-    "text": "+4 % area"
+    "text": "+4 % områdesskada"
   },
   {
     "id": "iron_7",
@@ -156,7 +156,7 @@
     "requires": [
       "iron_5"
     ],
-    "text": "+5 % might"
+    "text": "+5 % skada"
   },
   {
     "id": "iron_8",
@@ -176,7 +176,7 @@
     "requires": [
       "iron_6"
     ],
-    "text": "+5 % area"
+    "text": "+5 % områdesskada"
   },
   {
     "id": "iron_9",
@@ -196,7 +196,7 @@
     "requires": [
       "iron_7"
     ],
-    "text": "+6 % might"
+    "text": "+6 % skada"
   },
   {
     "id": "iron_10",
@@ -216,7 +216,7 @@
     "requires": [
       "iron_8"
     ],
-    "text": "+6 % area"
+    "text": "+6 % områdesskada"
   },
   {
     "id": "iron_11",
@@ -236,7 +236,7 @@
     "requires": [
       "iron_9"
     ],
-    "text": "+8 % might"
+    "text": "+8 % skada"
   },
   {
     "id": "iron_12",
@@ -256,7 +256,7 @@
     "requires": [
       "iron_10"
     ],
-    "text": "+8 % area"
+    "text": "+8 % områdesskada"
   },
   {
     "id": "iron_13",
@@ -276,7 +276,7 @@
     "requires": [
       "iron_11"
     ],
-    "text": "+10 % might"
+    "text": "+10 % skada"
   },
   {
     "id": "iron_14",
@@ -296,7 +296,7 @@
     "requires": [
       "iron_12"
     ],
-    "text": "+10 % area"
+    "text": "+10 % områdesskada"
   },
   {
     "id": "iron_15",
@@ -316,7 +316,7 @@
     "requires": [
       "iron_13"
     ],
-    "text": "+12 % might"
+    "text": "+12 % skada"
   },
   {
     "id": "iron_16",
@@ -336,7 +336,7 @@
     "requires": [
       "iron_14"
     ],
-    "text": "+12 % area"
+    "text": "+12 % områdesskada"
   },
   {
     "id": "iron_17",
@@ -356,7 +356,7 @@
     "requires": [
       "iron_15"
     ],
-    "text": "+15 % might"
+    "text": "+15 % skada"
   },
   {
     "id": "iron_18",
@@ -376,7 +376,7 @@
     "requires": [
       "iron_16"
     ],
-    "text": "+15 % area"
+    "text": "+15 % områdesskada"
   },
   {
     "id": "iron_19",
@@ -396,7 +396,7 @@
     "requires": [
       "iron_17"
     ],
-    "text": "+18 % might"
+    "text": "+18 % skada"
   },
   {
     "id": "iron_20",
@@ -416,7 +416,7 @@
     "requires": [
       "iron_18"
     ],
-    "text": "+18 % area"
+    "text": "+18 % områdesskada"
   },
   {
     "id": "iron_21",
@@ -436,7 +436,7 @@
     "requires": [
       "iron_19"
     ],
-    "text": "+22 % might"
+    "text": "+22 % skada"
   },
   {
     "id": "iron_22",
@@ -456,7 +456,7 @@
     "requires": [
       "iron_20"
     ],
-    "text": "+22 % area"
+    "text": "+22 % områdesskada"
   },
   {
     "id": "iron_23",
@@ -476,7 +476,7 @@
     "requires": [
       "iron_21"
     ],
-    "text": "+26 % might"
+    "text": "+26 % skada"
   },
   {
     "id": "iron_24",
@@ -496,7 +496,7 @@
     "requires": [
       "iron_22"
     ],
-    "text": "+26 % area"
+    "text": "+26 % områdesskada"
   },
   {
     "id": "iron_25",
@@ -516,7 +516,7 @@
     "requires": [
       "iron_23"
     ],
-    "text": "+30 % might"
+    "text": "+30 % skada"
   },
   {
     "id": "iron_26",
@@ -536,7 +536,7 @@
     "requires": [
       "iron_24"
     ],
-    "text": "+30 % area"
+    "text": "+30 % områdesskada"
   },
   {
     "id": "iron_27",
@@ -556,7 +556,7 @@
     "requires": [
       "iron_25"
     ],
-    "text": "+35 % might"
+    "text": "+35 % skada"
   },
   {
     "id": "iron_28",
@@ -576,7 +576,7 @@
     "requires": [
       "iron_26"
     ],
-    "text": "+35 % area"
+    "text": "+35 % områdesskada"
   },
   {
     "id": "iron_29",
@@ -658,7 +658,7 @@
     "requires": [
       "body_main"
     ],
-    "text": "+2 % max_hp"
+    "text": "+2 % max-HP"
   },
   {
     "id": "body_2",
@@ -678,7 +678,7 @@
     "requires": [
       "body_main"
     ],
-    "text": "+2 % armor"
+    "text": "+2 % rustning vid turstart"
   },
   {
     "id": "body_3",
@@ -698,7 +698,7 @@
     "requires": [
       "body_1"
     ],
-    "text": "+3 % max_hp"
+    "text": "+3 % max-HP"
   },
   {
     "id": "body_4",
@@ -718,7 +718,7 @@
     "requires": [
       "body_2"
     ],
-    "text": "+3 % armor"
+    "text": "+3 % rustning vid turstart"
   },
   {
     "id": "body_5",
@@ -738,7 +738,7 @@
     "requires": [
       "body_3"
     ],
-    "text": "+4 % max_hp"
+    "text": "+4 % max-HP"
   },
   {
     "id": "body_6",
@@ -758,7 +758,7 @@
     "requires": [
       "body_4"
     ],
-    "text": "+4 % armor"
+    "text": "+4 % rustning vid turstart"
   },
   {
     "id": "body_7",
@@ -778,7 +778,7 @@
     "requires": [
       "body_5"
     ],
-    "text": "+5 % max_hp"
+    "text": "+5 % max-HP"
   },
   {
     "id": "body_8",
@@ -798,7 +798,7 @@
     "requires": [
       "body_6"
     ],
-    "text": "+5 % armor"
+    "text": "+5 % rustning vid turstart"
   },
   {
     "id": "body_9",
@@ -818,7 +818,7 @@
     "requires": [
       "body_7"
     ],
-    "text": "+6 % max_hp"
+    "text": "+6 % max-HP"
   },
   {
     "id": "body_10",
@@ -838,7 +838,7 @@
     "requires": [
       "body_8"
     ],
-    "text": "+6 % armor"
+    "text": "+6 % rustning vid turstart"
   },
   {
     "id": "body_11",
@@ -858,7 +858,7 @@
     "requires": [
       "body_9"
     ],
-    "text": "+8 % max_hp"
+    "text": "+8 % max-HP"
   },
   {
     "id": "body_12",
@@ -878,7 +878,7 @@
     "requires": [
       "body_10"
     ],
-    "text": "+8 % armor"
+    "text": "+8 % rustning vid turstart"
   },
   {
     "id": "body_13",
@@ -898,7 +898,7 @@
     "requires": [
       "body_11"
     ],
-    "text": "+10 % max_hp"
+    "text": "+10 % max-HP"
   },
   {
     "id": "body_14",
@@ -918,7 +918,7 @@
     "requires": [
       "body_12"
     ],
-    "text": "+10 % armor"
+    "text": "+10 % rustning vid turstart"
   },
   {
     "id": "body_15",
@@ -938,7 +938,7 @@
     "requires": [
       "body_13"
     ],
-    "text": "+12 % max_hp"
+    "text": "+12 % max-HP"
   },
   {
     "id": "body_16",
@@ -958,7 +958,7 @@
     "requires": [
       "body_14"
     ],
-    "text": "+12 % armor"
+    "text": "+12 % rustning vid turstart"
   },
   {
     "id": "body_17",
@@ -978,7 +978,7 @@
     "requires": [
       "body_15"
     ],
-    "text": "+15 % max_hp"
+    "text": "+15 % max-HP"
   },
   {
     "id": "body_18",
@@ -998,7 +998,7 @@
     "requires": [
       "body_16"
     ],
-    "text": "+15 % armor"
+    "text": "+15 % rustning vid turstart"
   },
   {
     "id": "body_19",
@@ -1018,7 +1018,7 @@
     "requires": [
       "body_17"
     ],
-    "text": "+18 % max_hp"
+    "text": "+18 % max-HP"
   },
   {
     "id": "body_20",
@@ -1038,7 +1038,7 @@
     "requires": [
       "body_18"
     ],
-    "text": "+18 % armor"
+    "text": "+18 % rustning vid turstart"
   },
   {
     "id": "body_21",
@@ -1058,7 +1058,7 @@
     "requires": [
       "body_19"
     ],
-    "text": "+22 % max_hp"
+    "text": "+22 % max-HP"
   },
   {
     "id": "body_22",
@@ -1078,7 +1078,7 @@
     "requires": [
       "body_20"
     ],
-    "text": "+22 % armor"
+    "text": "+22 % rustning vid turstart"
   },
   {
     "id": "body_23",
@@ -1098,7 +1098,7 @@
     "requires": [
       "body_21"
     ],
-    "text": "+26 % max_hp"
+    "text": "+26 % max-HP"
   },
   {
     "id": "body_24",
@@ -1118,7 +1118,7 @@
     "requires": [
       "body_22"
     ],
-    "text": "+26 % armor"
+    "text": "+26 % rustning vid turstart"
   },
   {
     "id": "body_25",
@@ -1138,7 +1138,7 @@
     "requires": [
       "body_23"
     ],
-    "text": "+30 % max_hp"
+    "text": "+30 % max-HP"
   },
   {
     "id": "body_26",
@@ -1158,7 +1158,7 @@
     "requires": [
       "body_24"
     ],
-    "text": "+30 % armor"
+    "text": "+30 % rustning vid turstart"
   },
   {
     "id": "body_27",
@@ -1178,7 +1178,7 @@
     "requires": [
       "body_25"
     ],
-    "text": "+35 % max_hp"
+    "text": "+35 % max-HP"
   },
   {
     "id": "body_28",
@@ -1198,7 +1198,7 @@
     "requires": [
       "body_26"
     ],
-    "text": "+35 % armor"
+    "text": "+35 % rustning vid turstart"
   },
   {
     "id": "body_29",
@@ -1281,7 +1281,7 @@
     "requires": [
       "wick_main"
     ],
-    "text": "+2 % mana"
+    "text": "+2 % mana varje tur"
   },
   {
     "id": "wick_2",
@@ -1301,7 +1301,7 @@
     "requires": [
       "wick_main"
     ],
-    "text": "+2 % hand"
+    "text": "+2 % kort på handen"
   },
   {
     "id": "wick_3",
@@ -1321,7 +1321,7 @@
     "requires": [
       "wick_1"
     ],
-    "text": "+3 % mana"
+    "text": "+3 % mana varje tur"
   },
   {
     "id": "wick_4",
@@ -1341,7 +1341,7 @@
     "requires": [
       "wick_2"
     ],
-    "text": "+3 % hand"
+    "text": "+3 % kort på handen"
   },
   {
     "id": "wick_5",
@@ -1361,7 +1361,7 @@
     "requires": [
       "wick_3"
     ],
-    "text": "+4 % mana"
+    "text": "+4 % mana varje tur"
   },
   {
     "id": "wick_6",
@@ -1381,7 +1381,7 @@
     "requires": [
       "wick_4"
     ],
-    "text": "+4 % hand"
+    "text": "+4 % kort på handen"
   },
   {
     "id": "wick_7",
@@ -1401,7 +1401,7 @@
     "requires": [
       "wick_5"
     ],
-    "text": "+5 % mana"
+    "text": "+5 % mana varje tur"
   },
   {
     "id": "wick_8",
@@ -1421,7 +1421,7 @@
     "requires": [
       "wick_6"
     ],
-    "text": "+5 % hand"
+    "text": "+5 % kort på handen"
   },
   {
     "id": "wick_9",
@@ -1441,7 +1441,7 @@
     "requires": [
       "wick_7"
     ],
-    "text": "+6 % mana"
+    "text": "+6 % mana varje tur"
   },
   {
     "id": "wick_10",
@@ -1461,7 +1461,7 @@
     "requires": [
       "wick_8"
     ],
-    "text": "+6 % hand"
+    "text": "+6 % kort på handen"
   },
   {
     "id": "wick_11",
@@ -1481,7 +1481,7 @@
     "requires": [
       "wick_9"
     ],
-    "text": "+8 % mana"
+    "text": "+8 % mana varje tur"
   },
   {
     "id": "wick_12",
@@ -1501,7 +1501,7 @@
     "requires": [
       "wick_10"
     ],
-    "text": "+8 % hand"
+    "text": "+8 % kort på handen"
   },
   {
     "id": "wick_13",
@@ -1521,7 +1521,7 @@
     "requires": [
       "wick_11"
     ],
-    "text": "+10 % mana"
+    "text": "+10 % mana varje tur"
   },
   {
     "id": "wick_14",
@@ -1541,7 +1541,7 @@
     "requires": [
       "wick_12"
     ],
-    "text": "+10 % hand"
+    "text": "+10 % kort på handen"
   },
   {
     "id": "wick_15",
@@ -1561,7 +1561,7 @@
     "requires": [
       "wick_13"
     ],
-    "text": "+12 % mana"
+    "text": "+12 % mana varje tur"
   },
   {
     "id": "wick_16",
@@ -1581,7 +1581,7 @@
     "requires": [
       "wick_14"
     ],
-    "text": "+12 % hand"
+    "text": "+12 % kort på handen"
   },
   {
     "id": "wick_17",
@@ -1601,7 +1601,7 @@
     "requires": [
       "wick_15"
     ],
-    "text": "+15 % mana"
+    "text": "+15 % mana varje tur"
   },
   {
     "id": "wick_18",
@@ -1621,7 +1621,7 @@
     "requires": [
       "wick_16"
     ],
-    "text": "+15 % hand"
+    "text": "+15 % kort på handen"
   },
   {
     "id": "wick_19",
@@ -1641,7 +1641,7 @@
     "requires": [
       "wick_17"
     ],
-    "text": "+18 % mana"
+    "text": "+18 % mana varje tur"
   },
   {
     "id": "wick_20",
@@ -1661,7 +1661,7 @@
     "requires": [
       "wick_18"
     ],
-    "text": "+18 % hand"
+    "text": "+18 % kort på handen"
   },
   {
     "id": "wick_21",
@@ -1681,7 +1681,7 @@
     "requires": [
       "wick_19"
     ],
-    "text": "+22 % mana"
+    "text": "+22 % mana varje tur"
   },
   {
     "id": "wick_22",
@@ -1701,7 +1701,7 @@
     "requires": [
       "wick_20"
     ],
-    "text": "+22 % hand"
+    "text": "+22 % kort på handen"
   },
   {
     "id": "wick_23",
@@ -1721,7 +1721,7 @@
     "requires": [
       "wick_21"
     ],
-    "text": "+26 % mana"
+    "text": "+26 % mana varje tur"
   },
   {
     "id": "wick_24",
@@ -1741,7 +1741,7 @@
     "requires": [
       "wick_22"
     ],
-    "text": "+26 % hand"
+    "text": "+26 % kort på handen"
   },
   {
     "id": "wick_25",
@@ -1761,7 +1761,7 @@
     "requires": [
       "wick_23"
     ],
-    "text": "+30 % mana"
+    "text": "+30 % mana varje tur"
   },
   {
     "id": "wick_26",
@@ -1781,7 +1781,7 @@
     "requires": [
       "wick_24"
     ],
-    "text": "+30 % hand"
+    "text": "+30 % kort på handen"
   },
   {
     "id": "wick_27",
@@ -1801,7 +1801,7 @@
     "requires": [
       "wick_25"
     ],
-    "text": "+35 % mana"
+    "text": "+35 % mana varje tur"
   },
   {
     "id": "wick_28",
@@ -1821,7 +1821,7 @@
     "requires": [
       "wick_26"
     ],
-    "text": "+35 % hand"
+    "text": "+35 % kort på handen"
   },
   {
     "id": "wick_29",

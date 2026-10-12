@@ -42,7 +42,7 @@ BRANCHES = [
 # Main node per branch: what the branch is FOR, in one purchase. Opens the branch, so it is bought
 # first and its two sub-lines both hang from it.
 MAINS = {
-    "Järnvägen": ("Smidesmästaren", {"might": 0.08, "area": 0.05}, "+8 % skada och +5 % area"),
+    "Järnvägen": ("Smidesmästaren", {"might": 0.08, "area": 0.05}, "+8 % skada och +5 % områdesskada"),
     "Benknippet": ("Benbyggaren", {"max_hp": 10, "armor": 1}, "+10 max-HP och +1 rustning"),
     "Glöden": ("Väktaren av lågan", {"mana": 1, "hand": 1}, "+1 mana och +1 kort på handen"),
 }
@@ -97,6 +97,24 @@ CAPSTONES = {
     ],
 }
 
+# SPELARTEXTEN BYGGS UR ORDEN, ALDRIG UR EFFEKTNYCKLARNA. Rader byggda direkt ur `effect{}` läcker
+# kodord rakt ut i hovringsraden: "+2 % might", "+35 % hand". Det stod i 87 av 93 noder, och bara
+# svenskan — källspråket — bar felet, för de tolv andra språken hade redan fått sina ord i
+# gen_i18n.py (TREE_FMT). Orden här är samma ord som de handskrivna raderna i MAINS/CAPSTONES och
+# tabellen i i18n_content.json använder: skada, områdesskada, max-HP, rustning, mana, kort på handen.
+SV_TEXT = {
+    "might": "+%d %% skada",
+    "area": "+%d %% områdesskada",
+    "max_hp": "+%d %% max-HP",
+    "armor": "+%d %% rustning vid turstart",
+    "mana": "+%d %% mana varje tur",
+    "hand": "+%d %% kort på handen",
+}
+# Ord som ALDRIG får stå i en nodrad: de är effektnycklar, och en nyckel som läcker ut i spelartexten
+# läser som en tabell i stället för som en uppgradering. "mana" är inte med — det är samma ord på
+# svenska som i datat, och det står redan i de handskrivna raderna.
+KODORD = ["might", "area", "max_hp", "armor", "hand", "gold", "revive", "draw_first"]
+
 # Effect size per tier: small steps at first, then a steady climb. The last ordinary tier (15) is the
 # biggest step before the capstone pair, which does something else entirely.
 STRENGTH = {2: 0.02, 3: 0.03, 4: 0.04, 5: 0.05, 6: 0.06, 7: 0.08, 8: 0.10, 9: 0.12, 10: 0.15,
@@ -135,7 +153,7 @@ def build() -> list:
                           else "%s_%d" % (prefix, (step - 1) * 2 + side + 1))
                 name = names[side]
                 effect = {keys[side]: STRENGTH[tier]}
-                text = "+%d %% %s" % (round(STRENGTH[tier] * 100), keys[side])
+                text = SV_TEXT[keys[side]] % round(STRENGTH[tier] * 100)
                 out.append({
                     "id": node_id,
                     "name": name,
@@ -213,6 +231,17 @@ def main() -> int:
             if parent not in known:
                 print("  FEL %s kräver %s som inte finns" % (node["id"], parent))
                 return 1
+    # SPELARTEXTEN: ingen rad får bära en effektnyckel. Grinden står här, inte i en kommentar, för
+    # det är generatorn som skrev de 87 raderna ("+2 % might") och det är bara här de kan skrivas igen.
+    for node in nodes:
+        text = " " + str(node.get("text", "")).lower() + " "
+        for ord_ in KODORD:
+            if " %s " % ord_ in text:
+                print("  FEL %s: raden '%s' bär effektnyckeln '%s'" % (node["id"], node.get("text"), ord_))
+                return 1
+        if not str(node.get("text", "")).strip():
+            print("  FEL %s saknar rad" % node["id"])
+            return 1
     for branch in {n["branch"] for n in nodes}:
         roots = [n for n in nodes if n["branch"] == branch and not n["requires"]]
         if len(roots) != 1 or not str(roots[0]["id"]).endswith("_main"):
