@@ -59,7 +59,12 @@ func _initialize() -> void:
 		and absf((tom_ton as Vector3).z - main.map_view.TOM.b) < 0.001,
 		"tomrummets färg kommer ur kartans egen konstant (en källa)", str(tom_ton))
 
-	check(main._vy != null and main._vy.size == main.VY, "spelvyn är 480x270",
+	# VYN FÖLJER FÖNSTRET (M113): höjden är designmåttet eller mer, bredden kommer ur fönstret. Att
+	# kräva 480x270 vore att kräva den inramade rutan som Alex ville bort.
+	check(main._vy != null and main._vy.size == Vector2i(main._vy_korg.size),
+		"spelvyn har korgen egna mått", "%dx%d" % [main._vy.size.x, main._vy.size.y])
+	check(main._vy != null and main._vy.size.y >= int(main.VY.y),
+		"och minst 270 spelpixlar på höjden (designmåttet ryms)",
 		"%dx%d" % [main._vy.size.x, main._vy.size.y])
 	check(main._vy.get_parent() == main._vy_korg,
 		"vyn ligger I korgen (annars ritas ingenting alls)")
@@ -71,15 +76,29 @@ func _initialize() -> void:
 	var fönster: Vector2 = main.get_viewport().get_visible_rect().size
 	print("  fönstret är %.0fx%.0f" % [fönster.x, fönster.y])
 	check(absf(skala - roundf(skala)) < 0.001, "skalan är ett heltal", "x%.2f" % skala)
-	check(int(skala) == int(maxf(1.0, floorf(minf(fönster.x / float(main.VY.x),
-			fönster.y / float(main.VY.y))))),
-		"skalan är det största heltal fönstret rymmer", "x%.0f" % skala)
-	var mål := Vector2(main.VY) * skala
-	check(main._vy_korg.position == ((fönster - mål) / 2.0).floor(), "vyn är centrerad",
-		"@ %.0f,%.0f" % [main._vy_korg.position.x, main._vy_korg.position.y])
-	check(main._vy_korg.size == Vector2(main.VY),
+	check(main._vy_korg.size == Vector2(main._vy.size),
 		"korgen är vyns storlek, inte fönstrets (annars skalas 3D:n upp och pixlarna smetas ut)",
 		"%.0fx%.0f" % [main._vy_korg.size.x, main._vy_korg.size.y])
+	var mål := Vector2(main._vy_korg.size) * skala
+	check(main._vy_korg.position.y == 0.0, "vyn ligger i ÖVERKANTEN (ingen inramad ruta)",
+		"@ %.0f,%.0f" % [main._vy_korg.position.x, main._vy_korg.position.y])
+	check(absf(main._vy_korg.position.x - floorf((fönster.x - mål.x) * 0.5)) <= 1.0,
+		"och det som blev över i sidled delas lika",
+		"@ %.0f av %.0f" % [main._vy_korg.position.x, fönster.x - mål.x])
+	# SKALAN OCH REMSAN HÖR IHOP (M113): skalan är det största heltal där vyn OCH remsan ryms, och
+	# remsan ligger i 100-150 px. MÄTS BARA MED ETT FÖNSTER SOM RYMMER DEM: i huvudlöst läge är
+	# fönstret 64 px, designmåttet (270 + 100) får inte plats alls, och siffran hade mätt fel sak.
+	var barh: float = main._bar(fönster).size.y
+	if fönster.y < float(main.VY.y) + 100.0:
+		print("      hoppar över remsans mått: fönstret är %.0fx%.0f och rymmer inte vyn + remsan — mäts i -- guiprov"
+			% [fönster.x, fönster.y])
+	else:
+		check(main._vy_korg.size.y * skala + barh <= fönster.y + 1.0,
+			"vyn och remsan ryms i fönstret", "%.0f + %.0f av %.0f"
+				% [main._vy_korg.size.y * skala, barh, fönster.y])
+		check((main._vy_korg.size.y + 1.0) * skala + 100.0 > fönster.y,
+			"och skalan är den största som ryms", "en spelpixel till hade krävt mer än fönstret")
+		check(barh >= 100.0 and barh <= 150.0, "remsan ligger i 100-150 px", "%.0f px" % barh)
 	check(main._vy_korg.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
 		"uppskalningen är NEAREST")
 	# PEKAREN NÅR IN I VYN. Kortvalet och albumet är paneler INNE i spelvyn (barn till `hud`, som är
@@ -158,8 +177,12 @@ func _initialize() -> void:
 	# Omlottet är MED FLIT: en solfjäder är en hög man håller i, inte en hylla. Överlappet får inte
 	# vara noll (då är det en rad) och inte så stort att bara kanten av nästa kort syns.
 	var kortbredd: float = main.hand_views[0].home_size.x
-	check(överlapp > kortbredd * 0.2 and överlapp < kortbredd * 0.6,
-		"korten ligger omlott som en solfjäder", "överlapp %.0f px av %.0f" % [överlapp, kortbredd])
+	# STEGET ÄR MÅTTET (Alex 12/10: korten ska ligga TÄTARE, steget i sidled mellan två kort får vara
+	# högst 0,45 x kortets bredd). Överlappet är kortbredd minus steget, alltså 0,55 eller mer — den
+	# gamla gränsen 0,6 mätte överlappet och föll på en solfjäder som är RÄTT.
+	var steg: float = kortbredd - överlapp
+	check(steg > 0.0 and steg <= kortbredd * 0.45,
+		"korten ligger tätare än 0,45 x kortets bredd", "steg %.0f px av %.0f" % [steg, kortbredd])
 	# Bågen: mittenkortet högst, ytterkorten lägre — och vridna utåt, speglade kring mitten.
 	var mitten: CardView = main.hand_views[2]
 	var vänster: CardView = main.hand_views[0]
@@ -174,8 +197,11 @@ func _initialize() -> void:
 	# ANKARET: mittkortets underkant ligger 6 px in i fönstrets nederkant, precis där raden låg.
 	# Ytterkorten hänger nedanför kanten med flit — en hand som hålls lågt skärs av skärmkanten.
 	var botten: float = mitten.home_pos.y + mitten.home_size.y
-	check(absf(botten - (fönster.y - 6.0)) <= 1.0, "mittkortets underkant ligger i fönstrets nederkant",
-		"%.0f av %.0f" % [botten, fönster.y])
+	# UNDERKANTEN LIGGER 6 px ÖVER REMSAN (M113): handen hålls framför spelaren och remsan är golvet
+	# den vilar på. Ankrades den i fönstrets nederkant hamnade korten UNDER remsan.
+	var bar_topp: float = main._bar(fönster).position.y
+	check(absf(botten - (bar_topp - 6.0)) <= 1.0, "mittkortets underkant ligger vid remsans överkant",
+		"%.0f av %.0f" % [botten, bar_topp])
 
 	print("")
 	print("— varje text i HUD:en är en NYCKEL, inte en svensk sträng i koden —")
@@ -247,7 +273,12 @@ func _initialize() -> void:
 	# Panelen ligger i vyn (barn till `hud`, som är ett barn till SubViewporten), så dess
 	# globala rektangel är i VYNS eget rum: 0,0-480,270. Att mäta mot fönstret hade jämfört två
 	# olika rum och gett rätt svar av fel skäl (eller tvärtom).
-	var vy_rect := Rect2(Vector2.ZERO, Vector2(main.VY))
+	# VYNS RUTA ÄR INTE 480x270 (M113): den följer fönstret, och panelerna placeras i VYNS EGET rum
+	# (barn till `hud`), alltså i spelpixlar — inte i fönsterpixlar. Provet mäter därför mot vyns
+	# aktuella mått. I huvudlöst läge är fönstret 64 px och vyn 160 px bred; panelen är 310 px och
+	# kan inte rymmas alls, så de kontrollerna hoppas över där (samma regel som remsans mått ovan).
+	var vy_rect := Rect2(Vector2.ZERO, main._vy_mått())
+	var rymmer_panel: bool = main._vy_mått().x >= float(main.VY.x)
 	var utanför := 0
 	var för_hög := 0
 	var tumme_ute := 0
@@ -281,13 +312,16 @@ func _initialize() -> void:
 			fel_antal += 1
 		if not (main.inn_first <= i and i < main.inn_first + main.INN_SYNLIGA):
 			utan_markering += 1
-	check(utanför == 0, "kortväggen ligger innanför spelvyn på bredden vid varje val",
+	if not rymmer_panel:
+		print("      hoppar över kortväggens ruta: vyn är %.0f px bred och panelen är %.0f px — mäts i -- guiprov"
+			% [main._vy_mått().x, max_panel - min_panel])
+	check(not rymmer_panel or utanför == 0, "kortväggen ligger innanför spelvyn på bredden vid varje val",
 		"%d av %d val stack ut (panel %.0f..%.0f mot vyn %.0f..%.0f)"
 			% [utanför, linjer.size(), min_panel, max_panel, vy_rect.position.x, vy_rect.end.x])
 	# Höjden är den andra kanten på samma mynt: en fjärde textrad är 12 px, och panelen hade 15 px
 	# kvar till vyns 270. Fyra rader ryms — fem gör det inte.
-	check(för_hög == 0, "kortväggen ryms på höjden (270 px)", "högsta panelen %.0f px" % max_höjd)
-	check(tumme_ute == 0, "varje tumnagel ligger inne i vyn", "%d kort stack ut" % tumme_ute)
+	check(not rymmer_panel or för_hög == 0, "kortväggen ryms på höjden (270 px)", "högsta panelen %.0f px" % max_höjd)
+	check(not rymmer_panel or tumme_ute == 0, "varje tumnagel ligger inne i vyn", "%d kort stack ut" % tumme_ute)
 	check(fel_antal == 0, "raden ritar INN_SYNLIGA tumnaglar (hela listan om den är kortare)",
 		"%d val ritade fel antal" % fel_antal)
 	check(utan_markering == 0, "det valda kortet är alltid med i raden",

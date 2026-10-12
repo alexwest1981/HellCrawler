@@ -58,11 +58,17 @@ const GRANN_SVIKT := 0.015         ## andel av korthöjden som grannarna svarar 
 # därför en solfjäder ser ut som en hand och en rad ser ut som en hylla.
 const FAN_STEG := 0.035            ## rad vridning per kort i bågen (~2,0 grader). Var 0,055 (3,2°):
                                    ## Alex 12/10: *"kanske inte så hårt utfjädrat som det är just nu?"*
-## Kortets steg i sidled, som andel av kortets bredd. Sänkt från 0,62 när korten blev 80 % större:
-## med 0,62 rymdes tolv kort bara om skalan krympte tillbaka (1,52 i stället för 1,75), och då hade
-## korten inte blivit större alls på skärmen. Vid 0,50 ryms tolv kort i full skala — och mer av varje
-## kort syns än förut (91 px mot 63 px), trots att omlottet är större.
-const FAN_OMLOTT := 0.50           ## kortets steg i sidled, som andel av kortets bredd
+## Kortets steg i sidled, som andel av kortets bredd: TAKET 0,45 och GOLVET 0,30.
+##
+## TAKET sänktes från 1,0 (kant vid kant, alltså inget omlott alls när handen var liten) till 0,45 när
+## Alex 12/10 visade en referens på hur handen ska ligga: *"korten ska ligga tätare"*. Med 0,45 ligger
+## drygt hälften av varje kort under grannen, och hela namnet läses på det framträdda kortet (som
+## ritas över de andra, se CardView.set_forward: z_index 3).
+## GOLVET 0,30 gäller bara en mycket stor hand: tunnare än så försvinner korten bakom varandra.
+## Taket är också måttet `_refresh_hand` räknar kortets skala ur — solfjädern är som bredast när varje
+## steg tar FAN_TAK, så den formeln håller korten innanför fönstret.
+const FAN_TAK := 0.45              ## kortets steg i sidled, som andel av kortets bredd (tak)
+const FAN_GOLV := 0.30             ## ... och golvet, när handen är så stor att steget måste krympa
 const FAN_SJUNK := 0.035           ## andel av korthöjden som ytterkortet sitter lägre per steg. Var 0,07:
                                    ## fem kort sänkte ytterkanterna 14 % — en fläkt, inte en solfjäder
 
@@ -551,17 +557,47 @@ const LJUS_TRÖSKEL := 0.60
 ## HÖGDAGERN i `_bild_statistik`: en bildpunkt över 0,85 är en glans, en låga eller en glödd, inte en
 ## upplyst stenyta. Räknas i PIXLAR (inte i procent), för det är den siffran glansprovet jämför.
 const HÖGDAGER_TRÖSKEL := 0.85
-## HUD:ens luft mot fönsterkanten (px) och den andra raden i marginalen (se `_placera_karta`).
-## MÄTT: med 1280x720 är vyn 960x540, alltså 160 px svart marginal på sidorna och 90 px ovanför —
-## kartan (76x60 i vyns skala = 152x120 i fönstret) ryms i hörnet med MARGINAL till godo.
+## BAREN (M113). Alex: *"Kika på Hud nu, så vi får en bar i botten, som i doom, men med korten i
+## mitten, det här med att rama in spelet i en liten ruta i skärmen funkar inte för mig mer"* — och
+## sedan om höjden: *"Bottom bar får inte ta upp mer än max 100-150px, så det skall inte spela roll
+## vilken ruta det hamnar i, eller bredden på det"*.
+##
+## BAR_HOJD är remsans höjd i SPELPIXLAR (68 = 25 % av vyns 270), alltså samma andel av bilden i varje
+## fönster, och den KLAMPAS i fönsterpixlar av BAR_MIN..BAR_MAX: MÄTT ger 148 px i 1896x1018 (204
+## klampat), 144 px i 1280x720, 148 px i 941x1018 och 144 px i 800x600. Remsan är alltså aldrig en
+## differens (resten under vyn) och växer inte med fönstret — den ligger i 100-150 px, oavsett ruta.
+## Korträknarens bredd i baren (px): "hög 12 · lek 34 · släng 5" på en rad. 120 är full bredd och
+## 90 golvet (texten klipps i kanten, men raden finns kvar) — i en smal ruta tar högarna resten.
+const KORT_RÄKNARE_BREDD := 120.0
+const RÄKN_GOLV := 90.0
+## Högarnas golv: två kort i 0,4-skala står sida vid sida. Under det döljs högarna (se _placera_högarna).
+const HÖG_GOLV := 84.0
+const BAR_HOJD := 68
+## GOLVET ÄR 144 PX — inte 100 (M113). Kartan i remsans högra kant är pixelkonst i skala 1 (heltal,
+## se `_placera_karta`), och HELA KOLUMNEN (karta 60 + ordlista 6 x 14 = 144) måste rymmas i remsan:
+## under 144 px sticker kartan upp över spelvyn och sista ordlistraden hamnar under fönsterkanten.
+## MÄTT FÖRE (BAR_MIN 100): 1280x720 gav en 136 px remsa och kolumnens underkant 724 i ett 720 px
+## fönster, 800x600 en 100 px remsa med 44 px spill — och loggen (84 px + tipsraden) stack 19 px ut
+## genom fönsterkanten. MÄTT EFTER: 144/144/148/148 px och 0 px spill i alla fyra. Talet speglar
+## `MapView.MAP_SIZE.y + MapView.LEGEND_HÖJD`; `test_minikarta.gd` är grinden som fångar en drift.
+const BAR_MIN := 144
+const BAR_MAX := 150
+
+## HUD:ens luft mot fönsterkanten (px) och luften mot barens kanter. MÄTT: med 1280x720 är vyn 960x540
+## och baren 180 px hög (68 spelpixlar x 2 = 136 är golvet), så kartan (76x60 i vyns skala = 152x120 i
+## fönstret) ryms i barens högra kant med MARGINAL till godo.
 const MARGINAL := 6.0
-## Kärlens radie i SPELPIXLAR (M111). Den räknas ur spelvyns höjd — 0,11 * 270 = 30 px radie, alltså
-## 60 px i diameter och 22 % av vyns höjd — och multipliceras med fönstrets heltalsskala precis som
-## vyn och ramen. Då är kärlet lika stort i VARJE fönster (MÄTT: 60 px i 1280x720, 120 px i 1896x1030),
-## till skillnad från förut, då radien räknades ur utrymmet mellan panelerna och klämdes till 20x20 px
-## i Alex' eget fönster. Golvet 12 px gäller bara ett fönster mindre än 480x270, taket 64 px ett större.
+
+## Kärlens radie i SPELPIXLAR, räknad ur BARENS höjd (M113). Den räknades förut ur spelvyns höjd
+## (0,11 * 270 = 30 px), men kloten ligger nu i baren tillsammans med allt annat — och hp och
+## rustningen står OVANPÅ varandra, så paret måste rymmas i barens höjd: 2 * 2 * (r + KANT) + MELLAN
+## ≤ barhöjden. Med 0,11 av barens höjd stämmer det i varje fönster (MÄTT: 84 px klot i 1896x1018 där
+## baren är 208 px, 56 px i 1280x720 där baren är 180 px, 136 px i 941x1018 där baren är 748 px — i
+## alla tre ryms paret med luft kvar). Golvet är sänkt från 12 till 10: 12 gav paret 210 px i en
+## 208 px-bar vid skala 3, alltså 2 px in över spelvyn (mätt i guiprovet), och klotet går inte att
+## mäta i halva spelpixlar — skalan är heltal.
 const KÄRL_RADIE_ANDEL := 0.11
-const KÄRL_RADIE_MIN := 12
+const KÄRL_RADIE_MIN := 10
 const KÄRL_RADIE_MAX := 64
 ## Hur nära spelvyns kant kärlet sitter, och luften mellan hälsan och rustningen — i spelpixlar.
 const KÄRL_KANT := 4.0
@@ -654,6 +690,7 @@ var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, 
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
 var _prov_fönster := Vector2i.ZERO ## `fönster=941x1018`: mät HUD:en i en annan fönsterstorlek
+var _sten_mjuk := false  ## `sten=mjuk`: barens sten ritas med mjuk filtrering (provbild)
                                    ## hur mycket kontrast lagret tar (samma skäl som ssr=0/vol=0)
 var _fx := true
 var _takdropp_på := true           ## -- tak=0 stänger av takdroppet (mätning, inte spel)
@@ -769,6 +806,11 @@ func _ready() -> void:
 			# kunna MÄTA hur histogrammet flyttar sig — ett starkt ljus som rullas av i tonemappningen
 			# ger en ljus, platt bild (samma sak som `crt=0` mäter för CRT-lagret).
 			_ljus_f = float(f.substr(5))
+		elif f == "sten=mjuk":
+			# Granskningsflagga: barens stenplatta ritas med MJUK filtrering i stället för NEAREST.
+			# Frågan är vad töjningen gör med pixelkonsten — hårda pixelränder eller gråa band —
+			# och provbilderna från de två lägena är svaret (Alex valde det som står i hud_ram).
+			_sten_mjuk = true
 		elif f.begins_with("crt="):
 			# Granskningsflagga: `crt=0` slår av CRT-lagret, `crt=0.5` halverar styrkan (skanlinjer,
 			# vinjett, välvd kant). Behövs för att kunna MÄTA hur mycket av bildens kontrast lagret
@@ -944,6 +986,14 @@ func _ready() -> void:
 			_tradzoom = float(f.substr(9))
 	if not _fiendeprov.is_empty():
 		print("fiendevisprov: %s tvingas fram i våningens strider" % _fiendeprov)
+	# FÖNSTRET SÄTTS FÖR ALLA PROV SOM FOTOGRAFERAR (M113). Bara guiprovet gjorde det förut, så
+	# `shot fönster=1896x1018` sparade en 1280x720-bild (mätt) medan layouten räknade 1896x1018 —
+	# bilden och siffrorna visade olika rutor, alltså mätte bilden fel sak.
+	if _prov_fönster.x > 0:
+		get_window().size = _prov_fönster
+		await get_tree().process_frame
+		await get_tree().create_timer(0.3).timeout
+		_placera_vy()
 	var kör: bool = (not pt.is_empty() or flags.has("shots") or flags.has("shot")
 		or flags.has("kistprov") or flags.has("kistnara") or flags.has("fpsprov") or flags.has("fackelprov") or flags.has("figurprov")
 		or flags.has("kortvalsprov")
@@ -2486,7 +2536,7 @@ func _kista_punkter(noder: Array) -> Array:
 ## innanför kamerans närplan — är ALLA det klipps hela kistan bort, och det är svaret på varför en
 ## skylt på spelarens egen ruta försvinner.
 func _kista_skärm(noder: Array) -> Dictionary:
-	var vyn := Rect2(Vector2.ZERO, Vector2(VY))
+	var vyn := Rect2(Vector2.ZERO, _vy_mått())
 	var minst := Vector2(INF, INF)
 	var störst := Vector2(-INF, -INF)
 	var djup := INF
@@ -2513,7 +2563,7 @@ func _kista_text(m: Dictionary) -> String:
 		return "%d/%d hörn innanför närplanet: helt bortklippt" % [int(m["klippta"]), int(m["punkter"])]
 	var r: Rect2 = m["ruta"]
 	var utanför := ""
-	if not Rect2(Vector2.ZERO, Vector2(VY)).intersects(r):
+	if not Rect2(Vector2.ZERO, _vy_mått()).intersects(r):
 		utanför = ", utanför bild"
 	elif int(m["klippta"]) > 0:
 		utanför = ", %d hörn klippta" % int(m["klippta"])
@@ -2562,7 +2612,7 @@ func _bild_med_kista(noder: Array, synlig: bool) -> Image:
 ## pausat — utan tröskeln mättes rummets brus i stället för kistan (brusgolvet var 5385 px i samma
 ## ruta). Provet skriver ut brusgolvet med SAMMA tröskel, så siffran går att jämföra.
 func _kista_pixlar(noder: Array, ruta: Rect2) -> Dictionary:
-	var vyn := Vector2(VY)
+	var vyn := _vy_mått()
 	var r := ruta.grow(1.0).intersection(Rect2(Vector2.ZERO, vyn))
 	if r.size.x < 1.0 or r.size.y < 1.0:
 		r = Rect2(Vector2.ZERO, vyn)       # helt bortklippt: frågan är då om den syns NÅGONSTANS
@@ -2613,7 +2663,7 @@ func _kista_brus(noder: Array, ruta: Rect2) -> int:
 		return -1
 	a.convert(Image.FORMAT_RGBA8)
 	b.convert(Image.FORMAT_RGBA8)
-	var vyn := Vector2(VY)
+	var vyn := _vy_mått()
 	var r := ruta.grow(1.0).intersection(Rect2(Vector2.ZERO, vyn))
 	var px := 0
 	for y in range(clampi(int(floor(r.position.y)), 0, int(vyn.y) - 1),
@@ -3044,6 +3094,9 @@ func _på_bana(stage_id: String) -> void:
 ## Rita om skalet. Panelen som hör till läget visas, de andra göms — och 3D-vyn ritas bara i en
 ## körning, eftersom det inte finns någon våning att visa förrän man valt en.
 func _refresh_shell() -> void:
+	# VYN LÄGGS OM EFTER LÄGET (M113): remsan finns bara i en körning, så vyns ruta beror på `shell`.
+	# Utan det här blev byn kvar i körningens ruta (med remsans plats tom under sig).
+	_placera_vy()
 	var i_körning: bool = shell == "körning"
 	by_view.visible = shell == "hem"
 	karta_view.visible = shell == "karta"
@@ -3146,6 +3199,17 @@ func _refresh_shell() -> void:
 	hint_label.text = skal_hint
 	kort_label.text = ""
 
+## En rad per läge: syns remsan, hur stor är dess ruta, och hur stor del av fönstret tar scenen?
+## Alex tittar på siffran för scenens andel (M113: *"Detta är inte en by i helskärm..."*).
+func skarmprov(skarm: String) -> void:
+	var f := Vector2(get_viewport().get_visible_rect().size)
+	var vyn := Rect2(_vy_korg.position, _vy_korg.size * _vy_korg.scale.x)
+	var bar := _bar(f)
+	var bar_syns: bool = hud_ram != null and shell == "körning"
+	print("skarmprov: %-5s — remsan syns %s, rutan [P: %s, S: %s], scenen %.0f %% av fönstrets höjd (%.0f av %.0f px), fönster %s"
+		% [skarm, "JA" if bar_syns else "NEJ", str(bar.position), str(bar.size),
+			100.0 * vyn.size.y / maxf(1.0, f.y), vyn.size.y, f.y, str(f)])
+
 func _show_home() -> void:
 	shell = "hem"
 	_refresh_shell()
@@ -3157,6 +3221,10 @@ func _shot_skarm(skarm: String) -> void:
 	for i in 3:
 		await get_tree().process_frame
 	await get_tree().create_timer(0.6).timeout
+	# MÄTRADEN PER LÄGE (M113): remsan hör till körningen, och den frågan ska besvaras av en siffra —
+	# inte av en bild man tolkar. `i baren` = remsans ruta, `syns` = hud_ram ritar den, `scen` = hur
+	# stor del av fönstrets höjd vyn (scenen) tar. MÅL: scenen ~100 % i byn och på kartan.
+	skarmprov(skarm)
 	# TILLFÄLLIG MÄTNING (M95): trädets ikoner hamnade på en rad i en svart ruta, och strukturen är
 	# rättad (sex rader, fyra rutor i varandra) utan att skärmbilden ändrades. Då måste siffrorna ut
 	# ur spelet i stället för ut ur en bild: deras globala rutor säger om containrarna har lagt ut
@@ -3620,22 +3688,64 @@ func _demo_gui() -> void:
 	await get_tree().create_timer(1.0).timeout          # shaders och 3D:n hinner ritas
 	_placera_vy()
 	var f := get_viewport().get_visible_rect().size
-	var vy := Rect2(_vy_korg.position, Vector2(VY) * _vy_korg.scale.x)
-	print("guiprov: fönstret %.0fx%.0f, spelvyn %s (skala x%.0f)" % [f.x, f.y, str(vy), _vy_korg.scale.x])
-	print("guiprov: status %s | logg %s" % [str(Rect2(hud_status.position, hud_status.size)),
-		str(Rect2(hud_logg.position, hud_logg.size))])
+	var vy := Rect2(_vy_korg.position, _vy_korg.size * _vy_korg.scale.x)
+	var bar := _bar(f)
+	print("guiprov: fönstret %.0fx%.0f, spelvyn %s (skala x%.0f), BAREN %s (%.0f spelpixlar hög)"
+		% [f.x, f.y, str(vy), _vy_korg.scale.x, str(bar), bar.size.y / maxf(1.0, _vy_korg.scale.x)])
+	# BAREN (M113): varje kontroll i baren med sin ruta, om den ligger I BAREN (utanför vyn) och om
+	# den ryms i fönstret. Det är den mätning hela omläggningen vilar på — en HUD-kontroll som ligger
+	# över spelvyn eller utanför fönstret syns här som ett nej, inte som ett omdöme om en bild.
+	var i_baren: Array = [["status", hud_status], ["logg", hud_logg], ["tipsrad", hint_label],
+		["korträknare", kort_label], ["karta", map_view], ["hp-klot", orb_hp],
+		["mana-klot", orb_mana], ["rust-klot", orb_rust]]
+	var rutor: Array = []
+	for par in i_baren:
+		var n: Control = par[1]
+		# DOLDA HOPPAS ÖVER: en kontroll som inte ritar kan inte ligga över en annan. Tipsraden döljs
+		# i smala rutor (se _placera_gui), och dess ruta låg då kvar i mätningen och räknades som
+		# överlapp mot statusblocket (mätt i 800x600: 23x18 px) — ett fel som inte syns på skärmen.
+		if n == null or not n.visible:
+			continue
+		var r: Rect2 = n.get_rect()
+		rutor.append([str(par[0]), r])
+		var över_vy := r.intersection(vy).get_area()
+		var utanför := r.position.x < -0.5 or r.position.y < -0.5 \
+			or r.end.x > f.x + 0.5 or r.end.y > f.y + 0.5
+		var i_bar: bool = r.position.y >= vy.end.y - 0.5
+		print("guiprov: %-12s %s  i baren %s, i fönstret %s, över spelvyn %.0f px"
+			% [par[0], str(r), "JA" if i_bar else "NEJ", "nej" if utanför else "JA", över_vy])
+	# ÖVERLAPPEN: varje par av kontroller i baren, mätt ruta mot ruta. Noll par = ingen kontroll ligger
+	# över en annan — och den siffran är den enda som svarar på kravet.
+	var krockar: Array = []
+	for i in range(rutor.size()):
+		for j in range(i + 1, rutor.size()):
+			var a: Rect2 = rutor[i][1]
+			var b2: Rect2 = rutor[j][1]
+			var o := a.intersection(b2)
+			if o.size.x > 0.5 and o.size.y > 0.5:
+				krockar.append("%s mot %s (%.0fx%.0f px)" % [rutor[i][0], rutor[j][0],
+					o.size.x, o.size.y])
+	print("guiprov: överlapp i baren: %d par %s" % [krockar.size(),
+		"" if krockar.is_empty() else "— " + ", ".join(krockar)])
+	# KORTEN I HANDEN: solfjädern ska ligga över VYN (M113) och inte över baren.
+	var hand_krockar: Array = []
+	for v in hand_views:
+		var kr: Rect2 = v.get_rect()
+		if not kr.intersects(vy):
+			hand_krockar.append("kort %d utanför spelvyn %s" % [v.index, str(kr)])
+		for par in rutor:
+			var r2: Rect2 = par[1]
+			var o: Rect2 = kr.intersection(r2)
+			if o.size.x > 0.5 and o.size.y > 0.5:
+				hand_krockar.append("kort %d över %s (%s)" % [v.index, par[0], str(o)])
+	print("guiprov: handkorten (%d) över spelvyn: %s" % [hand_views.size(),
+		"JA" if hand_krockar.is_empty() else ", ".join(hand_krockar.slice(0, 4))])
 	var sp := Rect2(battle_panel.global_position, battle_panel.size)
 	var ht := Rect2(hint_label.global_position, hint_label.size)
 	print("guiprov: tipsraden syns %s, text '%s', global %s, storlek %s" % [
 		"ja" if hint_label.visible else "nej", hint_label.text.substr(0, 40), str(ht.position), str(ht.size)])
 	print("guiprov: stridspanelen %s i fönstret (%.0f px innanför spelvyn), tipsraden %s, krock %s"
 		% [str(sp), sp.intersection(vy).get_area(), str(ht), "JA" if sp.intersects(ht) else "nej"])
-	for n in [["status", hud_status], ["logg", hud_logg]]:
-		var r := Rect2((n[1] as Control).position, (n[1] as Control).size)
-		var över_vy := r.intersection(vy).get_area()
-		print("guiprov: %s ritar %.0f px innanför spelvyn (ska vara 0), ligger i %s"
-			% [n[0], över_vy, "övre marginalen" if r.end.y <= vy.position.y
-				else ("nedre marginalen" if r.position.y >= vy.end.y else "ÖVER VYN")])
 	# VAR kärlen faktiskt ritas, i FÖNSTERpixlar — inte bara att de är synliga. Alex såg dem inte i sina
 	# bilder medan provet sa "syns [true, true, true]"; att mäta rutan skiljer "ritas utanför det som syns"
 	# från "syns men går inte att se".
@@ -7119,6 +7229,10 @@ func _snap_cam() -> void:
 	# Vidvinkeln och rullningen nollas också: dödas en puff mitt i steget står kameran kvar med
 	# öppen vidvinkel eller en sned horisont, och striden börjar i en bild som ser fel ut.
 	cam.fov = FOV
+	# KAMERAN BEHÅLLER DEN LODRÄTTA INRAMNINGEN (M113). `KEEP_HEIGHT` (Godots standard, satt här
+	# med flit) gör att samma värld på HÖJDEN ryms i vyn hur bred den än blir: den bredare vyn ger
+	# mer värld i SIDLED i stället för mindre höjd, och golv, figurer och tak står exakt som förut.
+	cam.keep_aspect = Camera3D.KEEP_HEIGHT
 	cam.rotation.z = 0.0
 
 # --- ljud -------------------------------------------------------------------
@@ -7202,110 +7316,265 @@ func _bygg_vy() -> void:
 	_runt.layer = 1
 	add_child(_runt)
 
-## Heltalsskalad och centrerad. Skalan räknas om varje gång fönstret ändras, så en annan
-## fönsterstorlek ger fortfarande hårda pixlar i stället för en halvskalad bild.
+## Spelvyn fyller fönstret i sidled, i heltalsskala, med en bar under sig (M113).
+##
+## Alex: *"Byn skall vara helskärm, samma med kartan. Väl inne i dungeon skall det vara bottom bar
+## only, resten (kameran) skall vara kant i kant"* — och om vägen dit: *"Visa mer värld"*. Vyns FORM
+## följer därför fönstret: höjden är VY.y (270 spelpixlar, rummets egen inramning) och BREDDEN är
+## f.x / skalan, alltså fönstrets kant i kant i sidled. Kameran behåller sin LODRÄTTA inramning
+## (`keep_aspect` = KEEP_HEIGHT), så den bredare vyn blir mer VÄRLD I SIDLED i stället för mindre
+## höjd: golvet, figurerna och rummets höjd står exakt som förut.
+##
+## MÄTT: 1896x1018 ger skala 3, vyn 632x270 spelpixlar = 1896x810 px (mot 480x270 = 1440x810 förut —
+## samma höjd, 32 % mer i sidled) och baren 1896x208 px. 1280x720 ger skala 2, vyn 640x270 = 1280x540
+## och baren 1280x180. 941x1018 ger skala 1, vyn 941x270 = 941x270 och baren 941x748.
 func _placera_vy() -> void:
 	var f := Vector2(get_viewport().get_visible_rect().size)
-	var skala := maxf(1.0, floorf(minf(f.x / float(VY.x), f.y / float(VY.y))))
-	# Storleken sätts för hand: med stretch av (annars tvingas vyn till fönstrets mått och
-	# pixelkonsten försvinner) behåller korgen annars sin standardstorlek 0x0 och ritar ingenting.
-	_vy_korg.size = Vector2(VY)
+	# REMSAN HÖR TILL EN KÖRNING (M113). Alex, när han såg skalet: *"Det skall inte vara en bar i
+	# botten förrän man är inne i dungeons"* och *"Detta är inte en by i helskärm..."*. Byn, kartan
+	# och menyerna får ingen remsa alls: vyn fyller HELA fönstret (`barh = 0`), och bandet ritas inte
+	# (hud_ram.sätt_bar_syns). MÄTT: i byn tog 3D-ytan vyns höjd med 148 px remsa under och banden
+	# nedtill — efter fyller scenen fönstret i både sid- och höjdled.
+	var i_körning: bool = shell == "körning"
+	# SKALAN OCH REMSAN hänger ihop: remsan är BAR_HOJD spelpixlar i varje fönster, klampad till
+	# BAR_MIN..BAR_MAX fönsterpixlar, och skalan är det största heltal där vyn (270 spelpixlar,
+	# designmåttet) OCH remsan ryms på höjden. MÄTT: skala 3 och 150 px i 1896x1018, skala 2 och
+	# 136 px i 1280x720, skala 3 och 150 px i 941x1018, skala 1 och 90 px i 800x600.
+	var skala := 1.0
+	# SKALET HAR INGEN REMSA (M113): `bh` är 0 utanför en körning, så skalan väljs för hela
+	# fönstret och golvbandet får höjden noll. Utan det här blev byn 81 % av höjden (mätt: 584 av
+	# 720 px) med 136 px remsa under.
+	var barh := 0.0 if not i_körning else clampf(BAR_HOJD, BAR_MIN, BAR_MAX)
+	for k in range(1, 9):
+		var bh := 0.0 if not i_körning else clampf(BAR_HOJD * float(k), BAR_MIN, BAR_MAX)
+		if float(k) * VY.y + bh > f.y:
+			break
+		skala = float(k)
+		barh = bh
+	# BREDDEN ur fönstret (kant i kant), HÖJDEN är allt som blev kvar över remsan — "resten av höjden
+	# går till spelvyn/kameran", alltså MER värld än 270 spelpixlar när fönstret är högre.
+	# TAKET (2,6 x designbredden = ~115 grader vågrätt) finns för extrema fönster: utan det blev en
+	# 7:1-ruta 150 grader vid och periferin dras ut som i en fisköga — samma sak Alex ratade i M68.
+	# Över taket lämnas sidokolumnerna som bakgrund i stället.
+	# Golvet är 160 spelpixlar och inte VY.x = 480: med 480 som golv blev vyn 480*3 = 1440 px bred i ett
+	# 941 px fönster (mätt: P -250, alltså 250 px utanför vänsterkanten). 160 räcker för att vyn ska
+	# ha en form alls, och taket (2,6 x) håller fiskögat borta.
+	var bredd := clampf(floorf(f.x / skala), 160.0, float(VY.x) * 2.6)
+	# AVUNDAS UPPÅT: görs det nedåt blir remsan 1 px högre än taket (mätt: 1018 - 289*3 = 151 px i
+	# 1896x1018 med 150 px som tak). Uppåt blir vyn 290 spelpixlar och remsan 148 px, alltså inom taket.
+	var höjd := maxf(float(VY.y), floorf((f.y - barh) / skala))
+	# TAKET PÅ REMSAN: golvningen kunde ge 1 px över 150 (mätt: 1018 - 289*3 = 151), och då avrundas
+	# höjden uppåt i stället (remsan blir 148 px). UTAN remsa (skalet) golvas den: vyn får aldrig bli
+	# STÖRRE än fönstret (mätt: 1020 px i ett 1018 px fönster, alltså 2 px klippta i nederkanten).
+	if barh > 0.0 and f.y - höjd * skala > BAR_MAX:
+		höjd = maxf(float(VY.y), ceilf((f.y - barh) / skala))
+	# Vyn och korgen: samma mått. SubViewporten ritar 3D:n i den här storleken, och korgen skalas
+	# upp med heltalet — hårda pixlar, ingen halvskalning.
+	_vy.size = Vector2i(int(bredd), int(höjd))
+	_vy_korg.size = Vector2(bredd, höjd)
 	_vy_korg.scale = Vector2(skala, skala)
-	_vy_korg.position = ((f - Vector2(VY) * skala) / 2.0).floor()
-	# Ramen i marginalen (M36) behöver vyns ruta: den ritar fyra band runtom och ingenting innanför.
+	# VYN I ÖVERKANTEN (M113). Det som blir över i sidled (högst skala-1 px, alltså 0-2 px) delas
+	# lika: en pixel bakgrund på vardera sidan syns inte, och vyn ligger kvar i mitten.
+	_vy_korg.position = Vector2(floorf((f.x - bredd * skala) * 0.5), 0.0)
+	# Ramen ritar banden runtom vyn — baren är dess golvband (`hud_ram.band`): plåtarna i baren är
+	# alltså ingen egen kontroll, utan samma bakgrund som förut fast bara nedanför vyn. Sidokolumnerna
+	# (om breddtaket tog i) målas i bakgrundsfärgen, inte i plåt (M113).
 	if hud_ram != null:
-		hud_ram.sätt_vy(Rect2(_vy_korg.position, Vector2(VY) * skala), int(skala))
-	# HÖGARNA FÖRST (M51): kärlen och korträknaren mäts mot högens överkant, och mättes de innan högen
-	# fanns på plats blev siffran satt efter en gammal ruta (mätt: kärlet hamnade över slänghögen).
-	_placera_högarna(f, Rect2(_vy_korg.position, Vector2(VY) * skala), int(skala))
-	_placera_gui(f)
+		hud_ram.sätt_sten_mjuk(_sten_mjuk)
+		hud_ram.sätt_bar_syns(i_körning)
+		hud_ram.sätt_vy(Rect2(_vy_korg.position, Vector2(bredd, höjd) * skala), int(skala))
+	# SKALETS VYER (M113): byn, kartan och trädet ritar sig själva i sin EGEN ruta (`_vy()` = size),
+	# så de måste få vyns ruta — annars ritar de i 480x270 mitt i ett större fönster och scenen ser
+	# inramad ut (Alex: "inte en by i helskärm").
+	for v in [by_view, karta_view, trad_view]:
+		if v != null:
+			v.size = Vector2(bredd, höjd)
+			v.queue_redraw()
+	# KARTAN FÖRE GUI:N (M113): barens högerzon — loggen och manaklotet — mäts mot kartans EGEN ruta.
+	# Kördes `_placera_gui` först hamnade de efter förra layoutens karta (samma fälla som M51).
 	_placera_karta(f, skala)
+	_placera_gui(f)
+	# HÖGARNA SIST (M113): de ligger i barens fria band, och bandet mäts ur statusblockets och loggens
+	# EGNA rutor — de måste alltså ha sin plats först (samma regel som M51).
+	_placera_högarna()
 
-## Kärlen (M36) i marginalens nedre hörn: hälsan till vänster, manan till höger och rustningen i
-## vänsterkolumnen ovanför hälsan. Hörnen är fria — korten ligger i mitten (mätt: x 405..870 vid
-## 1280x720, alltså långt ifrån marginalen) — och storleken följer fönstrets heltalsskala som ramen.
-## Lägger HUD:ens tre rutor (M40). Alla tre ligger i MARGINALEN — statusblocket i den övre (fönstrets
-## yta ovanför spelvyn, 90 px vid 1280x720), loggen och fienderutan i den nedre. Ingen av dem rör
-## spelvyn, och det mäts i tests/test_gui.gd.
+## Vyns AKTUELLA mått i spelpixlar (M113): 270 på höjden så länge fönstret räcker, bredden ur
+## fönstret. Allt som ritas INNE i vyn räknar mot den här — en hårdkodad 480x270 hade lagt paneler
+## och figurer ur centrum så fort vyn blev bredare (mätt i guiprovet: 76 px fel i en 632 px-vy).
+func _vy_mått() -> Vector2:
+	if _vy == null:
+		return Vector2(VY)
+	return Vector2(_vy.size)
+
+## Barens ruta (M113): allt under spelvyn, i fönstrets fulla bredd. Höjden är den höjd som blir kvar
+## när vyn ligger i överkanten — och eftersom skalan väljs med BAR_HOJD i nämnaren är den minst 68
+## spelpixlar (MÄTT: 208 px i 1896x1018, 180 px i 1280x720, 748 px i 941x1018). Rutan läses ur vyns
+## EGEN plats och storlek, så baren kan inte hamna någon annanstans än under bilden. Kortare fönster
+## än 480x270+68 spelpixlar ger en tom bar (höjd 0): då ryms varken vyn eller baren, och en negativ
+## höjd är inget att räkna med — provet hoppar över layouten och `-- guiprov` mäter i ett riktigt
+## fönster. Bakgrunden ritar `hud_ram`, vars golvband är exakt den här rutan.
+func _bar(f: Vector2) -> Rect2:
+	var under := _vy_korg.position.y + _vy_korg.size.y * _vy_korg.scale.y
+	return Rect2(0.0, under, f.x, maxf(0.0, f.y - under))
+
+## Kartans ruta i fönstret, LÄST UR NODEN SJÄLV (satt av `_placera_karta`): räknades den om här
+## kunde barens högerzon och kartan glida isär — samma regel som för korthögarna, vars mått läses ur
+## `hog_drag` i stället för att räknas en gång till.
+func _karta_ruta() -> Rect2:
+	if map_view == null:
+		return Rect2()
+	return Rect2(map_view.position, map_view.size * map_view.scale.x)
+
+
+## HUD:en i BAREN (M113) — EN remsa längst ned i fönstret, som i Doom.
 ##
-## Korträknaren flyttar till mitten under handen: den stod i vänstra hörnet, där loggen nu ligger, och
-## den hör ihop med handen som står i mitten.
+## Alex: *"Kika på Hud nu, så vi får en bar i botten, som i doom, men med korten i mitten, det här med
+## att rama in spelet i en liten ruta i skärmen funkar inte för mig mer"*. Allt som förr låg i fyra
+## marginaler runt vyn ligger nu i den remsa som blir över under den: kloten (hp i vänsterkanten med
+## rustningen ÖVER hp, manan i högerkanten innanför kartan), statusens siffror, tipsraden i barens övre
+## kant, loggen i den högra tredjedelen, korträknaren i nedre vänstra hörnet och minikartan i barens
+## högra kant. Korten i handen rörs inte: solfjädern ligger kvar över vyn (se `_rada_hand`).
+##
+## MÄTT (guiprov: vyn 1440x810 i skala 3 och baren 1896x208 i Alex' 1896x1018, och samma sak i
+## 1280x720 och 941x1018): ingen kontroll ritar inne i spelvyn, ingen ligger utanför baren och ingen
+## överlappar en annan. Allt räknas ur BARENS ruta — inte ur vyns — så en annan fönsterstorlek flyttar
+## innehållet med baren i stället för att lämna något kvar i den gamla marginalen.
 func _placera_gui(f: Vector2) -> void:
+	var b := _bar(f)
+	var skala := maxi(1, int(round(_vy_korg.scale.x)))       # vyns heltalsskala: klotens pixelkonst
+	# SKALET (byn, kartan, menyerna): REMSAN FINNS INTE (M113), så barens ruta är tom och de
+	# barberoende positionerna nedan skulle hamna utanför fönstret. Skalets egen rad — valutan —
+	# läggs i stället som ett TUNT ÖVERLÄGG i nederkanten, på scenen: Alex: *"Menyvalen läggs som
+	# ett tunt överlägg i nederkanten, inte som en egen trave band"*.
+	if b.size.y < 1.0:
+		if top_label != null:
+			top_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			top_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			top_label.size = Vector2(560.0, 24.0)
+			top_label.position = Vector2(MARGINAL, f.y - 30.0)
+		if hint_label != null:
+			hint_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			hint_label.size = Vector2(560.0, 23.0)
+			hint_label.position = Vector2(f.x - MARGINAL - 560.0, f.y - 29.0)
+		return
+	var s := float(skala)
+	var luft := 6.0 * s                                      # luften mot barens kanter, i fönsterpx
+	var mitt := b.position.y + b.size.y * 0.5                # barens lodräta mitt: klotens mitt
+	# --- KLOTEN. RADIEN RÄKNAS UR REMSANS HÖJD I FÖNSTERPIXLAR (M113): hp och rustningen står OVANPÅ
+	# varandra, så paret 2 * 2 * (radie + KANT) + MELLAN måste rymmas i remsan med luft kvar. Remsan är
+	# 90-150 px, alltså blir radien (150 - 2*6 - 4*4 - 6) / 4 = 30 px i sin högsta form (68 px klot,
+	# paret 142 px) och (90 - 38) / 4 = 13 px i sin lägsta (34 px klot, paret 84 px). Ett högre remsor
+	# ger alltså STÖRRE klot, aldrig mindre — det är samma formel hela vägen, inte två lägen.
+	# Skalan är 1 (och inte vyns): ett klot i vyns heltalsskala ritas med KANT = 4 * skala px ram, och
+	# vid skala 3 blev paret 186 px i en 150 px remsa — alltså utanför. Ritat i fönsterpixlar ryms det,
+	# och HudOrb ritar ändå sina bågar i hela rader (ingen halvskalning inblandad).
+	var radie := clampf((b.size.y - 2.0 * 6.0 - 4.0 * float(HudOrb.KANT) - KÄRL_MELLAN) / 4.0, 10.0, 40.0)
+	var ytter := radie + float(HudOrb.KANT)                 # klotets mitt → ytterkant, i fönsterpx
+	var hop := 2.0 * ytter * 2.0 + KÄRL_MELLAN              # hp + rustningen ovanpå den
+	# Manan ligger i högerkanten men INNANFÖR kartan: kartan äger barens ytterkant, och högerzonen
+	# nedan mäts ur dess ruta (`_karta_ruta`, satt av `_placera_karta` som därför körs först).
+	var kart := _karta_ruta()
+	if orb_hp != null:
+		orb_hp.ställ_in(int(roundf(radie)), Palett.c(11), Palett.c(2), 1)
+		orb_mana.ställ_in(int(roundf(radie)), Palett.c(25), Palett.c(2), 1)
+		orb_rust.ställ_in(int(roundf(radie)), Palett.c(22), Palett.c(2), 1)
+		# `mitt` är PARETS mitt: hp:s mitt ligger en halv klot ovanför parets underkant, alltså
+		# mitt + hop/2 - ytter. Utan `- ytter` stack paret 33 px nedanför remsan (mätt: hp-klotet
+		# 979..1045 i en remsa som slutar på 1018).
+		var hp_mitt := Vector2(b.position.x + KÄRL_KANT + ytter, mitt + hop * 0.5 - ytter)
+		orb_hp.placera_vid(hp_mitt)
+		orb_rust.placera_vid(hp_mitt - Vector2(0.0, 2.0 * ytter + KÄRL_MELLAN))
+		orb_mana.placera_vid(Vector2(kart.position.x - luft - ytter, mitt))
+	# --- DEN HÖGRA KOLUMNEN: kartan i barens ytterkant och manan innanför den. Allt annat håller sig
+	# till vänster om `högerzon`, så inget kan glida in i kartan eller i manaklotet.
+	var högerzon := kart.position.x
+	if orb_mana != null:
+		högerzon = minf(högerzon, orb_mana.get_rect().position.x)
+	högerzon -= luft
 	if hud_status != null:
-		hud_status.position = Vector2(8.0, 6.0)
-	if hud_logg != null:
-		hud_logg.position = Vector2(8.0, roundf(f.y - HudLogg.HÖJD - 6.0))
+		# SIFFERBLOCKET (M113): till höger om kloten (som äger barens vänstra kant), och KRYMPT så att
+		# loggen, korträknaren och högarna får plats i samma rad. MÄTT i 941x1018: med full bredd
+		# rymdes varken räknaren (120 px) eller högarna (84 px).
+		var block_v := b.position.x + KÄRL_KANT + 2.0 * ytter + luft
+		var kvar := högerzon - block_v - luft
+		# Golven som MÅSTE rymmas efter blocket: loggen (160 px), räknaren (90) och högarna (84) plus
+		# luften mellan dem. MÄTT i 941x1018: utan krympningen rymdes varken räknaren eller högarna.
+		var måste := 160.0 + RÄKN_GOLV + HÖG_GOLV + 3.0 * luft
+		hud_status.sätt_skala((kvar - måste) / HudStatus.BREDD)
+		hud_status.position = Vector2(roundf(block_v), roundf(mitt - hud_status.size.y * 0.5))
 	if top_label != null:
-		# Saldot (M61) står i den övre marginalens VÄNSTERKANT — samma yta som statusblocket i en
-		# körning, men de syns aldrig samtidigt: statusblocket hör till körningen och saldot till
-		# skalet (se `_refresh_shell`).
+		# Saldot (M61) står i barens vänstra kant — samma yta som statusblocket i en körning, men de
+		# syns aldrig samtidigt: statusblocket hör till körningen och saldot till skalet.
 		top_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		top_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		top_label.size = Vector2(520.0, 23.0)
-		top_label.position = Vector2(8.0, 6.0)
+		top_label.position = Vector2(b.position.x + 8.0, b.position.y + 6.0)
 	if hint_label != null:
-		# Tipsraden ligger i den ÖVRE marginalens högerkant, vänster om minikartan. Den sattes förut med
-		# `position` på ett HÖGERANKARE, och då räknas positionen från förälderns vänsterkant: raden
-		# hamnade 166 px utanför vänsterkanten — högerkanten såg tom ut och raden skymdes av
-		# statusblocket (mätt i guiprovet, inte gissat).
-		var skala: float = maxf(1.0, _vy_korg.scale.x)
-		var kartkant := f.x - (MapView.MAP_SIZE.x * skala + MARGINAL + 8.0)
+		# Tipsraden i barens ÖVRE kant, högerställd mot den högra kolumnen. Den låg i marginalen
+		# ovanför vyn — den marginalen finns inte längre (vyn ligger i överkanten), så raden hade
+		# hamnat mitt i bilden. `position` sätts på ett VÄNSTERankare: på ett högerankare räknas den
+		# från förälderns vänsterkant (M40:s fälla: raden hamnade 166 px utanför kanten).
 		hint_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		hint_label.size = Vector2(560.0, 23.0)
-		hint_label.position = Vector2(kartkant - 560.0, RAD_2_Y)
-	if orb_hp != null:
-		# KÄRLEN I SPELVYNS NEDRE HÖRN (M111). Alex: *"Jag ser fortfarande inga Orbs heller, och jag
-		# skulle vilja ha 3 - HP, Mana och Armor. Man måste veta om man har så man klarar sig genom en
-		# strid. Sätt dem nere i vardera hörn, men placera Armor över HP. Nu är det dags att de syns
-		# oavsett upplösning."*
-		#
-		# VARFÖR DEN GAMLA PLACERINGEN INTE SYNTES. Kärlen låg i vänstermarginalen och räknades ur
-		# utrymmet MELLAN panelerna, med golvet 6 px radie: i ett fönster där marginalen är smal eller
-		# bandet mellan korthögarna och loggen är negativt klämdes de till 20x20 px (mätt) — en mörk
-		# prick i en svart marginal. Här räknas de i stället i SPELPIXLAR ur spelvyns höjd, med samma
-		# heltalsskala som vyn och ramen, och ankras i hörnen. Då är ett kärl alltid 0,11 * 270 = 30
-		# spelpixlar i radie (60 px i diameter, 22 % av vyns höjd) — i VARJE fönsterstorlek, för
-		# skalan följer fönstret. Det är samma grepp som ramen: måttet i fönsterpixlar gånger skalan.
-		var skala := maxi(1, int(round(_vy_korg.scale.x)))
-		var r := clampi(int(round(float(VY.y) * KÄRL_RADIE_ANDEL)), KÄRL_RADIE_MIN, KÄRL_RADIE_MAX)
-		var kant := KÄRL_KANT
-		var mellan := KÄRL_MELLAN
-		var o := _vy_korg.position                                 # vyns övre vänstra hörn
-		var nedre := float(VY.y) - kant - float(r)                 # kärlens mitt, lodrätt ur botten
-		var vänster := kant + float(r)
-		var höger := float(VY.x) - kant - float(r)
-		var hp_mitt := o + Vector2(vänster, nedre) * float(skala)
-		var rust_mitt := hp_mitt - Vector2(0.0, (2.0 * (float(r) + float(HudOrb.KANT)) + mellan) * float(skala))
-		var mana_mitt := o + Vector2(höger, nedre) * float(skala)
-		orb_hp.ställ_in(r, Palett.c(11), Palett.c(2), skala)
-		orb_mana.ställ_in(r, Palett.c(25), Palett.c(2), skala)
-		orb_rust.ställ_in(r, Palett.c(22), Palett.c(2), skala)
-		orb_hp.placera_vid(hp_mitt)
-		orb_rust.placera_vid(rust_mitt)
-		orb_mana.placera_vid(mana_mitt)
-	if kort_label != null:
-		# Korträknaren står ÖVER HÖGEN TILL HÖGER (Alex: *"hur många kort man har (det borde ligga över
-		# högen till höger, så man ser det hela tiden)"*). Förut låg den i botten mitt på, i en mörk ton
-		# ingen såg. Rutan mäts med NEGATIVA offsets från bottenankaret: `position` räknas från
-		# förälderns övre vänstra hörn även med ett bottenankare (se den gamla mätningen i M36).
-		var tak := f.y - 60.0
-		var vänster := f.x * 0.5 - 45.0
-		var bredd := 90.0
-		if hog_drag != null and hog_drag.kort.x > 0.0:
-			bredd = maxf(90.0, hog_drag.kort.x)
-			vänster = hog_drag.position.x
-			tak = hog_drag.position.y - 26.0
-		kort_label.offset_left = vänster
-		kort_label.offset_right = vänster + bredd
-		kort_label.offset_bottom = tak + 24.0 - f.y
-		kort_label.offset_top = tak - f.y
-		kort_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		kort_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		# Bredden kläms till ytan MELLAN statusblocket och den högra zonen (M113): 560 px räckte inte i
+		# 941x1018 — raden började 71 px in i statusblocket (mätt) och låg över siffrorna.
+		var hint_v := b.position.x + luft
+		if hud_status != null:
+			hint_v = hud_status.get_rect().end.x + luft
+		# UNDER 200 PX DÖLJS RADEN (M113): i 800x600 är ytan mellan statusblocket och den högra zonen
+		# 164 px, och en rad som kläms till 200 px lade sig 12 px in över statusblockets siffror (mätt).
+		# En tipsrad som inte får plats är bättre borta än över siffrorna — den finns kvar i de rutor
+		# där den ryms (1896x1018: 560 px, 1280x720: 509 px, 941x1018: 204 px).
+		hint_label.visible = högerzon - luft - hint_v >= 200.0
+		var hint_b := clampf(högerzon - luft - hint_v, 200.0, 560.0)
+		hint_label.size = Vector2(hint_b, 23.0)
+		hint_label.position = Vector2(roundf(högerzon - luft - hint_b), b.position.y + luft)
+	if hud_logg != null:
+		# Loggen i barens HÖGRA TREDJEDEL: högerkanten mot den högra kolumnen, vänsterkanten i
+		# tredjedelen (MÄTT i 1896x1018: 1280..1542, tredjedelen är 1264..1896).
+		# HÖJDEN ur remsan (M113): remsan är 90-150 px och loggen får den höjd som ryms, sedan Mät
+		# krymper raderna med den (HudLogg.sätt_höjd). En remsa på 150 px ger 84 px logg som förut.
+		var logg_plats := clampf(b.size.y - 2.0 * luft, 56.0, HudLogg.HÖJD)
+		# BREDDEN: den fria ytan mellan statusblocket och den högra zonen. Räcker den inte till den
+		# fulla rutan krymps den (minst 120 px) i stället för att läggas UNDER statusblocket — i en
+		# remsa på 150 px finns ingen plats under det (78 + 56 + luft = 152 px, mätt).
+		var logg_v := b.position.x + luft
+		if hud_status != null:
+			logg_v = hud_status.get_rect().end.x + luft
+		# BREDDEN: från statusblockets högerkant till den högra zonen, MINUS räknarens och högarnas
+		# golv. Loggen ligger längst till HÖGER i mittenbandet och de andra två till vänster om den,
+		# så inget kan hamna över något annat (M113).
+		var logg_b := clampf(högerzon - luft - logg_v - (RÄKN_GOLV + luft) - (HÖG_GOLV + luft),
+			120.0, HudLogg.BREDD)
+		var logg_x := maxf(logg_v, högerzon - luft - logg_b)
+		# KORT RÄKNAREN i samma RAD, till vänster om loggen (M113). Den låg först i remsans nedre
+		# vänstra hörn och krockade med hp-klotet (mätt: 52x23 px), sedan under statusblocket — som
+		# inte lämnar plats i en 148 px remsa. Bredden krymper till golvet 90 px för att lämna
+		# högarnas 84 px fria; i en vid ruta tar den 120 px och texten står i full bredd.
+		if kort_label != null:
+			var räkn_x := logg_v
+			var räkn_b := clampf(minf(KORT_RÄKNARE_BREDD, logg_x - luft - räkn_x - (HÖG_GOLV + luft)),
+				RÄKN_GOLV, KORT_RÄKNARE_BREDD)
+			kort_label.size = Vector2(räkn_b, 24.0)
+			kort_label.position = Vector2(roundf(räkn_x), roundf(mitt - kort_label.size.y * 0.5))
+		hud_logg.sätt_höjd(logg_plats, logg_b)
+		# Under TIPSRADEN (M113): den ligger i remsans överkant och skar loggens överkant med 7 px
+		# (mätt i 1896x1018). Loggen centreras i resten av remsan i stället, och glider ned om det
+		# behövs — den ligger kvar innanför remsans underkant.
+		var logg_topp := b.position.y + luft + 23.0 + luft
+		hud_logg.position = Vector2(roundf(logg_x), roundf(clampf(mitt - logg_plats * 0.5, logg_topp,
+			maxf(logg_topp, b.end.y - luft - logg_plats))))
+
 
 ## Rutorna syns när spelet visas: i tomvyn (skalet bakom en körning) finns ingen status att visa.
 func _visa_gui(syns: bool) -> void:
-	for n in [hud_status, hud_logg, orb_hp, orb_mana, orb_rust]:
+	# HELA REMSAN (M113): räknaren, tipsraden och korthögarna hörde inte med i listan förut, så de
+	# låg kvar synliga i byn och på kartan (Alex: *"Det skall inte vara en bar i botten förrän man är
+	# inne i dungeons"*). Grinden sitter här — inte på ett enskilt barn — och proven mäter att allt
+	# i remsan är dolt i skalet och synligt i en körning.
+	for n in [hud_status, hud_logg, orb_hp, orb_mana, orb_rust, kort_label, hint_label,
+			hog_drag, hog_använd]:
 		if n != null:
 			n.visible = syns
 	# HÄR LÅG EN ANDRA REGEL OM SAMMA SAK (borttagen 11/10). Den gömde mana och rustning så fort
@@ -7314,46 +7583,82 @@ func _visa_gui(syns: bool) -> void:
 	# samlar). Alex: *"Det finns ju idag ingen hälso- eller manakula, var har du gömt dem? Jag vill se
 	# dem hela tiden, inte bara vid strid"*. Regeln bor nu på ETT ställe: `_hud_sätt`.
 
-## Korthögarna (M34, punkt 8) i sidokolumnerna: leken till höger och de använda till vänster, båda i
-## kortets egen storlek och med underkanten mot kärlen. Se `_hög_geometri` för räkningen.
-func _placera_högarna(_f: Vector2, _vy: Rect2, _skala: int) -> void:
+## Korthögarna (M34, punkt 8): leken växer till höger och de använda till vänster, båda i kortets egen
+## storlek. Sedan M113 ligger de i BAREN — vyn går kant i kant, så sidokolumnerna finns inte längre.
+## Se `_hög_geometri` för räkningen.
+func _placera_högarna() -> void:
 	if hog_drag == null:
 		return
-	_visa_högarna(active_combat != null and not active_combat.over())
+	# DÖLJS NÄR REMSAN ÄR FÖR SMAL (M113): i 800x600 och 941x1018 tar statusblocket, siffrorna,
+	# loggen, korträknaren, kloten och kartan hela raden. Då finns ingen plats kvar för två högar,
+	# och en hög som ligger över loggen är värre än ingen hög — provet mäter att inget överlappar.
+	# MÄTT: bandet är 84 px i 941x1018 (två kort i 0,4-skala ryms precis) och 96 px i 1896x1018.
+	var g := _hög_geometri(1)
+	var plats: float = g.get("fritt", 0.0)
+	_visa_högarna(active_combat != null and not active_combat.over() and plats >= HÖG_GOLV)
 
 ## Högens geometri: kortets mått, hur brett stapeln får sprida, och var högen står.
 ##
 ## Kortet har SAMMA storlek som handens kort (Alex: *"staplarna med kort måste bli lika stora som
-## korten är i spelet"*), och högen växer BORT från spelvyn — inåt hade korten hamnat över korridoren.
-## Underkanten läggs mot kärlen och överkanten mot det som redan äger kolumnen (minikartans ordrad
-## till höger, statusraden till vänster), och de läses ur nodernas EGNA rutor: räknades de om här
-## kunde de glida isär med kärlen.
+## korten är i spelet"*), och högen växer utåt från mitten av sitt BAND. Bandet (M113) är ytan i baren
+## mellan statusblocket och loggen, läst ur nodernas EGNA rutor — räknades det om här kunde det glida
+## isär med dem (samma regel som M51). Två högar delar bandet på mitten: den ena växer vänsterut, den
+## andra högerut.
 func _hög_geometri(antal: int = 1) -> Dictionary:
 	var skala := maxf(1.0, roundf(_vy_korg.scale.x))
-	var vy := Rect2(_vy_korg.position, Vector2(VY) * skala)
 	var air := 6.0 * skala
-	# Kortet i högen har handens storlek när kolumnen rymmer den — men marginalen är 160 px och ett
-	# kort i handen är 182, så ett fullstort kort hamnade utanför skärmkanten (mätt på skärmbild: högen
-	# klipptes av mot ramen). Högens kort krymps därför till kolumnens bredd, aldrig under halva
-	# handkortet — poängen med högen är att korten ska ses, inte att de ska vara små rektanglar.
+	var b := _bar(Vector2(get_viewport().get_visible_rect().size))
+	# BANDET: från statusblockets högerkant (eller barens vänsterkant) till loggens vänsterkant
+	# (eller barens högerkant). Loggen kan ligga UNDER statusblocket i ett smalt fönster — då är dess
+	# vänsterkant statusblockets, och bandet slutar vid barens högerkant.
+	var vänster := b.position.x + air
+	var höger := b.end.x - air
+	# DEN HÖGRA ZONEN (M113): manaklotet och kartan äger barens högerkant, så bandet slutar innanför
+	# dem — annars lade högarna sina kort över manan (mätt i 941x1018: dragkortet slutade 104 px in
+	# i manaklotet).
+	if orb_mana != null:
+		höger = minf(höger, orb_mana.get_rect().position.x - air)
+	if hud_status != null:
+		vänster = maxf(vänster, hud_status.get_rect().end.x + air)
+	if kort_label != null:
+		# Räknaren står till vänster om högarna i samma rad (M113), så bandet börjar efter den.
+		vänster = maxf(vänster, kort_label.get_rect().end.x + air)
+	if hud_logg != null:
+		# Loggen ligger antingen till HÖGER om bandet eller INUTI det (smal ruta): båda fallen måste
+		# bandet hålla sig undan för, annars lade högarna korten över loggen.
+		var lr := hud_logg.get_rect()
+		if lr.position.x - air > vänster:
+			höger = minf(höger, lr.position.x - air)
+		elif lr.end.x + air > vänster:
+			vänster = maxf(vänster, lr.end.x + air)
+	# BANDET är det som verkligen blev fritt — inte ett påhittat golv. Är det mindre än HÖG_GOLV
+	# (två kort i 0,4-skala, 84 px) ryms högarna inte i remsan, och då döljs de (se _placera_högarna)
+	# i stället för att läggas över statusblocket, loggen eller kartan.
+	var band: float = maxf(2.0 * CardView.HAND_SIZE.x * 0.4, höger - vänster)
+	var fritt: float = höger - vänster
+	# Kortet i högen har handens storlek när bandet rymmer det — men ett kort i handen är 182 px och
+	# bandet kan vara smalare, så ett fullstort kort hamnade utanför skärmkanten (mätt på skärmbild:
+	# högen klipptes av). Högens kort krymps därför till halva bandet, aldrig under halva handkortet —
+	# poängen med högen är att korten ska ses, inte att de ska vara små rektanglar.
 	# Kortets bredd måste lämna plats åt KANTERNA: arton kort i en 160 px-kolumn gav 136 px kort plus
 	# 1,5 px kant per kort = 152 px, alltså utanför skärmkanten, och högens ram klipptes av (mätt på
 	# skärmbild: den vita ramen försvann i CRT-kanten). Kortet krymps därför så att korten OCH kanterna
 	# ryms — och KortHogs eget prov mäter fortfarande att varje kort får en egen kant.
 	var kanter := KortHog.STEG_MIN * float(maxi(0, antal - 1))
+	# HÖJDEN: barens höjd minus luften i båda kanter och siffran under stapeln. Golvet är 0,4 (mätt i
+	# 941x1018: bandet är 129 px där, alltså 61 px per hög — mindre än så går siffran inte att läsa).
 	var kortskala := clampf(minf(HAND_SKALA,
-			(vy.position.x - 2.0 * air - kanter) / CardView.HAND_SIZE.x), 0.4, HAND_SKALA)
+			minf((band * 0.5 - kanter) / CardView.HAND_SIZE.x,
+				(b.size.y - 2.0 * air - KortHog.TEXT_HÖJD) / CardView.HAND_SIZE.y)), 0.4, HAND_SKALA)
 	var kort: Vector2 = CardView.HAND_SIZE * kortskala
-	# Kolumnens bredd minus kortet och luften i båda kanter: samma räkning för båda högarna.
-	var sprid: float = maxf(8.0 * skala, vy.position.x - kort.x - 2.0 * air)
-	# Underkanten mot BOTTENBANDET (loggen och fienderutan, M40): högarna står i SIDOKOLUMNERNA och
-	# rutorna i bottenbandet, så de möts i hörnen — och där får korten inte hamna. Före M40 var det
-	# kärlen som satte gränsen; nu är gränsen den ruta som ligger längst ned i kolumnen.
-	var bottenband := HudLogg.HÖJD + 3.0 * air
-	var drag_botten := vy.end.y + air - bottenband
-	var anv_botten := drag_botten
-	return {"kort": kort, "sprid": sprid, "air": air, "vy": vy,
-		"drag_botten": drag_botten, "anv_botten": anv_botten}
+	# SPRIDEN ryms i bandets halva (M113): golvet på 8 px kunde trycka korten utanför bandet i en
+	# smal ruta. Blir det ingen sprid alls står korten i en jämn stapel — så ser en hög ut.
+	var sprid: float = maxf(0.0, band * 0.5 - kort.x)
+	# Underkanten mot BARENS underkant: högarna står i remsan tillsammans med allt annat HUD.
+	var botten := b.end.y - air
+	return {"kort": kort, "sprid": sprid, "air": air, "fritt": fritt,
+		"vy": Rect2(vänster, b.position.y, band, b.size.y),
+		"drag_botten": botten, "anv_botten": botten, "mitt": vänster + band * 0.5}
 
 
 ## Ritar högarna: antalet i leken och bland de använda, och FLYTTEN när leken tar slut: blir draghögen
@@ -7380,6 +7685,8 @@ func _refresh_högarna(i_strid: bool) -> void:
 
 ## Högens kort och placering ur antalet: en väg in, delad av stridsbytet och fönsterbytet.
 func _visa_högarna(i_strid: bool) -> void:
+	# HÖGARNA HÖR TILL REMSAN (M113): de syns bara i en körning, som allt annat i baren.
+	i_strid = i_strid and shell == "körning"
 	hog_drag.visible = i_strid
 	hog_använd.visible = i_strid
 	if not i_strid:
@@ -7387,14 +7694,17 @@ func _visa_högarna(i_strid: bool) -> void:
 	var drag: int = active_combat.draw_pile.size()
 	var använd: int = active_combat.discard_pile.size()
 	# Geometrin får det STÖRSTA antalet: kortet måste vara litet nog att både korten och kanterna i
-	# den fulla högen ryms i kolumnen (se _hög_geometri).
+	# den fulla högen ryms i bandet (se _hög_geometri).
 	var g := _hög_geometri(maxi(drag, använd))
-	# Högerhögen växer åt höger (leken, blå) och vänsterhögen åt vänster (de använda, röd). Färgen är
-	# bara fallskärmen om baksidan saknas — annars ritas korten med sin egen baksida.
+	# Högerhögen växer åt höger (leken, blå) och vänsterhögen åt vänster (de använda, röd), båda från
+	# BANDETS mitt: sidokolumnerna finns inte längre (M113), så "utåt" är nu ut från mitten av den yta
+	# i baren som står fri mellan statusblocket och loggen. Färgen är bara fallskärmen om baksidan
+	# saknas — annars ritas korten med sin egen baksida.
+	var mitten: float = g["mitt"]
 	hog_drag.ställ_in(drag, g["kort"], g["sprid"], g["drag_botten"], 1, Palett.c(25), Palett.c(2))
-	hog_drag.placera_vid(g["vy"].end.x + g["air"])
+	hog_drag.placera_vid(mitten)
 	hog_använd.ställ_in(använd, g["kort"], g["sprid"], g["anv_botten"], -1, Palett.c(11), Palett.c(2))
-	hog_använd.placera_vid(g["vy"].position.x - g["air"])
+	hog_använd.placera_vid(mitten)
 
 
 ## Antalet i leken och bland de använda, och FLYTTEN när leken tar slut: blir draghögen fler
@@ -7412,21 +7722,36 @@ func _samla_högarna() -> void:
 	print("[kortbord] leken tog slut: de använda samlades ihop och lades tillbaka (%.0f px)" % från.distance_to(hog_drag.position))
 
 
-## Minikartan i MARGINALEN: fönstrets övre högra hörn (M32). HUD:en ligger i `_runt` och ritas i
-## fönstrets upplösning, så kartan får sin plats i fönsterpx — och sin storlek ur korgen:s heltal,
-## alltså samma pixelkonst som förut (kartan låg förr INUTI vyn, med orden som en remsa tvärs över
-## den). Se `MapView` för mätningen.
+## Minikartan i BARENS HÖGRA KANT (M113). Den låg i fönstrets övre högra hörn (M32), i marginalen
+## ovanför vyn — den marginalen finns inte längre: vyn ligger i överkanten och allt HUD-innehåll i
+## baren under den. Kartan behåller fönstrets heltalsskala (samma pixelkonst som förut), men krymps om
+## baren är lägre än kartan: annars ritade den in över spelvyn (MÄTT: 180 px karta i en 208 px bar
+## ryms, och golvet BAR_HOJD 68 spelpixlar gör att skalan aldrig behöver gå under 1 i ett fönster som
+## rymmer vyn). HUD:en ligger i `_runt` och ritas i fönstrets upplösning, så kartan får sin plats i
+## fönsterpx — se `MapView` för mätningen.
 func _placera_karta(f: Vector2, skala: float) -> void:
 	if map_view == null:
 		return
+	var b := _bar(f)
+	# KARTANS SKALA (M113): barens HÖJD begränsar den (kartan får inte sticka ut över/under remsan) och
+	# BREDDEN gör det också — i en smal ruta tar en fullskalig karta ytan som högarna behöver. MÄTT i
+	# 941x1018: skala 3 gav en 228 px karta, alltså 180 px hög i en 150 px remsa; med 14 %-taket på
+	# bredden blir skalan 1 (76x60), och de 76 px som blev över räcker till båda högarna (123 px band).
+	# HELA KOLUMNEN, inte bara kartan: kartans ordlista ligger UNDER den (LEGEND_HÖJD), och med bara
+	# kartans höjd i nämnaren stack ordlistan ut genom remsans underkant (mätt i 1280x720: 228 px
+	# kolumn i en 136 px remsa). Med hela kolumnen blir skalan 1 där och kartan 76x60 + 54 px ordlista.
+	var kolumnh := MapView.MAP_SIZE.y + MapView.LEGEND_HÖJD
+	var kartskala: float = maxf(1.0, minf(skala, minf(floorf((b.size.y - 2.0 * MARGINAL) / kolumnh),
+		floorf(f.x * 0.14 / MapView.MAP_SIZE.x))))
 	map_view.size = MapView.MAP_SIZE
-	map_view.scale = Vector2(skala, skala)
-	map_view.position = Vector2(f.x - MapView.MAP_SIZE.x * skala - MARGINAL, MARGINAL)
-	# Tangenttipsen: i marginalen till VÄNSTER om kartan och en rad ned — tipsen låg förr högst upp
-	# till höger, där kartan nu står (mätt: de krockade, se test_minikarta.gd).
-	# Tipsraden flyttade till `_placera_gui` (M40): den låg här och sattes EFTER `_placera_gui`, med
-	# `position` på ett högerankare — alltså räknad från förälderns vänsterkant, 166 px utanför
-	# skärmen. Allt som hör till marginalen sätts nu på ett ställe.
+	map_view.scale = Vector2(kartskala, kartskala)
+	# HELA KOLUMNEN CENTRERAS, inte bara kartan: ordlistan hänger under den, och centrerades bara
+	# kartan stack ordlistan ut genom remsans underkant (mätt i 1280x720: kolumnens underkant 766 i
+	# en remsa som slutar på 720).
+	map_view.position = Vector2(f.x - MapView.MAP_SIZE.x * kartskala - MARGINAL,
+		roundf(b.position.y + (b.size.y - kolumnh * kartskala) * 0.5))
+	# Tipsraden sätts av `_placera_gui` (M40/M113): den ligger i barens övre kant, högerställd mot
+	# kartans och manans kolumn. Allt som hör till baren sätts på ett ställe.
 
 ## HUD:en i ytan runtom spelvyn, i fönstrets upplösning.
 ##
@@ -7502,17 +7827,20 @@ func _bygg_runt() -> void:
 	hint_label.add_theme_color_override("font_color", Color(0.72, 0.76, 0.86))
 	_runt.add_child(hint_label)
 
-	# Antalet kort: står vid kanten av den svarta ytan under vyn, där handen ligger.
+	# Antalet kort: står i barens nedre vänstra hörn (M113), alldeles under handen. Den var
+	# bottenankrad (PRESET_BOTTOM_LEFT) med negativa offsets: `position` räknas från förälderns ÖVRE
+	# vänstra hörn även med ett bottenankare (M36:s mätning), och i baren är en vanlig vänsterankrad
+	# etikett både enklare och omöjlig att hamna utanför fönstret med. Platsen sätts av `_placera_gui`.
 	kort_label = Label.new()
 	kort_label.add_theme_font_size_override("font_size", 18)
 	kort_label.add_theme_color_override("font_color", Color(0.80, 0.84, 0.92))
-	kort_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	kort_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	# Texten ställs mot rutans underkant: rutan är högre än en rad (den ärvdes från kärlens marginal),
-	# och med
-	# standardjusteringen (topp) hade siffran flutit ovanför handen.
-	kort_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	kort_label.position = Vector2(8, -8)
+	kort_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	kort_label.add_theme_constant_override("shadow_offset_x", 1)
+	kort_label.add_theme_constant_override("shadow_offset_y", 1)
+	kort_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	kort_label.size = Vector2(120.0, 24.0)
+	kort_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	kort_label.position = Vector2(MARGINAL, VY.y)
 	_runt.add_child(kort_label)
 
 	# Handen hålls framför spelaren, och ligger därför i HUD-lagret (fönstret) och kan skjuta in en
@@ -8066,7 +8394,10 @@ func _place_panel(panel: Control, at_top: bool) -> void:
 	# ovanför, så 40,0 är tillbaka: samma läge som före raden. Krocken mot kartan mäts i stället där
 	# den kan uppstå (litet fönster, där marginalen är noll): tests/test_minikarta.gd jämför panelens
 	# ruta i fönstret mot kartans.
-	panel.position = Vector2((VY.x - s.x) / 2.0, 40.0 if at_top else (VY.y - s.y) / 2.0)
+	# Vyns AKTUELLA mått (M113): vyn är bredare än 480 nu, och en panel som centreras mot 480 hade
+	# hamnat 76 px till vänster om mitten i en 632 px-vy (mätt).
+	var vyn := _vy_mått()
+	panel.position = Vector2((vyn.x - s.x) / 2.0, 40.0 if at_top else (vyn.y - s.y) / 2.0)
 
 ## Panelernas bakgrund: standardpanelen i Godot smälter in i den mörka 3D-vyn (sett på bild:
 ## texten såg ut att flyta fritt). En egen stil med kant ger texten ett fäste.
@@ -8135,7 +8466,7 @@ func _refresh_hand() -> void:
 		var f := get_viewport().get_visible_rect().size
 		# Bredden som behövs är solfjäderns, inte radens: omlottet sparar plats, så en stor hand
 		# behåller större kort än den gjorde i raden.
-		skala = minf(skala, (f.x - 40.0) / (1.0 + (n - 1.0) * FAN_OMLOTT) / CardView.HAND_SIZE.x)
+		skala = minf(skala, (f.x - 40.0) / (1.0 + (n - 1.0) * FAN_TAK) / CardView.HAND_SIZE.x)
 	# HELA SKALAN (M78): samma fel som i kortvalet — 1,75 ger konstpixlar som är 1 och 2 px breda om
 	# varandra. Handens kort står i FÖNSTERPIXLAR (ingen k), så heltalet är skärmens: 2 i stället för
 	# 1,75 (en tiondel större kort, samma storlek på varje konstpixel), och en stor hand som måste
@@ -8225,21 +8556,24 @@ func _rada_hand(genast: bool = false) -> void:
 	# SOLFJÄDER (M34). Alex: "korten ligger ännu på rad" — och en rad är en hylla, inte en hand.
 	# Korten läggs på en båge: mittenkortet högst och rakt, ytterkorten längre ned och vridna utåt,
 	# och med omlott. Raden dömdes tidigare bort för att omlottet gömde grannens namn (elva pixlar
-	# mättes); i en solfjäder är det meningen — namnet läses på det framträdda kortet, och tipset
-	# bär hela texten. Underkanten ligger kvar i fönstrets nederkant: korten skjuter in en bit över
-	# vyns nederkant, precis som en hand med kort.
+	# mättes); i en solfjäder är det meningen — namnet läses på det framträdda kortet (som ritas ÖVER
+	# sina grannar, `CardView.set_forward`), och tipset bär hela texten. Underkanten ligger 6 px in
+	# över VYNS nederkant (M113): handen skjuter in över bilden, precis som en hand med kort — den
+	# låg i fönstrets nederkant förut, men där ligger baren nu.
 	var h: Vector2 = hand_views[0].home_size
-	# STEGET i sidled: så stort att grannen syns, men aldrig större än att raden ryms i fönstret. Med
-	# få kort läggs de nästan kant vid kant — fem kort visar hela kortet, namn och allt, i stället för
-	# den halva som ett fast omlott gav. Först när handen är stor tas omlottet i, och 0,50 är golvet:
-	# tunnare än så försvinner korten bakom varandra.
-	var steg := clampf((f.x - 40.0 - h.x) / maxf(1.0, n - 1.0), h.x * FAN_OMLOTT, h.x)
+	# STEGET i sidled: kortet delar sin bredd med grannen — steget är högst FAN_TAK (0,45) av bredden,
+	# alltså ligger drygt hälften av varje kort under nästa. Alex 12/10, med en referens för handen:
+	# *"korten ska ligga tätare"*. Raden är aldrig bredare än fönstret, och när handen är så stor att
+	# golvet tar vid (FAN_GOLV) krymper steget i stället för att korten hamnar utanför kanten.
+	var steg := clampf((f.x - 40.0 - h.x) / maxf(1.0, n - 1.0), h.x * FAN_GOLV, h.x * FAN_TAK)
 	var mitten := (n - 1) / 2.0
 	var x0 := (f.x - (steg * (n - 1) + h.x)) / 2.0
-	# MITTKORTET ankrar: dess underkant ligger 6 px in i fönstrets nederkant, precis där raden låg.
-	# Ytterkorten hänger lägre (bågen) och skärs av skärmkanten — en hand som hålls lågt ska skäras
-	# av kanten, inte flyta mitt i bilden.
-	var y0 := f.y - h.y - 6.0
+	# MITTKORTET ankrar: dess underkant ligger 6 px in i VYNS nederkant (M113). Förut var ankaret
+	# fönstrets nederkant, men där ligger baren nu — handen hade då legat över statusblocket, kloten
+	# och loggen. Mätt i 1896x1018: kortets underkant flyttade från 1012 (i baren, 202 px under vyn)
+	# till 804 — 6 px in över spelvyns underkant, alltså precis som förut en hand som skjuter in över
+	# bilden. Ytterkorten hänger lägre (bågen) och skärs av vyns kant.
+	var y0 := _bar(f).position.y - h.y - 6.0
 	var grann: float = h.y * GRANN_SVIKT if _forward_index >= 0 else 0.0
 	for i in n:
 		var v: CardView = hand_views[i]
@@ -8547,7 +8881,7 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 	var sida := 44.0 if randf() < 0.5 else -44.0
 	var bröst := spr.global_position + Vector3(0.0, 0.1, 0.0)
 	var djup := cam.global_position.distance_to(bröst)
-	var vy := Vector2(VY)          # skärmkoordinaterna är VYNS: kameran ritar i 480x270
+	var vy := _vy_mått()           # skärmkoordinaterna är VYNS: kameran ritar i vyns eget mått (M113)
 	var skärm := cam.unproject_position(bröst) + Vector2(sida, -30.0)
 	# Talet hålls inom den LÄSBARA korridoren. Står fienden nära hamnade bröstet högt i bild och
 	# siffran bakom stridspanelen (mätt): kläm in den under panelerna och över korten i stället för
@@ -9002,13 +9336,13 @@ func _show_draft() -> bool:
 	# idag." Panelen ligger nu i `_runt` och räknar i FÖNSTERPIXLAR — samma ruta på skärmen som förut,
 	# men varje pixel ritas där den hamnar. `k` är vyns skalning, så ytan blir exakt vyns på skärmen.
 	var f := Vector2(get_viewport().get_visible_rect().size)
-	var k := maxf(1.0, floorf(minf(f.x / float(VY.x), f.y / float(VY.y))))
-	var yta := Vector2(VY) * k
+	var k: float = maxf(1.0, _vy_korg.scale.x)      # vyns skalning (M113): fönstret delat med vyns mått
+	var yta := _vy_mått() * k
 	# Skalan är fortfarande räknad i vyns mått (taket sätts av vyns bredd och höjd) men multipliceras
 	# med `k`: korten står på samma plats och i samma storlek på skärmen som förut — bara rastret blir
 	# fönstrets i stället för vyns.
-	var valskala := clampf(minf((VY.x - 30.0) / (CardView.BIG_SIZE.x * 4.0),
-			(VY.y - 60.0) / CardView.BIG_SIZE.y), 0.45, 1.0) * k
+	var valskala := clampf(minf((_vy_mått().x - 30.0) / (CardView.BIG_SIZE.x * 4.0),
+			(_vy_mått().y - 60.0) / CardView.BIG_SIZE.y), 0.45, 1.0) * k
 	# HELA SKALAN (M78). Den räknade skalan är ett BRÅK (0,745 * k), och då hamnar kortets konstpixlar
 	# på delade skärmpixlar: en konstpixel blir 2 px och nästa 3. Mätt i Alex' egen skärmbild av
 	# kortvalet: körningslängderna i konsten var 1, 2 och 3 px om varandra (1944 ettor) — samma fel som
@@ -9385,7 +9719,8 @@ func _spade_på_bild() -> Vector2:
 		return Vector2.ZERO
 	if cam.is_position_in_frustum(_spade_sprite.global_position):
 		return cam.unproject_position(_spade_sprite.global_position)
-	return Vector2(VY.x * 0.5, VY.y * 0.86)
+	var vyn := _vy_mått()
+	return Vector2(vyn.x * 0.5, vyn.y * 0.86)
 
 ## Ett musklick i spelvyn. SPADEN är den enda saken i korridoren som klickas; allt annat sköts med
 ## tangenterna. Ett klick som gör "något" någon annanstans är ett klick spelaren inte kan förutse.

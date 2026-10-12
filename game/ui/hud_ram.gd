@@ -1,70 +1,141 @@
-## HUD-ramen (M36): den svarta marginalen runt spelvyn ritas om till en ram i Diablo 1/2:s anda.
+## HUD:ens yta runt spelvyn (M36, omgjord i M113).
 ##
 ## Alex: *"den svarta ytan behöver få en grafisk HUD, lite som diablo 1/2, men korten har central
-## plats nedtill"*. Ramen lägger sig UTANFÖR spelvyns ruta — fyra band runt vyn — och längs vyns
-## kant blir den en indragen fasad: mörk skugga innerst, ljus metallmoulding utanför. Ytan är
-## plåtar: en mörk bas, sömmar mellan plåtarna och nitar på sömmarna. Sten och metall, inte platta
-## textrader.
+## plats nedtill"* — och sedan, när ramen låg där: *"ännu en grå ram runt spelfönstret (det man ser
+## dungeon i), jag vill bara ha en bottom border a la Doom 2"* / *"den jävla grå ramen runt rutan man
+## spelar i, ta bort skiten, det skall bara vara en bottom bar"*.
+##
+## RAMEN RUNT VYN ÄR BORTTAGEN. Ingen plåt, ingen faskant, ingen indragen fasad och ingen kantlinje
+## ritas längre runt spelvyn — ritkoden för den är raderad (inte avstängd med en flagga). Det som
+## ligger kvar runt vyn är BAKGRUNDSFÄRGEN, och den ENDA ytan som ritas är BAREN under vyn: plåtar i
+## golvbandet, precis som Diablo/Doom-remsan. Vyn läser då som hela fönstret med en remsa under.
 ##
 ## Ritad i kod och ur `palette.json`, inte som PNG: samma skäl som byn och världskartan (se
-## `ui/palett.gd`) — ingen ny grafik behövs, ramen följer fönstrets storlek, och färgerna kan inte
-## glida ifrån rutorna. Måttet är i FÖNSTERpixlar gånger heltalsskalan, så ramen läses likadant
-## oavsett fönsterstorlek.
+## `ui/palett.gd`) — ingen ny grafik behövs, ytan följer fönstrets storlek, och färgerna kan inte
+## glida ifrån rutorna. Måttet är i FÖNSTERpixlar gånger heltalsskalan.
 ##
-## MÄTT (samma scen, samma kamera, `-- stage=stage_01 shot`): med ramen på är skillnaden INNANFÖR
-## spelvyn 0,01 i medel och 0 bildpunkter över tröskeln — ramen ritar ingenting i vyn. Marginalen
-## går från svart (medel 6,3) till plåtyta (medel 42,8).
+## MÄTT (guiprov): 0 px i en 6 px bred remsa längs vyns kanter skiljer sig från bakgrundsfärgen —
+## ingen kantlinje mot vyn. Och 0 px av plåtarna ligger innanför vyns ruta.
 class_name HudRam
 extends Control
 
-const KANT := 3          ## bredden på metallmouldingen runt vyn (3-4 px läses som en list)
-const SKUGGA := 2        ## den mörka indragningen innanför listen
-const PLÅT := 48         ## plåtarnas sida: två plåtar ryms i det smalaste bandet (90 px)
+## Bakgrunden runt vyn: samma färg som spelets egen himmel/tak (`env.background_color` i
+## `main._ready`, 0.07/0.07/0.10). Sidokolumnerna som blir över när heltalsskalan inte fyller bredden
+## målas i den, så att bilden läser som ett fönster och inte som en inramad ruta (M113).
+const BAKGRUND := Color(0.07, 0.07, 0.10)
+const PLÅT := 48         ## plåtarnas sida: två plåtar ryms i barens kortaste höjd (BAR_HOJD * 1 px)
 const NIT := 3           ## nitens sida i fönsterpixlar (blir 3 px i varje skala)
-const FALS := 4          ## faskanten längs fönstrets ytterkant
+
+## STENPLATTAN (M113). Alex skickade en stenbild och bestämde: *"sträck ut den"*. Plattan (348x150,
+## tools/gen_bar_sten.py ur tools/refs/bar_sten_kalla.jpg) TÖJS över barens fulla bredd — den upprepas
+## inte — och höjden delas i 9 delar: kantlinjerna (6 px upptill, 7 px nertill) ligger FIXA och bara
+## den mjuka mitten töjs. Utan 9-delningen smetades 1 px-linjerna ut till gråa band när remsan är
+## lägre än 150 px (mätt: plattan skalas 0,6-1,0 i höjd beroende på fönstret).
+const STEN := "res://assets/ui/bar_sten.png"
+const STEN_TOPP := 6.0
+const STEN_BOTTEN := 7.0
+var _sten: StyleBoxTexture
 
 var _vy := Rect2()       ## spelvyns ruta i fönstret, satt av main._placera_vy
 var _skala := 2
+var _mjuk := false       ## `sten=mjuk`: LINEAR filtrering i stället för NEAREST
+var _bar := true         ## remsan ritas bara i en körning (M113): byn/kartan/menyerna har ingen
 
-## Spelvyns ruta i fönsterpixlar: ramen ritar allt runtomkring och ingenting innanför.
+## Spelvyns ruta i fönsterpixlar: ytorna ritas runtomkring och ingenting innanför.
+## REMSAN SYNS BARA I EN KÖRNING (M113). Alex: *"Det skall inte vara en bar i botten förrän man är
+## inne i dungeons"*. Grinden sitter här, i bakgrunden, och `main._visa_gui` gömmer innehållet i
+## samma läge — annars stod plåtarna (och stenen) kvar i byn med tomma rutor ovanpå.
+func sätt_bar_syns(syns: bool) -> void:
+	if _bar == syns:
+		return
+	_bar = syns
+	queue_redraw()
+
 func sätt_vy(ruta: Rect2, heltalsskala: int) -> void:
 	_vy = ruta
 	_skala = maxi(1, heltalsskala)
 	queue_redraw()
 
+## Stenbakgrunden i baren: en StyleBoxTexture som TÖJS i sidled (`STRETCH` — Alex: *"sträck ut den"*)
+## och i höjdled bara i sin mjuka mitt (9-delning via kanternas marginaler). Filtreringen avgör vad
+## töjningen gör: NEAREST (pixelkonst, standard) dubblar rader och ger hårda pixelränder, LINEAR jämnar
+## ut dem. Alex fick båda i provbilderna och valde det som står i `_mjuk` (se rapporten).
+func _sten_ruta() -> StyleBoxTexture:
+	if _sten == null:
+		_sten = StyleBoxTexture.new()
+		if ResourceLoader.exists(STEN):
+			_sten.texture = load(STEN)
+		_sten.texture_margin_top = STEN_TOPP
+		_sten.texture_margin_bottom = STEN_BOTTEN
+		_sten.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+		_sten.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if _mjuk else CanvasItem.TEXTURE_FILTER_NEAREST
+	return _sten
+
+## Granskningsflagga `sten=mjuk`: ritar baren med mjuk filtrering i stället för NEAREST, så att
+## provbilden kan visa vad töjningen gör med pixlarna.
+func sätt_sten_mjuk(mjuk: bool) -> void:
+	_mjuk = mjuk
+	_sten = null
+	queue_redraw()
+
 ## Banden runt vyn: taket, golvet, vänsterkolumnen och högerkolumnen. Tillsammans är de exakt
 ## fönstret minus vyn — ingen rad ritas två gånger och inget hål uppstår (provet mäter det).
+## TAKET ÄR TOMT SEDAN M113: vyn ligger i överkanten (`_vy.position.y = 0`), så bandet ovanför vyn har
+## höjden noll och hoppas över. Kvar blir tre band — och baren under vyn är det tredje (golvbandet):
+## plåtarna där är ingen egen kontroll utan just den här bakgrunden.
 func band(fönster: Vector2) -> Array[Rect2]:
 	var ut: Array[Rect2] = []
 	if _vy.size.x < 4.0 or _vy.size.y < 4.0:
 		return ut
 	for r in [Rect2(0, 0, fönster.x, _vy.position.y),                       # tak
-			Rect2(0, _vy.end.y, fönster.x, fönster.y - _vy.end.y),          # golv
+			Rect2(0, _vy.end.y, fönster.x, fönster.y - _vy.end.y),          # golv (remsan)
 			Rect2(0, _vy.position.y, _vy.position.x, _vy.size.y),           # vänster
 			Rect2(_vy.end.x, _vy.position.y, fönster.x - _vy.end.x, _vy.size.y)]:  # höger
 		# Tomma band hoppas över: en vy som fyller fönstret har ingen marginal att rita i, och fyra
 		# tomma rutor är fyra rutor som någon senare undrar över.
+		# Golvbandet (remsan) hoppas över när ingen körning är igång (M113).
+		if r == Rect2(0, _vy.end.y, fönster.x, fönster.y - _vy.end.y) and not _bar:
+			continue
 		if r.size.x > 0.0 and r.size.y > 0.0:
 			ut.append(r)
+	return ut
+
+## Ytorna HUD:en ritar runtom vyn: GOLVBANDET (baren under vyn) i plåtar, och sidokolumnerna i
+## bakgrundsfärgen. Provet mäter listan: ingen yta får ligga inne i vyn, och bara baren får vara plåt.
+##
+## Det är här "ingen ram runt spelvyn" (M113) bor: det finns ingen yta kvar som ritar något annat än
+## baren och bakgrunden, alltså kan ingen grå plåt hamna vid vyns kant.
+func ytor(fönster: Vector2) -> Array:
+	var ut := []
+	for r in band(fönster):
+		ut.append({"ruta": r, "plåtar": r.position.y >= _vy.end.y - 0.5})
 	return ut
 
 func _draw() -> void:
 	var f := size
 	if _vy.size.x < 4.0 or _vy.size.y < 4.0:
 		return
+	# BAKGRUNDEN I SIDOKOLUMNERNA (M113). Alex: *"ännu en grå ram runt spelfönstret (det man ser
+	# dungeon i), jag vill bara ha en bottom border a la Doom 2"*. Kolumnerna som blir över när
+	# heltalsskalan inte fyller bredden är därför en PLATT färg — samma som spelets egen himmel/tak
+	# (`env.background_color`, 0.07/0.07/0.10) — och inte en plåtyta med faskant och nitar. Ingen
+	# kantlinje ritas mot vyn: bilden ska läsa som hela fönstret med en remsa under, inte som en
+	# inramad ruta. MÄTT i guiprovet: 0 px i sidobanden skiljer sig från bakgrundsfärgen.
 	var mörk := Palett.c(1)
-	for r in band(f):
-		_plåtar(r, mörk)
-	# Faskant längs fönstrets ytterkant: ljus upptill/vänster, mörk nedtill/höger. Det är den som
-	# får ramen att läsa som en platta och inte som en tom yta.
-	_fals(f, Palett.c(4), Palett.c(0))
-	_hörnskär(f, Palett.c(0))
-	# Den indragna fasaden längs vyns kant: mörk skugga innerst, metallmoulding, mörk linje ytterst.
-	# Mouldingen är NEUTRAL grå (c(5)/c(6)), inte palettens blå stål (c(19)-c(21)): det blå läste
-	# som en cyan tejp runt bilden i granskningen, och Diablos ram är varm grå metall.
-	_ring(_vy, SKUGGA * _skala, Palett.c(0))
-	_ring(_vy.grow(SKUGGA * _skala), KANT * _skala, Palett.c(4))
-	_ring(_vy.grow((SKUGGA + KANT) * _skala), 1, mörk)
+	for yta in ytor(f):
+		var r: Rect2 = yta["ruta"]
+		if bool(yta["plåtar"]):
+			# BAREN: stenplattan (M113). Plåtarna med nitar ligger kvar som fallback om tillgången
+			# saknas — en bar utan bakgrund är värre än en bar med fel bakgrund, och provet mäter att
+			# filen finns (game/tests/test_assets.gd).
+			var sten := _sten_ruta()
+			if sten.texture != null:
+				draw_style_box(sten, r)
+			else:
+				_plåtar(r, mörk)
+		else:
+			draw_rect(r, BAKGRUND)
 
 ## Smutsen på EN plåt. Den är formad, inte strödd: sotet ligger i kanterna och i hörnen (där det
 ## fastnar), rinningarna börjar i översta sömmen och rinner ned, och fläckarna kommer i KLUMPAR —
@@ -164,37 +235,3 @@ func _nit(bandet: Rect2, p: Vector2, sida: int, järn: Color, ljus: Color) -> vo
 	_ruta(bandet, Rect2(p, Vector2(sida, sida)), järn)
 	_ruta(bandet, Rect2(p, Vector2(sida, 1)), ljus)
 	_ruta(bandet, Rect2(p, Vector2(1, sida)), ljus)
-
-## Faskanten runt hela fönstret: en ljus linje upptill och till vänster, en mörk nedtill och till
-## höger, och en andra mörk linje innanför — samma tre steg som runt vyn, så ramen hänger ihop.
-func _fals(f: Vector2, ljus: Color, mörk: Color) -> void:
-	var b := float(FALS * _skala)
-	draw_rect(Rect2(0, 0, f.x, b), ljus)
-	draw_rect(Rect2(0, 0, b, f.y), ljus)
-	draw_rect(Rect2(0, f.y - b, f.x, b), mörk)
-	draw_rect(Rect2(f.x - b, 0, b, f.y), mörk)
-
-## 45-gradig skärning i fönstrets fyra hörn: en rät vinkel läses som en skärmkant, en skuren kant
-## läses som en plåt — samma grepp som fiendekonstens hörnputs. Skärningen är det enda ornamentet på
-## ramen, och den kostar fyra trianglar.
-func _hörnskär(f: Vector2, färg: Color) -> void:
-	var k := int(FALS * _skala * 3)
-	for rad in range(k):
-		var vidd := float(k - rad)
-		draw_rect(Rect2(0, rad, vidd, 1), färg)                       # övre vänster
-		draw_rect(Rect2(f.x - vidd, rad, vidd, 1), färg)              # övre höger
-		draw_rect(Rect2(0, f.y - 1 - rad, vidd, 1), färg)             # nedre vänster
-		draw_rect(Rect2(f.x - vidd, f.y - 1 - rad, vidd, 1), färg)    # nedre höger
-
-
-## En ram precis UTANFÖR `ruta`, `bredd` pixlar tjock och aldrig en pixel innanför kanten.
-func _ring(ruta: Rect2, bredd: int, färg: Color) -> void:
-	if bredd <= 0:
-		return
-	var b := float(bredd)
-	var uppe := Rect2(ruta.position.x - b, ruta.position.y - b, ruta.size.x + 2.0 * b, b)
-	var nere := Rect2(ruta.position.x - b, ruta.end.y, ruta.size.x + 2.0 * b, b)
-	var vänster := Rect2(ruta.position.x - b, ruta.position.y, b, ruta.size.y)
-	var höger := Rect2(ruta.end.x, ruta.position.y, b, ruta.size.y)
-	for r in [uppe, nere, vänster, höger]:
-		draw_rect(r, färg)

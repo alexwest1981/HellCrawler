@@ -59,6 +59,11 @@ python3 ../tools/gen_card_icons.py --check || fail=1
 # i en fil bli en tom ruta i gränssnittet på ett språk ingen av oss läser.
 echo "=== tools/gen_i18n.py --check"
 python3 ../tools/gen_i18n.py --check || fail=1
+# Barens stenplatta (M113): Alex' egen stenbild nedskalad till remsans höjd. Provet mäter måtten,
+# kantlinjerna (som 9-delningen håller fasta), att vinjetten är kvar och att två körningar ger samma
+# bytes — en generator som ger olika PNG varje gång kan inte --check:as.
+echo "=== tools/gen_bar_sten.py --check"
+python3 ../tools/gen_bar_sten.py --check || fail=1
 # Summan räknas ur ok/FEL-raderna, inte ur filernas egna sammanfattningar: de är indragna med
 # två mellanslag och försvinner ur en naiv summering. Mätt: ett sådant försök gav 559 i stället
 # för 567 — åtta kontroller var tysta. Summan skrivs därför av skriptet självt.

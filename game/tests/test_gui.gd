@@ -580,26 +580,27 @@ func _initialize() -> void:
 	print("— statusblocket —")
 	check(main.hud_status != null and main.hud_status.visible, "statusblocket syns")
 	check(main.hud_status.porträtt.texture != null, "porträttet är laddat (assets/ui/portratt.png)")
-	# KÄRLEN (M51, omgjorda i M111): hälsa, mana och rustning som KLOT i spelvyns nedre hörn.
+	# KÄRLEN (M51, omgjorda i M111 och flyttade till REMSAN i M113): hälsa, mana och rustning som KLOT.
 	# Alex: *"Jag ser fortfarande inga Orbs heller, och jag skulle vilja ha 3 - HP, Mana och Armor.
 	# Man måste veta om man har så man klarar sig genom en strid. Sätt dem nere i vardera hörn, men
 	# placera Armor över HP. Nu är det dags att de syns oavsett upplösning."*
 	#
-	# PROVET MÄTER DET SOM FÖRUT GICK FEL. Den gamla placeringen räknade radien ur utrymmet mellan
-	# panelerna och klämde klotet till 20x20 px i Alex' eget fönster (mätt), medan provet sade "syns
-	# [true, true, true]" — rutan var rätt och bilden tom. Kontrollerna nedan mäter därför STORLEKEN i
-	# spelvyns mått (samma andel i varje fönster), HÖRNEN (hp nedre vänster, rust över hp, mana nedre
-	# höger) och att inget klot hamnar utanför fönstret.
+	# PROVET MÄTER DET SOM FÖRUT GICK FEL, mot den NYA regeln: kloten ligger i BAREN under spelvyn
+	# (M113), radien räknas ur Barens höjd i fönsterpixlar, och mitten — själva värdet — ligger i baren.
+	# Den gamla placeringen räknade radien ur utrymmet mellan panelerna och klämde klotet till 20x20 px
+	# i Alex' eget fönster (mätt), medan provet sade "syns [true, true, true]".
+	var bar_ruta: Rect2 = main._bar(fönster)
+	print("      baren %s (%.0f px hög)" % [str(bar_ruta), bar_ruta.size.y])
 	var kärl := [main.orb_hp, main.orb_mana, main.orb_rust]
 	for k in kärl:
-		check(k != null and k.size.x > 60.0, "kärlet syns och har en ruta",
+		check(k != null and k.size.x >= 34.0, "kärlet syns och har en ruta (golvet är 34 px)",
 			"%.0fx%.0f @ %.0f,%.0f" % [k.size.x, k.size.y, k.position.x, k.position.y])
 		check(k.visible, "kärlet är synligt i strid")
 		check(k.get_rect().position.x >= 0.0 and k.get_rect().position.y >= 0.0
 				and k.get_rect().end.x <= fönster.x and k.get_rect().end.y <= fönster.y,
 			"kärlet ryms helt i fönstret", "%s mot fönstret %.0fx%.0f" % [str(k.get_rect()), fönster.x, fönster.y])
-		check(vy.has_point(k.get_rect().get_center()),
-			"kärlets mitt ligger i spelvyn (hörnet är dess eget)", "%s mot vyn %s" % [str(k.get_rect()), str(vy)])
+		check(bar_ruta.has_point(k.get_rect().get_center()),
+			"kärlets mitt ligger i REMSAN (hörnet är dess eget)", "%s mot baren %s" % [str(k.get_rect()), str(bar_ruta)])
 	check(is_equal_approx(main.orb_hp.size.x, main.orb_mana.size.x)
 			and is_equal_approx(main.orb_hp.size.x, main.orb_rust.size.x),
 		"alla tre klot är lika stora", "hp %.0f, mana %.0f, rust %.0f" % [main.orb_hp.size.x,
@@ -609,11 +610,12 @@ func _initialize() -> void:
 			and main.orb_rust.get_rect().end.y <= main.orb_hp.get_rect().position.y,
 		"rustningen ligger rakt ÖVER hälsan", "rust %s, hp %s" % [str(main.orb_rust.get_rect()),
 			str(main.orb_hp.get_rect())])
-	# HÄLSAN OCH MANAN LIGGER I VAR SITT HÖRN, på samma höjd.
-	check(main.orb_hp.get_rect().get_center().x < vy.get_center().x
-			and main.orb_mana.get_rect().get_center().x > vy.get_center().x
-			and absf(main.orb_hp.get_rect().get_center().y - main.orb_mana.get_rect().get_center().y) < 2.0,
-		"hälsan ligger i nedre vänstra hörnet och manan i det högra",
+	# HÄLSAN I BARENS VÄNSTERKANT, MANAN I DEN HÖGRA (M113). Paret hp/rust står lodrätt i vänsterkanten
+	# och manan ensam i högerkanten innanför minikartan — samma höjd är inte längre ett krav (hp:s mitt
+	# ligger en halv klot under parets mitt).
+	check(main.orb_hp.get_rect().get_center().x < bar_ruta.get_center().x
+			and main.orb_mana.get_rect().get_center().x > bar_ruta.get_center().x,
+		"hälsan ligger i barens vänstra kant och manan i den högra",
 		"hp %s, mana %s" % [str(main.orb_hp.get_rect()), str(main.orb_mana.get_rect())])
 	# STORLEKEN ÄR EN ANDEL AV SPELVYN, INTE AV UTKYMMET RUNT DEN. Radien ska vara 0,11 * 270 = 30
 	# spelpixlar gånger heltalsskalan, alltså samma andel av vyn i varje fönster.
@@ -623,10 +625,15 @@ func _initialize() -> void:
 		main._placera_vy()
 		await process_frame
 		var s: float = main._vy_korg.scale.x
-		var väntad: float = 2.0 * (float(main.VY.y) * main.KÄRL_RADIE_ANDEL + HudOrb.KANT) * s
-		check(absf(main.orb_hp.size.x - väntad) <= 2.0 * s,
-			"klotet är %.0f %% av vyns höjd i %s" % [100.0 * main.KÄRL_RADIE_ANDEL * 2.0, st],
-			"%.0f px väntat %.0f px (skala %.0f)" % [main.orb_hp.size.x, väntad, s])
+		# RADIEN UR REMSANS HÖJD (M113), i FÖNSTERpixlar: paret hp + rustning ska rymmas ovanpå
+		# varandra, så radien blir (barhöjd - luft - kanter - mellanrum) / 4. Klotet ritas i skala 1
+		# (ett 3x-skalat klot gav 186 px i en 150 px remsa), alltså räknas måttet i px rakt av.
+		var barh: float = main._bar(Vector2(st)).size.y
+		var radie_v: float = clampf((barh - 2.0 * 6.0 - 4.0 * float(HudOrb.KANT) - main.KÄRL_MELLAN) / 4.0, 10.0, 40.0)
+		var väntad: float = 2.0 * (radie_v + float(HudOrb.KANT))
+		check(absf(main.orb_hp.size.x - väntad) <= 1.0,
+			"klotet räknas ur REMSANS höjd i %s (%.0f px remsa)" % [st, barh],
+			"%.0f px mot väntat %.0f px" % [main.orb_hp.size.x, väntad])
 		check(main.orb_hp.get_rect().end.y <= float(st.y) and main.orb_mana.get_rect().end.x <= float(st.x)
 				and main.orb_rust.get_rect().position.y >= 0.0,
 			"och alla tre ryms i %s" % st, "hp %s rust %s" % [str(main.orb_hp.get_rect()),
@@ -683,15 +690,16 @@ func _initialize() -> void:
 		main.get_viewport().size = st
 		main._placera_vy()
 		await process_frame
-		var vy_nu := Rect2(main._vy_korg.position, Vector2(main.VY) * main._vy_korg.scale.x)
+		var vy_nu := Rect2(main._vy_korg.position, main._vy_korg.size * main._vy_korg.scale.x)
+		var bar_nu: Rect2 = main._bar(Vector2(st))
 		var par: Array = [["hp", main.orb_hp], ["mana", main.orb_mana], ["rust", main.orb_rust]]
 		for i in par.size():
 			var a: Rect2 = par[i][1].get_rect()
-			# MITTEN, alltså själva värdet, måste ligga i vyn och hela klotet i fönstret. Det är
-			# skillnaden mellan ett klot som ryms och ett klot som inte syns alls.
+			# MITTEN, alltså själva värdet, måste ligga i REMSAN och hela klotet i fönstret (M113).
+			# Det är skillnaden mellan ett klot som ryms och ett klot som inte syns alls.
 			var mitten: Vector2 = a.get_center()
-			if not vy_nu.has_point(mitten):
-				värde_utanför.append("%s i %s har mitten utanför vyn (%s)" % [par[i][0], st, str(a)])
+			if not bar_nu.has_point(mitten):
+				värde_utanför.append("%s i %s har mitten utanför remsan (%s)" % [par[i][0], st, str(a)])
 			if a.position.x < -1.0 or a.position.y < -1.0 or a.end.x > float(st.x) + 1.0 or a.end.y > float(st.y) + 1.0:
 				värde_utanför.append("%s hamnar utanför fönstret i %s (%s)" % [par[i][0], st, str(a)])
 			for j in range(i + 1, par.size()):
@@ -707,7 +715,7 @@ func _initialize() -> void:
 	check(krockar.is_empty(),
 		"hälsa, mana och rustning krockar inte med korthögarna eller varandra i någon av fyra storlekar",
 		", ".join(krockar.slice(0, 4)))
-	check(värde_utanför.is_empty(), "och varje klot ryms i vyn och i fönstret i alla fyra",
+	check(värde_utanför.is_empty(), "och varje klot ryms i REMSAN och i fönstret i alla fyra",
 		", ".join(värde_utanför.slice(0, 4)))
 	# ALEX' EGET FÖNSTER (941x1018). Här är vyn 480x270 i skala 1, mitt i ett HÖGT fönster, och det var
 	# där den gamla räkningen klämde klotet till 20x20 px. Nu är klotet 2 * (30 + 4) * 1 = 68 px — den
@@ -717,14 +725,15 @@ func _initialize() -> void:
 	main.get_viewport().size = Vector2i(941, 1018)
 	main._placera_vy()
 	await process_frame
-	check(absf(main.orb_hp.size.x - 2.0 * (float(main.VY.y) * main.KÄRL_RADIE_ANDEL + HudOrb.KANT)
-			* main._vy_korg.scale.x) <= 2.0 * main._vy_korg.scale.x,
-		"klotet har samma andel av vyn i Alex' eget fönster som i de andra",
-		"%.0f px i skala %.0f" % [main.orb_hp.size.x, main._vy_korg.scale.x])
+	var bar_alex: Rect2 = main._bar(Vector2(941, 1018))
+	var radie_alex: float = clampf((bar_alex.size.y - 12.0 - 4.0 * float(HudOrb.KANT) - main.KÄRL_MELLAN) / 4.0, 10.0, 40.0)
+	check(absf(main.orb_hp.size.x - 2.0 * (radie_alex + float(HudOrb.KANT))) <= 1.0,
+		"klotet räknas ur REMSANS höjd i Alex' eget fönster",
+		"%.0f px mot väntat %.0f px (remsan %.0f px)" % [main.orb_hp.size.x,
+			2.0 * (radie_alex + float(HudOrb.KANT)), bar_alex.size.y])
 	check(main.orb_hp.get_rect().end.y <= 1018.0 and main.orb_rust.get_rect().position.y >= 0.0
-			and Rect2(main._vy_korg.position, Vector2(main.VY) * main._vy_korg.scale.x)
-				.has_point(main.orb_hp.get_rect().get_center()),
-		"och kloten ligger i vyns nedre hörn, innanför fönstret",
+			and bar_alex.has_point(main.orb_hp.get_rect().get_center()),
+		"och kloten ligger i REMSAN, innanför fönstret",
 		"hp %s, rust %s" % [str(main.orb_hp.get_rect()), str(main.orb_rust.get_rect())])
 	# Tillbaka till provets eget fönster: resten av provet mäter layouten i 1280x720.
 	root.size = Vector2i(1280, 720)
@@ -850,9 +859,11 @@ func _initialize() -> void:
 			break
 	check(valskala >= 1.0, "valkortet ritas i minst sin egen storlek (ingen uppskalning)",
 		"skala %.2f" % valskala)
-	var vyn_skala: float = maxf(1.0, floorf(minf(skärm.size.x / main.VY.x, skärm.size.y / main.VY.y)))
-	check(vr.size == Vector2(main.VY) * vyn_skala and vr.position == main._vy_korg.position,
-		"valet täcker vyns ruta i fönsterpixlar", "%s (vyn på %s)" % [str(vr), str(main._vy_korg.position)])
+	# VYNS RUTA ÄR INTE LÄNGRE 480x270 (M113): formen följer fönstret, så panelen mäts mot korgens
+	# EGNA mått — annars mäter provet en ruta som inte finns.
+	var vy_ruta := Rect2(main._vy_korg.position, main._vy_korg.size * main._vy_korg.scale.x)
+	check(vr.size == vy_ruta.size and vr.position == vy_ruta.position,
+		"valet täcker vyns ruta i fönsterpixlar", "%s (vyn %s)" % [str(vr), str(vy_ruta)])
 	# KONSTENS PIXLAR: ritas i hela steg, annars blir de olika breda (mätt i bild före rättningen:
 	# block av 2, 3, 4 och 5 px om varandra).
 	var provtextur := PlaceholderTexture2D.new()
@@ -1022,10 +1033,13 @@ func _initialize() -> void:
 		var s := ruta(main.hud_status)
 		var l := ruta(main.hud_logg)
 		print("      status %s | logg %s" % [str(s), str(l)])
-		check(s.end.y <= vy.position.y, "statusblocket ligger OVANFÖR spelvyn",
-			"underkant %.0f mot vyns överkant %.0f" % [s.end.y, vy.position.y])
-		check(l.position.y >= vy.end.y, "loggen ligger UNDER spelvyn")
-		check(l.end.x <= fönster.x * 0.5, "loggen ligger till vänster om mitten")
+		# REMSAN (M113): både statusblocket och loggen ligger i baren UNDER spelvyn, och loggen i
+		# barens högra del. Ingen av dem ritar inne i vyn.
+		check(s.position.y >= vy.end.y, "statusblocket ligger i REMSAN under spelvyn",
+			"överkant %.0f mot vyns underkant %.0f" % [s.position.y, vy.end.y])
+		check(l.position.y >= vy.end.y, "loggen ligger i REMSAN under spelvyn")
+		check(l.get_center().x >= fönster.x * 0.5, "och i remsans högra halva",
+			"mitt %.0f av %.0f" % [l.get_center().x, fönster.x])
 		for n in [main.hud_status, main.hud_logg]:
 			check(not överlappar(ruta(n), vy), "%s ritar ingenting inne i spelvyn" % n.name)
 		# Korten äger mitten nedtill: ingen ruta får ligga över handen.
@@ -1283,12 +1297,18 @@ func _initialize() -> void:
 		str(main.jewel_box.size), str(main.jewel_box.custom_minimum_size),
 		main.jewel_box.get_child_count(), ", ".join(barninfo)])
 	var jr: Rect2 = Rect2(main.jewel_panel.position, main.jewel_panel.size)
-	print("    juveleraren: panelen %.0fx%.0f px, y %.0f..%.0f, vyn är %.0f hög"
-		% [jr.size.x, jr.size.y, jr.position.y, jr.end.y, main.VY.y])
-	check(jr.position.y >= -0.5 and jr.end.y <= float(main.VY.y) + 0.5,
-		"juvelerarpanelen ryms i spelvyn i höjd", "y %.0f..%.0f av %.0f" % [jr.position.y, jr.end.y, main.VY.y])
-	check(jr.position.x >= -0.5 and jr.end.x <= float(main.VY.x) + 0.5,
-		"och i sidled (tipsraden var 1236 px på en rad)", "x %.0f..%.0f av %.0f" % [jr.position.x, jr.end.x, main.VY.x])
+	print("    juveleraren: panelen %.0fx%.0f px, y %.0f..%.0f, vyn är %.0f hög (%.0fx%.0f)"
+		% [jr.size.x, jr.size.y, jr.position.y, jr.end.y, main._vy_mått().y,
+			main._vy_mått().x, main._vy_mått().y])
+	# VYNS MÅTT ÄR INTE LÄNGRE 480x270 (M113): panelen är placerad i fönsterpixlar på korgens ruta,
+	# så provet mäter mot vyns VERKLIGA ruta (annars mäter det en ruta som inte finns).
+	var vy_px := Rect2(main._vy_korg.position, main._vy_korg.size * main._vy_korg.scale.x)
+	check(jr.position.y >= vy_px.position.y - 0.5 and jr.end.y <= vy_px.end.y + 0.5,
+		"juvelerarpanelen ryms i spelvyn i höjd", "y %.0f..%.0f av %.0f..%.0f" % [jr.position.y, jr.end.y,
+			vy_px.position.y, vy_px.end.y])
+	check(jr.position.x >= vy_px.position.x - 0.5 and jr.end.x <= vy_px.end.x + 0.5,
+		"och i sidled (tipsraden var 1236 px på en rad)", "x %.0f..%.0f av %.0f..%.0f" % [jr.position.x, jr.end.x,
+			vy_px.position.x, vy_px.end.x])
 	# THE BENCH (23 Sep): Alex drew a plank surface and wants the shop's cards to lie on it. The
 	# texture is loaded from disk at startup, so a missing or unimported PNG would leave a silent
 	# black panel — the exact failure mode this checks. Godot only sees a new PNG after `--import`.

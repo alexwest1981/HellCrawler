@@ -69,9 +69,14 @@ const PLATSER := [
 ]
 const MÄRKE := Vector2(20.0, 26.0)   ## märkets ruta: klickytan, och den ruta provet mäter krockar med
 const DJUP := 6.0                    ## märkets skugga i sidled (provet räknar in den i krockmåttet)
-const MARKLINJE := 168.0             ## gatan i bilden: märkenas nederkant (62 % av vyns 270 px)
+## Gatan och listen ligger på ANDELAR av vyns höjd, inte på fasta px (M113). Alex, i byn: *"Detta är
+## inte en by i helskärm..."* — scenen tog 62 % av höjden och listen 27 %. Med 0,78 och 0,86 fyller
+## bilden hela höjden (dess gatulinje ligger på 78 % av bildens höjd, se BILDENS_GATA) och listen
+## blir ett TUNT ÖVERLÄGG i nederkanten (14 %): MÄTT 1896x1018 före 62 %, efter 100 % scen.
+## Konstanterna nedan är DESIGNMÅTTET vid 270 px — samma tal som förr, och bara till för provet.
+const MARKLINJE := 168.0             ## gatan i designmåttet (270 px hög vy)
 const GATA := 172.0
-const BAR := 196.0                   ## etikettlistens överkant
+const BAR := 196.0                   ## etikettlistens överkant i designmåttet
 const GUPP := [0, 1, 2, 1]           ## markörens gupp i fyra bildrutor: pixelkonst hackar, den glider inte
 ## Hur fort panoreringen stannar: 1 - exp(-fart * delta). Låg fart = lång, mjuk förflyttning.
 const PAN_FART := 8.0
@@ -189,7 +194,7 @@ func synlig(i: int) -> bool:
 ## Platsens mitt i VYNS koordinater: bildens x minus panoreringen. Y-läget är konstant — marklinjen
 ## står stilla, det är bara bilden som flyttas i sidled.
 func plats_px(i: int) -> Vector2:
-	return Vector2(_plats_x(i) - _pan, MARKLINJE - MÄRKE.y / 2.0)
+	return Vector2(_plats_x(i) - _pan, marklinje() - MÄRKE.y / 2.0)
 
 ## Flytta markeringen. Byn är en gata: bara vänster/höger har någon granne, och i ändarna tar det
 ## stopp — en panorering som vek runt skulle fara från bildens ena kant till den andra i ett svep.
@@ -278,7 +283,7 @@ func _draw() -> void:
 	# En mörk ton nedtill, tonad i åtta steg: etiketterna ska läsas mot en lugn yta, inte mot
 	# kullerstenen — och en rak kant mellan bilden och listen läses som en skarv.
 	for k in 8:
-		draw_rect(Rect2(0.0, BAR - 8.0 + float(k), vp.x, 1.0), _a(Palett.c(0), 0.10 * float(k)))
+		draw_rect(Rect2(0.0, bar_topp() - 8.0 + float(k), vp.x, 1.0), _a(Palett.c(0), 0.10 * float(k)))
 	_bar(vp)
 	for i in PLATSER.size():
 		_märke(i)
@@ -290,7 +295,7 @@ func _draw() -> void:
 func _bilden(vp: Vector2, bild: Texture2D) -> void:
 	var mål := bild_storlek()
 	draw_texture_rect_region(bild,
-		Rect2(-_pan, MARKLINJE - mål.y * BILDENS_GATA / 100.0, mål.x, mål.y),
+		Rect2(-_pan, marklinje() - mål.y * BILDENS_GATA / 100.0, mål.x, mål.y),
 		Rect2(0.0, 0.0, float(bild.get_width()), float(bild.get_height())))
 
 ## Orden i FÖNSTRETS upplösning (se ui_text.gd). Vyn ritar bara bilden, märkena och listen — så
@@ -301,6 +306,16 @@ func _ord() -> void:
 
 func _vy() -> Vector2:
 	return Vector2(size.x if size.x > 0.0 else 480.0, size.y if size.y > 0.0 else 270.0)
+
+## Gatulinjen i vyns px: 78 % av höjden, alltså samma andel av BILDEN som ligger över gatan
+## (BILDENS_GATA). Då fyller bilden hela höjden kant i kant.
+func marklinje() -> float:
+	return _vy().y * 0.78
+
+## Etikettlistens överkant: den sista fjortondelen av höjden. Listen är ett överlägg på scenen,
+## inte ett band under den.
+func bar_topp() -> float:
+	return _vy().y * 0.85
 
 ## En färg ur paletten med genomskinlighet. Ljuset ritas som fläckar med alfa — det finns ingen
 ## ljuskälla i en ritad scen, så fläcken ÄR ljuset.
@@ -317,7 +332,7 @@ func _märke(i: int) -> void:
 	var vald := i == _vald
 	var r := 7.0 if vald else 5.5
 	# Skuggan på gatan: utan den svävar nålen över bilden.
-	draw_colored_polygon(_ellips(Vector2(p.x, MARKLINJE + 1.0), r + 2.0, 2.5), _a(Palett.c(0), 0.35))
+	draw_colored_polygon(_ellips(Vector2(p.x, marklinje() + 1.0), r + 2.0, 2.5), _a(Palett.c(0), 0.35))
 	if vald:
 		for k in 3:
 			draw_circle(p, r + 4.0 + float(k) * 2.0 + float(GUPP[_ram]), _a(Palett.c(13), 0.07))
@@ -326,9 +341,9 @@ func _märke(i: int) -> void:
 	draw_circle(Vector2(p.x - r * 0.3, p.y - r * 0.35), r * 0.35, f.lightened(0.45))
 	# Spetsen: nålen står PÅ gatan.
 	draw_colored_polygon(PackedVector2Array([Vector2(p.x - 2.0, p.y + r - 1.0),
-		Vector2(p.x + 2.0, p.y + r - 1.0), Vector2(p.x, MARKLINJE)]), Palett.c(1))
+		Vector2(p.x + 2.0, p.y + r - 1.0), Vector2(p.x, marklinje())]), Palett.c(1))
 	draw_colored_polygon(PackedVector2Array([Vector2(p.x - 1.0, p.y + r - 2.0),
-		Vector2(p.x + 1.0, p.y + r - 2.0), Vector2(p.x, MARKLINJE - 1.0)]), f.darkened(0.2))
+		Vector2(p.x + 1.0, p.y + r - 2.0), Vector2(p.x, marklinje() - 1.0)]), f.darkened(0.2))
 
 ## Markörens ram: märket med sju px marginal. Egen funktion för att provet ska kunna mäta att ramen
 ## ryms i vyn — en markering som sticker ut över kanten syns bara på bild.
@@ -342,7 +357,7 @@ func _markör() -> void:
 	var ytter := markör_ram()
 	var mitt := plats_px(_vald).x
 	# Plattan: platsen står PÅ den valda rutan. Tre pixlar guld med en mörk kant runt om.
-	var platta := Rect2(ytter.position.x + 3.0, MARKLINJE + 2.0, ytter.size.x - 6.0, 4.0)
+	var platta := Rect2(ytter.position.x + 3.0, marklinje() + 2.0, ytter.size.x - 6.0, 4.0)
 	draw_rect(platta.grow(1.0), Palett.c(1))
 	draw_rect(platta, Palett.c(14))
 	draw_rect(Rect2(platta.position + Vector2(2.0, 1.0), Vector2(platta.size.x - 4.0, 1.0)), Palett.c(13))
@@ -358,17 +373,17 @@ func _markör() -> void:
 ## listen — över en bild med hus och gata drunknar den i kullerstenen (granskningen av den gamla
 ## byn: "text unreadable over busy terrain").
 func _bar(vp: Vector2) -> void:
-	draw_rect(Rect2(0.0, BAR, vp.x, 40.0), Palett.c(1))
-	draw_rect(Rect2(0.0, BAR, vp.x, 1.0), Palett.c(14))
-	draw_rect(Rect2(0.0, BAR + 1.0, vp.x, 1.0), Palett.c(9))
+	draw_rect(Rect2(0.0, bar_topp(), vp.x, 40.0), Palett.c(1))
+	draw_rect(Rect2(0.0, bar_topp(), vp.x, 1.0), Palett.c(14))
+	draw_rect(Rect2(0.0, bar_topp() + 1.0, vp.x, 1.0), Palett.c(9))
 	var cell := vp.x / float(PLATSER.size())
 	for i in PLATSER.size():
 		var x := float(i) * cell
 		if i == _vald:
-			draw_rect(Rect2(x + 1.0, BAR + 2.0, cell - 2.0, 38.0), _a(Palett.c(4), 0.55))
+			draw_rect(Rect2(x + 1.0, bar_topp() + 2.0, cell - 2.0, 38.0), _a(Palett.c(4), 0.55))
 		if i > 0:
-			draw_rect(Rect2(x, BAR + 3.0, 1.0, 34.0), Palett.c(3))
-			draw_rect(Rect2(x + 1.0, BAR + 3.0, 1.0, 34.0), Palett.c(2))
+			draw_rect(Rect2(x, bar_topp() + 3.0, 1.0, 34.0), Palett.c(3))
+			draw_rect(Rect2(x + 1.0, bar_topp() + 3.0, 1.0, 34.0), Palett.c(2))
 
 ## Etiketterna med sin ruta, i VYNS koordinater: platsens namn och statusraden i sin cell, och
 ## ledtråden över hela bredden. `_draw` ritar bara bilden, märkena och listen — orden ritas i
@@ -389,7 +404,7 @@ func etiketter() -> Array:
 	# bredare än sin ruta klipps av draw_string.
 	var storlek := UiText.storlek_som_ryms(namn + status, cell - 4.0, 9, 12, HORIZONTAL_ALIGNMENT_CENTER)
 	# Baslinjerna räknas ur fontens EGNA mått: en större font får inte hamna i knät på raden ovanför.
-	var bas1 := BAR + 3.0 + f.get_ascent(storlek)
+	var bas1 := bar_topp() + 3.0 + f.get_ascent(storlek)
 	var bas2 := bas1 + f.get_descent(storlek) + 3.0 + f.get_ascent(storlek)
 	var rader := []
 	for i in PLATSER.size():

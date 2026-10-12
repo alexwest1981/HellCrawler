@@ -74,11 +74,18 @@ func _initialize() -> void:
 	# ram av mot skärmkanten (mätt på skärmbild). Alex' poäng var att korten ska SYNAS och vara ett per
 	# kort, inte att de nödvändigtvis är exakt handens mått.
 	var hand_kort: Vector2 = CardView.HAND_SIZE * main.HAND_SKALA
-	var kolumn: float = main._hög_geometri(1)["kort"].x      # kolumnen vid ett kort = dess tak
-	check(main.hog_drag.kort.x <= hand_kort.x and main.hog_drag.kort.x > hand_kort.x * 0.4,
-		"högens kort är handens storlek, krympt till marginalen",
-		"%.0fx%.0f mot handens %.0fx%.0f (kolumnen %.0f)" % [main.hog_drag.kort.x, main.hog_drag.kort.y,
-			hand_kort.x, hand_kort.y, kolumn])
+	# HÖGENS KORT LIGGER I REMSAN (M113) och mäts därför mot REMSANS ruta: höjden ska rymmas med
+	# sifferraden under stapeln, aldrig över handkortet, och aldrig under 0,4 x HAND_SIZE (då är de
+	# små rektanglar). Den gamla gränsen mättes mot marginalkolumnen, som inte finns längre.
+	var band: float = main._hög_geometri(1)["fritt"]
+	var bar_ruta: Rect2 = main._bar(main.get_viewport().get_visible_rect().size)
+	check(main.hog_drag.kort.x <= hand_kort.x and main.hog_drag.kort.x >= CardView.HAND_SIZE.x * 0.4 - 1.0,
+		"högens kort är handens storlek, krympt till bandet i remsan",
+		"%.0fx%.0f mot handens %.0fx%.0f (bandet %.0f)" % [main.hog_drag.kort.x, main.hog_drag.kort.y,
+			hand_kort.x, hand_kort.y, band])
+	check(main.hog_drag.kort.y + KortHog.TEXT_HÖJD <= bar_ruta.size.y,
+		"och högen med sin sifferrad ryms i remsan",
+		"%.0f + %d i %.0f px" % [main.hog_drag.kort.y, KortHog.TEXT_HÖJD, bar_ruta.size.y])
 	var n_lekar: int = main.active_combat.draw_pile.size()
 	var väntad_bredd: float = main.hog_drag.kort.x + main.hog_drag.steg() * float(n_lekar - 1)
 	check(is_equal_approx(main.hog_drag.size.x, väntad_bredd), "ett kort per kort i leken ger stapelns bredd",
@@ -137,11 +144,15 @@ func _initialize() -> void:
 	# ordningen — använda till vänster, leken till höger, båda innanför fönstret.
 	var mål: Vector2 = main.hog_använd.mitt()
 	var fönster: Vector2 = main.get_viewport().get_visible_rect().size
-	var hand_x := fönster.x / 2.0
-	check(mål.x < hand_x, "målet ligger till VÄNSTER om handen", "x %.0f mot mitten %.0f"
-		% [mål.x, hand_x])
-	check(main.hog_drag.mitt().x > hand_x, "draghögen ligger till HÖGER om handen",
-		"x %.0f mot mitten %.0f" % [main.hog_drag.mitt().x, hand_x])
+	# I REMSAN (M113) delar högarna bandet på mitten: de använda växer vänsterut från mitten och
+	# leken högerut. Ordningen är det som ska hålla, och båda ska ligga innanför remsan.
+	var bar_högar: Rect2 = main._bar(fönster)
+	check(mål.x < main.hog_drag.mitt().x, "målet ligger till VÄNSTER om leken",
+		"x %.0f mot %.0f" % [mål.x, main.hog_drag.mitt().x])
+	check(main.hog_använd.get_rect().position.x >= bar_högar.position.x - 0.5
+			and main.hog_drag.get_rect().end.x <= bar_högar.end.x + 0.5,
+		"och båda högarna ligger innanför remsan", "använd %s, lek %s"
+			% [str(main.hog_använd.get_rect()), str(main.hog_drag.get_rect())])
 	check(mål.x >= 0.0 and main.hog_drag.mitt().x <= fönster.x,
 		"båda högarna står innanför fönstret", "%.0f och %.0f av %.0f"
 			% [mål.x, main.hog_drag.mitt().x, fönster.x])
@@ -163,10 +174,13 @@ func _initialize() -> void:
 	main.active_combat.draw_pile = [null, null, null, null, null]
 	main.active_combat.discard_pile = []
 	main._refresh_stats()
-	var före_pos: Vector2 = main.hog_använd.position
+	var före: Rect2 = main.hog_använd.get_rect()
 	await create_timer(0.20).timeout
-	var flyttad: float = main.hog_använd.position.distance_to(före_pos)
-	check(flyttad > 50.0, "omshufflingen flyttar de använda mot leken", "%.0f px" % flyttad)
+	# MÅTTET ÄR ATT HÖGEN FLYTTAR SIG OCH BLIR TOM (M113: den ligger i remsan, där avståndet mellan
+	# högarna är bandets halva — den gamla gränsen 50 px mättes mot marginalkolumnerna).
+	check(main.hog_använd.get_rect() != före and main.hog_använd.antal == 0,
+		"omshufflingen tömmer de använda och flyttar högen",
+		"%s -> %s" % [str(före), str(main.hog_använd.get_rect())])
 	check(main.hog_drag.antal == 5 and main.hog_använd.antal == 0,
 		"siffrorna följer den nya leken", "lek %d, använda %d" % [main.hog_drag.antal,
 			main.hog_använd.antal])

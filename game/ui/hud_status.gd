@@ -19,6 +19,7 @@ var vital_label: Label
 var bana_label: Label
 var niva_label: Label
 var guld_label: Label
+var _skala := 1.0           ## blockets krympning mot fönstret, satt av sätt_skala
 
 static func bygg() -> HudStatus:
 	var s := HudStatus.new()
@@ -65,11 +66,33 @@ func _text(px: int, färg: Color) -> Label:
 ## Lägger staplarna och texterna på plats. Görs vid varje `sätt` och inte i `_bygg`: en översättning
 ## som är längre än den svenska får inte klippas, och raderna flyttas därför efter textens höjd.
 func _placera() -> void:
-	var x := 8.0 + PORTRÄTT + 8.0
-	vital_label.position = Vector2(x, 12.0)
-	bana_label.position = Vector2(x, 33.0)
-	niva_label.position = Vector2(x, 49.0)
-	guld_label.position = Vector2(x + 96.0, 49.0)
+	_placera_skalad(_skala)
+
+func _placera_skalad(k: float) -> void:
+	var x := (8.0 + PORTRÄTT + 8.0) * k
+	vital_label.position = Vector2(x, 12.0 * k)
+	bana_label.position = Vector2(x, 33.0 * k)
+	niva_label.position = Vector2(x, 49.0 * k)
+	guld_label.position = Vector2(x + 96.0 * k, 49.0 * k)
+
+## KRYMPER BLOCKET MED FÖNSTRET (M113). Blockets 430 px är 34 % av en 1280-ruta men 46 % av en
+## 941-ruta — och i remsan står loggen, korträknaren, högarna och kartan på samma rad. MÄTT i 941x1018:
+## med full bredd rymdes varken korträknaren (120 px) eller högarna (84 px). Allt skalas med samma
+## faktor — plåten, porträttet, typsnittet och avstånden — så blockets RUTA blir mindre, inte bara
+## texten: annars mätte provet den gamla rutan. Golvet 0,62 ger 9-10 px siffror, alltså läsbara.
+func sätt_skala(k: float) -> void:
+	_skala = clampf(k, 0.62, 1.0)
+	# ORDNINGEN: minimimåttet först. Sätts `size` först kläms den till det GAMLA minimimåttet (430x78)
+	# och blocket krympte aldrig — mätt i 941x1018: sätt_skala(0,63) gav en ruta på 430x78.
+	custom_minimum_size = Vector2(roundf(BREDD * _skala), roundf(HÖJD * _skala))
+	size = custom_minimum_size
+	porträtt.size = Vector2(PORTRÄTT, PORTRÄTT) * _skala
+	porträtt.position = Vector2(8.0, 15.0) * _skala
+	for par in [[vital_label, 15], [bana_label, 14], [niva_label, 17], [guld_label, 13]]:
+		(par[0] as Label).add_theme_font_size_override("font_size",
+			maxi(9, int(round(float(par[1]) * _skala))))
+	_placera_skalad(_skala)
+	queue_redraw()
 
 ## Fyller blocket. `s` kommer från `main._status_data()` — nycklarna står där, så en ny siffra i HUD:en
 ## läggs till på ett ställe och inte i varje anrop.
@@ -95,9 +118,12 @@ func sätt(s: Dictionary) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	HudPlat.rita(self, Rect2(Vector2.ZERO, Vector2(BREDD, HÖJD)))
+	# Plåten och porträttramen ritas i blockets AKTUELLA storlek (M113): sätt_skala krymper rutan, och
+	# ritades plåten i konstanten BREDD hade den blivit 430 px bred medan provet mätte 271.
+	HudPlat.rita(self, Rect2(Vector2.ZERO, size))
 	# Porträttets ram: en indragen öppning i plåten, med en ljus kant upptill och vänstertill.
-	var r := Rect2(porträtt.position - Vector2(3.0, 3.0), Vector2(PORTRÄTT + 6.0, PORTRÄTT + 6.0))
+	var k := _skala
+	var r := Rect2(porträtt.position - Vector2(3.0, 3.0) * k, Vector2(PORTRÄTT + 6.0, PORTRÄTT + 6.0) * k)
 	draw_rect(r, Palett.c(1))
 	draw_rect(r, Palett.c(5), false, 2.0)
 	draw_rect(Rect2(r.position, Vector2(r.size.x, 1.0)), Palett.c(7))

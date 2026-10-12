@@ -66,8 +66,14 @@ func _initialize() -> void:
 		"x%.0f mot x%.0f" % [main.map_view.scale.x, skala])
 	# Formeln står här med flit som en egen rad: det är DEN kontrollen som fällde den gamla koden,
 	# där kartan aldrig blev placerad och stod kvar i (0,0) över statusraden.
+	# KARTAN LIGGER I REMSANS HÖGRA KANT (M113), lodrätt centrerad i baren — inte i fönstrets övre
+	# marginal. Provet räknar samma ruta ur barens egen ruta.
+	var bar_ruta: Rect2 = main._bar(fönster)
+	# KOLUMNEN (karta + ordlista) centreras i remsan — ordlistan hänger under kartan och måste rymmas.
+	var kolumnh: float = main.MapView.MAP_SIZE.y + main.MapView.LEGEND_HÖJD
 	check(main.map_view.position == Vector2(fönster.x - main.MapView.MAP_SIZE.x * skala - main.MARGINAL,
-			main.MARGINAL), "kartan har sin plats (inte kvar i 0,0)",
+			roundf(bar_ruta.position.y + (bar_ruta.size.y - kolumnh * skala) * 0.5)),
+		"kartan har sin plats i remsan (inte kvar i 0,0)",
 		"@ %.0f,%.0f" % [main.map_view.position.x, main.map_view.position.y])
 	# Och att platsen sätts EFTER att kartan byggts. Kontrollen läser källan, och det är med flit:
 	# i en huvudlös körning byter fönstret storlek av sig självt (100x100 → 64x64), så
@@ -93,29 +99,41 @@ func _initialize() -> void:
 	var mål := Vector2(
 		float(ProjectSettings.get_setting("display/window/size/window_width_override", 1280)),
 		float(ProjectSettings.get_setting("display/window/size/window_height_override", 720)))
-	var mål_skala: float = floorf(minf(mål.x / float(main.VY.x), mål.y / float(main.VY.y)))
-	main._placera_karta(mål, mål_skala)
+	# MÅL-FÖNSTRET LÄGGS OM (M113): skalans heltal, vyns ruta OCH remsan beror alla på fönstret, så
+	# provet sätter fönstret och kör samma väg spelet kör i stället för att räkna den gamla formeln
+	# (som gav en centrerad 480x270-vy utan remsa — en ruta som inte finns längre).
+	root.size = Vector2i(mål)
+	main.get_viewport().size = Vector2i(mål)
+	main._placera_vy()
 	await process_frame
-	var vy := Rect2((mål - Vector2(main.VY) * mål_skala) / 2.0, Vector2(main.VY) * mål_skala)
+	var mål_skala: float = main._vy_korg.scale.x
+	var vy := Rect2(main._vy_korg.position, main._vy_korg.size * mål_skala)
+	var bar: Rect2 = main._bar(mål)
 	var karta := Rect2(main.map_view.position, main.MapView.MAP_SIZE * main.map_view.scale)
-	print("  mål-fönstret %.0fx%.0f: vyn %.0fx%.0f @ %.0f,%.0f, marginal till höger %.0f px, kartan %.0fx%.0f @ %.0f,%.0f"
+	print("  mål-fönstret %.0fx%.0f: vyn %.0fx%.0f @ %.0f,%.0f, remsan %.0f px, kartan %.0fx%.0f @ %.0f,%.0f"
 		% [mål.x, mål.y, vy.size.x, vy.size.y, vy.position.x, vy.position.y,
-			mål.x - vy.end.x, karta.size.x, karta.size.y, karta.position.x, karta.position.y])
+			bar.size.y, karta.size.x, karta.size.y, karta.position.x, karta.position.y])
 
 	print("")
-	print("— kartan ligger i MARGINALEN, utanför spelvyn —")
-	check(karta.position.x >= vy.end.x, "kartan ligger helt till höger om spelvyn",
-		"kartans vänsterkant %.0f mot vyns högerkant %.0f" % [karta.position.x, vy.end.x])
-	check(karta.end.x <= mål.x, "kartans högerkant ryms i fönstret",
-		"%.0f av %.0f" % [karta.end.x, mål.x])
+	print("— kartan ligger i REMSANS högra kant —")
+	check(bar.has_point(karta.get_center()), "kartan ligger i remsan under spelvyn",
+		"kartan %s mot remsan %s" % [str(karta), str(bar)])
+	check(karta.position.x >= vy.size.x * 0.5 and karta.end.x <= mål.x,
+		"i remsans högra del, och ryms i fönstret",
+		"x %.0f..%.0f av %.0f" % [karta.position.x, karta.end.x, mål.x])
 	var kolumn := Rect2(karta.position,
-		Vector2(karta.size.x, (main.MapView.MAP_SIZE.y + main.MapView.LEGEND_HÖJD) * mål_skala))
-	check(kolumn.end.y <= mål.y, "kartans ordkolumn ryms i fönstret",
-		"underkant %.0f av %.0f" % [kolumn.end.y, mål.y])
+		Vector2(karta.size.x, (main.MapView.MAP_SIZE.y + main.MapView.LEGEND_HÖJD) * main.map_view.scale.x))
+	# ORDLISTAN LIGGER UNDER KARTAN och måste rymmas i REMSAN (M113): kartans skala räknas ur hela
+	# kolumnen (karta + ordlista), så underkanten ska ligga innanför barens underkant.
+	check(kolumn.end.y <= bar.end.y + 0.5, "kartans ordkolumn ryms i remsan",
+		"underkant %.0f av %.0f" % [kolumn.end.y, bar.end.y])
 	# Den BREDASTE raden i något av de 13 språken, mätt ur tabellerna (MapView.steg) och räknad om
 	# till fönsterpx: märket och luften ligger till vänster om ordet.
-	var text_vänster: float = karta.position.x + (main.MapView.MÄRKE_PX + main.MapView.LUFT) * mål_skala
-	var rad_bredd: float = main.map_view.steg() * mål_skala
+	# KARTANS EGEN SKALA, inte vyns (M113): kartan krymper för att karta + ordlista ska rymmas i
+	# remsan (här blir den 1 medan vyn ligger i skala 2), och ordens mått följer kartans skala.
+	var kort_skala: float = main.map_view.scale.x
+	var text_vänster: float = karta.position.x + (main.MapView.MÄRKE_PX + main.MapView.LUFT) * kort_skala
+	var rad_bredd: float = main.map_view.steg() * kort_skala
 	check(text_vänster + rad_bredd <= mål.x, "den bredaste ordraden (13 språk) ryms i marginalen",
 		"%.0f px text från %.0f, fönstret är %.0f" % [rad_bredd, text_vänster, mål.x])
 
@@ -130,11 +148,11 @@ func _initialize() -> void:
 	# grenen saknades helt: skalans heltal kom ur korgen och fanns inte, så ingenting ritades.
 	var w := UiText.i_fönstret(rader[0], main.map_view.textlager._mapp())
 	var ruta: Rect2 = main.map_view.rad_ruta(0)
-	check(w["storlek"] == main.MapView.ORD_FONT * int(mål_skala),
-		"orden ritas i ORD_FONT x skalans heltal", "%d px" % int(w["storlek"]))
-	check(absf(w["pos"].x - (karta.position.x + ruta.position.x * mål_skala)) < 0.6,
+	check(w["storlek"] == main.MapView.ORD_FONT * int(kort_skala),
+		"orden ritas i ORD_FONT x kartans skalas heltal", "%d px" % int(w["storlek"]))
+	check(absf(w["pos"].x - (karta.position.x + ruta.position.x * kort_skala)) < 0.6,
 		"ordet står till höger om sitt märke, i fönstrets mått",
-		"x %.0f mot %.0f" % [w["pos"].x, karta.position.x + ruta.position.x * mål_skala])
+		"x %.0f mot %.0f" % [w["pos"].x, karta.position.x + ruta.position.x * kort_skala])
 	check(w["pos"].x >= karta.position.x and w["pos"].y >= karta.end.y,
 		"och innanför marginalen, under kartans rutor", "%.0f,%.0f" % [w["pos"].x, w["pos"].y])
 

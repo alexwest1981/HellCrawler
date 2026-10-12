@@ -73,7 +73,8 @@ func _init() -> void:
 	# Alla hus står på samma marklinje: en byggnad som flyter eller sjunker syns direkt.
 	var fel_mark := []
 	for i in antal:
-		if absf(by.hus_rect(i).end.y - VillageView.MARKLINJE) > 0.01:
+		# MARKLINJEN ÄR EN ANDEL AV VYNS HÖJD (M113), inte ett fast tal: scenen ska fylla fönstret.
+		if absf(by.hus_rect(i).end.y - by.marklinje()) > 0.01:
 			fel_mark.append(str(VillageView.PLATSER[i]["id"]))
 	check(fel_mark.is_empty(), "och alla står på marklinjen", ", ".join(fel_mark))
 	# Markörens ram följer markeringen: den ska rymas för VARJE plats, inte bara för den första.
@@ -90,10 +91,12 @@ func _init() -> void:
 	check(by.valt_index() == antal - 1, "och markeringen gick genom hela gatan", "index %d" % by.valt_index())
 	# Etikettlisten ligger UNDER marken och ÖVER ledtrådsraden. Hamnar den över husen skyms det man
 	# valde, och hamnar den över ledtråden blir två rader text en gröt.
-	check(VillageView.BAR >= VillageView.MARKLINJE, "etikettlisten ligger under marklinjen",
-		"%.0f mot %.0f" % [VillageView.BAR, VillageView.MARKLINJE])
-	check(VillageView.BAR + 40.0 <= VillageView.MARKLINJE + 68.0,
-		"och ovanför ledtrådsraden längst ned", "%.0f" % (VillageView.BAR + 40.0))
+	check(by.bar_topp() >= by.marklinje(), "etikettlisten ligger under marklinjen",
+		"%.0f mot %.0f" % [by.bar_topp(), by.marklinje()])
+	# ÖVERLÄGGET I NEDERKANTEN (M113): listen är den sista andelen av höjden, inte ett eget band
+	# under scenen. MÄTT vid 270 px: marklinjen 211, listen 229 — 41 px kvar till kanten.
+	check(by.bar_topp() + 40.0 <= by._vy().y and by.bar_topp() <= by._vy().y * 0.90,
+		"och överlagret ryms i nederkanten", "%.0f av %.0f" % [by.bar_topp() + 41.0, by._vy().y])
 	# Statusraden: en plats utan status ritar en tom rad under namnet, och det ser ut som ett fel.
 	var utan_status := []
 	for i in antal:
