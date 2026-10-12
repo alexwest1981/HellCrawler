@@ -12,6 +12,8 @@
 ##               still — och att underkanten aldrig lämnar den svarta ytan under tiden
 ##   efterföljd— att raden ger efter ett kort i taget när ett kort träder fram, och att varje kort
 ##               landar exakt på sin plats
+##   detalj    — att detaljvyns kort (big) lutar mot pekaren (olika pekarpositioner ger olika lutning)
+##               och att HANDENS kort inte rörs av samma anrop (M67)
 ##
 ##   godot --headless --path game --script res://tests/test_kortrorelse.gd
 ##
@@ -32,7 +34,7 @@ var fails := 0
 var checks := 0
 
 var _db: Dictionary
-var _namn := ["svikt", "återgång", "spelat", "utdelat", "efterföljd", "valkort"]
+var _namn := ["svikt", "återgång", "spelat", "utdelat", "efterföljd", "valkort", "detalj"]
 var _fas := -1
 var _uppvarm := 0
 var _t := 0.0
@@ -40,6 +42,8 @@ var _logg: Array = []
 var _kort: Array = []
 var _hemma: Array = []           ## varje korts hem-y, för utdelningsfasen
 var _start_x: Array = []         ## varje korts x före efterföljden
+var _detalj: CardView = null     ## det STORA kortet i detaljfasen (big)
+var _handkort: CardView = null   ## ett handkort, för kontrollen att pekaren inte rör det
 var _matt: Array = []            ## sammanfattningen, en rad per fas
 
 ## Ett prov: skriver vad som MÄTTES, inte bara att det gick bra. En tröskel som inte kan förklara
@@ -138,6 +142,21 @@ func _nästa_fas() -> void:
 			# talet står kvar tills rörelsen börjar — och det är det som ska stå kvar EFTERÅT.
 			v.position = Vector2(96, 0)
 			_starta([v], Callable(v, "set_forward").bind(true))
+		6:
+			# DETALJVYN (big): pseudo-3D:n följer pekaren. Provet anropar `big_lutning` direkt med två
+			# OLIKA pekarpositioner i kortet — headless har ingen mus att flytta (mätt: musen står på
+			# 0,0 vare sig man warpar den eller matar in en rörelsehändelse), så pekarplatsen ges som
+			# argument i stället. Samma funktion som `_process` anropar med musens faktiska plats.
+			_detalj = CardView.make(_db["lash"], 0, null, true)
+			_detalj.home_pos = Vector2(300, 200)
+			_detalj.size = CardView.BIG_SIZE
+			_detalj.position = Vector2(300, 200)
+			root.add_child(_detalj)
+			# Det stora kortet SAMPLAS (i _kort): alfan ska vara 1,0 hela fasen — effekten får inte
+			# göra kortet genomskinligt (M106).
+			_kort = [_detalj]
+			# Handens kort: samma klass, men big = false. Pekaren får inte röra en pixel av det.
+			_handkort = _kort_på(Vector2(100, 500))
 
 ## Startar fasen: hemvärden sparas och rörelsen sätts igång utan await (annars stannar samplingen).
 func _starta(kort: Array, anrop: Callable) -> void:
@@ -184,6 +203,7 @@ func _avsluta_fasen() -> void:
 		3: _fas_utdelat()
 		4: _fas_efterföljd()
 		5: _fas_valkort()
+		6: _fas_detalj()
 	_nästa_fas()
 
 ## Kurvan och siffrorna för en fas, i en klump: tabellen först, sedan domarna.
@@ -429,6 +449,56 @@ func _fas_valkort() -> void:
 		x, _logg[-1]["k"][0]["x"], dx, h, _logg[-1]["k"][0]["h"], dh])
 	check(dx <= TOL, "valkortet rör sig inte i sidled när pekaren kommer in", "%.2f px" % dx)
 	check(dh <= TOL, "och växer inte i valet", "%.2f px" % dh)
+
+## DETALJVYN (big): pseudo-3D:n ska FÖLJA pekaren — olika pekarpositioner i det stora kortet ger olika
+## lutning — men ALDRIG röra handens kort (M67: där äger de fyra rörelserna samma tal) och aldrig bli
+## djupare än handens egen lutning (LUTA), så kortet inte suddas av effekten.
+func _fas_detalj() -> void:
+	_fas_rubrik()
+	var b := _detalj
+	var h := _handkort
+	# Två pekarpositioner i kortets egna koordinater: till vänster i mitten, och nedre höger.
+	var vänster := Vector2(b.size.x * 0.2, b.size.y * 0.5)
+	var höger := Vector2(b.size.x * 0.8, b.size.y * 0.9)
+	b.big_lutning(vänster)
+	var l_vrid: float = b.rotation
+	var l_skala: Vector2 = b.scale
+	b.big_lutning(höger)
+	var h_vrid: float = b.rotation
+	var h_skala: Vector2 = b.scale
+	print("     pekaren vänster:      skala (%.3f, %.3f)   vridning %+.4f rad" % [l_skala.x, l_skala.y, l_vrid])
+	print("     pekaren nedre höger:  skala (%.3f, %.3f)   vridning %+.4f rad" % [h_skala.x, h_skala.y, h_vrid])
+	_matt.append("detalj: vridning %+.4f -> %+.4f rad | skala.y %.3f -> %.3f (följer pekaren)" % [
+		l_vrid, h_vrid, l_skala.y, h_skala.y])
+	# 1) Vridningen följer pekaren i sidled: motsatt sida ger motsatt håll.
+	check(l_vrid * h_vrid < 0.0 and absf(h_vrid - l_vrid) > 0.01,
+		"detaljvyns vridning följer pekaren i sidled (vänster mot höger ger motsatt håll)",
+		"%+.4f rad mot %+.4f rad" % [l_vrid, h_vrid])
+	# 2) Höjdlutningen följer pekaren — och är ALDRIG djupare än handens (LUTA): kortet får varken
+	#    skalas upp eller suddas av effekten.
+	var djupast := maxf(maxf(1.0 - l_skala.x, 1.0 - l_skala.y), maxf(1.0 - h_skala.x, 1.0 - h_skala.y))
+	check(absf(h_skala.y - l_skala.y) > 0.01 and djupast <= CardView.LUTA_MAX + 0.000001,
+		"och lutningen följer pekaren i höjdled, aldrig djupare än handens (LUTA) — inget suddas",
+		"skala.y %.3f mot %.3f, djupast %.3f av %.3f" % [l_skala.y, h_skala.y, djupast, CardView.LUTA_MAX])
+	# 3) HANDEN ÄR ORÖRD: samma anrop på ett handkort får inte skriva en enda egenskap. Positionen är
+	#    den de fyra rörelserna slåss om, och en femte skrivare är buggklassen M67.
+	var hem_pos: Vector2 = h.position
+	var hem_size: Vector2 = h.size
+	var hem_skala: Vector2 = h.scale
+	var hem_vrid: float = h.rotation
+	h.big_lutning(vänster)
+	h.big_lutning(höger)
+	var d_pos := (h.position - hem_pos).length()
+	var d_size := (h.size - hem_size).length()
+	var d_skala := (h.scale - hem_skala).length()
+	var d_vrid := absf(h.rotation - hem_vrid)
+	print("     handkortet av samma anrop: pos %.4f px, storlek %.4f px, skala %.4f, vridning %.4f rad" % [
+		d_pos, d_size, d_skala, d_vrid])
+	_matt.append("handkort: pekaren rör pos %.4f px, storlek %.4f px, skala %.4f, vridning %.4f rad" % [
+		d_pos, d_size, d_skala, d_vrid])
+	check(d_pos < 0.001 and d_size < 0.001 and d_skala < 0.0001 and d_vrid < 0.0001,
+		"handens kort rörs inte av pekaren (positionen ägs av de fyra rörelserna, M67)",
+		"pos %.4f px, storlek %.4f px, skala %.4f, vridning %.4f" % [d_pos, d_size, d_skala, d_vrid])
 
 # ---------------------------------------------------------------- sammanfattning
 

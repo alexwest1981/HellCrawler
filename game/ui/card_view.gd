@@ -60,6 +60,14 @@ const VÄND_HALV := 0.09           ## s per halva av vändningen: kortet vrids r
 const VÄND_SMAL := 0.06           ## hur smalt kortet blir mitt i vändningen (aldrig exakt 0: en
                                   ## ruta på noll pixlar försvinner ur trädet och tweenen dör tyst)
 
+## PSEUDO-3D I DETALJVYN (big). Samma lutning som LUTA — en kant skjuts bakåt = en skalning under 1 —
+## men i det stora kortet FÖLJER den pekaren i stället för att vara fast: musen till vänster/höger
+## sänker den kanten och vrider kortet kring sin egen mitt. Siffran är LUTA:s EGEN avvikelse (1-0,92),
+## så effekten är precis lika stor som handens framskjutning och aldrig mer — kortet varken skalas upp
+## eller suddas, och alfan rörs inte (kortet får inte bli genomskinligt). Se `big_lutning`.
+const LUTA_MAX := 1.0 - LUTA.y    ## hur mycket en kant skjuts bakåt vid fullt utslag (= LUTA:s djup)
+const VRI_MAX := 0.05             ## rad: hur mycket kortet vrider sig kring sin mitt vid fullt utslag
+
 ## Typfärger mätta ur referensens kort: attack röd, item/passiv gul, mana blå, crawler grön,
 ## wild grå. Textfärgen är samma ton ljusare, så den går att läsa mot den mörka kortytan.
 const TYPE_COLORS := {
@@ -157,8 +165,33 @@ func _sätt_glans_pos(p: Vector2) -> void:
 	_fx_material.set_shader_parameter("glans_pos", p)
 
 func _process(_delta: float) -> void:
+	var p := get_local_mouse_position()
 	if _glans_på:
-		_sätt_glans_pos(get_local_mouse_position())
+		_sätt_glans_pos(p)
+	# PSEUDO-3D:n (big) går genom SAMMA `_process` som glansen, alltså bara medan kortet är hoverat
+	# (`forward` sätts av set_forward, och `_tänd_glans` tänder `_process`). I handen händer ingenting:
+	# där äger de fyra rörelserna kortets tal, och en femte skrivare är buggklassen M67.
+	if _big and forward:
+		big_lutning(p)
+
+## PSEUDO-3D i detaljvyn (big): lägg lutningen för pekarens plats `p` (kortets egna koordinater).
+## Anropas av `_process` med musens faktiska plats; provet anropar den med givna platser.
+##
+## Den rör INTE positionen — bara skalan och vridningen, kring mittpivoten (`_pivot`). Positionen är
+## det tal fyra rörelser redan slåss om i handen (M67), och glansen löste samma knut genom att inte röra
+## den; den här gör likadant. `_big`-villkoret är det som håller handen orörd: spelet pekar aldrig på ett
+## big-kort i handen.
+func big_lutning(p: Vector2) -> void:
+	if not _big:
+		return
+	var halv := size * 0.5
+	# Pekarens läge i kortet, normaliserat till -1..1 från mitten (kanten = fullt utslag).
+	var d := Vector2(clampf((p.x - halv.x) / maxf(halv.x, 1.0), -1.0, 1.0),
+		clampf((p.y - halv.y) / maxf(halv.y, 1.0), -1.0, 1.0))
+	# Lutningen: den kant pekaren lutar mot skjuts bakåt (skalan under 1, LUTA:s mekanism), och kortet
+	# vrider sig en aning mot samma sida. Aldrig mer än LUTA:s djup, så inget blir suddigt av effekten.
+	scale = Vector2(1.0 - LUTA_MAX * absf(d.x), 1.0 - LUTA_MAX * absf(d.y))
+	rotation = VRI_MAX * d.x
 
 ## FÖRBRÄNNINGEN (M103). Alex: *"när ett kort man förbränner vid användning?"* — kortet som spelas
 ## brinner bort från punkten man klickade, i stället för att bara blekna. Rutan tänds, radien växer till
@@ -377,9 +410,15 @@ static func highlight_numbers(text: String) -> String:
 	re.compile("\\d+")
 	return re.sub(text, "[color=#ffcc44]$0[/color]", true)
 
+## Kortets VRIDPUNKT. Handens kort vrider sig kring sin FOT (det vänds upp ur högen kring nederkanten
+## och lyfter ur ledet), det stora kortet kring SIN EGEN MITT — pseudo-3D:n ska svänga det om mitten,
+## inte om ett hörn.
+func _pivot() -> Vector2:
+	return size * 0.5 if _big else Vector2(size.x / 2.0, size.y)
+
 ## Pivot i nederkanten: kortet vrids och växer kring sin egen nederkant, som ett kort i en hand.
 func _recenter_pivot() -> void:
-	pivot_offset = Vector2(size.x / 2.0, size.y)
+	pivot_offset = _pivot()
 
 ## Träder fram ur ledet: kortet SVIKTAR (ger vika ned under pekaren) och lyfter sedan ur handen
 ## med en liten översläng. Allt annat är kvar på sin plats i raden — det är den som ger "håller
@@ -429,28 +468,37 @@ func set_forward(on: bool) -> void:
 		# på 45 ms och svikten syntes inte alls — hela rörelsen var lyftet, med 45 ms försprång.
 		_tween.tween_method(_vik, 0.0, 1.0, SVIKT_TID * f) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_method(_kram, 0.0, 1.0, SVIKT_TID * f) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		# DETALJVYN: svikten (positionen) är kvar, men kramningen hoppas över i big — skalan ägs där av
+		# pseudo-3D:n (big_lutning i _process). Skrev båda vore det två system på samma tal (M67).
+		if not _big:
+			_tween.parallel().tween_method(_kram, 0.0, 1.0, SVIKT_TID * f) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		# FAS 2 — lyftet ur ledet: hela vägen upp med översläng, kramningen ut igen mot LUTA (kortet
 		# lutar bakåt medan det lyfter), och sist en egen fas där det rätar upp sig.
 		_tween.chain()
 		_tween.tween_method(_väx, 0.0, 1.0, LYFT_TID * f) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_property(self, "scale", LUTA, LYFT_TID * f) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_property(self, "rotation", mål_rot, LYFT_TID * f) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		# Lutningen rätas ut i ett EGET steg efter lyftet: lade man den i samma fas skulle kortet stå
-		# kvar och luta medan det redan satt sig.
-		_tween.chain()
-		_tween.tween_property(self, "scale", Vector2.ONE, LUTA_TID * f) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		# DETALJVYN: LUTA-dippen och vridningen är handens lyft — i big ägs skalan och vridningen av
+		# pseudo-3D:n (big_lutning, driven av pekaren), och att tweena dem här vore en fjärde skrivare.
+		if not _big:
+			_tween.parallel().tween_property(self, "scale", LUTA, LYFT_TID * f) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			_tween.parallel().tween_property(self, "rotation", mål_rot, LYFT_TID * f) \
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			# Lutningen rätas ut i ett EGET steg efter lyftet: lade man den i samma fas skulle kortet
+			# stå kvar och luta medan det redan satt sig.
+			_tween.chain()
+			_tween.tween_property(self, "scale", Vector2.ONE, LUTA_TID * f) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	else:
 		# Tillbaka i ledet, med samma svikt: kortet kramas ihop när det sätter sig och rätar ut
 		# sig. Mätt: 3,2 px ihop (4 %) vid 60 ms, satt efter 107 ms.
 		_tween.tween_method(_väx, 1.0, 0.0, ÅTER_TID * f) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_method(_kramfjäder, 0.0, 1.0, ÅTER_TID * f)
+		# Kramningen är handens (skalan); i big har pseudo-3D:n slutat skriva (forward blev false), så
+		# vridningen tweenas tillbaka till hemroten i båda lägena — men skalan rörs bara i handen.
+		if not _big:
+			_tween.parallel().tween_method(_kramfjäder, 0.0, 1.0, ÅTER_TID * f)
 		_tween.parallel().tween_property(self, "rotation", mål_rot, ÅTER_TID * f) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	forward_changed.emit(index, on)
@@ -474,7 +522,7 @@ func målsize() -> Vector2:
 ## Svikten: hela kortet SVIKT_PX ned under pekaren, kvar kring sin hemplats. t 0 -> 1.
 func _vik(t: float) -> void:
 	position = Vector2(home_pos.x, home_pos.y + SVIKT_PX * _skala * t)
-	pivot_offset = Vector2(size.x / 2.0, size.y)
+	pivot_offset = _pivot()
 
 ## Kramningen: kortet trycks ihop kring sin underkant (pivoten ligger i nederkanten, så bara
 ## överkanten ger sig). t 0 = normalt, 1 = ihopklämt.
@@ -497,7 +545,7 @@ func _väx(t: float) -> void:
 	size = s
 	position = Vector2(home_pos.x + (home_size.x - s.x) / 2.0,
 		home_pos.y + home_size.y - s.y)
-	pivot_offset = Vector2(size.x / 2.0, size.y)
+	pivot_offset = _pivot()
 
 ## Kortet delas ut: det växer in på sin plats, ett kort i taget (`fördröjning` är efterföljden).
 ## Mätt: korten låg på plats redan i första bildrutan förut, så en ny hand small till utan
@@ -515,7 +563,7 @@ func dela_in(fördröjning: float = 0.0) -> void:
 	rotation = home_rot
 	size = home_size
 	scale = Vector2.ONE * DELA_KRYMP
-	pivot_offset = Vector2(size.x / 2.0, size.y)
+	pivot_offset = _pivot()
 	modulate.a = 0.25
 	_tween = create_tween()
 	if fördröjning > 0.0:
