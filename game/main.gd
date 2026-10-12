@@ -8771,8 +8771,8 @@ func _place_panel(panel: Control, at_top: bool) -> void:
 	# medan gamla och nya barn låg i raden samtidigt) behåller sin storlek när minimum sjunker igen.
 	# Cachen såg samma mått som förut och hoppade över placeringen, så panelen låg kvar på 616 px i
 	# en 480 px-vy. Storleken själv måste stämma också.
-	# OCH VYN MÅSTE MED I NYCKELN (M113 + M116): positionen räknas ur vyns AKTUELLA mått (`_vy_mått`),
-	# och vyn följer fönstret — men cachen såg bara panelens mått och rensas aldrig. Mätt: hjältepanelen
+	# OCH VYN MÅSTE MED I NYCKELN (M113 + rutnätsprovet): positionen räknas ur vyns AKTUELLA mått
+	# (`_vy_mått`), och vyn följer fönstret — men cachen såg bara panelens mått och rensas aldrig. Mätt: hjältepanelen
 	# stod kvar centrerad i den huvudlösa vyn 160x270 (x -73..233, y 22..248) efter att fönstret blivit
 	# 1280x720 (vy 640x360) — 240 px utanför vyns vänsterkant, och provet i tests/test_hud.gd föll.
 	if _panel_last_size.get(nyckel) == [s, vyn] and panel.size == s:

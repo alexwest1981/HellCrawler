@@ -26,3 +26,9 @@ game/images/*
 !game/images/Gemini_Generated_Image_npicy9npicy9npic.jpeg
 !game/images/Gemini_Generated_Image_94096b94096b9409.jpeg
 build-linux/
+
+# Städning efter gren-mergerna (M113/M116/M117).
+# Närbilden av stenplattan skrivs av `tools/gen_bar_sten.py` vid VARJE körning (även `--check`, som
+# sviten kör) och läses av ingenting — den är ett mellansteg i generatorn, inte en tillgång, så den
+# hör inte i git. Att ha den som okänd fil gör dessutom varje `git status` efter en svitkörning grumlig.
+game/assets/ui/_bar_sten_narbild.png
