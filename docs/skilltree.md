@@ -87,54 +87,60 @@ Fyra länkar: en webbeditor, en Godot-plugin, ett addon och en shader. Alla fyra
 ## Trädet vid naturlig storlek — nu standarden (M99)
 
 Alex valde "Inzoomat": trädet **öppnas i zoom 1,0** på spelarens front (den djupaste köpta noden,
-annars spiralens mitt). `F` visar hela trädet. Mätt ur `-- shot skarm=trad` (M100:s spiral):
+annars spiralens mitt). `F` visar hela trädet. Mätt ur `-- shot skarm=trad` (M101:s spiral):
 
-| | Zoom 1,0 (öppnas så) | `F`: hela trädet (0,517) |
+| | Zoom 1,0 (öppnas så) | `F`: hela trädet (0,356) |
 |---|---|---|
-| Noder som syns | ~50 (9 av 16 nivåer) | 93 (alla) |
-| Minsta nod | 19 px | 9 px (golvet; klassens radie ger 5) |
-| Största nod | 32 px | 16 px |
-| Radie i vyn | 57–246 px | 29–126 px (hela ryms, mitten i mitten 245,135) |
-| **Kopplingarnas längd** | 26–53 px — grenen går att följa | 15–30 px — går att se, inte att läsa |
+| Noder som syns | ~11 per skärm (4 av 16 nivåer ryms lodrätt, fler i hörnen) | 93 (alla) |
+| Minsta nod | 19 px | 6 px |
+| Största nod | 32 px | 11 px |
+| Radie i vyn | 76–421 px (panoreras) | 27–150 px (hela ryms) |
+| **Luft mellan noder** | 17 px | 6 px |
+| **Luft nod–koppling** | 24 px | 8 px |
 
 `-- tradzoom=<tal> skarm=trad shot` fotograferar trädet vid vilken zoom som helst, så jämförelsen går
 att göra om (`main.gd` väntar in en bildruta först: utan det sparades samma bild två gånger, mätt som
 samma md5). **Ett negativt tal är helhetsvyn (`F`) själv**, med den zoom `centrera()` räknar fram — utan
-det fotograferades ett utsnitt med panoreringen nollad, alltså inte det spelaren ser när hon trycker `F`
-(mätt: bilden såg "felcentrerad och klippt" ut, vilket var mätflaggan och inte vyn).
+det fotograferades ett utsnitt med panoreringen nollad, alltså inte det spelaren ser när hon trycker `F`.
 
-## Formen: en spiral ur mitten (M100)
+## Formen: en spiral ur mitten (M100/M101)
 
 Alex skickade en bildserie med spiraler och skrev: *"Jag tänker mig mer som 3 st spiraler som utgår från
 centrum, runt varandra så man konstant arbetar sig utåt i spiralen från de 3 olika armarna."* Grenarna
-är därför spiralens **armar**, och **djupet är avståndet utåt** — inte en rad nedåt. Det gamla rutnätet
-(M97: kolumner och rader, M99: en gaffel som öppnade sig nedåt) är borta.
+är spiralens **armar**, och **djupet är avståndet utåt** — inte en rad nedåt. Det gamla rutnätet (M97:
+kolumner och rader, M99: en gaffel som öppnade sig nedåt) är borta.
 
-- **Armen vrider sig `SPIRAL_VARV` = 8 nivåer per varv** (45 grader per nivå) och radien växer
-  `SPIRAL_DRAD` 0,036 per nivå, ur `SPIRAL_R0` 0,21. 15 nivåer blir alltså **1,9 varv** — samma
-  varvantal som i Alex' referensbilder.
-- **De tre armarna ligger 120 grader ifrån varandra och vrider sig lika mycket per nivå**, så de snurrar
-  runt varandra hela vägen ut: vid varje radie står tre noder jämnt fördelade, och en nivå är en ring.
-- **Ledet (de två syskonen) ligger UTÅT om armens mittlinje**, `SPIRAL_LED` 0,16 andelar isär (43 px):
-  två spår, parallella hela vägen ut. Låg de i stället ett på var sida om linjen klev det inre spåret in
-  i nivån innanför — mätt: 27 px mellan huvudnoden och nivå 2:s inre spår, med 26 och 32 px noder.
-- **Varvtalet är en avvägning, inte ett tycke.** Varje nytt varv måste rada upp sig utanför det förra
-  med plats för ledet och noderna emellan, så radietillväxten per varv måste överstiga `SPIRAL_LED` +
-  nodernas diameter. Vid 8 nivåer per varv går det; vid 6 eller 7 kolliderar armarna (mätt: vid 8 är
-  minsta luften mellan två noder **5 px**, och trädet ryms ändå i helhetsvyn med zoom 0,517). Ett
-  lösare, galaxlikt träd med flera varv kräver alltså antingen färre nivåer per arm eller en större vy.
-- **Syskons avstånd i andelar, inte i nodradier**, och den gamla `SYSKON_AVSTÅND` är borta: storleken
-  kommer ur nivån, avståndet ur ledet.
+Sedan: *"De behöver ligga mer separerade, det måste vara luft mellan noderna och linjerna som ansluter
+till dem. Det gör inget alls om man får pan'a över hela kartan med musen. Huvudnoderna kan ligga tätare
+mot varandra, sen sprid ut dem mer."* Tre ändringar, alla mätta:
+
+- **Bågen är konstant, vinkeln är inte.** Vinkeln per nivå är `SPIRAL_BUE` (0,22) delat med radien, så
+  två nivåer ligger **lika långt ifrån varandra hela vägen ut** — mätt 56–62 px, mot 48–152 px när
+  vinkeln var fast och radien växte. Spiralen varvar alltså tätt i mitten och långsammare utåt.
+- **Spåren ligger på ömse sidor** om armens mittlinje (`SPIRAL_LED` 0,16 = 43 px), så huvudnoden — som
+  är ensam på sin nivå — hamnar PÅ linjen och de två syskonen gafflar ut på var sin sida. Mätt: 17 px
+  luft mellan syskonen (26 px noder). Låg båda spåren utanför linjen klev det inre spåret in i nivån
+  innanför.
+- **Kopplingarna ritas som bågar** genom trädrymden (`_båge`), inte som raka linjer. En rak linje mellan
+  två nivåer skar genom nästa arms noder — mätt: 13 px IN i en nod — för bågen mellan två nivåer är
+  ~59 px medan noderna är 26 px. Bågen följer spåret och håller sig i sin egen arm: **mätt 24 px luft**
+  till varje annan nod.
+
+Mätta tal (ur `test_trad_oandlig`, som mäter i radie ur mitten): minsta luften mellan två noder **17 px**,
+minsta luften mellan en koppling och en annan nod **24 px**, nivåstegen 56–62 px, trädets radie 421 px i
+zoom 1 och 150 px i helhetsvyn. Radietillväxten är `SPIRAL_DRAD` 0,08 per nivå ur `SPIRAL_R0` 0,28, och
+15 nivåer blir 0,8 varv — spiralen är en *båge av ett varv*, inte flera varv.
 
 Provet `game/tests/test_trad_oandlig.gd` mäter formen i **radie ur mitten** i stället för i rader:
 nivåerna är ringar som går utåt, syskonen ligger på samma vinkel i två spår, **ingen nod ligger på en
-annan** (det är den mätningen som fångade ledet: 17,6 px mellan spåren satte 26 px-noder på varandra,
-och 17 par kolliderade innan konstanterna var rätt), och trädet öppnas i zoom 1. `test_gui` mäter i
-stället att grenens huvudnod ligger närmast mitten — "ovanför" fanns inte längre att mäta.
+annan**, och **ingen koppling går in i en annan nod** (den mätningen fångade den raka linjen: 13 px in i
+en nod, 17 kolliderande par innan konstanterna var rätt). `test_gui` mäter att grenens huvudnod ligger
+närmast mitten — "ovanför" fanns inte längre att mäta.
 
-**Vad formen inte är.** Vid zoom 1 syns 9 av 16 nivåer, som förut: 93 noder på 19–32 px får inte plats
-i en 480×270-ruta på en gång, och `F` ritar dem vid 9 px-golvet. Det är utsnittet som är valt, inte ett
-fel. Läsbarheten är densamma som före M100 — men riktningen utåt är nu ritad.
+**Vad formen kostar.** Trädet är nu ~1,5 skärmar i radie, så spelaren **panorerar** (höger musknapp eller
+mitten, som förut) i stället för att se allt på en gång; `F` visar helheten vid zoom 0,356, där noderna
+ritas 6–11 px och formen syns men texten inte. Det är priset för luften, och Alex tog det uttryckligen:
+*"Det gör inget alls om man får pan'a över hela kartan med musen."*
 
 ## Förslaget: flera rang på de tunga noderna
 

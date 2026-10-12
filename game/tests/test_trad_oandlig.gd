@@ -109,6 +109,35 @@ func _initialize() -> void:
 				närmast = luft
 				par = "%s/%s" % [alla[i], alla[j]]
 	check(närmast > 0.0, "ingen nod ligger på en annan", "minsta luft %.0f px (%s)" % [närmast, par])
+	# OCH LUFT MELLAN NODERNA OCH KOPPLINGARNA (M101). Alex: *"det måste vara luft mellan noderna och
+	# linjerna som ansluter till dem."* Kanten ritas nu som en BÅGE genom trädrymden (_båge), och den
+	# mäts här mot varje annan nod än sina två ändar: en rak linje gick 13 px in i en nod i nästa arm.
+	var kantluft := 1e9
+	var kantpar := ""
+	for barn in vy._rader:
+		for krav in vy._rader[barn]["def"].get("requires", []):
+			var förälder: String = str(krav)
+			if not vy._ikoner.has(förälder) or not vy._ikoner.has(barn):
+				continue
+			var båge: PackedVector2Array = vy._båge(förälder, barn)
+			for i in range(båge.size() - 1):
+				var a: Vector2 = båge[i]
+				var b: Vector2 = båge[i + 1]
+				for annan in vy._ikoner:
+					if annan == barn or annan == förälder:
+						continue
+					var mitt: Vector2 = (vy._ikoner[annan] as Control).position + (vy._ikoner[annan] as Control).size * 0.5
+					# avstånd punkt-till-sträcka
+					var dx: float = b.x - a.x
+					var dy: float = b.y - a.y
+					var dd: float = dx * dx + dy * dy
+					var t: float = 0.0 if dd <= 0.0 else clampf(((mitt.x - a.x) * dx + (mitt.y - a.y) * dy) / dd, 0.0, 1.0)
+					var luft: float = Vector2(a.x + t * dx, a.y + t * dy).distance_to(mitt) \
+						- (vy._ikoner[annan] as Control).size.x * 0.5
+					if luft < kantluft:
+						kantluft = luft
+						kantpar = "%s→%s förbi %s" % [förälder, barn, annan]
+	check(kantluft > 0.0, "kopplingen går fri från varje annan nod", "minsta luft %.0f px (%s)" % [kantluft, kantpar])
 	# Trädet öppnas i NATURLIG storlek (M99) och i spiralens MITT — där står man när inget är köpt.
 	check(absf(vy._zoom - 1.0) < 0.001, "trädet öppnas i naturlig storlek (zoom 1)", "zoom %.3f" % vy._zoom)
 

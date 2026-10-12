@@ -60,23 +60,32 @@ const FILNAMN := {
 ## Nivåerna kommer ur DATAT, inte ur en konstant: konstanten nedan är bara ett golv för en tom fil.
 const HÖGSTA := 6
 
-## ETT NODTRÄD SOM ÄR EN SPIRAL UR MITTEN (M100). Alex: *"Jag tänker mig mer som 3 st spiraler som
-## utgår från centrum, runt varandra så man konstant arbetar sig utåt i spiralen från de 3 olika
-## armarna."* Grenarna är alltså spiralens tre ARMAR: samma radie per nivå, 120 grader ifrån varandra,
-## så de snurrar runt varandra och DJUPET är avståndet utåt — inte en rad nedåt.
+## ETT NODTRÄD SOM ÄR EN SPIRAL UR MITTEN (M100/M101). Alex skickade en bildserie med spiraler: *"Jag
+## tänker mig mer som 3 st spiraler som utgår från centrum, runt varandra så man konstant arbetar sig
+## utåt i spiralen från de 3 olika armarna."* Grenarna är spiralens tre ARMAR, och DJUPET är avståndet
+## utåt — inte en rad nedåt. Sedan M101: *"De behöver ligga mer separerade, det måste vara luft mellan
+## noderna och linjerna som ansluter till dem. Det gör inget alls om man får pan'a över hela kartan
+## med musen. Huvudnoderna kan ligga tätare mot varandra, sen sprid ut dem mer."*
 ##
-## Formen är en arkimedisk spiral (radien växer jämnt med vinkeln), alltså ligger varven jämnt med
-## SPIRAL_VARV nivåer per varv — samma jämna varv som i Alex' referensbilder. Nodens två led ligger i
-## SIDLED, radiellt UTÅT från armens mittlinje, som två räls: de är parallella hela vägen ut.
-## Förr var formen kolumner och rader (M97) med en gaffel som öppnade sig nedåt (M99); Alex: *"inte som
-## 3 draperin som hänger ned"* — den formen är borta.
+## BÅGEN ÄR KONSTANT, VINKELN ÄR INTE. Vinkeln per nivå är `SPIRAL_BUE / radien`, alltså ligger två
+## nivåer LIKA långt ifrån varandra hela vägen ut (mätt: 56-62 px mot 48-152 px med en fast vinkel per
+## nivå). Spiralen varvar därför tätt i mitten och allt långsammare utåt.
+##
+## SPÅREN LIGGER PÅ ÖMSE SIDOR om armens mittlinje (`SPIRAL_LED`), så huvudnoden — som är ensam på sin
+## nivå — hamnar PÅ linjen och de två syskonen gafflar ut på var sin sida. Låg båda spåren utanför
+## linjen klev det inre spåret in i nivån innanför.
+##
+## KOPPLINGARNA RITAS SOM BÅGAR genom trädrymden (`_båge`), inte som raka linjer: en rak linje mellan
+## två nivåer skar rakt genom nästa arms noder (mätt: 13 px in i en nod), för bågen mellan två nivåer
+## är ~59 px medan noderna är 26 px.
 ##
 ## En nod vars socketpost har `pin` ligger där den ligger (handplacerad i trädeditorn) — alla andra
 ## följer spiralen. Rymden är samma som förut: andelar, oändlig, panorering och zoom.
-const SPIRAL_R0 := 0.21        ## armens startradie: grenens huvudnod
-const SPIRAL_DRAD := 0.036     ## radietillväxt per nivå
-const SPIRAL_VARV := 8.0       ## nivåer per varv (45 grader per nivå, 1,9 varv på 16 nivåer)
-const SPIRAL_LED := 0.16       ## ledets steg UTÅT per syskon: de två spåren ligger 0,16 andelar (43 px) isär
+const MITT := Vector2(0.5, 0.5)  ## spiralens mitt i trädrymden
+const SPIRAL_R0 := 0.28        ## armens startradie: grenens huvudnod
+const SPIRAL_DRAD := 0.08      ## radietillväxt per nivå
+const SPIRAL_BUE := 0.22       ## bågen mellan två nivåer, i andelar: vinkeln per nivå = BUE / radien
+const SPIRAL_LED := 0.16       ## spårens avstånd: de två syskonen ligger 0,16 andelar (43 px) isär
 
 
 ## Grennamnen ur DATAT, i den ordning de dyker upp. En ny gren (noder med ett nytt `branch`) blir en
@@ -267,6 +276,7 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 	var sloträknare := {}
 	var räknare := {}
 	var steg := {}
+	var antal := {}                 ## "gren|nivå" -> antal noder, så syskonen kan fördelas kring spåret
 	for d in meta.defs:
 		var g := str(d.get("branch", ""))
 		if g.is_empty():
@@ -274,6 +284,8 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 		räknare[g] = int(räknare.get(g, 0)) + 1
 		_högsta = maxi(_högsta, int(d.get("tier", räknare[g])))
 		steg[str(d.get("id", ""))] = mini(_högsta, räknare[g])
+		var n: int = int(d.get("tier", räknare[g]))
+		antal["%s|%d" % [g, n]] = int(antal.get("%s|%d" % [g, n], 0)) + 1
 
 	for def in meta.defs:
 		var gren: String = def.get("branch", "")
@@ -329,21 +341,24 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 			fx = float(sock["x"])
 			fy = float(sock["y"])
 		else:
-			# SPIRALEN (M100): armen, nivåns vinkel och ledet i sidled. Se konstanterna ovan.
+			# SPIRALEN (M100/M101): armen, nivåns vinkel och spåret i sidled. Se konstanterna ovan.
 			var gren_nr: int = maxi(0, _grenlista.find(gren))
 			var antal_grenar: int = maxi(1, _grenlista.size())
 			var ålder: float = float(maxi(0, nivå - 1))
-			var sida: float = float(plats)
-			# Armarna ligger 120 grader ifrån varandra och vrider sig lika mycket per nivå, alltså
-			# snurrar de runt varandra hela vägen ut. Vinkeln står still mellan nivåerna; det är
-			# RADIEN som är djupet.
-			var vinkel: float = TAU * float(gren_nr) / float(antal_grenar) + ålder * TAU / SPIRAL_VARV
-			# Ledet (syskonet) ligger UTÅT om armens mittlinje: två spår 38 px isär, parallella hela
-			# vägen. Låg de i stället ett på var sida om linjen klev det inre spåret in i nivån innan
-			# (mätt: 27 px mellan huvudnoden och det inre spåret på nivå 2 — noderna är 26 och 32 px).
+			var nyckel: String = "%s|%d" % [gren, nivå]
+			var syskon: int = maxi(1, int(antal.get(nyckel, 1)))
+			# SPÅRET: syskonen ligger på ömse sidor om armens mittlinje, så en ensam nod (huvudnoden)
+			# hamnar PÅ linjen och de två leden gafflar ut på var sin sida.
+			var sida: float = float(plats) - (float(syskon) - 1.0) * 0.5
+			# VINKELN FÖLJER BÅGEN: vinkeln per nivå är SPIRAL_BUE / radien, alltså ligger två nivåer
+			# lika långt ifrån varandra hela vägen ut i stället för allt längre (mätt på bild: 56-62 px
+			# mot 48-152 px med en fast vinkel per nivå).
+			var vinkel: float = TAU * float(gren_nr) / float(antal_grenar)
+			for i in range(int(ålder)):
+				vinkel += SPIRAL_BUE / (SPIRAL_R0 + float(i) * SPIRAL_DRAD)
 			var radie: float = SPIRAL_R0 + ålder * SPIRAL_DRAD + sida * SPIRAL_LED
-			fx = 0.5 + cos(vinkel) * radie
-			fy = 0.5 + sin(vinkel) * radie
+			fx = MITT.x + cos(vinkel) * radie
+			fy = MITT.y + sin(vinkel) * radie
 		var post: Dictionary = sock
 		post["id"] = id
 		post["x"] = fx
@@ -407,6 +422,36 @@ class Ritar:
 			vy._rita(self)
 
 
+## EN KANT GENOM TRÄDRYMMEN (M101): punkterna följer spåret mellan föräldern och barnet i stället för
+## att gå rakt. Den raka linjen skar genom nästa arms noder — mätt: linjen från en nod på nivå 9 till
+## sin förälder gick 13 px IN i en nod på nivå 3 i en annan arm. Skälet är att bågen mellan två nivåer
+## är ~59 px medan noderna är 26 px: en rak linje är ett korda som skär in i grannskapet. Bågen håller
+## sig i sin egen arms spår, där ingen annan nod finns.
+## Ändpunkterna är nodernas MITTPUNKTER; _rita kortar bort den del som ligger inne i kloten.
+func _båge(från: String, till: String) -> PackedVector2Array:
+	var ut := PackedVector2Array()
+	var a: Dictionary = _snäpp.get(från, {})
+	var b: Dictionary = _snäpp.get(till, {})
+	if not (a.has("x") and b.has("x")):
+		return ut
+	var pa: Vector2 = Vector2(float(a["x"]), float(a["y"])) - MITT
+	var pb: Vector2 = Vector2(float(b["x"]), float(b["y"])) - MITT
+	var ra: float = pa.length()
+	var rb: float = pb.length()
+	var va: float = atan2(pa.y, pa.x)
+	var vb: float = atan2(pb.y, pb.x)
+	# KORTASTE VÄGEN I VINKEL: annars ritas ett helt varv baklänges när två nivåer ligger på var sin
+	# sida om 0 grader.
+	var dv: float = wrapf(vb - va, -PI, PI)
+	var steg: int = 16
+	for i in range(steg + 1):
+		var t: float = float(i) / float(steg)
+		var v: float = va + dv * t
+		var r: float = ra + (rb - ra) * t
+		ut.append(_ur_bild(MITT.x + cos(v) * r, MITT.y + sin(v) * r))
+	return ut
+
+
 ## KOPPLINGAR OCH RINGAR (M96). Kopplingarna är nodernas EGNA krav: en linje per `requires`, alltså
 ## samma kant som låset läser. Förut ritades en stång per gren mellan nivåerna, och den band trädet
 ## till plattans sex rader — en nod på nivå tolv hade fått sin stång ritad mot en rad som inte finns.
@@ -416,7 +461,7 @@ class Ritar:
 func _rita(du: CanvasItem) -> void:
 	if _meta == null or _ikoner.is_empty():
 		return
-	# EN LINJE PER KRAV, kortad till nodernas kanter: ett rör genom klotet hade sett ut som en
+	# EN BÅGE PER KRAV, kortad till nodernas kanter: ett rör genom klotet hade sett ut som en
 	# genomborrad nod.
 	for id in _ikoner:
 		var ikon: Control = _ikoner[id]
@@ -428,19 +473,22 @@ func _rita(du: CanvasItem) -> void:
 				continue
 			var f: Control = _ikoner[förälder]
 			var fc: Vector2 = f.position + f.size * 0.5
-			var riktning: Vector2 = c - fc
-			var längd: float = riktning.length()
-			if längd < 1.0:
+			var båge: PackedVector2Array = _båge(förälder, id)
+			if båge.size() < 2:
 				continue
-			var enhet: Vector2 = riktning / längd
-			var a: Vector2 = fc + enhet * (f.size.x * 0.5 + 2.0)
-			var b: Vector2 = c - enhet * (ikon.size.x * 0.5 + 2.0)
-			if (b - a).dot(enhet) <= 0.0:
-				continue
+			var från: int = 0
+			while från < båge.size() - 2 and båge[från].distance_to(fc) < f.size.x * 0.5 + 2.0:
+				från += 1
+			var till: int = båge.size() - 1
+			while till > från + 1 and båge[till].distance_to(c) < ikon.size.x * 0.5 + 2.0:
+				till -= 1
+			var kant := PackedVector2Array()
+			for i in range(från, till + 1):
+				kant.append(båge[i])
 			var tänd: bool = köpt or _meta.rank(förälder) > 0
 			var färg: Color = GREN_FÄRG.get(str(_rader[id].get("gren", "")), JÄRN_LJUS) if tänd else JÄRN
-			du.draw_line(a, b, färg, 3.0)
-			du.draw_line(a, b, JÄRN_LJUS, 1.0)
+			du.draw_polyline(kant, färg, 3.0)
+			du.draw_polyline(kant, JÄRN_LJUS, 1.0)
 	# SOCKETRINGARNA. Bara ringar, inga fyllda skivor: den här ritaren ligger ÖVERST i vyn (en Controls
 	# egen _draw hamnar under barnen, och panelen är nästan opak), så en fylld skiva hade målat över
 	# ikonerna — mätt: socketarna syntes och var alldeles tomma. Ringens innerkant hamnar på 9 px och
@@ -681,7 +729,7 @@ func zooma(punkt: Vector2, faktor: float) -> void:
 ## att kunna hovra. Mätt i 480x270: zoom 1 visar 8 av 16 nivåer och hela grenen man står i.
 func visa_front() -> void:
 	# Mitten av spiralen: fronten när inget är köpt är de tre armarnas huvudnoder kring den.
-	var mål := Vector2(0.5, 0.5)
+	var mål := MITT
 	var djupast := 0
 	for id in _rader:
 		if _meta == null or _meta.rank(id) <= 0:
