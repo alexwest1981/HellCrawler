@@ -580,31 +580,61 @@ func _initialize() -> void:
 	print("— statusblocket —")
 	check(main.hud_status != null and main.hud_status.visible, "statusblocket syns")
 	check(main.hud_status.porträtt.texture != null, "porträttet är laddat (assets/ui/portratt.png)")
-	# KÄRLEN (M51): hälsa, mana och rustning som nivåer man ser på håll, i sidomarginalerna. Provet
-	# mäter att de SYNS, att de ligger i marginalen (aldrig över spelvyn) och att nivån följer VÄRDET —
-	# halva livet ska ge ett halvfyllt kärl.
-	## ALLA TRE KÄRLEN PÅ SAMMA SIDA (efter M64). Alex: *"Lägg hälsa och mana på samma sida, det
-	## krockar med allt annat på höger sida"*. Hälsan är det stora kärlet; manan och rustningen delar
-	## platsen under den och är därför mindre. Mätningen nedan fångar två fel jag själv gjorde på
-	## vägen: ett kärl som hamnade 32 px utanför fönstret, och ett kärl som delade plats med kartan.
-	var kärl := [main.orb_hp, main.orb_mana, main.rust_bar]
+	# KÄRLEN (M51, omgjorda i M111): hälsa, mana och rustning som KLOT i spelvyns nedre hörn.
+	# Alex: *"Jag ser fortfarande inga Orbs heller, och jag skulle vilja ha 3 - HP, Mana och Armor.
+	# Man måste veta om man har så man klarar sig genom en strid. Sätt dem nere i vardera hörn, men
+	# placera Armor över HP. Nu är det dags att de syns oavsett upplösning."*
+	#
+	# PROVET MÄTER DET SOM FÖRUT GICK FEL. Den gamla placeringen räknade radien ur utrymmet mellan
+	# panelerna och klämde klotet till 20x20 px i Alex' eget fönster (mätt), medan provet sade "syns
+	# [true, true, true]" — rutan var rätt och bilden tom. Kontrollerna nedan mäter därför STORLEKEN i
+	# spelvyns mått (samma andel i varje fönster), HÖRNEN (hp nedre vänster, rust över hp, mana nedre
+	# höger) och att inget klot hamnar utanför fönstret.
+	var kärl := [main.orb_hp, main.orb_mana, main.orb_rust]
 	for k in kärl:
 		check(k != null and k.size.x > 60.0, "kärlet syns och har en ruta",
 			"%.0fx%.0f @ %.0f,%.0f" % [k.size.x, k.size.y, k.position.x, k.position.y])
 		check(k.visible, "kärlet är synligt i strid")
-		check(k.get_rect().end.x <= vy.position.x or k.position.x >= vy.end.x,
-			"kärlet ligger i sidomarginalen, inte över spelvyn",
-			"kärl %s mot vyn %s" % [str(k.get_rect()), str(vy)])
-		check(k.get_rect().position.x >= 0.0 and k.get_rect().end.x <= fönster.x,
-			"kärlet ryms helt i fönstret", "%s mot fönstret %.0f brett" % [str(k.get_rect()), fönster.x])
-	# Hälsokärlet är ALDRIG mindre än manan (manan krymper efter utrymmet; i ett läge utan korthögar
-	# ryms båda i full storlek, och då är lika stort rätt svar).
-	check(main.orb_hp.size.x >= main.orb_mana.size.x,
-		"hälsokärlet är minst lika stort som manan", "%.0f mot %.0f" % [main.orb_hp.size.x, main.orb_mana.size.x])
-	check(main.orb_mana.get_rect().end.x <= vy.position.x and main.rust_bar.get_rect().end.x <= vy.position.x,
-		"hälsa, mana och rustning står på SAMMA sida (vänster)",
-		"mana %s, rust %s" % [str(main.orb_mana.get_rect()), str(main.rust_bar.get_rect())])
-	check(main.orb_mana.visible and main.rust_bar.visible, "mana och rustning syns i strid")
+		check(k.get_rect().position.x >= 0.0 and k.get_rect().position.y >= 0.0
+				and k.get_rect().end.x <= fönster.x and k.get_rect().end.y <= fönster.y,
+			"kärlet ryms helt i fönstret", "%s mot fönstret %.0fx%.0f" % [str(k.get_rect()), fönster.x, fönster.y])
+		check(vy.has_point(k.get_rect().get_center()),
+			"kärlets mitt ligger i spelvyn (hörnet är dess eget)", "%s mot vyn %s" % [str(k.get_rect()), str(vy)])
+	check(is_equal_approx(main.orb_hp.size.x, main.orb_mana.size.x)
+			and is_equal_approx(main.orb_hp.size.x, main.orb_rust.size.x),
+		"alla tre klot är lika stora", "hp %.0f, mana %.0f, rust %.0f" % [main.orb_hp.size.x,
+			main.orb_mana.size.x, main.orb_rust.size.x])
+	# RUSTNINGEN LIGGER ÖVER HÄLSAN (Alex: *"placera Armor över HP"*), i samma lodräta linje.
+	check(absf(main.orb_rust.get_rect().get_center().x - main.orb_hp.get_rect().get_center().x) < 2.0
+			and main.orb_rust.get_rect().end.y <= main.orb_hp.get_rect().position.y,
+		"rustningen ligger rakt ÖVER hälsan", "rust %s, hp %s" % [str(main.orb_rust.get_rect()),
+			str(main.orb_hp.get_rect())])
+	# HÄLSAN OCH MANAN LIGGER I VAR SITT HÖRN, på samma höjd.
+	check(main.orb_hp.get_rect().get_center().x < vy.get_center().x
+			and main.orb_mana.get_rect().get_center().x > vy.get_center().x
+			and absf(main.orb_hp.get_rect().get_center().y - main.orb_mana.get_rect().get_center().y) < 2.0,
+		"hälsan ligger i nedre vänstra hörnet och manan i det högra",
+		"hp %s, mana %s" % [str(main.orb_hp.get_rect()), str(main.orb_mana.get_rect())])
+	# STORLEKEN ÄR EN ANDEL AV SPELVYN, INTE AV UTKYMMET RUNT DEN. Radien ska vara 0,11 * 270 = 30
+	# spelpixlar gånger heltalsskalan, alltså samma andel av vyn i varje fönster.
+	for st in [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(941, 1018)]:
+		root.size = st
+		main.get_viewport().size = st
+		main._placera_vy()
+		await process_frame
+		var s: float = main._vy_korg.scale.x
+		var väntad: float = 2.0 * (float(main.VY.y) * main.KÄRL_RADIE_ANDEL + HudOrb.KANT) * s
+		check(absf(main.orb_hp.size.x - väntad) <= 2.0 * s,
+			"klotet är %.0f %% av vyns höjd i %s" % [100.0 * main.KÄRL_RADIE_ANDEL * 2.0, st],
+			"%.0f px väntat %.0f px (skala %.0f)" % [main.orb_hp.size.x, väntad, s])
+		check(main.orb_hp.get_rect().end.y <= float(st.y) and main.orb_mana.get_rect().end.x <= float(st.x)
+				and main.orb_rust.get_rect().position.y >= 0.0,
+			"och alla tre ryms i %s" % st, "hp %s rust %s" % [str(main.orb_hp.get_rect()),
+				str(main.orb_rust.get_rect())])
+	root.size = Vector2i(1280, 720)
+	main.get_viewport().size = Vector2i(1280, 720)
+	main._placera_vy()
+	await process_frame
 	# KÄRLEN SYNS ÄVEN UTAN STRID (M102). Alex: *"Det finns ju idag ingen hälso- eller manakula, var har
 	# du gömt dem? Jag vill se dem hela tiden, inte bara vid strid"*. En gammal grind i `_visa_gui` gömde
 	# mana och rustning så fort `active_combat == null`, alltså i hela gången mellan striderna — och den
@@ -613,9 +643,9 @@ func _initialize() -> void:
 	var sparat_combat = main.active_combat
 	main.active_combat = null
 	main._visa_gui(true)
-	check(main.orb_hp.visible and main.orb_mana.visible and main.rust_bar.visible,
+	check(main.orb_hp.visible and main.orb_mana.visible and main.orb_rust.visible,
 		"kärlen syns även när ingen strid pågår", "hp %s, mana %s, rust %s" % [
-			str(main.orb_hp.visible), str(main.orb_mana.visible), str(main.rust_bar.visible)])
+			str(main.orb_hp.visible), str(main.orb_mana.visible), str(main.orb_rust.visible)])
 	main.active_combat = sparat_combat
 	main._visa_gui(true)
 	# SKAKNINGEN VID TRÄFF (M102) ska lägga sig: en kula som vinglar i en sekund ser trasig ut.
@@ -634,19 +664,17 @@ func _initialize() -> void:
 		check(int(s_i_strid["mana_max"]) == pool,
 			"manakärlets tak är stridens pool, inte ett hårdkodat +4",
 			"%d mot %d" % [int(s_i_strid["mana_max"]), pool])
-	# PARET STÅR SIDA VID SIDA (M75). Alex: *"gör både hälsa och mana mindre så de får plats bredvid
-	# varandre, men ändå som klot"*. Hälsan och manan ska ha samma storlek och samma höjd, manan till
-	# höger om hälsan.
-	check(is_equal_approx(main.orb_hp.size.x, main.orb_mana.size.x)
-			and absf(main.orb_hp.position.y - main.orb_mana.position.y) < 2.0
-			and main.orb_hp.get_rect().end.x <= main.orb_mana.position.x,
-		"hälsan och manan står sida vid sida i samma storlek",
-		"hp %s, mana %s" % [str(main.orb_hp.get_rect()), str(main.orb_mana.get_rect())])
-	# KROCKEN I FLERA FÖNSTER (M75). Felet Alex såg ("Den använda korthögen ligger över mana") kom av
-	# att HP-kärlet ALLTID hade full storlek medan bara manan krympte, och av att klämmen mot korthögen
-	# hoppades över när högens överkant låg ovanför den fria ytan. Vilken fönsterstorlek han såg det i
-	# går inte att gissa, så provet mäter krocken i fyra: kärlen mot varandra, mot korthögarna och mot
-	# fönsterkanten.
+	# KLOTEN RÖR INTE VARANDRA (M111). Förut var frågan om de fick plats BREDVID varandra; nu ligger
+	# hälsa och rustning ovanpå varandra i samma hörn, och då är avståndet i höjdled det som gäller.
+	check(not main.orb_hp.get_rect().intersects(main.orb_rust.get_rect())
+			and not main.orb_hp.get_rect().intersects(main.orb_mana.get_rect()),
+		"ingen av de tre kloten ligger över en annan",
+		"hp %s rust %s mana %s" % [str(main.orb_hp.get_rect()), str(main.orb_rust.get_rect()),
+			str(main.orb_mana.get_rect())])
+	# KROCKEN I FLERA FÖNSTER (M75, omgjord i M111). Felet Alex såg förut ("Den använda korthögen ligger
+	# över mana") kom av att radien räknades ur utrymmet mellan panelerna. Nu räknas den ur vyn, och
+	# provet mäter att kloten fortfarande ryms i fönstret och inte krockar med korthögarna — i fyra
+	# storlekar, för vilken Alex använder går inte att gissa.
 	var storlekar := [Vector2i(1280, 720), Vector2i(1896, 1030), Vector2i(1600, 900), Vector2i(1024, 768)]
 	var krockar: Array = []
 	var värde_utanför: Array = []
@@ -655,23 +683,17 @@ func _initialize() -> void:
 		main.get_viewport().size = st
 		main._placera_vy()
 		await process_frame
-		var par: Array = [["hp", main.orb_hp], ["mana", main.orb_mana], ["rust", main.rust_bar]]
+		var vy_nu := Rect2(main._vy_korg.position, Vector2(main.VY) * main._vy_korg.scale.x)
+		var par: Array = [["hp", main.orb_hp], ["mana", main.orb_mana], ["rust", main.orb_rust]]
 		for i in par.size():
 			var a: Rect2 = par[i][1].get_rect()
-			# SIFFRAN sitter i kärlets mitt. I ett fönster vars marginal är för smal för två kärl i
-			# bredd (1024x768 ger 32 px marginal) klipps kanten — men mitten, alltså själva värdet,
-			# måste ligga innanför fönstret. Det är skillnaden mellan ett litet kärl och ett kärl som
-			# inte syns alls.
+			# MITTEN, alltså själva värdet, måste ligga i vyn och hela klotet i fönstret. Det är
+			# skillnaden mellan ett klot som ryms och ett klot som inte syns alls.
 			var mitten: Vector2 = a.get_center()
-			# Bara i fönster där marginalen KAN bära två kärl (>= 1280 px brett): i 1024x768 är
-			# marginalen 32 px och två kärl med stenkant är 86 px, alltså får något klippas hur man än
-			# lägger dem. Där mäts i stället att värdet inte hamnar utanför VÄNSTERKANTEN.
-			if st.x >= 1280 and (mitten.x < 0.0 or mitten.y < 0.0
-					or mitten.x > float(st.x) or mitten.y > float(st.y)):
-				värde_utanför.append("%s i %s (%s)" % [par[i][0], st, str(a)])
-			elif a.position.x < -1.0 or a.position.y < -1.0:
-				värde_utanför.append("%s utanför övre vänstra hörnet i %s (%s)"
-					% [par[i][0], st, str(a)])
+			if not vy_nu.has_point(mitten):
+				värde_utanför.append("%s i %s har mitten utanför vyn (%s)" % [par[i][0], st, str(a)])
+			if a.position.x < -1.0 or a.position.y < -1.0 or a.end.x > float(st.x) + 1.0 or a.end.y > float(st.y) + 1.0:
+				värde_utanför.append("%s hamnar utanför fönstret i %s (%s)" % [par[i][0], st, str(a)])
 			for j in range(i + 1, par.size()):
 				var b: Rect2 = par[j][1].get_rect()
 				if a.intersects(b) and a.intersection(b).get_area() > 1.0:
@@ -685,27 +707,25 @@ func _initialize() -> void:
 	check(krockar.is_empty(),
 		"hälsa, mana och rustning krockar inte med korthögarna eller varandra i någon av fyra storlekar",
 		", ".join(krockar.slice(0, 4)))
-	check(värde_utanför.is_empty(), "och värdet i varje kärl ligger innanför fönstret i alla fyra",
+	check(värde_utanför.is_empty(), "och varje klot ryms i vyn och i fönstret i alla fyra",
 		", ".join(värde_utanför.slice(0, 4)))
-	# ALEX' EGET FÖNSTER (941x1018). Där är vyn 480x270 i skala 1, mitt i ett HÖGT fönster (överkant
-	# 374), medan korthögarna sitter i botten med överkant 293 — alltså OVANFÖR vyns överkant. Bandet
-	# mellan dem är negativt, och kärlen klämdes till minsta radien (mätt: 20x20 px) fastän marginalen
-	# under högarna har 356 px fritt. Kontrollen fångar att de är minst 100 px breda där — och att de
-	# ändå står i vänstermarginalen och innanför fönstret.
+	# ALEX' EGET FÖNSTER (941x1018). Här är vyn 480x270 i skala 1, mitt i ett HÖGT fönster, och det var
+	# där den gamla räkningen klämde klotet till 20x20 px. Nu är klotet 2 * (30 + 4) * 1 = 68 px — den
+	# gamla gränsen 100 px gäller inte längre, för den räknades mot MARGINALEN. Det som mäts är att
+	# klotet har samma andel av VYN som i alla andra fönster, och att alla tre ryms.
 	root.size = Vector2i(941, 1018)
 	main.get_viewport().size = Vector2i(941, 1018)
 	main._placera_vy()
 	await process_frame
-	check(main.orb_hp.size.x >= 100.0 and main.orb_mana.size.x >= 100.0,
-		"kärlen är minst 100 px breda i 941x1018",
-		"hp %.0fx%.0f, mana %.0fx%.0f" % [main.orb_hp.size.x, main.orb_hp.size.y,
-			main.orb_mana.size.x, main.orb_mana.size.y])
-	check(main.orb_hp.get_rect().end.x <= main._vy_korg.position.x
-			and main.orb_mana.get_rect().end.x <= main._vy_korg.position.x
-			and main.orb_hp.position.y >= 0.0 and main.rust_bar.get_rect().end.y <= 1018.0,
-		"och de ligger i vänstermarginalen och ryms i fönstret",
-		"hp %s, mana %s, rust %s" % [str(main.orb_hp.get_rect()), str(main.orb_mana.get_rect()),
-			str(main.rust_bar.get_rect())])
+	check(absf(main.orb_hp.size.x - 2.0 * (float(main.VY.y) * main.KÄRL_RADIE_ANDEL + HudOrb.KANT)
+			* main._vy_korg.scale.x) <= 2.0 * main._vy_korg.scale.x,
+		"klotet har samma andel av vyn i Alex' eget fönster som i de andra",
+		"%.0f px i skala %.0f" % [main.orb_hp.size.x, main._vy_korg.scale.x])
+	check(main.orb_hp.get_rect().end.y <= 1018.0 and main.orb_rust.get_rect().position.y >= 0.0
+			and Rect2(main._vy_korg.position, Vector2(main.VY) * main._vy_korg.scale.x)
+				.has_point(main.orb_hp.get_rect().get_center()),
+		"och kloten ligger i vyns nedre hörn, innanför fönstret",
+		"hp %s, rust %s" % [str(main.orb_hp.get_rect()), str(main.orb_rust.get_rect())])
 	# Tillbaka till provets eget fönster: resten av provet mäter layouten i 1280x720.
 	root.size = Vector2i(1280, 720)
 	main.get_viewport().size = Vector2i(1280, 720)
@@ -725,6 +745,18 @@ func _initialize() -> void:
 	main._hud_sätt(max_hp, true)
 	await process_frame
 	check(main.orb_hp.nivå() > 0.99, "och fullt när livet är fullt", "%.2f" % main.orb_hp.nivå())
+	# RUSTNINGSKLOTET följer sin EGEN pool (M103): ett klot som står still medan värdet ändras är en
+	# siffra utan nivå. Provet sätter rustningen till halva taket och mäter att vätskan följer.
+	var max_rust: float = main.run.armor_tak
+	main.active_combat.armor = max_rust * 0.5
+	main._hud_sätt(main.active_combat.hp, true)
+	await process_frame
+	check(absf(main.orb_rust.nivå() - 0.5) < 0.02, "rustningsklotet är halvfyllt när rustningen är halv",
+		"%.2f för %.0f/%.0f" % [main.orb_rust.nivå(), main.active_combat.armor, max_rust])
+	check(main.orb_rust.text.contains("/"), "och siffran står i klotet", main.orb_rust.text)
+	main.active_combat.armor = 0.0
+	main._hud_sätt(main.active_combat.hp, true)
+	await process_frame
 
 	print("")
 	# FIENDERUTAN FINNS INTE LÄNGRE (M68). Alex: *"Rutan där det står Candlewisp ... den är lite

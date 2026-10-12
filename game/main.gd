@@ -91,11 +91,12 @@ var alt_index := 0
 ## samma tre storheter (hälsa, mana, rustning), men som staplar med siffrorna på sig.
 var hud_status: HudStatus
 ## Kärlen (M36, tillbaka i M51): hälsa, mana och rustning som NIVÅER man ser på håll, i
-## sidomarginalerna — samma grepp som Diablos orbs. Alex: *"jag gillade när du hade allt som klot
-## innan, det får du gärna lägga tillbaka på ett lämpligt ställe"*. Siffrorna står i statusblocket.
+## KÄRLEN (M36, M111): hälsa, mana och rustning som klot man SER nivån på, i spelvyns nedre hörn —
+## samma grepp som Diablos orbs. Alex: *"jag gillade när du hade allt som klot innan, det får du
+## gärna lägga tillbaka på ett lämpligt ställe"*. Siffrorna står i statusblocket OCH i klotet.
 var orb_hp: HudOrb
 var orb_mana: HudOrb
-var rust_bar: HudBar       ## rustningen som rad: ett enda poäng är en stapel, inte ett kärl
+var orb_rust: HudOrb        ## rustningen som eget klot (M111): den var en rad, men ett klot syns på håll
 var hud_logg: HudLogg
 # Kortborden (M34, punkt 8): draghögen till höger och de använda till vänster. Korten kommer ur den
 # ena och hamnar i den andra — utan dem är en spelad kortanimation bara ett kort som försvinner.
@@ -546,14 +547,17 @@ const HÖGDAGER_TRÖSKEL := 0.85
 ## MÄTT: med 1280x720 är vyn 960x540, alltså 160 px svart marginal på sidorna och 90 px ovanför —
 ## kartan (76x60 i vyns skala = 152x120 i fönstret) ryms i hörnet med MARGINAL till godo.
 const MARGINAL := 6.0
-## Kärlens radie i fönsterpixlar (gånger heltalsskalan). Det är ett TAK, inte måttet: den radie som
-## gäller räknas ur marginalens bredd och det fria bandets höjd i `_placera_gui`, så taket behöver bara
-## ligga över allt som förekommer. MÄTT: i 941x1018 (skala 1) är marginalen 230 px och rymmer radie 52
-## = 112 px kärl — med taket 34 blev kärlet 76 px, under de 100 px Alex ville ha. 50 ger 108 px där och
-## rör ingen annan storlek: i 1280x720, 1896x1030, 1600x900 och 1024x768 sätter marginalen själv radien
-## (15, 14, 6 och 6).
-const R_STOR := 50
-const R_LITEN := 22
+## Kärlens radie i SPELPIXLAR (M111). Den räknas ur spelvyns höjd — 0,11 * 270 = 30 px radie, alltså
+## 60 px i diameter och 22 % av vyns höjd — och multipliceras med fönstrets heltalsskala precis som
+## vyn och ramen. Då är kärlet lika stort i VARJE fönster (MÄTT: 60 px i 1280x720, 120 px i 1896x1030),
+## till skillnad från förut, då radien räknades ur utrymmet mellan panelerna och klämdes till 20x20 px
+## i Alex' eget fönster. Golvet 12 px gäller bara ett fönster mindre än 480x270, taket 64 px ett större.
+const KÄRL_RADIE_ANDEL := 0.11
+const KÄRL_RADIE_MIN := 12
+const KÄRL_RADIE_MAX := 64
+## Hur nära spelvyns kant kärlet sitter, och luften mellan hälsan och rustningen — i spelpixlar.
+const KÄRL_KANT := 4.0
+const KÄRL_MELLAN := 6.0
 const RAD_2_Y := 44.0
 ## Pixlar som räknas som ÄNDRADE i närprovet (`-- kistnara`): en kanal måste skilja mer än så.
 ## MÄTT: renderarens egen animation (elden, dimman, den temporala GI:n) går på GPU-tid och rör sig
@@ -641,6 +645,7 @@ var _vol := true                   ## volymetrisk dimma: ljuskäglorna i luften 
 var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, se LJUSPROVET nedan
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
+var _prov_fönster := Vector2i.ZERO ## `fönster=941x1018`: mät HUD:en i en annan fönsterstorlek
                                    ## hur mycket kontrast lagret tar (samma skäl som ssr=0/vol=0)
 var _fx := true
 var _takdropp_på := true           ## -- tak=0 stänger av takdroppet (mätning, inte spel)
@@ -744,6 +749,13 @@ func _ready() -> void:
 			var crt_v := clampf(float(f.substr(4)), 0.0, 1.0)
 			_crt_av = crt_v <= 0.0
 			_crt_styrka = crt_v
+		elif f.begins_with("fönster="):
+			# Granskningsflagga: mät HUD:en i en ANNAN fönsterstorlek än projektets 1280x720.
+			# `--resolution` biter inte (projektets `window_width_override` vinner), och Alex' egen
+			# storlek 941x1018 är just den där kärlen förut klämdes till 20x20 px. Formen `fönster=941x1018`.
+			var delar := f.substr(8).split("x")
+			if delar.size() == 2:
+				_prov_fönster = Vector2i(int(delar[0]), int(delar[1]))
 		elif f == "vsync=0":
 			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 		elif f == "fx=0":
@@ -3497,6 +3509,13 @@ func _demo_gui() -> void:
 		run.explore.facing = 0
 		_enter_node_here()
 	await get_tree().process_frame
+	if _prov_fönster.x > 0:
+		# Fönstret sätts FÖRE mätningen: `_placera_vy` hakar på `size_changed`, och utan en bildruta
+		# emellan mäts den gamla storleken (mätt: rutan blev kvar på 1280x720).
+		get_window().size = _prov_fönster
+		await get_tree().process_frame
+		await get_tree().create_timer(0.3).timeout
+		_placera_vy()
 	await get_tree().create_timer(1.0).timeout          # shaders och 3D:n hinner ritas
 	_placera_vy()
 	var f := get_viewport().get_visible_rect().size
@@ -3520,13 +3539,50 @@ func _demo_gui() -> void:
 	# bilder medan provet sa "syns [true, true, true]"; att mäta rutan skiljer "ritas utanför det som syns"
 	# från "syns men går inte att se".
 	print("guiprov: kärlens rutor i fönstret: hp %s | mana %s | rust %s" % [
-		str(orb_hp.get_global_rect()), str(orb_mana.get_global_rect()), str(rust_bar.get_global_rect())])
+		str(orb_hp.get_global_rect()), str(orb_mana.get_global_rect()), str(orb_rust.get_global_rect())])
 	print("guiprov: statusrad %s | kärl hp %.2f, mana %.2f, rust %.2f, syns %s" % [
-		hud_status.vital_label.text, orb_hp.nivå(), orb_mana.nivå(), rust_bar.andel(),
-		str([orb_hp.visible, orb_mana.visible, rust_bar.visible])])
+		hud_status.vital_label.text, orb_hp.nivå(), orb_mana.nivå(), orb_rust.nivå(),
+		str([orb_hp.visible, orb_mana.visible, orb_rust.visible])])
+	# SYNS KÄRLET? Rutan och synligheten kan båda vara rätt och bilden ändå tom, och en enskild pixel i
+	# mitten säger ingenting: där sitter SIFFRAN. Provet räknar i stället hur stor del av klotet som har
+	# vätskans färg. Mätt med den gamla placeringen i 941x1018: klotet var 20x20 px och andelen föll
+	# under 10 % — det syntes inte, fastän `syns [true, true, true]`.
+	await RenderingServer.frame_post_draw
+	var provbild := get_viewport().get_texture().get_image()
+	for kärl in [["hp", orb_hp, Palett.c(11)], ["mana", orb_mana, Palett.c(25)],
+			["rust", orb_rust, Palett.c(22)]]:
+		var k: Control = kärl[1]
+		if k == null:
+			continue
+		var vätska: Color = kärl[2]
+		var ruta: Rect2 = k.get_global_rect()
+		var radie: float = ruta.size.x * 0.5
+		var inuti := 0
+		var lika := 0
+		var steg := maxf(1.0, radie / 14.0)
+		var y := ruta.position.y + radie * 0.25
+		while y < ruta.position.y + radie * 1.75:
+			var x := ruta.position.x + radie * 0.25
+			while x < ruta.position.x + radie * 1.75:
+				var d := Vector2(x - ruta.get_center().x, y - ruta.get_center().y).length()
+				if d <= radie * 0.75:
+					inuti += 1
+					var px := Color.BLACK
+					if x >= 0.0 and y >= 0.0 and x < provbild.get_width() and y < provbild.get_height():
+						px = provbild.get_pixel(int(x), int(y))
+					# Vätskan är ritad med djup: varje rad är sin egen nyans av samma färg. Jämförelsen
+					# mäter därför NYANSEN (rödast/blåast/gråast), inte det exakta talet.
+					var mot := vätska.darkened(0.45)
+					if px.r >= mot.r - 0.06 and px.g >= mot.g - 0.06 and px.b >= mot.b - 0.06:
+						lika += 1
+				x += steg
+			y += steg
+		var andel := 0.0 if inuti == 0 else 100.0 * float(lika) / float(inuti)
+		print("guiprov: %s-kärlet %.0f px brett, %.0f %% av klotet har vätskans färg (%d av %d prov)"
+			% [kärl[0], ruta.size.x, andel, lika, inuti])
 	# Kärlens och högarnas rutor i klartext: en kärl som ligger över en hög syns bara på bild, och det
 	# var precis vad den gjorde (M51).
-	for par in [["hp-kärl", orb_hp], ["mana-kärl", orb_mana], ["rust-rad", rust_bar],
+	for par in [["hp-kärl", orb_hp], ["mana-kärl", orb_mana], ["rust-kärl", orb_rust],
 			["draghög", hog_drag], ["slänghög", hog_använd], ["korträknare", kort_label]]:
 		var n: Control = par[1]
 		var txt := ""
@@ -7056,55 +7112,35 @@ func _placera_gui(f: Vector2) -> void:
 		hint_label.size = Vector2(560.0, 23.0)
 		hint_label.position = Vector2(kartkant - 560.0, RAD_2_Y)
 	if orb_hp != null:
+		# KÄRLEN I SPELVYNS NEDRE HÖRN (M111). Alex: *"Jag ser fortfarande inga Orbs heller, och jag
+		# skulle vilja ha 3 - HP, Mana och Armor. Man måste veta om man har så man klarar sig genom en
+		# strid. Sätt dem nere i vardera hörn, men placera Armor över HP. Nu är det dags att de syns
+		# oavsett upplösning."*
+		#
+		# VARFÖR DEN GAMLA PLACERINGEN INTE SYNTES. Kärlen låg i vänstermarginalen och räknades ur
+		# utrymmet MELLAN panelerna, med golvet 6 px radie: i ett fönster där marginalen är smal eller
+		# bandet mellan korthögarna och loggen är negativt klämdes de till 20x20 px (mätt) — en mörk
+		# prick i en svart marginal. Här räknas de i stället i SPELPIXLAR ur spelvyns höjd, med samma
+		# heltalsskala som vyn och ramen, och ankras i hörnen. Då är ett kärl alltid 0,11 * 270 = 30
+		# spelpixlar i radie (60 px i diameter, 22 % av vyns höjd) — i VARJE fönsterstorlek, för
+		# skalan följer fönstret. Det är samma grepp som ramen: måttet i fönsterpixlar gånger skalan.
 		var skala := maxi(1, int(round(_vy_korg.scale.x)))
-		var kolumn := _vy_korg.position.x / 2.0      # mitten av vänsterkolumnen
-		var fri_topp := _vy_korg.position.y
-		var fri_botten := f.y - 6.0 - float(HudLogg.HÖJD)
-		var hög_botten := 0.0
-		# HÖGARNA ÄGER SIN ÖVERKANT. Förut stod `h.position.y > fri_topp` i villkoret: en hög vars
-		# överkant låg OVANFÖR den fria ytan hoppades då över, och ingenting hindrade kärlet från att
-		# hamna över korten (Alex: *"Den använda korthögen ligger över mana"*). Klämmen gäller alltid.
-		for h in [hog_drag, hog_använd]:
-			if h != null and h.visible:
-				fri_botten = minf(fri_botten, h.position.y - 8.0)
-				hög_botten = maxf(hög_botten, h.position.y + h.size.y)
-		# HÖGEN KAN LIGGA OVANFÖR VYN. I ett högt fönster står vyn mitt i fönstret medan högarna sitter
-		# i botten, och då blir bandet mellan dem NEGATIVT: mätt i 941x1018 (vyns överkant 374,
-		# högarnas 293) blev `fri_h` -89 och kärlet klämdes till minsta radien (20x20 px), fastän
-		# marginalen under högarna har 356 px fritt. Är bandet ovanför högarna för litet flyttar paret
-		# därför ned till bandet mellan högarnas underkant och loggen i stället.
-		if fri_botten < fri_topp:
-			fri_topp = hög_botten + 8.0
-			fri_botten = f.y - 6.0 - float(HudLogg.HÖJD)
-		var rust_h := HudBar.HÖJD
-		# PARET (M75): hälsan och manan SIDA VID SIDA med samma radie, rustningen som en rad under.
-		# Radien räknas ur BÅDE kolumnens bredd och det fria utrymmets höjd. Förut var HP-kärlet
-		# alltid i full storlek (R_STOR) medan bara manan krymptes — räckte inte utrymmet sköt HP-kärlet
-		# över korthögen, och i ett fönster där högen är stor försvann manan bakom den.
-		var luft := 6.0
-		var fri_h := fri_botten - fri_topp
-		# Radien räknas med GOLV ur BÅDA mätten: avrundade man uppåt blev paret några px bredare än
-		# kolumnen (mätt: hp-kärlet 3 px utanför vänsterkanten i 1896x1030) eller högre än utrymmet.
-		var r_bredd := int(floor((kolumn - luft * 0.5) / (2.0 * float(skala)))) - HudOrb.KANT
-		var r_höjd := int(floor((fri_h - luft - rust_h) * 0.5 / float(skala))) - HudOrb.KANT
-		var par_r := clampi(mini(r_bredd, r_höjd), 6, R_STOR)
-		var par_halv := float((par_r + HudOrb.KANT) * skala)
-		var klump := par_halv * 2.0 + luft + rust_h
-		var topp := fri_topp + maxf(0.0, (fri_h - klump) * 0.5)
-		var par_mitt := topp + par_halv
-		# PARET KLÄMS IN I FÖNSTRET. Är marginalen smalare än två kärl (mätt: 32 px i 1024x768) kan
-		# paret inte centreras utan att hamna utanför vänsterkanten — då flyttas det i stället inåt så
-		# att siffrorna i båda kärlen syns. Paret är 4*par_halv + luft brett, alltså ligger dess vänstra
-		# kant på `kolumn - 2*par_halv - luft/2` när det står mitt i kolumnen.
-		var par_vänster := maxf(0.0, kolumn - par_halv * 2.0 - luft * 0.5)
-		orb_hp.ställ_in(par_r, Palett.c(11), Palett.c(2), skala)
-		orb_mana.ställ_in(par_r, Palett.c(25), Palett.c(2), skala)
-		orb_hp.placera_vid(Vector2(par_vänster + par_halv, par_mitt))
-		orb_mana.placera_vid(Vector2(par_vänster + par_halv * 3.0 + luft, par_mitt))
-		var stapel := maxf(60.0, 2.0 * par_halv + luft)
-		rust_bar.ställ_in(Tr.t("ui.hud.bar.rust", "RUST"), Palett.c(22), Palett.c(2), Palett.c(25), stapel)
-		rust_bar.position = Vector2(maxf(0.0, roundf(kolumn - (stapel + HudBar.RUBRIK_BREDD) * 0.5)),
-			roundf(par_mitt + par_halv + luft))
+		var r := clampi(int(round(float(VY.y) * KÄRL_RADIE_ANDEL)), KÄRL_RADIE_MIN, KÄRL_RADIE_MAX)
+		var kant := KÄRL_KANT
+		var mellan := KÄRL_MELLAN
+		var o := _vy_korg.position                                 # vyns övre vänstra hörn
+		var nedre := float(VY.y) - kant - float(r)                 # kärlens mitt, lodrätt ur botten
+		var vänster := kant + float(r)
+		var höger := float(VY.x) - kant - float(r)
+		var hp_mitt := o + Vector2(vänster, nedre) * float(skala)
+		var rust_mitt := hp_mitt - Vector2(0.0, (2.0 * (float(r) + float(HudOrb.KANT)) + mellan) * float(skala))
+		var mana_mitt := o + Vector2(höger, nedre) * float(skala)
+		orb_hp.ställ_in(r, Palett.c(11), Palett.c(2), skala)
+		orb_mana.ställ_in(r, Palett.c(25), Palett.c(2), skala)
+		orb_rust.ställ_in(r, Palett.c(22), Palett.c(2), skala)
+		orb_hp.placera_vid(hp_mitt)
+		orb_rust.placera_vid(rust_mitt)
+		orb_mana.placera_vid(mana_mitt)
 	if kort_label != null:
 		# Korträknaren står ÖVER HÖGEN TILL HÖGER (Alex: *"hur många kort man har (det borde ligga över
 		# högen till höger, så man ser det hela tiden)"*). Förut låg den i botten mitt på, i en mörk ton
@@ -7126,7 +7162,7 @@ func _placera_gui(f: Vector2) -> void:
 
 ## Rutorna syns när spelet visas: i tomvyn (skalet bakom en körning) finns ingen status att visa.
 func _visa_gui(syns: bool) -> void:
-	for n in [hud_status, hud_logg, orb_hp, orb_mana, rust_bar]:
+	for n in [hud_status, hud_logg, orb_hp, orb_mana, orb_rust]:
 		if n != null:
 			n.visible = syns
 	# HÄR LÅG EN ANDRA REGEL OM SAMMA SAK (borttagen 11/10). Den gömde mana och rustning så fort
@@ -7274,10 +7310,11 @@ func _bygg_runt() -> void:
 	orb_mana = HudOrb.new()
 	orb_mana.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_runt.add_child(orb_mana)
-	rust_bar = HudBar.new()
-	rust_bar.name = "rust_bar"
-	rust_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_runt.add_child(rust_bar)
+	# RUSTNINGEN SOM KLOT (M111). Den var en rad (HudBar) med en rubrik; Alex vill ha tre kärl, och
+	# en rad läses inte som en nivå på håll. Klotet ligger ÖVER hälsan i samma hörn (se _placera_gui).
+	orb_rust = HudOrb.new()
+	orb_rust.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_runt.add_child(orb_rust)
 	hud_logg = HudLogg.bygg()
 	_runt.add_child(hud_logg)
 
@@ -7796,8 +7833,9 @@ func _hud_sätt(hp: float, i_strid: bool) -> void:
 			orb_mana.visible = hud_status.visible
 			orb_mana.sätt_nivå(float(s.get("mana", 0.0)) / maxf(1.0, float(s.get("mana_max", 1.0))))
 			orb_mana.sätt_text("%d/%d" % [int(s.get("mana", 0.0)), int(s.get("mana_max", 1.0))])
-			rust_bar.visible = hud_status.visible
-			rust_bar.sätt(float(s.get("rust", 0.0)), float(s.get("rust_max", 1.0)))
+			orb_rust.visible = hud_status.visible
+			orb_rust.sätt_nivå(float(s.get("rust", 0.0)) / maxf(1.0, float(s.get("rust_max", 1.0))))
+			orb_rust.sätt_text("%d/%d" % [int(s.get("rust", 0.0)), int(s.get("rust_max", 1.0))])
 
 ## Fiendernas namn som en rad, för loggen. En strid med tre fiender ska inte skriva tre rader när ett
 ## enda anfall faller — namnen räknas upp i en rad.
@@ -8424,6 +8462,10 @@ func _blink_röd(skada: float) -> void:
 		orb_hp.skaka(clampf(skada / 12.0, 0.35, 1.0))
 	if orb_mana != null:
 		orb_mana.skaka(clampf(skada / 20.0, 0.25, 0.8))
+	# RUSTNINGSKLOTET far också till: det är poolen som tar smällen när den finns, och stod det still
+	# medan hälsan skakade sade de två kloten olika saker om samma slag.
+	if orb_rust != null:
+		orb_rust.skaka(clampf(skada / 16.0, 0.30, 0.9))
 
 ## Ett kort träder fram eller undan: visa/dölj vad det skulle göra, och låt de andra vika undan.
 func _on_card_forward(index: int, on: bool) -> void:
