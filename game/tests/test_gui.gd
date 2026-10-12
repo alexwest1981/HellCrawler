@@ -837,6 +837,44 @@ func _initialize() -> void:
 	# val) når den simulerade musen inte fram till valkortet, medan SAMMA kod i `-- vinstprov` gör det
 	# — där klickas ett valkort efter en riktig strid och valet går från 4 till 0. Att tvinga fram ett
 	# grönt svar här hade varit att mäta sin egen koordinatmiss; klicket mäts i provet som spelar.
+
+	## ELDEN PÅ DE LYSANDE REKVISITERNAS MODELL (M110). Alex: *"hade varut häftigt om själva 'elden' på
+	## ljusen brann"*. MÄTT FÖRE: rekvisitens ljusenergi stod STILL (1,125 -> 1,125 över 40 bildrutor)
+	## och 0 av 11 dekor-material hade emission — elden fanns bara i ljuset, inte på modellen.
+	## Provet mäter MEKANISMEN: att glöden rör sig över tid, att den hålls SVAG (ett lager över hela
+	## modellen lästes förut som en vit kopia — tak-kronan "är helvit typ"), och att ljuset rör sig med
+	## samma faktor. I en rendering flyttade glöden modellens medelfärg (0,4595, 0,3378, 0,2268) ->
+	## (0,4972, 0,3768, 0,2613) och antalet nästan-vita pixlar stod still (50 -> 50): varmare, inte vitare.
+	print("")
+	print("— elden på de lysande rekvisiterna —")
+	check(not main._låg_material.is_empty(), "våningen har en lysande rekvisit att mäta",
+		"%d arter, %d ljus" % [main._låg_material.size(), main._låg_ljus.size()])
+	if not main._låg_material.is_empty():
+		var art: String = main._låg_material.keys()[0]
+		var eld: StandardMaterial3D = main._låg_material[art]
+		check(eld.emission_enabled and eld.emission.is_equal_approx(main.LAGA_FARG),
+			"modellens material har en emission i lågans färg (%s)" % art)
+		var lägst := 1e9
+		var högst := -1e9
+		var ljus_lägst := 1e9
+		var ljus_högst := -1e9
+		for i in 45:
+			await process_frame
+			lägst = minf(lägst, eld.emission_energy_multiplier)
+			högst = maxf(högst, eld.emission_energy_multiplier)
+			if not main._låg_ljus.is_empty():
+				ljus_lägst = minf(ljus_lägst, (main._låg_ljus[0] as OmniLight3D).light_energy)
+				ljus_högst = maxf(ljus_högst, (main._låg_ljus[0] as OmniLight3D).light_energy)
+		check(högst - lägst > 0.005, "glöden FLADDRAR — den rör sig över tid",
+			"%.4f..%.4f" % [lägst, högst])
+		# TAKET: glöden är med flit svag. Ett lager kring 1,0 över hela modellen ÄR den vita kopia
+		# som läxan handlar om, och det ska fällas här och inte av att en tak-krona ser blek ut.
+		check(högst < 0.35, "men hålls SVAG (inget vitt lager över modellen)", "tak %.3f" % högst)
+		if not main._låg_ljus.is_empty():
+			check(ljus_högst - ljus_lägst > 0.01,
+				"och rekvisitens LJUS fladdrar med — det stod still förut",
+				"%.4f..%.4f (bas %.4f)" % [ljus_lägst, ljus_högst, main.LAGA_ENERGI * 0.6 * main._ljus_f])
+
 	print("")
 	print("— loggen —")
 	check(main.hud_logg != null and main.hud_logg.visible, "loggen syns")
@@ -855,10 +893,81 @@ func _initialize() -> void:
 		str(inne[inne.size() - 1]))
 	check(not str(inne[0]).begins_with("första"), "den äldsta raden har fallit ut", str(inne[0]))
 	main.hud_logg.töm()
+	## VAPNET SVINGER PÅ SKÄRMEN (M110). Alex: *"sen behöver vi se till att få vapnen att svingas när
+	## man attackerar på skärmen med"*. Kortets EGEN bild (`_card_icon`) far genom bilden som en kvad på
+	## kameran. Provet mäter det som skiljer ett sving från ett spöke: att det BARA kommer ur ett SPELAT
+	## kort (hover och handens omläggning får aldrig starta ett), att det ritar kortets bild, och att
+	## det tonar bort och städar sig själv.
+	print("")
+	print("— vapnet svingar på skärmen —")
+	check(main.get_tree().get_nodes_in_group("vapensving").is_empty(),
+		"ingen sving finns innan något kort spelats",
+		"%d sving" % main.get_tree().get_nodes_in_group("vapensving").size())
+	if main.hand_views.size() > 0 and is_instance_valid(main.hand_views[0]):
+		main.hand_views[0].set_forward(true)   # hovringen: den får ALDRIG starta ett sving
+		await process_frame
+		check(main.get_tree().get_nodes_in_group("vapensving").is_empty(),
+			"hovringen över ett kort startar inget sving",
+			"%d sving" % main.get_tree().get_nodes_in_group("vapensving").size())
+		main.hand_views[0].set_forward(false)
+		await process_frame
+	# Mana så att kortet GÅR att spela: svinget kommer ur den lyckade spelvägen, och ett kort som inte
+	# får plats mäter ingenting.
+	if main.active_combat != null:
+		main.active_combat.mana = 99
+	var spelat_id := ""
+	var spelat_kort: Cards.Card = null
+	if main.active_combat != null and not main.active_combat.hand.is_empty():
+		spelat_kort = main.active_combat.hand[main._hand_index(0)]
+		spelat_id = str(spelat_kort.id)
+	# SVINGET MÄTS NÄR DET LÄGGS I TRÄDET, inte efteråt. En strid som tar slut i samma bildruta bygger
+	# om världen (`_after_state_change` -> `_build_world`), och då dör kameran och kvaden med den —
+	# mätt: kamerans id byttes i samma bildruta som kortet spelades, och gruppen var tom efteråt.
+	# `node_added` fångar noden i den stund den kopplas in, medan den ännu lever.
+	var sedd: Array = []
+	var tittare := func(n: Node) -> void:
+		var mi := n as MeshInstance3D
+		if mi == null or not (mi.mesh is QuadMesh) or mi.get_parent() != main.cam:
+			return
+		var mm := mi.material_override as StandardMaterial3D
+		if mm == null or mm.albedo_texture == null:
+			return
+		sedd.append({
+			"ikon": mm.albedo_texture == main._card_icon(spelat_id),
+		})
+	main.get_tree().node_added.connect(tittare)
 	await main._on_card(0)
+	main.get_tree().node_added.disconnect(tittare)
 	await process_frame
 	print("      efter ett spelat kort: %s" % str(main.hud_logg.innehåll()))
 	check(not main.hud_logg.innehåll().is_empty(), "ett spelat kort ger en loggrad")
+	check(sedd.size() == 1, "men ett SPELAT kort lägger ett sving på kameran",
+		"%d sving (%s)" % [sedd.size(), spelat_id])
+	if sedd.size() == 1:
+		check(bool(sedd[0]["ikon"]),
+			"svinget ritar kortets EGEN bild — ingen ny konst")
+	# SJÄLVSTÄDNINGEN mäts på en kamera som INTE byggs om under tiden: svepet läggs på nytt och ska vara
+	# borta av sig självt efter sin tid (en kvad kvar i bilden är ett spöke). Antalet JÄMFÖRS med läget
+	# före: tar striden slut i samma bildruta byggs världen om och det första svepet dör med kameran,
+	# medan ett levande kamera har det kvar — båda är rätt, och provet ska inte hänga på vilket.
+	if spelat_kort != null and main.cam != null:
+		var före_antal := main.get_tree().get_nodes_in_group("vapensving").size()
+		main._vapensving(spelat_kort)
+		await process_frame
+		check(main.get_tree().get_nodes_in_group("vapensving").size() == före_antal + 1,
+			"svepet lever sin tid på skärmen",
+			"%d mot %d före" % [main.get_tree().get_nodes_in_group("vapensving").size(), före_antal])
+		await create_timer(main.SVING_TID + 0.5).timeout
+		check(main.get_tree().get_nodes_in_group("vapensving").is_empty(),
+			"och städar sig självt — ingen kvad blir kvar",
+			"%d kvar" % main.get_tree().get_nodes_in_group("vapensving").size())
+	# HANDEN BYGGS OM: samma väg spelet tar efter en tur — den får inte heller lämna ett sving efter sig.
+	main._refresh_hand()
+	main._refresh_battle()
+	await process_frame
+	check(main.get_tree().get_nodes_in_group("vapensving").is_empty(),
+		"och ett varv med omlagd hand startar inget sving",
+		"%d sving" % main.get_tree().get_nodes_in_group("vapensving").size())
 
 	print("")
 	print("— läget (mäts bara med ett fönster som rymmer vyn) —")

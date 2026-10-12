@@ -437,9 +437,17 @@ const TAK_TON := Color(0.60, 0.66, 0.90)
 const GOLV_TON := Color(1.12, 1.06, 0.98)
 const LAGA_RACKVIDD := 6.5
 const LAGA_FARG := Color(1.0, 0.78, 0.55)
+## GLÖDEN PÅ DEN LYSANDE REKVISITENS MODELL (M110): en MYCKET svag emission som `_fladdra` rör med
+## SAMMA faktor som rekvisitens ljus, så elden pulserar på modellen och inte bara i rummet.
+## Låg med flit: ett KONSTANT lager över hela modellen lästes som en vit kopia (tak-kronan "är helvit
+## typ") — mätt flyttar 0,06 modellens medelfärg mindre än ett steg i en rendering, och elden syns.
+const LAGA_GLÖD := 0.06
 ## Hur länge hugget sveper (M107). 0,20 s: siffran och blinket är gjorda på 0,04-0,2 s, och ett svep
 ## som hänger kvar efteråt läses som en projektileffekt i stället för ett hugg.
 const HUGG_TID := 0.20
+## Hur länge vapnet svingar på skärmen när ett kort SPELAS (M110). 0,35 s: kortet har redan flugit ut
+## ur handen (0,16 s), och svepet ska ses klart innan det tonat bort — men inte stå kvar som ett lager.
+const SVING_TID := 0.35
 ## LJUSET PÅ YTORNA: en faktor på lyktan och facklorna — ljuset som träffar väggar och golv.
 ##
 ## HELA ändringen ligger här, och den är en faktor och inte en omgivning: rummet är inte för mörkt för
@@ -578,6 +586,9 @@ var _tema := ""
 var _tema_ton := Color.WHITE
 var _lykta: SpotLight3D = null
 var _lågor: Array = []             ## fackelljusen, för fladdret i _process
+var _låg_ljus: Array = []          ## de LYSANDE rekvisiternas egna ljus (egen bas 0,6, se _bygg_dekor)
+var _låg_mat: Array = []           ## materialet till ljuset med SAMMA index — fladdret rör båda lika
+var _låg_material := {}            ## art -> modellmaterial för de lysande rekvisiterna (satt i _dekor_nod)
 var _fladder := 0.0
 ## Mätflaggor: `-- lykta=6 omgivning=0.05` provar en ljusnivå utan att bygga om. Stämningen är
 ## siffror, och en siffra ska gå att mäta på en skärmbild innan den hamnar i konstanterna.
@@ -5412,6 +5423,11 @@ func _bygg_dekor(golv: Array) -> void:
 		return
 	if _dekor_shader == null:
 		_dekor_shader = load("res://ui/dekor.gdshader")
+	# Våningen byggs om mellan striderna: de förra rekvisiternas ljus och material får inte ligga kvar
+	# i fladdret (en frigjord nod där hade kraschat `_fladdra` varje bildruta).
+	_låg_ljus.clear()
+	_låg_mat.clear()
+	_låg_material.clear()
 	var per_art := {}
 	var lysande := {}            ## art -> platser, för de föremål som ska ha ett eget ljus
 	var antal_föremål := 0
@@ -5473,6 +5489,10 @@ func _bygg_dekor(golv: Array) -> void:
 				y = _dekor_y(art, duk_h, (t as Transform3D).basis.get_scale().y) - duk_h * 0.4
 			l.position = (t as Transform3D).origin + Vector3(0.0, y, 0.0)
 			world.add_child(l)
+			# Ljuset och modellens material hålls i SAMMA ordning: fladdret rör båda med samma faktor
+			# och samma index, så lågan och elden pulserar tillsammans (M110).
+			_låg_ljus.append(l)
+			_låg_mat.append(_låg_material.get(art))
 			ljus += 1
 	print("  rekvisiter: %d av dem lyser (tak %d)" % [ljus, REKVISIT_LJUS_MAX])
 
@@ -5517,11 +5537,18 @@ func _dekor_nod(art: String, platser: Array) -> int:
 		mesh = vx.mesh()
 		mat.vertex_color_use_as_albedo = true     # färgen sitter i hörnen, ur arkets egna pixlar
 		mat.roughness = 0.9                        # matt yta, som fienderna (M59)
-		# INGEN EMISSION PÅ MODELLEN. Den gamla dekor-shadern la en glöd över hela den platta bilden, och
-		# jag ärvde det rakt av — men på en solid modell lyser då HELA kroppen: Alex om tak-kronan: "är
-		# helvit typ". Samma sak som gav vita hundar (auran) och bleka spöken (emissionen i noden). Ett
-		# föremål som ska glöda har redan sitt EGET ljus: koden sätter en OmniLight3D per lysande rekvisit
-		# (REKVISIT_LYSER), och den lyser modellen utifrån precis som facklorna gör.
+		# SVAG GLÖD PÅ DE LYSANDE REKVISITEN (M110). Kommentaren här sa att modellen INTE fick någon
+		# emission, och det var rätt så länge den var KONSTANT: ett fast lager över hela kroppen läses
+		# som en vit kopia (Alex om tak-kronan: "är helvit typ"). Men då står elden still — ljuset
+		# fladdrar och modellen gör det inte. Alex: "hade varut häftigt om själva 'elden' på ljusen
+		# brann". Därför en MYCKET svag emission som `_fladdra` rör med SAMMA faktor som ljuset:
+		# elden pulserar, men modellen behåller sina egna färger. Bara de rekvisiter som REDAN lyser
+		# (REKVISIT_LYSER) får den — glöden hör till deras ljus, inte till modellen.
+		if REKVISIT_LYSER.has(art):
+			mat.emission_enabled = true
+			mat.emission = LAGA_FARG
+			mat.emission_energy_multiplier = LAGA_GLÖD * _ljus_f
+			_låg_material[art] = mat
 	else:
 		var quad := QuadMesh.new()
 		quad.size = duk
@@ -6769,14 +6796,28 @@ func _öppen_sida(f: Dungeon.Floor, p: Vector2i) -> Vector2i:
 
 ## Fladdret: två sinuser med olika frekvens per ljus, så ingen fackla brinner i takt med sin granne.
 ## Kostar ingenting (några multiplikationer per bildruta) och är skillnaden mellan en lampa och en eld.
+##
+## DE LYSANDE REKVISITERNA FLADDRAR MED (M110). Deras ljus stod still förut (mätt: energi 1,125 -> 1,125
+## över 40 bildrutor), och modellen hade ingen emission alls. Nu rör samma faktor både ljuset och
+## modellens emission — indexet i de två listorna är samma rekvisit, så elden och skenet pulserar i takt.
 func _fladdra(delta: float) -> void:
 	_fladder += delta
-	if _lågor.is_empty() and _lykta == null:
+	if _lågor.is_empty() and _lykta == null and _låg_ljus.is_empty():
 		return
 	for i in _lågor.size():
 		var l: OmniLight3D = _lågor[i]
 		var f := 1.0 + 0.10 * sin(_fladder * (6.3 + i * 1.7)) + 0.05 * sin(_fladder * (17.0 + i * 3.1))
 		l.light_energy = LAGA_ENERGI * _ljus_f * f
+	for i in _låg_ljus.size():
+		if not is_instance_valid(_låg_ljus[i]):
+			continue
+		var f := 1.0 + 0.10 * sin(_fladder * (6.3 + i * 1.7)) + 0.05 * sin(_fladder * (17.0 + i * 3.1))
+		(_låg_ljus[i] as OmniLight3D).light_energy = LAGA_ENERGI * 0.6 * _ljus_f * f
+		var m: StandardMaterial3D = _låg_mat[i]
+		if m != null:
+			# SAMMA faktor på modellens glöd som på ljuset. Ingen konstant glöd: slocknar ljuset
+			# (ljus=0) slocknar elden med, och den pulserar mellan 0,85 och 1,15 av LAGA_GLÖD.
+			m.emission_energy_multiplier = LAGA_GLÖD * _ljus_f * f
 	if _lykta != null:
 		_lykta.light_energy = _lykta_energi * _ljus_f * (1.0 + 0.02 * sin(_fladder * 3.1))
 func _tile(name: String, tyst: bool = false) -> Texture2D:
@@ -8217,6 +8258,52 @@ func _hugg(spr: Sprite3D) -> void:
 	# som syns i nästa strid (och ett läckage i provet).
 	t.tween_callback(m.queue_free)
 
+## VAPNET SVINGER PÅ SKÄRMEN (M110). Alex: *"sen behöver vi se till att få vapnen att svingas när man
+## attackerar på skärmen med"*. Kortets EGEN bild far genom bilden — samma källa som kortet ritar sin
+## ikon ur (`_card_icon`), så ingen ny konst och inget som kan glida isär från kortet.
+##
+## Kvaden hänger på KAMERAN, inte i världen: då ligger den framför spelaren var hon än står, och
+## rotationen kring Z är en vridning i bildplanet (en kvad i världen hade snurrat olika beroende på
+## kamerans riktning). Den städas av sin egen tween, som hugget — en kvad kvar i världen är ett spöke.
+##
+## Anropas BARA från de två vägarna ett kort spelas ur (`_on_card`, `_on_play_all`): hover och
+## omläggningen av handen får aldrig starta ett sving (`vapensving`-gruppen mäts i tests/test_gui.gd).
+func _vapensving(kort: Cards.Card) -> void:
+	if cam == null or kort == null:
+		return
+	var tex := _card_icon(kort.id)
+	if tex == null:
+		return
+	var m := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(0.85, 0.85)
+	m.mesh = q
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	# ALFA PÅ KONSTEN: kortets bild är RGBA, och utan alfa ritas dess fyrkant som en svart ruta över
+	# hela vyn. Oskuggad: ett vapen ska synas som det ser ut, inte tonas av rummets ljus.
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST   # pixelkonst, som fienderna
+	m.material_override = mat
+	cam.add_child(m)
+	# GRUPPEN SÄTTS EFTER INFOGNINGEN: `add_to_group` på en nod utanför trädet registreras först när
+	# noden kopplas in, och ett prov som letar i gruppen hittade den då inte (mätt: tom grupp).
+	m.add_to_group("vapensving")
+	# Läget i KAMERANS rymd: nere till höger, som ett vapen i handen, strax framför ögat.
+	m.position = Vector3(0.34, -0.26, -0.7)
+	m.rotation = Vector3(0.0, 0.0, -0.55)
+	var t := create_tween().set_parallel(true)
+	# Svinget: vridningen är hugget, förflyttningen är svepet in mot mitten, och tonen ut säger att det
+	# är över. Alla tre på samma tid, som `fly_out` gör för kortet.
+	t.tween_property(m, "rotation:z", 0.95, SVING_TID).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(m, "position", Vector3(-0.16, -0.04, -0.7), SVING_TID) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(m, "transparency", 1.0, SVING_TID).set_delay(SVING_TID * 0.45)
+	# `chain()`: callbacken blir ett EGET steg EFTER svepet. Låg den i samma parallella steg som
+	# egenskaperna brann den direkt och kvaden försvann i samma bildruta (mätt: 1 bildruta mot 74).
+	t.chain().tween_callback(m.queue_free)
+
 ## Slagets kvitto. Utan det ser ett spelat kort likadant ut som ett ospelat: baren krymper, men
 ## inget HÄNDER (Alex: "det gäller att få till så det är en visuell bekräftelse att man attackerar
 ## med"). Tre saker på samma gång, för de svarar på olika frågor: SIFFRAN säger hur mycket, BLINKET
@@ -9276,6 +9363,9 @@ func _on_card(index: int) -> void:
 			Palett.c(22))
 	else:
 		_sfx("crit" if r.multiplier >= 3 else "card")
+		# VAPNET SVINGER (M110): kortets egen bild far genom bilden innan figuren reagerar. Här, i den
+		# enda väg ett kort spelas — hover och omläggningen av handen är andra funktioner och rör den inte.
+		_vapensving(kort)
 		# Loggen: vad kortet gjorde, med siffrorna ur speltillståndet. Skadan läses ur samma rapport som
 		# fienden reagerar på, så raden kan inte säga något annat än slaget gjorde.
 		if r.damage > 0.0:
@@ -9313,6 +9403,7 @@ func _on_play_all() -> void:
 			if k != null:
 				senaste = k
 				_attack_fx(k, träffad, r.multiplier)
+				_vapensving(k)          # samma sving per kort som när man spelar dem själv (M110)
 				await get_tree().create_timer(0.09).timeout
 	_end_or_continue()
 
