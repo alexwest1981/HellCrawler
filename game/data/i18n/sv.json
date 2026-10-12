@@ -127,6 +127,7 @@
  "ui.shop.hint": "klick = köp · Esc = tillbaka till byn",
  "ui.inn.title": "VÄRDSHUSET — guld i banken: %d",
  "ui.inn.hired": "I LEEK",
+ "ui.inn.hyr": "HYR",
  "ui.inn.hint": "1-%d = hyr · Esc = tillbaka till byn",
  "ui.inn.explain": "Kamraten blir ett eget kort i leken. Så länge kortet är kvar ger den sin verkan.",
  "ui.smith.title": "SMEDEN · %s — guld i banken: %d",

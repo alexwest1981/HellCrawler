@@ -112,6 +112,7 @@
  "ui.shop.hint": "clique = comprar · Esc = voltar à vila",
  "ui.inn.title": "A ESTALAGEM — ouro no banco: %d",
  "ui.inn.hired": "CONTRATADO",
+ "ui.inn.hyr": "CONTRATAR",
  "ui.inn.hint": "1-%d = contratar · Esc = voltar à vila",
  "ui.inn.explain": "O companheiro vira uma carta própria no baralho. Enquanto a carta ficar, o efeito dela vale.",
  "ui.smith.title": "A FORJA · %s — ouro no banco: %d",

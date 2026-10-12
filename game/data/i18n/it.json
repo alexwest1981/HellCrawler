@@ -112,6 +112,7 @@
  "ui.shop.hint": "clic = compra · Esc = torna al villaggio",
  "ui.inn.title": "LA LOCANDA — oro in banca: %d",
  "ui.inn.hired": "ASSOLDATO",
+ "ui.inn.hyr": "ASSOLDA",
  "ui.inn.hint": "1-%d = assolda · Esc = torna al villaggio",
  "ui.inn.explain": "Il compagno diventa una carta a sé nel mazzo. Finché la carta resta, il suo effetto vale.",
  "ui.smith.title": "LA FUCINA · %s — oro in banca: %d",

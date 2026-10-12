@@ -127,6 +127,7 @@
  "ui.shop.hint": "click = buy · Esc = back to the village",
  "ui.inn.title": "THE INN — gold in the bank: %d",
  "ui.inn.hired": "HIRED",
+ "ui.inn.hyr": "HIRE",
  "ui.inn.hint": "1-%d = hire · Esc = back to the village",
  "ui.inn.explain": "The companion becomes a card of its own in the deck. As long as the card stays, its effect holds.",
  "ui.smith.title": "THE SMITH · %s — gold in the bank: %d",

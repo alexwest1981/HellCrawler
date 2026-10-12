@@ -112,6 +112,7 @@
  "ui.shop.hint": "clic = comprar · Esc = volver al pueblo",
  "ui.inn.title": "LA POSADA — oro en el banco: %d",
  "ui.inn.hired": "CONTRATADO",
+ "ui.inn.hyr": "CONTRATAR",
  "ui.inn.hint": "1-%d = contratar · Esc = volver al pueblo",
  "ui.inn.explain": "El compañero se convierte en una carta propia del mazo. Mientras la carta siga ahí, su efecto se mantiene.",
  "ui.smith.title": "LA FRAGUA · %s — oro en el banco: %d",

@@ -112,6 +112,7 @@
  "ui.shop.hint": "クリック = 購入 · Esc = 村へ戻る",
  "ui.inn.title": "宿屋 — 銀行のゴールド: %d",
  "ui.inn.hired": "雇用中",
+ "ui.inn.hyr": "雇う",
  "ui.inn.hint": "1-%d = 雇う · Esc = 村へ戻る",
  "ui.inn.explain": "仲間は山札の一枚のカードになる。そのカードが残る限り、効果は続く。",
  "ui.smith.title": "鍛冶屋 · %s — 銀行のゴールド: %d",

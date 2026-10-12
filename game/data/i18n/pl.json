@@ -112,6 +112,7 @@
  "ui.shop.hint": "klik = kup · Esc = powrót do wsi",
  "ui.inn.title": "GOSPODA — złoto w banku: %d",
  "ui.inn.hired": "NAJĘTY",
+ "ui.inn.hyr": "NAJMIJ",
  "ui.inn.hint": "1-%d = najmij · Esc = powrót do wsi",
  "ui.inn.explain": "Towarzysz staje się osobną kartą w talii. Dopóki karta jest w grze, jej efekt działa.",
  "ui.smith.title": "KUŹNIA · %s — złoto w banku: %d",

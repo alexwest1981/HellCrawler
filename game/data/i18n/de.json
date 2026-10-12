@@ -112,6 +112,7 @@
  "ui.shop.hint": "klicken = kaufen · Esc = zurück ins Dorf",
  "ui.inn.title": "DAS WIRTSHAUS — Gold in der Bank: %d",
  "ui.inn.hired": "ANGEHEUERT",
+ "ui.inn.hyr": "ANHEUERN",
  "ui.inn.hint": "1-%d = anheuern · Esc = zurück ins Dorf",
  "ui.inn.explain": "Der Gefährte wird eine eigene Karte im Deck. Solange die Karte bleibt, wirkt sie.",
  "ui.smith.title": "DER SCHMIED · %s — Gold in der Bank: %d",
