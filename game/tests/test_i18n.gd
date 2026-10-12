@@ -85,8 +85,8 @@ func _init() -> void:
 		# Byns hus och statusrader: namnena och raderna stod som svenska strängar i PLATSER och i
 		# visa(), så byn var svensk i varje körning. Statusraderna bär siffran i formatet, precis
 		# som HUD:en.
-		"ui.by.plats.butik", "ui.by.plats.vardshus", "ui.by.plats.smed", "ui.by.plats.karta",
-		"ui.by.plats.avsluta",
+		"ui.by.plats.tradet", "ui.by.plats.vardshus", "ui.by.plats.smed", "ui.by.plats.karta",
+		"ui.by.plats.juvelerare", "ui.by.plats.avsluta",
 		"ui.by.status.buy", "ui.by.status.none", "ui.by.status.deck", "ui.by.status.nodeck",
 		"ui.by.status.unlocked", "ui.by.status.quit",
 		# Minikartans teckenförklaring: samma kind-strängar som Dungeon.FloorNode bär (boss, encounter,
@@ -284,6 +284,15 @@ func _init() -> void:
 		"ui.villkor.rad": 1,
 		"fmt.damage": 2, "fmt.armor": 1, "fmt.heal": 1, "fmt.mana": 1, "fmt.draw": 1,
 		"fmt.knockback": 1, "fmt.freeze": 1,
+		# Skärmarnas platshållare (S35): juveleraren, smedens splitternot och banverkstadens
+		# rader formateras med `% [...]` precis som HUD:en, så de hör i kontraktet — en
+		# översättning som tappar en platshållare är samma tysta fel här.
+		"ui.hud.logg.kista_lak": 1, "ui.hud.logg.splitter": 1, "ui.hud.logg.sten": 1,
+		"ui.shell.cs": 1, "ui.shell.splitter": 1,
+		"ui.by.status.gems": 1, "ui.end.splitter": 1,
+		"ui.jewel.title": 2, "ui.jewel.slots": 1, "ui.jewel.bonus": 1, "ui.jewel.stangt": 1,
+		"ui.smith.splitter": 1, "ui.smith.splitter_cost": 1,
+		"ui.verk.title": 2, "ui.verk.saved": 1, "ui.verk.failed": 1,
 	}
 	var re := RegEx.new()
 	re.compile("%[-+0-9.]*[sdfi]")
@@ -329,6 +338,41 @@ func _init() -> void:
 	Tr.set_lang("sv")
 
 	print("")
+	print("— koden får inte fråga efter en nyckel som ingen fil har —")
+	# Klassen som föll tyst: anropet bar sin egen svenska som reserv (`Tr.t("ui.verk.tom",
+	# "BANVERKSTADEN — …")`), så nyckeln kunde saknas i ALLA tretton filer utan att något prov såg
+	# det — raden stod på svenska i varje körning, och reserven gjorde felet osynligt i filerna.
+	# Här läses källkoden och varje nyckel Tr.t frågar efter mäts mot sv.json. Filerna är redan
+	# visade identiska ovan, så en nyckel som finns i sv.json finns i alla tretton.
+	var kall := _kallkodsnycklar()
+	check(kall["anrop"].size() > 150, "hittade Tr.t-anropen i källkoden",
+		"%d anrop i %d filer" % [kall["anrop"].size(), kall["filer"]])
+	var utanfor := []
+	for n in kall["nycklar"]:
+		if not sv.has(n):
+			utanfor.append(n)
+	check(utanfor.is_empty(), "varje nyckel koden frågar efter finns i alla tretton filer",
+		"%d saknas: %s" % [utanfor.size(), ", ".join(utanfor).left(150)])
+	# DÖD TEXT: en nyckel ingen kod frågar efter är en rad ingen ser. De nedan ligger kvar från
+	# äldre skärmar (stridens rubrik, inställningarna, kartans gamla bandnamn) och mäts av
+	# kontraktet och skärmnycklarna längre ner; de får ligga, men en NY död nyckel ska fällas här.
+	var arv := [
+		"ui.alternativ.hint", "ui.battle.chain_broken", "ui.battle.player_row", "ui.battle.title",
+		"ui.inn.explain", "ui.map.band.ash", "ui.map.band.grove", "ui.map.band.ruin",
+		"ui.map.boss", "ui.map.legend", "ui.map.started", "ui.outcome.safety",
+		"ui.settings.coverage", "ui.settings.language", "ui.settings.title", "ui.village.hint",
+	]
+	var doda := []
+	for n in sv:
+		if not (n.begins_with("ui.") or n.begins_with("fmt.") or n.begins_with("kw.")):
+			continue
+		if arv.has(n) or _efterfragad(n, kall):
+			continue
+		doda.append(n)
+	check(doda.is_empty(), "inga nya döda nycklar (rader ingen kod frågar efter)",
+		"%d: %s" % [doda.size(), ", ".join(doda).left(150)])
+
+	print("")
 	print("— språkvalet fastnar i sparfilen —")
 	_clean()
 	var m := Meta.load_or_new(TEST_PATH)
@@ -343,3 +387,64 @@ func _init() -> void:
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
 	quit(1 if fails > 0 else 0)
+
+
+## .gd-filerna i projektet, utan proven (de använder påhittade nycklar med flit) och utan
+## exportkatalogen (build/). Rekursivt: koden bor i core, ui, editor och main.gd.
+func _gd_filer(katalog: String, ut: Array) -> Array:
+	var d := DirAccess.open(katalog)
+	if d == null:
+		return ut
+	d.list_dir_begin()
+	var namn := d.get_next()
+	while namn != "":
+		if d.current_is_dir():
+			if namn != "tests" and namn != "build" and not namn.begins_with("."):
+				_gd_filer(katalog.path_join(namn), ut)
+		elif namn.ends_with(".gd"):
+			ut.append(katalog.path_join(namn))
+		namn = d.get_next()
+	d.list_dir_end()
+	return ut
+
+
+## Nycklarna källkoden frågar efter: Tr.t-literaler, plus de två mallar som byggs ur en konstant i
+## koden (ui.by.plats.<id> ur PLATSER, ui.map.nod.<id> ur NODER). Datanycklar (kort, fiender, träd)
+## skrivs alltid av generatorn och mäts av datalagret ovan, så de behövs inte här.
+func _kallkodsnycklar() -> Dictionary:
+	var filer := _gd_filer("res://", [])
+	var anrop := []
+	var nycklar := []
+	var mall := []
+	var text := ""
+	var re_anrop := RegEx.create_from_string('Tr\\.t\\(\\s*"([^"]+)"')
+	for f in filer:
+		var t := FileAccess.get_file_as_string(f)
+		text += t
+		for m in re_anrop.search_all(t):
+			var a := m.get_string(1)
+			anrop.append(a)
+			if a.ends_with("."):
+				mall.append(a)                    ## "kw." + … : hela familjen
+			elif a.contains("%s"):
+				mall.append(a.split("%s")[0])     ## "ui.by.plats.%s" -> "ui.by.plats."
+			else:
+				nycklar.append(a)
+	for m in RegEx.create_from_string('\\{"id": "([a-z]+)"').search_all(
+			FileAccess.get_file_as_string("res://ui/village_view.gd")):
+		nycklar.append("ui.by.plats." + m.get_string(1))
+	var nod := RegEx.create_from_string('NODER := \\[([^\\]]*)\\]').search(
+			FileAccess.get_file_as_string("res://main.gd"))
+	if nod != null:
+		for m in RegEx.create_from_string('"([a-z]+)"').search_all(nod.get_string(1)):
+			nycklar.append("ui.map.nod." + m.get_string(1))
+	return {"filer": filer.size(), "anrop": anrop, "nycklar": nycklar, "mall": mall, "text": text}
+
+
+## Frågar koden efter nyckeln — som mall i ett Tr.t-anrop, eller som en citerad sträng någonstans i
+## koden (sorteringslägena ligger i en array, inte i ett anrop).
+func _efterfragad(n: String, kall: Dictionary) -> bool:
+	for a in kall["mall"]:
+		if n.begins_with(a):
+			return true
+	return kall["text"].contains('"%s"' % n)
