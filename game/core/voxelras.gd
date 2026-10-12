@@ -54,6 +54,12 @@ static func från(vx: Voxel, plats: Transform3D, golv_y: float, material: Materi
 		var nod := del.nod()
 		nod.material_override = material
 		ras.add_child(nod)
+		# BITENS EGEN NEDERKANT (M112). Nodens origo är MODELLENS mitt, och bitens mesh ligger kvar på
+		# sin plats i modellen — alltså en bit från huvudet har sin mesh en halv kropp OVANFÖR noll.
+		# Faller noden till golvet hamnar den bitens mesh under golvet (mätt i `-- dödsprov`: bitarna
+		# sjönk ned och försvann i stället för att ligga kvar). Nollpunkten mäts därför ur meshens egen
+		# ruta, och den bit som når golvet stannar med sin NEDERKANT på golvet.
+		var noll := nod.mesh.get_aabb().position.y if nod.mesh != null else 0.0
 		# Farten: UTÅT från modellens mitt och en aning uppåt, så bitarna sprider sig i stället för att
 		# staplas på varandra. Sido- och höjdfarten skalas med modellens storlek, så en liten fiende får
 		# korta kast och en stor får långa.
@@ -63,6 +69,7 @@ static func från(vx: Voxel, plats: Transform3D, golv_y: float, material: Materi
 		var ut := Vector3(medel.x, medel.y, 0.0).normalized() * (0.6 + randf() * 0.9) * m
 		ras._bitar.append({
 			"nod": nod,
+			"noll": noll,
 			"fart": Vector3(ut.x, absf(ut.y) * 0.6 + m * 1.4 + randf() * m * 0.8, randf_range(-0.3, 0.3) * m),
 			"liv": randf_range(MIN_LIV, MAX_LIV),
 			# Snurret behöver BÅDE en axel och en fart: `Node3D.rotate(axel, vinkel)`. En vektor med
@@ -89,10 +96,13 @@ func _process(delta: float) -> void:
 			continue
 		kvar += 1
 		var fart: Vector3 = bit["fart"]
+		var noll: float = float(bit.get("noll", 0.0))
 		fart.y -= TYGND * delta
 		nod.position += fart * delta
-		if nod.position.y <= _golv:
-			nod.position.y = _golv
+		# GOLVET MÄTS MOT BITENS NEDERKANT, inte mot nodens origo (M112): annars stannar en bit från
+		# huvudet med sin mesh under golvet och syns aldrig ligga där.
+		if nod.position.y + noll <= _golv:
+			nod.position.y = _golv - noll
 			fart.y = absf(fart.y) * STUDSTAL
 			fart.x *= MARKFRIKTION
 			fart.z *= MARKFRIKTION
@@ -105,3 +115,37 @@ func _process(delta: float) -> void:
 ## Antalet bitar, för proven: en kropp som går sönder ska bli fler än en bit och färre än tusen.
 func antal_bitar() -> int:
 	return _bitar.size()
+
+
+## Bitarnas höjd (min, max) i nodens EGET rum, och golvets höjd — för provet, som mäter att bitarna
+## FALLER och STANNAR vid golvet i stället för att sväva eller försvinna i luften.
+func höjdspann() -> Vector2:
+	var låg := 1e9
+	var hög := -1e9
+	for bit in _bitar:
+		var nod: Node3D = bit["nod"]
+		if nod == null or not is_instance_valid(nod) or not nod.visible:
+			continue
+		låg = minf(låg, nod.position.y)
+		hög = maxf(hög, nod.position.y)
+	if låg > hög:
+		return Vector2.ZERO
+	return Vector2(låg, hög)
+
+
+func golv() -> float:
+	return _golv
+
+
+## Den LÄGSTA ritade punkten bland bitarna, i nodens eget rum — för provet, som kräver att bitarna
+## ligger PÅ golvet: mätt före rättelsen sjönk de ned till -0,7 m under en fönsterbräda på -0,42.
+func lägsta_punkt() -> float:
+	var låg := 1e9
+	for bit in _bitar:
+		var nod: MeshInstance3D = bit["nod"]
+		if nod == null or not is_instance_valid(nod) or not nod.visible or nod.mesh == null:
+			continue
+		låg = minf(låg, nod.position.y + nod.mesh.get_aabb().position.y)
+	if låg > 1e8:
+		return 0.0
+	return låg

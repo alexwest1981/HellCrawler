@@ -749,6 +749,11 @@ func _ready() -> void:
 			var crt_v := clampf(float(f.substr(4)), 0.0, 1.0)
 			_crt_av = crt_v <= 0.0
 			_crt_styrka = crt_v
+		elif f.begins_with("minljus="):
+			# Granskningsflagga: `minljus=0` ger den GAMLA modellen (fienden blir svart när ljuset står
+			# bakom den), så skillnaden kan mätas i SAMMA scen — samma skäl som crt=0 och ljus=.
+			# Se ui/voxel_fiende.gdshader och `Voxel.min_ljus`.
+			Voxel.min_ljus = clampf(float(f.substr(8)), 0.0, 1.0)
 		elif f.begins_with("fönster="):
 			# Granskningsflagga: mät HUD:en i en ANNAN fönsterstorlek än projektets 1280x720.
 			# `--resolution` biter inte (projektets `window_width_override` vinner), och Alex' egen
@@ -919,7 +924,7 @@ func _ready() -> void:
 		or _normalprov >= 0.0
 		or not _glansprov_pose.is_empty()
 		or flags.has("guiprov") or flags.has("vinstprov") or flags.has("ljusprov") or flags.has("träffprov")
-		or flags.has("voxelprov") or flags.has("voxelhund")
+		or flags.has("voxelprov") or flags.has("voxelhund") or flags.has("dödsprov")
 		or not nodprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
 	if not kör:
 		# Vanlig start (eller en enskild skärms skärmbildsläge): byn först. Ingen körning finns än,
@@ -953,6 +958,9 @@ func _ready() -> void:
 	if flags.has("voxelprov") or flags.has("voxelhund"):
 		# -- voxelhund bygger samma prov av Alex' eget exempel: hunden han inte kände igen.
 		await _voxelprov("mire_hound" if flags.has("voxelhund") else "candlewisp")
+		return
+	if flags.has("dödsprov"):
+		await _dödsprov()
 		return
 	if flags.has("figurprov"):
 		await _figurprov()
@@ -3488,6 +3496,55 @@ func _demo_meny() -> void:
 	_alt_byt(1)
 	await get_tree().create_timer(0.3).timeout
 	print("menyprov: bilderna i %s" % ProjectSettings.globalize_path("user://shots"))
+	get_tree().quit()
+
+## DÖDSRASET I BILD (M112). Alex: *"Vi har kvar att fienden ännu inte rasar sönder och landar på
+## golvet."* Provet dödar den första fienden med spelets EGEN väg (`_enemy_reaktion`, samma anrop ett
+## spelat kort gör) och fotograferar raset i fem lägen. Det skriver också antalet bitar och deras
+## höjdspann mot golvet, så "syntes det?" blir ett tal i stället för ett omdöme.
+func _dödsprov() -> void:
+	_start_run("stage_01", 20260919)
+	await get_tree().process_frame
+	var nod: Dungeon.FloorNode = null
+	for n in run.explore.floor_ref.nodes:
+		if not n.cleared and (n.kind == "encounter" or n.kind == "boss"):
+			nod = n
+			break
+	if nod != null:
+		run.explore.pos = nod.pos
+		run.explore.facing = 0
+		_enter_node_here()
+	await get_tree().create_timer(1.2).timeout
+	if active_combat == null or _enemies.is_empty():
+		print("dödsprov: ingen strid att döda i")
+		get_tree().quit()
+		return
+	var spr: Sprite3D = _enemies[0]["spr"]
+	var vx: Voxel = spr.get_meta("voxel", null)
+	print("dödsprov: figuren %s, voxelmodell %s, %d celler, %d fiender i striden"
+		% [spr.name, "JA" if vx != null else "NEJ", vx.antal_celler() if vx != null else 0,
+			active_combat.enemies.size()])
+	_spara_bild("user://shots/dod-01-fore.png")
+	active_combat.enemies[0].hp = 0.0
+	var träffad := _enemy_reaktion(1)
+	await get_tree().process_frame
+	print("dödsprov: dråpet gav en träffad figur: %s" % ("ja" if träffad != null else "NEJ"))
+	for steg in 5:
+		await get_tree().create_timer(0.18).timeout
+		var bitar := 0
+		var spann := Vector2.ZERO
+		var golv := 0.0
+		var lägst := 0.0
+		for barn in world.get_children():
+			if barn is VoxelRas:
+				bitar += (barn as VoxelRas).antal_bitar()
+				spann = (barn as VoxelRas).höjdspann()
+				golv = (barn as VoxelRas).golv()
+				lägst = (barn as VoxelRas).lägsta_punkt()
+		print("dödsprov: %.2f s efter dråpet: %d bitar kvar, höjd %.2f..%.2f m, lägsta ritade punkt %.2f m (golvet %.2f)"
+			% [(steg + 1) * 0.18, bitar, spann.x, spann.y, lägst, golv])
+		_spara_bild("user://shots/dod-%02d.png" % (steg + 2))
+	print("dödsprov: bilderna i %s" % ProjectSettings.globalize_path("user://shots"))
 	get_tree().quit()
 
 ## Provet för HUD:ens rutor (M40) i ett RIKTIGT fönster: provet i tests/test_gui.gd mäter logiken
@@ -6262,7 +6319,7 @@ func _voxelprov(id: String = "candlewisp") -> void:
 	# en AABB på noll är en mesh utan volym, och då syns ingenting oavsett var den står.
 	for mi3 in world.get_children():
 		var m4 := mi3 as MeshInstance3D
-		if m4 != null and m4.material_override is StandardMaterial3D and m4.mesh != null:
+		if m4 != null and m4.material_override != null and m4.mesh != null:
 			var arr: Array = m4.mesh.surface_get_arrays(0)
 			var col0: PackedColorArray = arr[Mesh.ARRAY_COLOR]
 			var nor0: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
@@ -8433,7 +8490,11 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 				# efter dödsögonblicket, och allt som hänger på den rivs med — det var därför Alex "varken
 				# såg att de dog eller att voxlarna raskade omkring dem". Modellen lämnar över sina celler
 				# till raset, som faller, studsar och försvinner i egen takt.
-				var golv_y: float = voxel_nod.global_position.y - voxel_nod.mesh.get_aabb().size.y * 0.5
+				# GOLVET ÄR MODELLENS EGEN NEDERKANT (M112), räknad ur den TRANSFORMERADE rutan: modellens
+				# mitt är nodens origo, och att dra halva höjden från origo antog att rutan satt symmetriskt
+				# kring den (mätt: modellen är förskjuten, så foten hamnade fel).
+				var golv_y := voxel_nod.global_transform.origin.y \
+					+ (voxel_nod.global_transform * voxel_nod.mesh.get_aabb()).position.y
 				var ras := VoxelRas.från(vx, voxel_nod.global_transform, golv_y, voxel_nod.material_override)
 				world.add_child(ras)
 				voxel_nod.visible = false

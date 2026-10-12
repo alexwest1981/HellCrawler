@@ -335,20 +335,36 @@ func _bygg_mesh() -> void:
 func nod() -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh()
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.roughness = 0.9                       # matt yta, som resten av pixelkonsten (M59)
-	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-	mat.metallic = 0.0
-	# INGEN EGEN EMISSION. Den första versionen gav modellen en fast kall ljuston för att synas i
-	# mörkret (M74:s regel) — och MÄTT blev varje figur en blek, nästan vit form: Alex: "späkena blir
-	# bara helvita ... former". En fast emission lägger samma ljus över allt och späder ut figurens egna
-	# färger. Ljuskällan figuren redan har är auran (M72, den additiva kvadden som följer med billboarden
-	# — den finns kvar, för figurens nod finns kvar), och rummets facklor lyser modellen. Färgen ska
-	# komma från bilden, inte från en konstant.
-	mi.material_override = mat
+	mi.material_override = material()
 	return mi
+
+
+## MODELLENS MATERIAL (M112). Ett `ShaderMaterial` i stället för `StandardMaterial3D`, av ETT skäl:
+## fienden ska lysa svagt av SIN EGEN färg när ljuset står bakom den (Alex: *"då är de grådassiga, så
+## man skulle behöva avge lite ljus själv"*). Det går inte att uttrycka i `StandardMaterial3D` —
+## emissionen där är en FAST färg, och en fast färg över hela kroppen är precis vad som mättes bort i
+## M74: "en fast emission lägger samma ljus över allt och späder ut figurens egna färger".
+##
+## Shadern (`ui/voxel_fiende.gdshader`) låter Godots EGEN ljusmodell vara kvar — ingen `light()`-funktion
+## skrivs — och lägger bara på `EMISSION = färgen * min_ljus`. Facklorna, lyktan och skuggorna lyser
+## modellen exakt som förut; det som ändras är golvet under ljuset.
+##
+## `min_ljus` är en ratt och inte en siffra i shadern: provet mäter skillnaden mot `minljus=0` (den
+## gamla modellen) i SAMMA scen, och Alex kan dra i den utan att shadern kompileras om.
+static var min_ljus := 0.20
+
+## MATERIALET ÄR ETT FÖR ALLA MODELLER. Ett eget `ShaderMaterial` per `nod()` är dyrare utan att köpa
+## något: inställningarna är globala, och varje material är sin egen shadervariant att kompilera.
+static var _material: ShaderMaterial = null
+
+static func material() -> Material:
+	if _material == null:
+		var sh: Shader = load("res://ui/voxel_fiende.gdshader")
+		_material = ShaderMaterial.new()
+		_material.shader = sh
+		_material.set_shader_parameter("grovhet", 0.9)
+	_material.set_shader_parameter("min_ljus", min_ljus)
+	return _material
 
 
 ## FIGUREN GÅR SÖNDER: cellerna inom `radie` från `lokal_punkt` tas bort och meshen byggs om.

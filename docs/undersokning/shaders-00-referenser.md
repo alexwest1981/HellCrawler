@@ -235,6 +235,25 @@ Lästa, och koden hämtad där den finns. Kolumnen "kod?" är avgörande: flera 
 | **BumpOffset VisualShaderNode** | En nod till den VISUELLA shader-editorn: UV-parallax ur en höjdkarta (samma som Unreals BumpOffset) | ja (GDScript-nod) | Vi skriver text-shaders; själva tricket (`uv + vy.xy * höjd * skala`) står redan på listan som heightmap-vandring | — | nej (idén redan listad) |
 | **health/mana-bar i glaskula** | Vätska i en sfär: nivå, brytning, skakning vid träff, lutande yta | **NEJ** — 0 `<pre>`-block, koden är inte publicerad (bara GDScript-kontrollern) | Våra kärl ritas i kod (`hud_orb.gd`). Idéerna att stjäla: en LUTANDE vätskeyta i stället för en rak linje, och en SKAKNING vid träff (billigt, känns direkt) | — | idén, inte koden |
 | **2D liquid fill inside sphere** (den Alex länkade 12/10) | Vätska i en cirkel: `fV` = fyllnad 0-1, SDF för klotet, sinusvåg som gungar ytan med `TIME` | **ja, i kommentarerna** (huvudblocket på sidan är tomt; koden ligger i två kommentarer) — port från Shadertoy av Mirza Beig, alltså **CC BY-NC-SA 3.0** (icke-kommersiell + dela-lika) | **NEJ, två skäl.** (1) LICENSEN: en Shadertoy-port är CC BY-NC-SA — icke-kommersiell och dela-lika — och spelet är GPL-3.0 och ska kunna säljas. (2) UTSEENDET: shadern är SLÄT och kantutjämnad (`smoothstep`, `fwidth`) med en ständigt gungande yta, och våra kärl ritas rad för rad utan halvtoner med flit (`hud_orb.gd`: "en slät `draw_circle` hade sett ut som en annan bild än pixelkonsten runt omkring"). Kassören: en oändlig `TIME`-gunga tvingar en omritning VARJE bildruta hos alla tre kloten; vår skakning kör bara vid träff (`_skak` stänger av `_process` när den lagt sig) | liten | **nej** (idén om en lutande yta finns redan i `hud_orb.gd`) |
+| **2D cel / toon shader v2 (Basic)** (den Alex länkade 12/10) | Klämmer in ljuset i två trappsteg (`first_stage`, `second_stage`) och lägger ett GOLV under det (`min_light`, `obj_light_add`) — `LIGHT *= light_calc(...)` | **ja, och CC0** (fri att använda). MEN `shader_type canvas_item` och kräver normalmappade sprites + `Light2D` | **NEJ som shader, JA som idé.** Våra fiender är 3D-voxelmeshar med ett `spatial`-material, så en canvas-shader når dem inte (samma klasstopp som normal-map-only-shadern). Däremot är `min_light` exakt Alex' problem — och den är byggd i `ui/voxel_fiende.gdshader`, se texten under tabellen | liten | **idén byggd** |
+| **2D cel / toon shader v2 +Plus** (samma författare, "depth") | Basic + kantglöd (`rim_light`), falskt ljusdjup, falsk spotlight, `before_light_modulate` | ja, CC0 (och ett GitHub-repo) | Samma klasstopp: djup- och spotlight-delen hör till en 2D-värld vi inte har (våra golv är riktiga 3D-ytor). Kantglöden och trappstegen går däremot att flytta till vår egen spatial-shader | liten | **kandidat** (kantglöd + trappsteg) |
+
+**BYGGT 12/10 — `ui/voxel_fiende.gdshader`, golvet under ljuset (M112).** Alex: *"strider med fiender
+resulterar ofta med att man har ljus bakom fienden, och då är de grådassiga, så man skulle behöva avge
+lite ljus själv"*. Shadrarna ovan gav idén; koden är vår egen, för voxlarna har ett `spatial`-material
+som redan är vårt (`Voxel.material()`), och där räcker **en rad**:
+
+```glsl
+EMISSION = COLOR.rgb * min_ljus;   // fienden lyser av SIN EGEN färg, inte av en konstant
+```
+
+Ingen `light()`-funktion skrivs, så Godots egen ljusmodell (facklor, lyktan, skuggorna) är orörd — det
+som läggs till är ett GOLV. Det var just invändningen mot emission i M74 ("en fast emission lägger samma
+ljus över allt och späder ut figurens egna färger"), och den är nu **mätt bort i samma scen** med
+flaggan `minljus=<tal>` (`-- voxelprov minljus=0` mot standarden): figurens egna pixlar behåller sin
+mättnad (0,403 → 0,379 vid 0,20), medan 17 422 → 49 904 pixlar i rutan kommer över synlighetströskeln.
+Ratten `Voxel.min_ljus` står på 0,20 (80 % av 0,25, Alex' egen justering). Kvar att välja: trappstegen
+(cel-bandning) gör fienderna annorlunda än rummet i övrigt, och kantglöden från +Plus-versionen.
 
 **Vad jag skulle bygga, i ordning** (billigast först, och de tre första hänger ihop):
 
