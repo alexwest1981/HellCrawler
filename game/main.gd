@@ -151,7 +151,7 @@ var _vad_insats := 0
 var _raddad_sjal := ""
 ## Dagens körning (önskemål 24, punkt 5): satt av _start_dagens och läst när körningen tar slut.
 var _dagens := false
-var _enemies: Array = []        ## [{spr, y, fas, hp, läge, läge_t}] — figurerna i rummet, animerade i _process
+var _enemies: Array = []        ## [{spr, bas, vick, fas, hp, läge, läge_t}] — figurerna i rummet, animerade i _process
 
 # Rutorna i fiendebilden (tools/gen_enemy_art.py), i den ordning de ligger i PNG:n. Siffrorna står
 # här och inte på sex ställen i koden: byter konsten ordning ska det vara en rad att ändra.
@@ -935,6 +935,13 @@ func _ready() -> void:
 			# sin egen fiende i stället för mot den tier-1-figur som råkar stå där. Tvingar bara VILKEN
 			# fiende som ställs upp — hur den ställs upp, och allt annat, är spelets egen väg.
 			_fiendeprov = f.substr(14)
+		elif f.begins_with("frysfas="):
+			# FASFRYSNINGEN (prov): `frysfas=1.25` står still i den fasen, så två körningar ger samma
+			# bild att jämföra (md5). Utan den vickar figurerna olika i varje körning — rörelsen är
+			# poängen med den, och därför ett problem för ett provbildsprov. Se `Vickning`.
+			Vickning.frusen_fas = float(f.substr(8))
+			print("frysfas: vickningen står still i fas %.3f (annars %s)"
+				% [Vickning.frusen_fas, "levande klocka"])
 		elif f.begins_with("tradzoom="):
 			# tradzoom=<tal>: fotografera trädet vid en bestämd zoom. Utan den går bara HELHETSVYN
 			# (centrera(), zoom 0,47) att mäta, och "naturlig storlek" blev ett omdöme. Mätt: vid
@@ -4457,7 +4464,14 @@ func _add_enemies(node: Dungeon.FloorNode, boss: bool) -> void:
 		fyllnad.position = Vector3(barvänster + BAR_W * 0.06, bartopp + BAR_H * 0.2, spr.position.z)
 		# hp spåras per figur så träff- och dödsrutan kan väljas: striden har sanningen, figuren
 		# minns förra värdet. Indexen matchar — båda byggs ur samma enemy_count_for i samma ordning.
-		_enemies.append({"spr": spr, "skugga": sk, "glans": glans, "y": spr.position.y,
+		# VILOLÄGET `bas` (M…): figurens plats UTAN vickning. `_process` lägger smårörelsen ovanpå den
+		# och uppställningen flyttar den — två skribenter, två olika saker, aldrig samma egenskap.
+		# VICKNINGEN (idle) väljs ur fiendens id en gång här och inte per bildruta.
+		# FASEN (`fas`) är figurens egen förskjutning i sinusen — två likadana figurer i samma rum får
+		# olika fas (index * 1,9) och två rum skiljer sig åt (rutans x), så inga två figurer vickar i
+		# takt. Samma fas bar andningen och rutanvändningen redan.
+		_enemies.append({"spr": spr, "skugga": sk, "glans": glans, "bas": spr.position,
+			"vick": Vickning.klass(eid),
 			"fas": float(i) * 1.9 + float(node.pos.x),
 			"hp": -1.0, "läge": -1, "läge_t": 0.0, "nod": node.pos,
 			"bar": ben, "fyllnad": fyllnad})
@@ -4758,6 +4772,10 @@ func _ruta_lager(l: Sprite3D, ruta: int) -> void:
 ## det står de helt still och läses som möbler i stället för som något som väntar på dig. Ett läge
 ## som satts av striden (spänner/hugger/träffad/död) går före andningen tills tiden runnit ut —
 ## dödsrutan ligger kvar för alltid, en död fiende ska inte resa sig igen.
+##
+## SMÅRÖRELSEN (idle) bor i `Vickning` och läggs ovanpå viloläget `bas`: en sinus per figur och
+## bildruta, per typ (andar gungar i sidled, ben andas, djur trycker i höjd). Här nedan står bara
+## VILKA som får röra sig — en död kropp och en träffad (som knuffas i Z av `_slag_kvitto`) står still.
 func _process(delta: float) -> void:
 	# Bildrutemätningen: snitt och SÄMSTA bildruta över hela körningen. Att läsa
 	# Engine.get_frames_per_second() vid ett enstaka tillfälle ger vad som helst (mätt: 36 fps med
@@ -4779,7 +4797,7 @@ func _process(delta: float) -> void:
 		_gunga = 0.0
 	if _enemies.is_empty():
 		return
-	var t := Time.get_ticks_msec() / 1000.0
+	var t := Vickning.nu()
 	for e in _enemies:
 		var spr: Sprite3D = e["spr"]
 		if not is_instance_valid(spr):
@@ -4798,14 +4816,24 @@ func _process(delta: float) -> void:
 			var fas: float = e["fas"]
 			spr.frame = ENEMY_IDLE_B if fmod(t + fas, 3.1) > 2.72 else ENEMY_IDLE_A
 			_ruta(spr)
-		if int(e.get("läge", -1)) != ENEMY_DEAD:
-			var fas2: float = e["fas"]
-			spr.position.y = float(e["y"]) + sin(t * 1.7 + fas2) * 0.05
+		# SMÅRÖRELSEN (idle). Figuren står inte som en pappfigur: `Vickning.steg` lägger en liten sinus
+		# ovanpå viloläget `bas`. Per typ (se `Vickning.TYPER`): andar gungar i sidled, ben andas,
+		# djur trycker i höjd. INGEN ny nod, ingen mesh — en sinus och två vektoroperationer per figur.
+		#
+		# TVÅ REGLER, båda av samma skäl: en egenskap får bara ha EN skribent per bildruta.
+		#   död   — vickningen är AV. Kroppen har lämnat sin modell till raset (`VoxelRas`) och syns
+		#           inte längre, men en hög som gungar vore fel, så den rörs inte alls.
+		#   träffad — vickningen är AV medan träffrutan hålls (0,35 s). `_slag_kvitto` knuffar figuren
+		#           i Z under just den tiden, och två skribenter på samma egenskap slåss om sista ordet
+		#           (samma skäl som gjorde att knuffen gick i Z och andningen i Y).
+		var läge_nu: int = int(e.get("läge", -1))
+		if läge_nu != ENEMY_DEAD and läge_nu != ENEMY_HIT:
+			Vickning.steg(spr, e["bas"], t, str(e["vick"]), float(e["fas"]), cam)
 		# SKUGGAN: följer figurens x/z (uppställningen flyttar figuren) men ligger KVAR på golvet.
 		# Höjden över viloraden krymper och bleknar den — det är skillnaden mot en platta som åker med.
 		var sk2: Sprite3D = e.get("skugga")
 		if sk2 != null:
-			var hh: float = spr.position.y - float(e["y"])
+			var hh: float = spr.position.y - (e["bas"] as Vector3).y
 			sk2.position.x = spr.position.x
 			sk2.position.z = spr.position.z
 			var s2: float = 1.0 - hh * 1.2
@@ -6451,6 +6479,21 @@ func _figurprov() -> void:
 			glansiga += 1
 	print("[figurprov] figurer i vyn: %d, varav med material_override: %d (ska vara 0) | ytor: %d matta, %d glansiga"
 		% [fig["antal"], fig["blanka"], mörka, glansiga])
+	# VICKNINGEN (idle): hur många figurer som rör sig SAMTIDIGT i värsta fallet. Hela våningens
+	# figurer animeras i samma `_process` (en sinus var), döda och träffade undantagna — siffran är
+	# våningens eget svar och inte en gissning.
+	var vickar := 0
+	for e in _enemies:
+		var l: int = int(e.get("läge", -1))
+		if l != ENEMY_DEAD and l != ENEMY_HIT:
+			vickar += 1
+	print("[figurprov] vickning: %d figurer i våningen, %d vickar samtidigt (döda och träffade står still)"
+		% [_enemies.size(), vickar])
+	var typer := {}
+	for e in _enemies:
+		var k: String = str(e.get("vick"))
+		typer[k] = int(typer.get(k, 0)) + 1
+	print("[figurprov] vickning per typ: %s" % str(typer))
 	# VAR STÅR FIGURERNA, I METER? Alex: *"spökena står på sidan när man möter dem, även andra
 	# fiender — har det att göra med hur trångt det är i gången?"* Frågan besvaras med spelets egna
 	# tal i stället för med ögat: figurens avvikelse från sin rutas mitt, hur bred figuren är i meter
@@ -7024,7 +7067,7 @@ func _öppen_sida(f: Dungeon.Floor, p: Vector2i) -> Vector2i:
 ## över 40 bildrutor), och modellen hade ingen emission alls. Nu rör samma faktor både ljuset och
 ## modellens emission — indexet i de två listorna är samma rekvisit, så elden och skenet pulserar i takt.
 func _fladdra(delta: float) -> void:
-	_fladder += delta
+	_fladder += Vickning.delta(delta)          # 0 när fasen är fryst: elden står still med figurerna
 	if _lågor.is_empty() and _lykta == null and _låg_ljus.is_empty():
 		return
 	for i in _lågor.size():
@@ -8360,6 +8403,13 @@ func _stage_fight(node: Dungeon.FloorNode) -> void:
 		var sida := (float(kol) - float(per - 1) * 0.5) * Run.SIDLED
 		var d := (1.15 + float(led) * Run.RADAVSTAND) if framme else (0.75 + float(led) * 0.45)
 		var p: Vector2 = bas + Vector2(fram) * d + Vector2(sido) * sida
+		# VILOLÄGET FLYTTAR: vickningen lägger sin förskjutning ovanpå `bas`, så uppställningen skriver
+		# BASEN och inte figurens aktuella position. Skrev den positionen hade nästa bildruta lagt
+		# gungningen ovanpå uppställningen, och figuren sakta vandrat ur ledet.
+		var b: Vector3 = e["bas"]
+		b.x = p.x
+		b.z = p.y
+		e["bas"] = b
 		spr.position.x = p.x
 		spr.position.z = p.y
 		_place_bar(e)
@@ -8417,17 +8467,20 @@ func _klä_voxel(spr: Sprite3D, tex: Texture2D, rutor: int, ps: float) -> bool:
 
 ## Healthbarens plats räknas ur figurens position. Egen funktion för att uppställningen flyttar
 ## figurerna EFTER att staplarna byggts — utan det stod staplarna kvar där fienden stod först.
+## Den räknas ur VILOLÄGET `bas` och inte ur figurens aktuella position: vickningen rör figuren
+## några centimeter varje bildruta, och en livstapel som hoppar med andningen är inte samma sak som
+## en som visar var fienden står.
 func _place_bar(e: Dictionary) -> void:
 	var spr: Sprite3D = e.get("spr")
 	var ben: Sprite3D = e.get("bar")
 	var fyllnad: Sprite3D = e.get("fyllnad")
 	if not is_instance_valid(spr) or not is_instance_valid(ben) or not is_instance_valid(fyllnad):
 		return
-	var topp := spr.position.y + 17.0 * spr.pixel_size + 0.02
-	var vänster := spr.position.x - BAR_W / 2.0
-	ben.position = Vector3(vänster, topp, spr.position.z)
-	fyllnad.position = Vector3(vänster + BAR_W * 0.06, topp + BAR_H * 0.2, spr.position.z)
-	e["y"] = spr.position.y
+	var b: Vector3 = e["bas"]
+	var topp := b.y + 17.0 * spr.pixel_size + 0.02
+	var vänster := b.x - BAR_W / 2.0
+	ben.position = Vector3(vänster, topp, b.z)
+	fyllnad.position = Vector3(vänster + BAR_W * 0.06, topp + BAR_H * 0.2, b.z)
 
 ## HUGGET (M107). Alex länkade `procedural-cyclic-slash`: "Vid attack, men behöver fler liknande
 ## denna, så det blir variation". En båge ritas på en kvad som står upp som figurerna (samma höjd, ur
