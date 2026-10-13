@@ -15,6 +15,13 @@ render_mode cull_disabled, specular_disabled;
 
 uniform float glod : hint_range(0.0, 1.0) = 0.06;   // samma faktor som `_fladdra` rör (LAGA_GLÖD * _ljus_f)
 
+// THE MODEL'S OWN FLOOR UNDER THE LIGHT (M120). The same uniform `voxel_fiende.gdshader` has: a model
+// that switches to THIS shader — a light-source enemy, see `main._ljuskalla` — must not LOSE the light
+// of its own, or the flag would dim the whole figure to make one part glow. The flame cells are lit
+// ABOVE the floor and nothing else moves. 0.0 is the props' own behaviour (no floor), so the
+// candelabra that has worn this shader since M115 is untouched.
+uniform float min_ljus : hint_range(0.0, 1.0) = 0.0;
+
 // Är cellen en låga? Varm och ljus nog — metall (mörk), vax (grå) och trä faller utanför.
 float ar_laga(vec3 c) {
 	float varm = step(c.b * 1.8, c.r);            // röd/orange: r klart över blå
@@ -27,5 +34,5 @@ void fragment() {
 	ALBEDO = COLOR.rgb;
 	ROUGHNESS = 0.9;
 	METALLIC = 0.0;
-	EMISSION = COLOR.rgb * (glod * ar_laga(COLOR.rgb));
+	EMISSION = COLOR.rgb * (min_ljus + glod * ar_laga(COLOR.rgb));
 }

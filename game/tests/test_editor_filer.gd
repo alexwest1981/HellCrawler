@@ -52,6 +52,13 @@ func _initialize() -> void:
 	root.add_child(editor)
 	await process_frame
 	await process_frame
+	# ETT TOLKNINGSFEL I EDITORN FÅR PROVET ATT HÄNGA i stället för att falla (scriptfelet
+	# avbryter `_initialize` och trädet snurrar vidare). Vakta först, så sviten får en rad
+	# i stället för två minuters timeout.
+	if not editor.has_method("palett_vald"):
+		print("  FEL  editorns script laddades inte (se Parse Error ovan)")
+		quit(1)
+		return
 	check(editor._skala > 2.0, "ytan är skalad till ett riktigt fönster (annars mäts fel yta)",
 		"_skala %.2f" % editor._skala)
 	check(editor.filer.size() > 0, "editorn hittar tillgångarna", "%d st" % editor.filer.size())

@@ -92,6 +92,12 @@ func _ready() -> void:
 			# PALETTEN OCH DET MÅLADE (prov): välj en färg ur paletten och rita ett streck med den.
 			palettprov()
 			await get_tree().process_frame
+		if args.has("ljusprov"):
+			# LJUSKÄLLAN I BILD (prov): kryssa för flaggan, så BILDEN visar läget den står i.
+			# Att flaggan sedan gör något SYNLIGT i spelet mäts i `-- ljuskallprov` (två bilder,
+			# samma scen, ett materialbyte).
+			vaxla_ljuskalla()
+			await get_tree().process_frame
 		await _skott()
 
 
@@ -401,6 +407,28 @@ func palett_vald() -> int:
 	return -1
 
 
+## LJUSKÄLLAN (M120). Alex: *"någon knapp för 'isLightSource=true' eller något"*. Flaggan skrivs i
+## SAMMA recept som retuschen — den här editorn äger den filen (`data/enemies/retuschering.json`) och
+## skriver aldrig en PNG — och spelet läser den: `main._ljuskalla` ger modellen kandelaberns
+## glöd-shader (M115), så de celler man målade med palettens lågfärger (12-14) lyser. Kryssrutan ÄR
+## alltså kopplad till den vägen; en flagga som inte rörde något vore en lögn i UI:t.
+func ljuskalla_ruta() -> Rect2:
+	return Rect2(LJUS_ANKA, Vector2(12, 12))
+
+
+func ljuskalla() -> bool:
+	return Retusch.ar_ljuskalla(recept, id)
+
+
+func vaxla_ljuskalla() -> bool:
+	var r: Dictionary = recept.get(id, {"sudda": [], "måla": []})
+	r["ljuskalla"] = not bool(r.get("ljuskalla", false))
+	recept[id] = r
+	status = "ljuskälla %s för %s — S sparar" % ["PÅ" if r["ljuskalla"] else "av", id]
+	queue_redraw()
+	return r["ljuskalla"]
+
+
 func _om_skala() -> void:
 	_skala_om()
 	_lista_om()
@@ -470,6 +498,11 @@ func _gui_input(e: InputEvent) -> void:
 		# igenom till ritytan — annars satte man en pixel i figuren varje gång man valde en färg.
 		if mb.button_index == MOUSE_BUTTON_LEFT and valj_palettfarg(palett_index_vid(mb.position)):
 			return
+		# Kryssrutan för ljuskällan ligger också utanför duken — samma vakt.
+		if mb.button_index == MOUSE_BUTTON_LEFT and _skala > 0.0 \
+			and ljuskalla_ruta().has_point(mb.position / _skala):
+			vaxla_ljuskalla()
+			return
 		var p := _duk_pixel(mb.position)
 		if p.x < 0:
 			return
@@ -525,6 +558,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		KEY_X:
 			rensa(id)
 			status = "rensade retuschen för %s" % id
+		KEY_L:
+			vaxla_ljuskalla()
 		KEY_S:
 			spara()
 		KEY_M:
@@ -635,6 +670,21 @@ func _draw() -> void:
 				Color(1, 1, 1), false, maxf(1.0, 2.0 * _skala))
 	_text(Vector2(PANEL_X, LISTA_RUBRIK_Y), "FILER (%d) — klicka för att välja" % filer.size(),
 		Color(0.9, 0.85, 0.6))
+	# LJUSKÄLLAN (M120): kryssrutan för den VALDA arten. Grön ruta + kryss när den är på, och raden
+	# säger vad flaggan heter i filen, så det går att känna igen i receptet.
+	var lyser := ljuskalla()
+	var lr := ljuskalla_ruta()
+	var lpos := _ruta(lr.position)
+	var lslut := _ruta(lr.end)
+	draw_rect(Rect2(lpos, lslut - lpos), Color(0.3, 0.75, 0.35) if lyser else Color(0.15, 0.15, 0.19))
+	draw_rect(Rect2(lpos, lslut - lpos), Color(0.62, 0.62, 0.68), false, maxf(1.0, _skala))
+	if lyser:
+		draw_line(lpos + Vector2(0.25, 0.5) * (lslut - lpos), lpos + Vector2(0.45, 0.75) * (lslut - lpos),
+			Color(0.05, 0.05, 0.07), maxf(2.0, 2.0 * _skala))
+		draw_line(lpos + Vector2(0.45, 0.75) * (lslut - lpos), lpos + Vector2(0.8, 0.25) * (lslut - lpos),
+			Color(0.05, 0.05, 0.07), maxf(2.0, 2.0 * _skala))
+	_text(Vector2(PANEL_X + 18, LJUS_RUBRIK_Y), "ljuskälla: %s (isLightSource)" % ("PÅ" if lyser else "av"),
+		Color(0.6, 0.95, 0.6) if lyser else Color(0.62, 0.62, 0.68))
 	# Tangentlistan: kompakt, till höger om förstoraren — ytan är 270 px hög och åtta rader à 14 px
 	# gick utanför nederkanten när listan tog plats (mätt på bild).
 	var rader := [

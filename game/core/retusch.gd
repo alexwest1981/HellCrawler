@@ -55,6 +55,16 @@ static func skriv(recept: Dictionary, sökväg: String = FIL) -> String:
 	return ""
 
 
+## Svarar på om arten är märkt som LJUSKÄLLA i receptet (M120). Flaggan sätts i fiendeeditorn, och
+## `main._ljuskalla` gör att den betyder något: modellens material blir kandelaberns glöd-shader, så
+## de celler man målade med palettens lågfärger lyser.
+static func ar_ljuskalla(recept: Dictionary, id: String) -> bool:
+	var r = recept.get(id, {})
+	if typeof(r) != TYPE_DICTIONARY:
+		return false
+	return bool(r.get("ljuskalla", false))
+
+
 ## Lägger receptet för `id` på `bild` (en Image av fiendens ark). Svarar med antalet ändrade pixlar.
 ## Pixlar utanför bilden hoppas över: ett recept som skrivits mot en annan duk ska inte krascha spelet.
 static func tillämpa(bild: Image, recept: Dictionary, id: String) -> int:

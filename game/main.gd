@@ -495,6 +495,12 @@ const LAGA_FARG := Color(1.0, 0.78, 0.55)
 ## Låg med flit: ett KONSTANT lager över hela modellen lästes som en vit kopia (tak-kronan "är helvit
 ## typ") — mätt flyttar 0,06 modellens medelfärg mindre än ett steg i en rendering, och elden syns.
 const LAGA_GLÖD := 0.06
+## LJUSKÄLLANS GLÖD (M120). Fiendeeditorns flagga `ljuskalla` ger modellen kandelaberns glöd-shader
+## (M115), och DEN HÄR siffran rattar hur starkt lågcellerna lyser på en fiende. Fyra gånger
+## kandelaberns 0,06, av två skäl: en fiende BÄR redan en egen ljusbotten (Voxel.min_ljus 0,20), så en
+## glöd under den syns inte (mätt: +10 steg över 7 905 px med 0,06 — rätt siffra, men ingen som ser
+## den), och en LJUSKÄLLA ska lysa starkare än ett vaxljus som fladdrar.
+const LJUSKALLA_GLÖD := 0.24
 ## Hur länge hugget sveper (M107). 0,20 s: siffran och blinket är gjorda på 0,04-0,2 s, och ett svep
 ## som hänger kvar efteråt läses som en projektileffekt i stället för ett hugg.
 const HUGG_TID := 0.20
@@ -1053,6 +1059,7 @@ func _ready() -> void:
 		or flags.has("guiprov") or flags.has("vinstprov") or flags.has("ljusprov") or flags.has("träffprov")
 		or flags.has("flisprov") or flags.has("genomsynprov") or flags.has("flissynprov")
 		or flags.has("voxelprov") or flags.has("voxelhund") or flags.has("dödsprov")
+		or flags.has("ljuskallprov")
 		or not nodprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
 	if not kör:
 		# Vanlig start (eller en enskild skärms skärmbildsläge): byn först. Ingen körning finns än,
@@ -1098,6 +1105,9 @@ func _ready() -> void:
 	if flags.has("voxelprov") or flags.has("voxelhund"):
 		# -- voxelhund bygger samma prov av Alex' eget exempel: hunden han inte kände igen.
 		await _voxelprov("mire_hound" if flags.has("voxelhund") else "candlewisp")
+		return
+	if flags.has("ljuskallprov"):
+		await _ljuskallprov()
 		return
 	if flags.has("dödsprov"):
 		await _dödsprov()
@@ -4651,7 +4661,7 @@ func _golv_bredvid(p: Vector2i) -> bool:
 
 
 func _add_enemies(node: Dungeon.FloorNode, boss: bool) -> void:
-	var eid: String = _fiendeprov if not _fiendeprov.is_empty() else str(node.enemy_id).to_lower()
+	var eid := _fiende_art(node)
 	var tex := _enemy_tex(eid)
 	var antal := run.enemy_count_for(node, boss)
 	for i in antal:
@@ -9717,7 +9727,109 @@ func _stage_fight(node: Dungeon.FloorNode) -> void:
 ## Hämtas här, när striden ställs upp, och inte när våningen byggs: att bygga modeller för varje fiende
 ## på en våning tar 5-8 ms styck, och bara de man faktiskt möter behöver en.
 func _voxel_fiende(spr: Sprite3D, node: Dungeon.FloorNode) -> void:
-	_klä_voxel(spr, _enemy_tex(str(node.enemy_id).to_lower()), ENEMY_FRAMES, spr.pixel_size)
+	var art := _fiende_art(node)
+	_klä_voxel(spr, _enemy_tex(art), ENEMY_FRAMES, spr.pixel_size)
+	# LJUSKÄLLAN (M120): är arten märkt i receptet lyser modellen på sina lågceller.
+	_ljuskalla(spr, art)
+
+
+## Vilken ART en nod i striden är: den framtvingade (`-- fiendevisprov`, för proven) före nodens egen.
+## ETT ställe, för bilden och voxelmodellen får inte kunna visa olika fiender: med flaggan satt byggdes
+## förut figurens bild av den tvingade arten medan `_voxel_fiende` byggde modellen av nodens egen.
+func _fiende_art(node: Dungeon.FloorNode) -> String:
+	return _fiendeprov if not _fiendeprov.is_empty() else str(node.enemy_id).to_lower()
+
+
+## LJUSKÄLLAN (M120) — FIENDEN SOM LYSR. Flaggan sätts i fiendeeditorn och sparas i receptet
+## (`data/enemies/retuschering.json`); DEN HÄR raden gör att den betyder något. Modellens material
+## byts mot `ui/voxel_rekvisit.gdshader` — SAMMA shader som kandelabern bär (M115) och samma `glod` —
+## och den släpper bara igenom de VARMA, LJUSA cellerna (palettens 12-14, se `ar_laga` i shadern).
+## Alltså: det man målade med FLAME i editorn lyser, resten av figuren är oförändrad. En flagga som
+## inte rörde något vore en lögn i UI:t.
+##
+## Inget eget bygge: `_laga_shader()` är kandelaberns egen laddare (M115), och `Voxel.ur_ark` lägger
+## figurfärgen i hörnen (`COLOR`) som shadern läser.
+func _ljuskalla(spr: Sprite3D, art: String) -> void:
+	if spr == null or not Retusch.ar_ljuskalla(_retusch, art):
+		return
+	var mi := spr.get_node_or_null("voxel") as MeshInstance3D
+	if mi == null:
+		return
+	var m := ShaderMaterial.new()
+	m.shader = _laga_shader()
+	m.set_shader_parameter("glod", LJUSKALLA_GLÖD)
+	# MODELLENS EGEN BOTTEN UNDER LJUSET (M112) BEHÅLLS: en fiende som blir ljuskälla ska inte GÅ
+	# MISTE om sitt eget ljus — samma siffra som dess vanliga material bär (`Voxel.min_ljus`). Då är
+	# det ENDA som ändras att lågcellerna lyser ovanpå, och flaggan blir en glöd i stället för en
+	# nedtoning av hela figuren (mätt utan den: 12 943 px MÖRKARE och noll ljusare).
+	m.set_shader_parameter("min_ljus", Voxel.min_ljus)
+	mi.material_override = m
+
+
+## LJUSKÄLLAN I BILD (M120). Frågan provet svarar på: gör flaggan `ljuskalla` i retuscheringsreceptet
+## något SYNLIGT? Modellen byggs med spelets EGNA väg (`_klä_voxel` + `_ljuskalla`, samma två rader som
+## `_voxel_fiende`), ställs framför kameran, och sedan tas TRE bilder i SAMMA process: glöd, modellens
+## vanliga material, glöd igen. Två KÖRNINGAR duger inte som A/B — elden fladdrar, så två processer
+## skiljer sig även när ingen rad ändrats (samma läxa som `glansprov` och `ljusprov`). Den TREDJE
+## bilden är körningens eget brusgolv: är |glöd - vanligt| inte klart större än |glöd - glöd igen| är
+## skillnaden fladder, inte glöd.
+##
+## Är flaggan AV blir alla tre bilderna modellens vanliga material — det är KONTROLLEN, och den visar
+## att det är flaggan som gör skillnaden och inte provet.
+func _ljuskallprov() -> void:
+	var art := _fiendeprov if not _fiendeprov.is_empty() else "candlewisp"
+	var tex := _enemy_tex(art)
+	if tex == null:
+		print("ljuskallprov: ingen bild för %s" % art)
+		get_tree().quit()
+		return
+	var spr := Sprite3D.new()
+	spr.pixel_size = 0.012
+	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	if not _klä_voxel(spr, tex, ENEMY_FRAMES, spr.pixel_size):
+		print("ljuskallprov: %s blev ingen voxelmodell (tom figurruta?)" % art)
+		get_tree().quit()
+		return
+	world.add_child(spr)
+	var mi := spr.get_node_or_null("voxel") as MeshInstance3D
+	if mi == null:
+		print("ljuskallprov: ingen voxelnod under figuren")
+		get_tree().quit()
+		return
+	# MODELLENS EGET MATERIAL SPARAS UNDAN FÖRE flaggan: A/B ska bara byta materialet. Läses det
+	# EFTER `_ljuskalla` är det glöd-materialet, och då jämför provet glöd mot glöd (mätt: alla tre
+	# bilderna bar `voxel_rekvisit.gdshader` och skillnaden blev 0 px).
+	var vanligt: Material = mi.material_override
+	_ljuskalla(spr, art)
+	var fram := -cam.global_transform.basis.z
+	spr.global_position = cam.global_position + fram * 0.95
+	for i in 4:
+		await get_tree().process_frame
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://shots"))
+	print("[ljuskallprov] %s: flaggan %s, glod %.2f, %d celler i modellen, noden vid %s"
+		% [art, str(Retusch.ar_ljuskalla(_retusch, art)), LJUSKALLA_GLÖD,
+			int(spr.get_meta("voxel").antal_celler()), str(spr.global_position.round())])
+	await _ljuskallprov_bild("01-glod", mi)
+	mi.material_override = vanligt
+	await _ljuskallprov_bild("02-vanligt", mi)
+	_ljuskalla(spr, art)                                   # tillbaka till det flaggan gav
+	await _ljuskallprov_bild("03-glod-igen", mi)
+	get_tree().quit()
+
+
+func _ljuskallprov_bild(namn: String, mi: MeshInstance3D) -> void:
+	var m: Material = mi.material_override
+	var sh: String = "-"
+	if m is ShaderMaterial and (m as ShaderMaterial).shader != null:
+		sh = (m as ShaderMaterial).shader.resource_path.get_file()
+	for i in 4:
+		await get_tree().process_frame
+	await get_tree().create_timer(0.15).timeout
+	var path := "user://shots/ljuskallprov-%s.png" % namn
+	_spara_bild(path)
+	var st := _bild_statistik(get_viewport().get_texture().get_image())
+	print("[ljuskallprov] %-12s material %-24s medel %.4f  p99 %.4f  ljust %d %%  högdagrar %d px"
+		% [namn, sh, st["medel"], st["p99"], st["ljust"], st["högdagrar"]])
 
 
 ## Klä en billboard med en voxelmodell ur SIN EGEN bild och ta bort den platta bilden (M108).
