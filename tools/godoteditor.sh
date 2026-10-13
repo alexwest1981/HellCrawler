@@ -8,5 +8,8 @@
 # skriver om project.godot till sin egen version och backar hela projektet. Godot varnar för det —
 # varningen är sann, och "OK" är det man inte ska trycka på.
 set -euo pipefail
+# Menyvalet startar med en snål PATH (inte skalens) — samma rad som tools/prov.sh har, så `godot`
+# hittas även när skriptet klickas i gång i stället för att skrivas i en terminal.
+export PATH="$HOME/.local/bin:$PATH"
 cd "$(dirname "$0")/../game"
 exec godot --editor --path .
