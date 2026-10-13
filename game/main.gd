@@ -4330,7 +4330,7 @@ func _input_shell(key: int) -> void:
 			KEY_RIGHT, KEY_D:
 				by_view.flytta(Vector2i(1, 0))
 			KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
-				by_view.gå_in()          # valet kommer tillbaka via signalen vald -> _på_plats
+				by_view.gå_till()        # figuren går dit; valet kommer via signalen vald -> _på_plats
 			KEY_I:
 				_på_plats("album")       # indexet över samlingen. A/D är upptagna av platsvalet.
 			KEY_Q:
@@ -4522,11 +4522,15 @@ func _karta_tangent(key: int) -> bool:
 			if karta_view.panel_öppen():
 				karta_view.vad_vrid()
 		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
-			var r := karta_view.försök_gå_in()
+			var r := karta_view.gå_till_och_in()
 			if bool(r["ok"]):
 				return true     # körningen tar över; _start_run ritar om skalet själv
 			if str(r["reason"]) == "välj":
 				_sfx("select")  # nivåpanelen öppnades: ett steg, inte ett fel
+				return false
+			if str(r["reason"]) == "går":
+				# Gångaren (M122) är på väg till platsen: panelen öppnas av HENNE när hon kommer
+				# fram, så skalet ska bara vänta — inget besked och inget ljud.
 				return false
 			# Låst plats eller låst nivå: säg ifrån i klartext (raden ritas på kartan) i stället för
 			# att tiga — en tangent som inte gör något ser trasig ut.

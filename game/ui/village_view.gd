@@ -46,6 +46,12 @@ extends Control
 signal vald(skepp: String)
 
 const BILD := "res://assets/ui/byn.png"
+## Figuren som går i byn (och på kartan): samma lilla figur som huvudmenyns markör — den finns redan
+## och är i spelets egen stil, så ingen ny tillgång behövs för en gångare.
+const FIGUR := "res://assets/ui/markor.png"
+## Hur stor figuren ritas i vyns px. 23x21 px blir 46x42 — en människa mot ett tvåvåningshus
+## (husen är ~250 vyn-px höga), inte en prick.
+const FIGUR_SKALA := 2.0
 
 ## Platserna i gatuordning (vänster → höger, som bilden visar dem): `x` är platsens mitt på BILDEN i
 ## procent av bredden, `x0`/`x1` är HUSETS KROPP i procent av bildens bredd (klickytan och det som
@@ -109,6 +115,13 @@ var _vald := 0
 ## Platsen muspekaren står över, eller -1. Sätts på musens RÖRELSE i `_gui_input` och ritas som en
 ## ljusvägg på huset + husets namn ovanför.
 var _hover := -1
+## GÅNGAREN (M122): EN figur som går mellan platserna i byn — samma komponent som på världskartan.
+## Den står vid den valda platsen, går dit man väljer, och FÖRST NÄR DEN ÄR FRAMME öppnas platsen.
+var _gångare: Gångare = null
+## Platsen man väntar på: gångaren är på väg dit, och `_process` går in när den kommer fram. -1 = nej.
+var _väntar := -1
+## Figurens bild, läst en gång (samma markörfigur som huvudmenyn använder).
+var _figur: Texture2D = null
 ## Bildens vänsterkant i vyns koordinater (logiska px). Panoreringen är en förflyttning och inte en
 ## vinkel: den kan stanna mitt i, och i ändarna tar den slut.
 var _pan := 0.0
@@ -130,6 +143,8 @@ func _ready() -> void:
 	textlager = UiText.fäst(self)
 	# Pekaren lämnar vyn: hovringen ska inte ligga kvar på ett hus man inte längre pekar på.
 	mouse_exited.connect(_släpp_hovring)
+	# Gångaren börjar vid den valda platsen och står still tills man väljer en annan.
+	_ställ_gångaren()
 
 func _exit_tree() -> void:
 	# Lagret ligger i FÖNSTRET (annars vore orden uppskalade igen): det måste bort med vyn.
@@ -140,6 +155,51 @@ func _släpp_hovring() -> void:
 	if _hover != -1:
 		_hover = -1
 		queue_redraw()
+
+## Gångaren. Provet mäter vägen, tiden och att platsen öppnas först när figuren är framme.
+func gångaren() -> Gångare:
+	# Skapas på begäran: ett prov gör en `VillageView.new()` utan träd, och då körs aldrig `_ready`.
+	# Att kräva en färdig gångare hade gjort `flytta` till en krasch i varje sådant prov.
+	if _gångare == null:
+		_gångare = Gångare.new()
+		_gångare.framme.connect(_framme)
+	return _gångare
+
+## VAR FIGUREN GÅR: på gatan, framför huset. `x` är i BILDENS px (inte vyns) — panoreringen flyttar
+## husen, och figuren ska stå kvar på samma ställe på gatan medan bilden glider. `y` är 0 = gatulinjen.
+func gångpunkt(i: int) -> Vector2:
+	return Vector2(_plats_x(i), 0.0)
+
+## Ställ figuren vid den valda platsen, utan att gå. Anropas när vyn visas och när _vald flyttas utan
+## en promenad (t.ex. att vyn kommer tillbaka efter en körning).
+func _ställ_gångaren() -> void:
+	gångaren().starta(gångpunkt(_vald), gångpunkt(_vald))
+
+## GÅ TILL EN PLATS OCH IN I DEN (M122). Alex: *"välj en plats, figuren går dit ... och först när
+## figuren är framme går man in."* GÅNGEN börjar här; `_framme` öppnar platsen när figuren är framme,
+## och står den redan där blir det ingen väntan alls.
+func gå_till(i: int = -1) -> bool:
+	if i < 0:
+		i = _vald
+	if i < 0 or i >= PLATSER.size():
+		return false
+	_vald = i
+	_pan_mål = _mål_pan(_vald)
+	_väntar = i
+	gångaren().starta(gångaren().pos(), gångpunkt(i))
+	if not gångaren().går():
+		_framme()
+	queue_redraw()
+	return true
+
+## Figuren är framme. Platsen öppnas HÄR och inte vid tangenttrycket — det är hela poängen med
+## gångaren, och `_väntar` nollas först så en andra ankomst inte öppnar två gånger.
+func _framme() -> void:
+	queue_redraw()
+	var i := _väntar
+	_väntar = -1
+	if i >= 0:
+		gå_in(i)
 
 ## Byns bild. Saknas filen ritas en mörk platta i stället: en by utan bild ska synas som en tom scen,
 ## inte som en krasch — och husen går fortfarande att välja.
@@ -156,6 +216,7 @@ func visa(meta: Meta, antal_banor: int) -> void:
 	_pan = _mål_pan(_vald)
 	_pan_mål = _pan
 	_hover = -1
+	_ställ_gångaren()
 	var tree_buyable := 0
 	for gren in meta.branches():
 		for rad in meta.tree_lines(str(gren)):
@@ -301,6 +362,10 @@ func flytta(dir: Vector2i) -> bool:
 		return false
 	_vald = nästa
 	_pan_mål = _mål_pan(_vald)
+	# Figuren GÅR dit markeringen flyttas: man ska se den vandra mellan punkterna. Att bara FLYTTA
+	# markeringen öppnar ingenting — det gör `gå_till` (Enter/klick). Är figuren redan på väg får den
+	# ett nytt mål från där den står, annars hade den vridit runt och gått tillbaka först.
+	gångaren().starta(gångaren().pos(), gångpunkt(_vald))
 	queue_redraw()
 	return true
 
@@ -319,8 +384,10 @@ func gå_in(i: int = -1) -> String:
 	if i >= PLATSER.size():
 		return ""
 	_vald = i
+	_pan_mål = _mål_pan(_vald)
 	var skepp := str(PLATSER[_vald]["skepp"])
 	vald.emit(skepp)
+	queue_redraw()
 	return skepp
 
 ## Platsens kompakta PUNKT-ruta. Provet mäter den (två platsers punkter får inte krocka), och den är
@@ -354,6 +421,11 @@ func _process(delta: float) -> void:
 	if ram != _ram:
 		_ram = ram
 		queue_redraw()
+	# GÅNGAREN: ett steg per bildruta medan den går. Kommer den fram sänder den `framme`, och då
+	# öppnar `_framme` platsen — det är därför den ritas om varje bildruta och inte bara vid rambytet.
+	if gångaren().går():
+		gångaren().steg(delta)
+		queue_redraw()
 	# Panoreringen glider mot målet. Glider den klart ritas vyn om en sista gång och sedan inte mer:
 	# en stillastående bild ska kosta ingenting.
 	if absf(_pan_mål - _pan) > 0.05:
@@ -379,10 +451,11 @@ func _gui_input(event: InputEvent) -> void:
 	var m := event as InputEventMouseButton
 	if not m.pressed or m.button_index != MOUSE_BUTTON_LEFT:
 		return
-	# Klicket går på SAMMA ruta som hovringen: huset man ser är knappen.
+	# Klicket går på SAMMA ruta som hovringen: huset man ser är knappen. Och det GÅR dit — man kommer
+	# in först när figuren är framme (`gå_till`), inte i samma ögonblick man klickar.
 	var träff := plats_vid(m.position)
 	if träff >= 0:
-		gå_in(träff)
+		gå_till(träff)
 
 # --- ritningen ---------------------------------------------------------------
 func _draw() -> void:
@@ -401,6 +474,22 @@ func _draw() -> void:
 	# cirkel ritas i den här vyn — kloten är borta (M122).
 	for i in PLATSER.size():
 		_hus(i)
+	_figur_rita()
+
+## Gångaren ritas PÅ gatan, framför husen. Figuren ligger i bildens px (se `gångpunkt`), så
+## panoreringen dras av här — annars stod figuren still medan byn gled.
+func _figur_rita() -> void:
+	if _figur == null and ResourceLoader.exists(FIGUR):
+		_figur = load(FIGUR)
+	if _figur == null:
+		return
+	var p := gångaren().pos()
+	var m: Vector2 = _figur.get_size() * FIGUR_SKALA
+	var x := p.x - _pan + gångaren().vick_sida()
+	var y := marklinje() - gångaren().vick_gupp()
+	# Skuggan under figuren: utan den svävar den över gatan (samma regel som husens platta).
+	draw_colored_polygon(_ellips(Vector2(x, y), m.x * 0.36, 2.0), _a(Palett.c(0), 0.32))
+	draw_texture_rect(_figur, Rect2(Vector2(x - m.x * 0.5, y - m.y), m), false)
 
 ## Bilden: EN ruta, flyttad i sidled och skjuten i höjdled så att gatulinjen hamnar på MARKLINJE.
 ## Ingen remsa, ingen avbildning, ingen faktor — det finns ingenting kvar som kan dra i pixlarna, och

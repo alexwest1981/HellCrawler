@@ -59,6 +59,15 @@ func _cirkel_antal(sökväg: String) -> int:
 	return text.count("draw_circle(")
 
 
+## Kör gångaren fram till målet i fasta steg, och säg hur många steg (och hur lång tid) det tog.
+func _gå_klart(g: Gångare, dt: float = 0.05) -> Dictionary:
+	var antal := 0
+	while g.går() and antal < 100000:
+		g.steg(dt)
+		antal += 1
+	return {"steg": antal, "tid": float(antal) * dt}
+
+
 func _initialize() -> void:
 	var stages := Stages.load_all()
 	var order: Array = stages.keys()
@@ -98,10 +107,12 @@ func _initialize() -> void:
 			continue
 		mål.clear()
 		_klick(by, r.get_center())
+		# Klicket startar GÅNGEN; platsen öppnas när figuren är framme (det är punkten 4 nedan).
+		_gå_klart(by.gångaren())
 		if mål != [str(VillageView.PLATSER[i]["skepp"])]:
 			bom.append("%s -> %s" % [VillageView.PLATSER[i]["id"], str(mål)])
 	check(för_små.is_empty(), "varje hus har en klickruta i vyn", ", ".join(för_små))
-	check(bom.is_empty(), "klick på varje hus öppnar just den platsen", ", ".join(bom))
+	check(bom.is_empty(), "klick på varje hus öppnar just den platsen (när figuren gått dit)", ", ".join(bom))
 	# HUSET ÄR KNAPPEN, inte en prick bredvid: ett klick högt upp på huset (långt ifrån platsens
 	# punkt på gatan) ska träffa samma plats. Det var det som var fel förut — man siktade på en boll.
 	by.flytta(Vector2i(-1, 0))
@@ -115,6 +126,7 @@ func _initialize() -> void:
 	var avstånd := högt.distance_to(punkt)
 	mål.clear()
 	_klick(by, högt)
+	_gå_klart(by.gångaren())
 	check(mål == ["trad"] and avstånd > 40.0,
 		"klicket tar på husets kropp, inte bara vid markörens punkt",
 		"klicket %.0f px ovanför platsens punkt" % avstånd)
@@ -185,6 +197,83 @@ func _initialize() -> void:
 		korg.free()
 	else:
 		prov.free()
+
+	# ---------------------------------------------------------------- 3. GÅNGAREN
+	print("")
+	print("— 3. gångaren: EN figur, två skärmar —")
+	var by2 := VillageView.new()
+	by2.size = VY
+	by2.visa(meta, order.size())
+	var öppnade := []
+	by2.vald.connect(func(skepp: String): öppnade.append(skepp))
+	var g: Gångare = by2.gångaren()
+	check(g != null, "byn har en gångare", "Gångare (ui/gangare.gd)")
+	var från: Vector2 = by2.gångpunkt(0)
+	var till: Vector2 = by2.gångpunkt(3)
+	check(by2.gå_till(3), "man kan skicka figuren till en plats (porten, plats 3)")
+	check(g.går(), "och då GÅR den")
+	var väntad_sträcka: float = från.distance_to(till)
+	check(absf(g.sträcka() - väntad_sträcka) < 0.01,
+		"sträckan är avståndet mellan de två punkterna",
+		"%.1f px mot %.1f" % [g.sträcka(), väntad_sträcka])
+	check(absf(g.tid() - väntad_sträcka / Gångare.FART) < 0.01,
+		"gångtiden är sträckan delat med farten",
+		"%.2f s = %.1f px / %.0f px/s" % [g.tid(), väntad_sträcka, Gångare.FART])
+	# INGENTING ÖPPNAS MEDAN DEN GÅR. Det är hela poängen med gångaren.
+	g.steg(0.1)
+	check(öppnade.is_empty() and g.går(), "ingenting öppnas medan figuren går",
+		"efter 0,1 s: %s" % str(öppnade))
+	var res := _gå_klart(g)
+	check(öppnade == ["karta"], "och när den är framme öppnas platsen man gick till", str(öppnade))
+	check(g.pos().distance_to(till) < 0.5, "figuren står PÅ målpunkten",
+		"%.2f px från målet" % g.pos().distance_to(till))
+	check(absf(float(res["tid"]) - väntad_sträcka / Gångare.FART) < 0.11,
+		"och gångtiden stämmer med sträckan",
+		"%.2f s mätt mot %.2f s väntat" % [float(res["tid"]), väntad_sträcka / Gångare.FART])
+	# Att gå till SAMMA plats man står på väntar inte: ingen väg, ingen fördröjning.
+	öppnade.clear()
+	by2.gå_till(3)
+	check(öppnade == ["karta"], "står figuren redan där går man in direkt", str(öppnade))
+	by2.free()
+
+	# SAMMA KOMPONENT PÅ KARTAN. Klassens identitet är beviset: två kopior hade varit två saker som
+	# glider isär, och Alex bad om EN karaktär som går på båda ställena.
+	var kvy := WorldMapView.new()
+	kvy.karta = Karta.ladda()
+	kvy.visa(stages, order, meta)
+	check(kvy.gångaren() != null and kvy.gångaren() is Gångare,
+		"kartan har samma Gångare-klass som byn — inte en egen kopia",
+		"%s" % ("Gångare" if kvy.gångaren() is Gångare else "annat"))
+	kvy.gå_till(0)
+	kvy.steg_kamera(0.0, true)
+	var mål_nod := -1
+	for i in kvy.antal():
+		if i != 0 and kvy.läge(i) != "låst":
+			mål_nod = i
+			break
+	if mål_nod < 0:
+		mål_nod = mini(1, kvy.antal() - 1)
+	var kg: Gångare = kvy.gångaren()
+	var kfrån: Vector2 = kvy.gångpunkt(0)
+	var ktill: Vector2 = kvy.gångpunkt(mål_nod)
+	var svar := kvy.gå_till_och_in(mål_nod)
+	check(str(svar["reason"]) == "går", "Enter på en annan plats skickar figuren dit först",
+		str(svar["reason"]))
+	check(kg.går() and not kvy.panel_öppen() and kvy.besked() == "",
+		"och ingenting har öppnats medan den går",
+		"går=%s panel=%s besked='%s'" % [str(kg.går()), str(kvy.panel_öppen()), kvy.besked()])
+	check(absf(kg.sträcka() - kfrån.distance_to(ktill)) < 0.01,
+		"kartans väg är avståndet mellan de två noderna",
+		"%.1f px" % kg.sträcka())
+	var kres := _gå_klart(kg)
+	check(kg.pos().distance_to(ktill) < 0.5, "figuren stannar på NODEN",
+		"%.2f px från noden" % kg.pos().distance_to(ktill))
+	# Framme: antingen öppnas nivåpanelen (öppen plats) eller så kommer beskedet (låst) — men FÖRST
+	# nu, aldrig under gången.
+	check(kvy.panel_öppen() or not kvy.besked().is_empty(),
+		"och först framme öppnas platsen (eller dess besked)",
+		"panel=%s besked='%s', %.2f s" % [str(kvy.panel_öppen()), kvy.besked(), float(kres["tid"])])
+	kvy.free()
 
 	_clean()
 	print("")
