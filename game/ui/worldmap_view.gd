@@ -52,6 +52,13 @@ const LEGEND_STEG := 64.0              ## px mellan teckenförklaringens tre mä
 const LEGEND_BREDD := 192.0            ## teckenförklaringens yta, mätt från remsans högerkant
 const RAD_HÖJD := 9.0
 const HINT_MARG := 6.0                 ## ledtrådsraden ligger I remsan (sista raden)
+## VÄGEN MELLAN PLATSERNA (M120). Färgen är minikartans jordväg (palett 18) — samma väg ska se ut som
+## samma väg i båda kartorna. Fallan under den är mörk: världskartans BILD är ljus på sina ställen
+## (snö, lava), och en ensam jordväg försvann i snön. Fållan är bredare än vägen, så det som syns
+## runt kanten är en kant och inte en andra väg.
+const VÄG_FÄRG := 18
+const VÄG_BREDD := 3.0
+const VÄG_FÅLLA := 5.0
 
 var _noder: Array = []                 ## [{plats, nivåer, öppen, klar, delvis, finns, ...}]
 var _vald := 0
@@ -60,6 +67,19 @@ var _sparad := ""                      ## editorns kvitto ("kartan sparad")
 var _ordning: Array = []               ## banordningen (main.gd äger den)
 var _stages: Dictionary = {}
 var _meta: Meta = null
+## VÄGEN MELLAN PLATSERNA (M120): paren ur `Karta.länkar` (se den för varifrån kopplingarna kommer).
+## Byggs om i `visa()` tillsammans med noderna — banordningen ändras inte under en körning, men
+## kartan läses om varje gång skärmen visas, och en väg byggd ur förra lägets noder vore en väg som
+## inte finns.
+var _länkar: Array = []
+## Paren som RITADES senast, som SEGMENT ([ändpunkt A, ändpunkt B]) — samma grepp som minikartans
+## `_ritade_linjer`. Provet mäter den här listan i stället för att räkna om kartans mått själv: det som
+## ska bevisas är vad kartan ritar, och en egen formel i provet kunde glida ifrån `_draw`. Att strecken
+## bär sina ÄNDPUNKTER (och inte bara paret) är det som gör att ett streck på fel ställe syns.
+var _ritade_vägar: Array = []
+## Granskningsflagga (`vag=0`): vägarna av. Utan den går det inte att MÄTA hur många pixlar linjerna
+## lägger till i SAMMA scen — samma skäl som `crt=0` för CRT-lagret.
+var vägar_av := false
 var _t := 0.0
 var _ram := 0
 var _tex: Texture2D = null
@@ -109,6 +129,7 @@ func visa(stages: Dictionary, order: Array, meta: Meta) -> void:
 	_stages = stages
 	_meta = meta
 	_noder.clear()
+	_länkar = [] if karta == null else karta.länkar(_ordning)
 	if karta == null:
 		queue_redraw()
 		return
@@ -706,6 +727,9 @@ func _draw() -> void:
 	var vp := _vy()
 	draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
 	_kartbild(vp)
+	# Vägarna mellan platserna UNDER noderna: medaljongerna ska ligga PÅ vägen, som märkena gör på
+	# minikartan. En väg över en medaljong skar genom den.
+	_vägar()
 	if editor:
 		_editor_rutor()
 	for i in _noder.size():
@@ -781,6 +805,26 @@ func _glöd(i: int) -> void:
 	for k in 3:
 		draw_circle(p, NOD + 4.0 + float(k) * 2.5 + puls, _a(Palett.c(26), 0.06))
 	draw_circle(p, NOD + 5.0 + puls, _a(Palett.c(26), 0.30))
+
+## VÄGEN MELLAN PLATSERNA (M120). Ett streck per koppling ur `Karta.länkar` — aldrig ett par som inte
+## står där, och aldrig ett par som står där utan streck. Ritade i ALLA led (ingen bortklippning efter
+## `_syns`): kartan är större än vyn, och en väg vars mitt korsar rutan ska synas även när båda
+## ändarna ligger utanför den. Antalet ritade streck är därför exakt antalet kopplingar, vilket är det
+## provet räknar.
+##
+## Ändpunkterna kommer ur `plats()` — samma transform som markeringen och medaljongerna — så vägen
+## hänger i bilden även när kameran glider.
+func _vägar() -> void:
+	_ritade_vägar.clear()
+	if vägar_av or _länkar.is_empty() or _noder.is_empty():
+		return
+	for l in _länkar:
+		var par: Vector2i = l
+		var a := plats(par.x)
+		var b := plats(par.y)
+		draw_line(a, b, _a(Palett.c(1), 0.55), VÄG_FÅLLA)
+		draw_line(a, b, Palett.c(VÄG_FÄRG), VÄG_BREDD)
+		_ritade_vägar.append([a, b])
 
 ## En plats är en medaljong: skugga, kant, skiva och ett märke i mitten som säger läget. Fyra likadana
 ## rutor går inte att skilja på, och ett läge man ser på formen behöver ingen text.

@@ -731,6 +731,7 @@ var _vol := true                   ## volymetrisk dimma: ljuskäglorna i luften 
 var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, se LJUSPROVET nedan
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
+var _vägar_av := false             ## `vag=0`: vägarna mellan platserna på kartan av — samma skäl
 var _prov_fönster := Vector2i.ZERO ## `fönster=941x1018`: mät HUD:en i en annan fönsterstorlek
 var _sten_mjuk := false  ## `sten=mjuk`: barens sten ritas med mjuk filtrering (provbild)
                                    ## hur mycket kontrast lagret tar (samma skäl som ssr=0/vol=0)
@@ -860,6 +861,11 @@ func _ready() -> void:
 			var crt_v := clampf(float(f.substr(4)), 0.0, 1.0)
 			_crt_av = crt_v <= 0.0
 			_crt_styrka = crt_v
+		elif f == "vag=0":
+			# Granskningsflagga: VÄGARNA mellan platserna på världskartan av (M120). Frågan är hur
+			# många pixlar linjerna lägger till i SAMMA scen, och det går bara att mäta med dem
+			# avstängda — samma skäl som `crt=0` för CRT-lagret.
+			_vägar_av = true
 		elif f.begins_with("minljus="):
 			# Granskningsflagga: `minljus=0` ger den GAMLA modellen (fienden blir svart när ljuset står
 			# bakom den), så skillnaden kan mätas i SAMMA scen — samma skäl som crt=0 och ljus=.
@@ -8889,6 +8895,7 @@ func _build_hud() -> void:
 	hud.add_child(trad_view)
 	karta_view = WorldMapView.new()
 	karta_view.karta = karta
+	karta_view.vägar_av = _vägar_av
 	karta_view.size = Vector2(VY)
 	karta_view.position = Vector2.ZERO
 	karta_view.vald.connect(_på_bana)

@@ -184,6 +184,47 @@ func sektion_öppen(n: int, meta: Meta) -> bool:
 		return false
 	return sektion_klar(n - 1, meta) > 0
 
+## --- VÄGEN MELLAN PLATSERNA (M120) -------------------------------------------------------------
+##
+## Alex: *"Jag menade ju även huvudkartan, när man väljer var i världen man skall ned i en dungeon"* —
+## en linje mellan punkt A och B även där, så man ser hur vägen går mellan platserna.
+##
+## Världskartan hade INGA kopplingar i sin data (bara noder och deras plats på en bild), så det fanns
+## ingenting sant att dra en linje efter. Kopplingarna byggs därför ur den upplåsning som redan FINNS:
+## `Meta.note_run` låser upp NÄSTA bana i banordningen när man klarat en bana (se core/meta.gd), och
+## den ordningen är `order` (svårighetsordning = upplåsningsordning, byggd i main.gd). Ett par (a, b)
+## är alltså en RIKTIG koppling när b:s FÖRSTA bana är den bana som a:s SISTA bana låser upp. Inget
+## par hittas på i ritkoden, och en plats vars första bana inte föregås av en annan plats bana får
+## ingen linje — den är en början, inte en fortsättning.
+##
+## Följden är att antalet linjer ÄR antalet verkliga kopplingar, och `tests/test_varldskarta_lankar`
+## mäter det mot `Meta.note_run` själv (spelets egen upplåsningsfunktion) i stället för mot en kopia
+## av regeln här.
+##
+## Svarar med paren som Vector2i(a, b), i kartans ordning.
+func länkar(order: Array) -> Array:
+	# Vilken plats som äger en bana. Byggs ur noderna, inte ur `order`: ägaren är kartans svar.
+	var ägare := {}
+	for i in noder.size():
+		for id in nivåer(i):
+			ägare[str(id)] = i
+	var sedda := {}
+	var ut := []
+	for b in noder.size():
+		var lista: Array = nivåer(b)
+		if lista.is_empty():
+			continue
+		var k := order.find(str(lista[0]))
+		# k == 0: b:s första bana är den första av alla — ingenting före den att komma ifrån.
+		if k <= 0:
+			continue
+		var a: int = int(ägare.get(str(order[k - 1]), -1))
+		if a < 0 or a == b or sedda.has(Vector2i(a, b)):
+			continue
+		sedda[Vector2i(a, b)] = true
+		ut.append(Vector2i(a, b))
+	return ut
+
 ## Nodens plats i procent av bilden.
 func plats(i: int) -> Vector2:
 	if i < 0 or i >= noder.size():
