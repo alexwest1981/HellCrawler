@@ -67,7 +67,7 @@ bort startikonen.
 ## Prov och verktyg
 
 ```bash
-tools/test.sh                 # hela sviten headless (1590 kontroller)
+tools/test.sh                 # hela sviten headless (2 836 kontroller, mätt 2026-10-13)
 python3 tools/gen_props.py --check       # grinden på rekvisiderna
 python3 tools/gen_enemy_art.py --check   # grinden på fienderna
 tools/play.sh -- shots        # fotografera en genomspelning
