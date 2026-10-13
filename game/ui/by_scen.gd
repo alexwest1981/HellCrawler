@@ -121,11 +121,14 @@ func bygg(förälder: Node, vy: Vector2, bak: Texture2D, hus: Array, gata_px: fl
 	_bak.scale = Vector2(_skala, _skala)
 	_bak.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	bak_lager.add_child(_bak)
-	# HUSLAGRET. Högre faktor = rör sig mer = står närmare kameran. SAMMA faktor i höjdled (1,0) som
-	# bakgrunden: står husen olika högt lossnar fötterna från gatan när kameran rör sig, och gatan är
-	# marken de står på.
+	# HUSLAGRET. Husen står närmare kameran än tavlan bakom och rör sig därför MER (faktor 4/3 mot
+	# bakgrundens 1,0) — men den extra rörelsen läggs på i `_hus_position` i stället för här: Parallax2D
+	# lägger sin förskjutning på en bråkdel av en vyn-pixel, och då hamnar husens konstpixel mellan två
+	# vyn-pixlar och detaljerna byter plats i små steg när man panorerar (mätt i 941x1018: upprätning av
+	# huslagret gav rest-SAD 7,03 i stället för 0, medan bakgrunden gav 0,000). `_lås` lägger extra-
+	# rörelsen på konstens pixelgrid, så huset hamnar på hela skärmpixlar i VARJE kameraläge.
 	var hus_lager := Parallax2D.new()
-	hus_lager.scroll_scale = Vector2(HUS_FAKTOR, 1.0)
+	hus_lager.scroll_scale = Vector2(BAK_FAKTOR, 1.0)
 	vp.add_child(hus_lager)
 	# MARKERINGEN ligger UNDER husen och använder husets EGEN textur, uppskalad en aning: bara
 	# silhuettens ytterkant syns, som en glöd runt byggnaden. Ingen gul ruta, och ingen egen form som
@@ -186,11 +189,22 @@ func topp_px() -> float:
 func _lager_position(r: Rect2) -> Vector2:
 	return Vector2(_lås(r.position.x * _skala - _pan), _lås(topp_px() + r.position.y * _skala))
 
+## Husens EXTRA kamera-rörelse (faktor 4/3 mot bakgrundens 1,0), räknad ur `_kx` och låst till HELA
+## vyn-pixlar. Inte till konstens grid: lagret ritas i vyns upplösning, och ligger det på en halv
+## vyn-pixel väljer två grannpixlar i vyn OLIKA konstpixlar — då blir panoreringen inte en ren
+## förskjutning av bilden (mätt: rest-SAD 8,48 mot 0,00 när förskjutningen hamnade på 5,5 vyn-px).
+## I höjdled 0 — samma faktor uppåt som bakgrunden, annars lossnar fötterna från gatan.
+func hus_forskjutning() -> Vector2:
+	return Vector2(roundf(_kx * (HUS_FAKTOR / BAK_FAKTOR - 1.0)), 0.0)
+
+func _hus_position(r: Rect2) -> Vector2:
+	return _lager_position(r) + hus_forskjutning()
+
 func _sätt_allt() -> void:
 	if _bak != null:
 		_bak.position = _lager_position(Rect2(Vector2.ZERO, Vector2.ZERO))
 	for s in _hus:
-		(s as Sprite2D).position = _lager_position((s as Sprite2D).get_meta("ruta"))
+		(s as Sprite2D).position = _hus_position((s as Sprite2D).get_meta("ruta"))
 	for g in _glodar:
 		if (g as Sprite2D).visible:
 			_sätt_glod(g)
@@ -199,7 +213,7 @@ func _sätt_allt() -> void:
 
 func _figur_position() -> Vector2:
 	return Vector2(_lås(float(_figur.get_meta("ax")) * _skala - _pan),
-		_lås(topp_px() + float(_figur.get_meta("ay")) * _skala))
+		_lås(topp_px() + float(_figur.get_meta("ay")) * _skala)) + hus_forskjutning()
 
 func sätt_pan(pan: float) -> void:
 	_pan = pan
@@ -212,6 +226,9 @@ func sätt_kamera(kx: float, ky: float) -> void:
 	_ky = clampf(ky, -SVEP, SVEP)
 	if kam != null:
 		kam.position = Vector2(-_kx, _ky)
+	# Husens extra rörelse räknas ur `_kx` och läggs på HÄR, inte av Parallax2D (se hus_lager): den
+	# blir alltså rätt i samma bildruta som kameran flyttas, utan att vänta på lagrets processnotis.
+	_sätt_allt()
 
 func kameraposition() -> Vector2:
 	return Vector2(_kx, _ky)
@@ -245,7 +262,7 @@ func _sätt_glod(g: Sprite2D) -> void:
 	g.scale = Vector2(_skala * (r.size.x + 2.0 * GLOD_PX) / r.size.x,
 		_skala * (r.size.y + 2.0 * GLOD_PX) / r.size.y)
 	g.position = Vector2(_lås((r.position.x + r.size.x * 0.5) * _skala - _pan),
-		_lås(topp_px() + (r.position.y + r.size.y * 0.5) * _skala))
+		_lås(topp_px() + (r.position.y + r.size.y * 0.5) * _skala)) + hus_forskjutning()
 	var a := float(g.get_meta("alfa"))
 	g.modulate = Color(1.0, 0.86, 0.45, a)
 

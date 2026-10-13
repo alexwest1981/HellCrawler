@@ -670,8 +670,10 @@ func _hus(i: int) -> void:
 	if r.size.x < 2.0 or r.size.y < 2.0:
 		return
 	# Plattan på gatan: fyra px guld med en mörk kant runt om, lika bred som huset — den gamla plattan
-	# var 20 px bred och hörde till det lilla märket.
-	var platta := Rect2(r.position.x, marklinje() + 2.0, r.size.x, 4.0)
+	# var 20 px bred och hörde till det lilla märket. Plattan hör till HUSET och följer därför husets
+	# extra kamera-rörelse, annars glider huset av sin egen platta när man panorerar.
+	var hus_x: float = _scen3d.hus_forskjutning().x if _scen3d != null else 0.0
+	var platta := Rect2(r.position.x + hus_x, marklinje() + 2.0, r.size.x, 4.0)
 	draw_rect(platta.grow(1.0), Palett.c(1))
 	draw_rect(platta, Palett.c(14))
 	draw_rect(Rect2(platta.position + Vector2(2.0, 1.0), Vector2(maxf(0.0, platta.size.x - 4.0), 1.0)), Palett.c(13))
