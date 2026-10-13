@@ -19,8 +19,8 @@
   },
   {
    "plats": "Askskogen",
-   "x": 50.0,
-   "y": 80.0,
+   "x": 25.2,
+   "y": 86.8,
    "sektion": 1,
    "nivåer": [
     "stage_06",
@@ -32,8 +32,8 @@
   },
   {
    "plats": "Glaciärsjön",
-   "x": 50.0,
-   "y": 72.0,
+   "x": 17.0,
+   "y": 78.3,
    "sektion": 1,
    "nivåer": [
     "stage_11",
@@ -45,8 +45,8 @@
   },
   {
    "plats": "Kalkbranten",
-   "x": 38.0,
-   "y": 53.0,
+   "x": 10.6,
+   "y": 55.4,
    "sektion": 1,
    "nivåer": [
     "stage_16",
@@ -58,8 +58,8 @@
   },
   {
    "plats": "Is-sjön",
-   "x": 26.0,
-   "y": 34.0,
+   "x": 24.8,
+   "y": 36.8,
    "sektion": 2,
    "nivåer": [
     "stage_21",
