@@ -92,9 +92,6 @@ const DJUP := 6.0                    ## platsens skugga i sidled (provet räknar
 ## den första raden som avviker från himlens färg i varje hus' spann), och ramen och ljusväggen ska
 ## täcka huset — inte himlen ovanför det. 9 % ligger mitt i det spannet.
 const HUS_TOPP := 9.0
-## Hur högt upp på huset ljusväggen når, i andelar av husets höjd: ljuset kommer NEDIFRÅN, som från en
-## lykta på gatan, och tonar ut uppåt.
-const LJUS_DJUP := 0.45
 ## Gatan och listen ligger på ANDELAR av vyns höjd, inte på fasta px (M113). Alex, i byn: *"Detta är
 ## inte en by i helskärm..."* — scenen tog 62 % av höjden och listen 27 %. Med 0,78 och 0,86 fyller
 ## bilden hela höjden (dess gatulinje ligger på 78 % av bildens höjd, se BILDENS_GATA) och listen
@@ -130,9 +127,12 @@ var _status: Array = []              ## [{text, ljus}] per plats — det som st�
 var _t := 0.0
 var _ram := 0                        ## bildrutan i guppet; ritas bara om när den byter
 var _tex: Texture2D = null           ## byns bild, läst en gång
-## BYN I 3D (M122): bakgrund och hus på olika djup med en kamera som pannar lite — det är paralaxen.
+## BYN I 2D (M123): bakgrund och hus på var sitt lager med egna parallaxfaktorer, och en kamera som
+## rör sig en liten bit. Husen är EGNA texturer, klippta ur `byn.png` (se `tools/gen_by_hus.py`), och
+## står på gatulinjen — gatan är marken de står på.
 var _scen3d: ByScen = null
-var _gata_px := 0.0                   ## gatans rad i KONSTENS px (3D-scenen mäter därifrån)
+var _gata_px := 0.0                   ## gatans rad i KONSTENS px (scenen mäter därifrån)
+var _bak_tex: Texture2D = null        ## bilden med husen borttagna, läst en gång
 ## Kamerans sidled/höjdled i vyns px. Följer pekaren (man ser sig om i byn); `kamerapan=` låser den.
 var _kamerapan := Vector2.ZERO
 var _kamera_låst := false
@@ -160,6 +160,7 @@ func _exit_tree() -> void:
 func _släpp_hovring() -> void:
 	if _hover != -1:
 		_hover = -1
+		_om_markering()
 		queue_redraw()
 
 ## Gångaren. Provet mäter vägen, tiden och att platsen öppnas först när figuren är framme.
@@ -171,10 +172,18 @@ func gångaren() -> Gångare:
 		_gångare.framme.connect(_framme)
 	return _gångare
 
-## VAR FIGUREN GÅR: på gatan, framför huset. `x` är i BILDENS px (inte vyns) — panoreringen flyttar
-## husen, och figuren ska stå kvar på samma ställe på gatan medan bilden glider. `y` är 0 = gatulinjen.
+## VAR FIGUREN GÅR: på gatan, framför huset. `x` är i KONSTENS px (samma ruta som husen och gatan
+## mäts i — en konstpixel är en skärmpixel) — panoreringen flyttar husen, och figuren ska stå kvar på
+## samma ställe på gatan medan bilden glider. `y` är 0 = gatulinjen.
 func gångpunkt(i: int) -> Vector2:
-	return Vector2(_plats_x(i), 0.0)
+	return Vector2(_plats_konst_x(i), 0.0)
+
+## Platsens x i KONSTENS px. Farten i `Gångare` (90 px/s) är då 90 SKÄRM-pixlar per sekund i varje
+## fönsterstorlek, eftersom konsten ritas 1:1 — samma tempo som förr, men nu på rätt plats.
+func _plats_konst_x(i: int) -> float:
+	var bild := byscen()
+	var art := float(bild.get_width()) if bild != null else 3232.0
+	return art * float(PLATSER[i]["x"]) / 100.0
 
 ## Ställ figuren vid den valda platsen, utan att gå. Anropas när vyn visas och när _vald flyttas utan
 ## en promenad (t.ex. att vyn kommer tillbaka efter en körning).
@@ -191,6 +200,7 @@ func gå_till(i: int = -1) -> bool:
 		return false
 	_vald = i
 	_pan_mål = _mål_pan(_vald)
+	_om_markering()
 	_väntar = i
 	gångaren().starta(gångaren().pos(), gångpunkt(i))
 	if not gångaren().går():
@@ -214,9 +224,45 @@ func byscen() -> Texture2D:
 		_tex = load(BILD)
 	return _tex
 
-## 3D-SCENEN (M122). Null när konsten saknas — då ritar vyn sin platta som förr.
+## 2D-SCENEN (M123). Null när konsten saknas — då ritar vyn sin platta som förr.
 func scen3d() -> ByScen:
 	return _scen3d
+
+## Husets ruta i KONSTENS px: samma tal som klickytan räknar ur (`x0`/`x1`, `HUS_TOPP`, `BILDENS_GATA`)
+## och SAMMA avrundning som `tools/gen_by_hus.py` — en halv pixel här hade lagt huset snett över sitt
+## eget hål i bakgrunden.
+func _konst_ruta(i: int, art: Vector2) -> Rect2:
+	var p: Dictionary = PLATSER[i]
+	var x0 := int(roundf(art.x * float(p["x0"]) / 100.0))
+	var x1 := int(roundf(art.x * float(p["x1"]) / 100.0))
+	var y0 := int(roundf(art.y * HUS_TOPP / 100.0))
+	var y1 := int(roundf(art.y * BILDENS_GATA / 100.0))
+	return Rect2(Vector2(x0, y0), Vector2(x1 - x0, y1 - y0))
+
+## Bakgrunden: bilden med husen borttagna (hålen ifyllda med gata/himmel). Saknas den ritas HELA
+## bilden i stället — husen ligger då kvar i bakgrunden, men husets eget objekt ovanpå visar samma
+## pixlar, så vyn ser likadan ut i vila. Ett hål är värre än inget hål.
+func bak_textur() -> Texture2D:
+	var p := "res://assets/ui/byn/bak.png"
+	if _bak_tex == null and ResourceLoader.exists(p):
+		_bak_tex = load(p)
+	if _bak_tex != null:
+		return _bak_tex
+	return byscen()
+
+## Byggnadens EGNA textur, klippt ur `byn.png`. Saknas filen (generatorn har inte körts) ritas husets
+## ruta ur källbilden i stället: samma pixlar, bara samma bild en gång till.
+func _hus_textur(i: int) -> Texture2D:
+	var p := "res://assets/ui/byn/hus_%s.png" % str(PLATSER[i]["id"])
+	if ResourceLoader.exists(p):
+		return load(p)
+	var konst := byscen()
+	if konst == null:
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = konst
+	atlas.region = _konst_ruta(i, Vector2(konst.get_width(), konst.get_height()))
+	return atlas
 
 ## Bygg scenen för vyns aktuella storlek. Husens rutor i KONSTENS px är desamma som klickytan
 ## (`x0`/`x1`) och höjden går från `HUS_TOPP` ned till gatulinjen — huset man ser är det som reses.
@@ -229,20 +275,27 @@ func _bygg_scen() -> void:
 	var vy := _vy()
 	if _scen3d != null and _scen3d.klar() and _scen3d.vp.size == Vector2i(int(vy.x), int(vy.y)):
 		return
+	var bak := bak_textur()
+	if bak == null:
+		_scen3d = null
+		return
 	var art := Vector2(konst.get_width(), konst.get_height())
 	_gata_px = art.y * BILDENS_GATA / 100.0
 	var hus: Array = []
-	for p in PLATSER:
-		hus.append(Rect2(art.x * float(p["x0"]) / 100.0, art.y * HUS_TOPP / 100.0,
-			art.x * (float(p["x1"]) - float(p["x0"])) / 100.0,
-			art.y * (BILDENS_GATA - HUS_TOPP) / 100.0))
+	for i in PLATSER.size():
+		hus.append({"ruta": _konst_ruta(i, art), "textur": _hus_textur(i)})
 	if _scen3d == null:
 		_scen3d = ByScen.new()
-	_scen3d.bygg(self, vy, konst, hus, _gata_px, bild_storlek().x / art.x)
-	for i in PLATSER.size():
-		_scen3d.sätt_hus_centrum(i, (hus[i] as Rect2).get_center())
+	_scen3d.bygg(self, vy, bak, hus, _gata_px, bild_storlek().y / art.y)
 	_scen3d.sätt_pan(_pan)
 	_scen3d.sätt_kamera(_kamerapan.x, _kamerapan.y)
+	_scen3d.sätt_markering(_vald, _hover)
+
+## Markeringen: den valda byggnaden och den man hovrar över får en glöd runt sin egen silhuett.
+## Anropas när valet eller hovringen ändras — markeringen bor i scenen, där husets textur finns.
+func _om_markering() -> void:
+	if _scen3d != null:
+		_scen3d.sätt_markering(_vald, _hover)
 
 ## Kameran i sidled/höjdled. Pekaren styr den (en liten rörelse ger djupkänsla), och `kamerapan=x,y`
 ## låser den så en provbild kan mäta paralaxen i SAMMA scen.
@@ -265,6 +318,7 @@ func visa(meta: Meta, antal_banor: int) -> void:
 	_pan_mål = _pan
 	_hover = -1
 	_bygg_scen()
+	_om_markering()
 	_ställ_gångaren()
 	var tree_buyable := 0
 	for gren in meta.branches():
@@ -415,6 +469,7 @@ func flytta(dir: Vector2i) -> bool:
 		return false
 	_vald = nästa
 	_pan_mål = _mål_pan(_vald)
+	_om_markering()
 	# Figuren GÅR dit markeringen flyttas: man ska se den vandra mellan punkterna. Att bara FLYTTA
 	# markeringen öppnar ingenting — det gör `gå_till` (Enter/klick). Är figuren redan på väg får den
 	# ett nytt mål från där den står, annars hade den vridit runt och gått tillbaka först.
@@ -438,6 +493,7 @@ func gå_in(i: int = -1) -> String:
 		return ""
 	_vald = i
 	_pan_mål = _mål_pan(_vald)
+	_om_markering()
 	var skepp := str(PLATSER[_vald]["skepp"])
 	vald.emit(skepp)
 	queue_redraw()
@@ -507,6 +563,7 @@ func _gui_input(event: InputEvent) -> void:
 		var ny := plats_vid(pos)
 		if ny != _hover:
 			_hover = ny
+			_om_markering()
 			queue_redraw()
 		return
 	if not (event is InputEventMouseButton):
@@ -536,8 +593,8 @@ func _draw() -> void:
 	for k in 8:
 		draw_rect(Rect2(0.0, bar_topp() - 8.0 + float(k), vp.x, 1.0), _a(Palett.c(0), 0.10 * float(k)))
 	_bar(vp)
-	# Husen SIST av scenen: den valda ramen och hovringens ljusvägg ligger ovanpå bilden. Ingen
-	# cirkel ritas i den här vyn — kloten är borta (M122).
+	# Plattan den valda platsen står på, SIST av scenen. Markeringen själv (glöden runt husets
+	# silhuett) ritas i scenen — ingen gul ruta kring huset finns kvar (M123).
 	for i in PLATSER.size():
 		_hus(i)
 
@@ -601,35 +658,25 @@ func markör_ram() -> Rect2:
 	var vp := _vy()
 	return byggnad_rect(_vald).intersection(Rect2(2.0, 2.0, vp.x - 4.0, vp.y - 4.0))
 
-## HUSET MÄRKS (M122), inte en prick bredvid det. Den valda platsen får en guldram runt hela
-## byggnaden och en platta på gatan; huset man hovrar över får en varm ljusvägg nedifrån och en
-## ljusram. Ljuset kommer NEDIFRÅN (lyktan på gatan), därför tonar väggen ut uppåt.
+## HUSET MÄRKS (M123). Glöden runt byggnadens EGEN silhuett ritas i SCENEN (`ByScen.sätt_markering`),
+## där husets textur finns: den gula rutan kring byggnaden och den mörka ljusväggen över den är BORTA
+## — de var två av Alex' klagomål (*"en gul rektangel runt värdshuset"*, *"en stor mörk genomskinlig
+## rektangel mitt över värdshuset"*). Kvar här är plattan på gatan: den valda platsen STÅR på den, och
+## det är den som säger "gatan är marken de står på".
 func _hus(i: int) -> void:
-	var r := markör_ram() if i == _vald else byggnad_rect(i)
+	if i != _vald:
+		return
+	var r := markör_ram()
 	if r.size.x < 2.0 or r.size.y < 2.0:
 		return
-	var vald := i == _vald
-	var hovrad := i == _hover
-	if not vald and not hovrad:
-		return
-	# Ljusväggen: åtta remsor med stigande alfa nedåt. Ingen cirkel och ingen boll — det är husets
-	# egen yta som lyser.
-	var band: float = r.size.y * LJUS_DJUP / 8.0
-	for k in 8:
-		var t := float(k) / 7.0
-		var alfa := (0.10 if vald else 0.13) * (0.35 + 0.65 * t)
-		draw_rect(Rect2(r.position.x, r.end.y - band * float(k + 1), r.size.x, band),
-			_a(Palett.c(13), alfa))
-	# Ramen: två px, i guld för den valda och i en ljusare ton för hovringen.
-	draw_rect(r, Palett.c(14) if vald else Palett.c(13), false, 2.0)
-	if not vald:
-		return
-	# Plattan på gatan: den valda platsen står PÅ den. Fyra px guld med en mörk kant runt om, lika
-	# bred som huset — den gamla plattan var 20 px bred och hörde till det lilla märket.
-	var platta := Rect2(r.position.x, marklinje() + 2.0, r.size.x, 4.0)
+	# Plattan på gatan: fyra px guld med en mörk kant runt om, lika bred som huset — den gamla plattan
+	# var 20 px bred och hörde till det lilla märket. Plattan hör till HUSET och följer därför husets
+	# extra kamera-rörelse, annars glider huset av sin egen platta när man panorerar.
+	var hus_x: float = _scen3d.hus_forskjutning().x if _scen3d != null else 0.0
+	var platta := Rect2(r.position.x + hus_x, marklinje() + 2.0, r.size.x, 4.0)
 	draw_rect(platta.grow(1.0), Palett.c(1))
 	draw_rect(platta, Palett.c(14))
-	draw_rect(Rect2(platta.position + Vector2(2.0, 1.0), Vector2(platta.size.x - 4.0, 1.0)), Palett.c(13))
+	draw_rect(Rect2(platta.position + Vector2(2.0, 1.0), Vector2(maxf(0.0, platta.size.x - 4.0), 1.0)), Palett.c(13))
 	# Guppet: ett litet märke i plattans mitt som andas, så markeringen syns röra sig även när bilden
 	# står still (det gamla guppet satt i pilen ovanför märket).
 	var mitt := platta.get_center().x

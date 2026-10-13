@@ -435,7 +435,7 @@ vilka banor man låst upp osv."*
 Spelet började kasta spelaren rakt in i bana 1, och byn var en textruta ovanför `R = ny körning`.
 Nu är byn navet:
 
-- **`shell` styr skärmen**: `hem` (byn) · `butik` · `karta` · `körning`. Bara körningen ritar spelet i 3D — byn är ett medvetet undantag: en grund 2.5D-scen (paralax och fjärr-blur).
+- **`shell` styr skärmen**: `hem` (byn) · `butik` · `karta` · `körning`. Bara körningen ritar 3D-vyn.
 - **Sparfilen (version 2)**: `unlocked` (lista), `best_floor` (bana → högsta våning), `runs`. En
   version 1-fil behåller guld och ranger och får första banan öppen — att gissa vilka banor spelaren
   klarat vore värre än att låta hen spela om en bana.
@@ -2223,3 +2223,31 @@ huvudet gick genom taket. Mätt mot konsten, inte gissat.
 - Ny grind i `test_assets.gd`: "ingen fiende är högre än taket (inte ens som boss)" — höjden räknas ur
   KONSTEN (översta raden med färg mot golvraden 66) gånger pixel_size, och taket läses ur `main.gd`.
   Utan den hade en framtida hög fiende kunnat smyga in och sticka ut genom taket igen.
+
+**M123 — byn blir utklippta hus i en 2D-vy (2026-10-13)**
+
+Alex underkände 2.5D-vyn i spel: *"Husen skulle lyftas ut och läggas som objekt i en 2.5D-vy, gatan
+framför skulle vara 'marken de stod på'. Det här såg förjävligt ut."* En mörk genomskinlig rektangel
+låg över värdshuset, hela vyn buktade utåt med svarta avskurna hörn och var utsträckt i sidled, och
+suddigheten låg över hela scenen. Konsten var det inget fel på — den låg begravd under lagren.
+
+Nu är byn **2D-lager med paralax**: `tools/gen_by_hus.py` klipper de sex byggnaderna ur
+`assets/ui/byn.png` till egna texturer (rätterna återanvänds ur `by_scen.gd`, himlen ovanför taken
+blir genomskinlig med en global mask, och `bak.png` får husens hål ifyllda) som ligger på ett
+`Parallax2D` medan bakgrunden ligger på ett annat. 3D-kvaderna är borta ur byn. Kameran (±16 px,
+pekaren) är det som ger djupet.
+
+- **Nolläget mätt i riktig fönsterkörning:** 0 ändrade px mot den målade bilden (428 752 px i
+  1280x720, 383 286 i 941x1018), både med `crt=0` och med spelarens flaggor. Den gamla vyn skilde sig
+  >40 nivåer på **61,9 %** av fönstret; kantkontrasten inom scenen är nu 6,130 — exakt bildens.
+- **Paralaxen i px:** husen 42 mot bakgrunden 32 i 1280x720, 63 mot 48 i 941x1018 (faktor 4/3).
+  Fyllnaden bakom husen vid full panorering: 0 av 563 372 silhuett-px i 1280x720, 2 115 (0,34 %) i
+  941x1018 — tunna strimlor, inga hål. Husens extra kamerarörelse låses till HELA vyn-pixlar, annars
+  blir panoreringen en omsampling (rest-SAD 7,03 mot 0,000).
+- **Bort:** den mörka slöjan, CRT-välvningen i byn (2 304 svarta hörn-px → 0) och den gula
+  urvalsrutan. Markeringen är nu en additiv glöd i byggnadens EGEN silhuett, och plattan på gatan
+  följer huset.
+- **Blurret** ligger bara på bakersta lagret (`dof=1` ändrar 16,0 % av bilden men 0,18 % inuti
+  byggnadernas rutor); på webben (`gl_compatibility`) får bakersta lagret en förmjukad kopia.
+- Sviten: 2907 kontroller, 0 fel. Nytt prov `tests/test_by_utklippt.gd` (30) och
+  `tools/gen_by_hus.py --check` (bygger allt två gånger, byte för byte).

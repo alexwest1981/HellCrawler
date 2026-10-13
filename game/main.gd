@@ -863,11 +863,12 @@ func _ready() -> void:
 			# Frågan är vad töjningen gör med pixelkonsten — hårda pixelränder eller gråa band —
 			# och provbilderna från de två lägena är svaret (Alex valde det som står i hud_ram).
 			_sten_mjuk = true
-		elif f == "dof=0":
-			# Granskningsflagga (M122): fjärr-blurret av. Frågan är hur mycket av bildens mjukhet som
-			# kommer av djupblurret och hur mycket som kommer av 3D-vägen i sig — det går bara att
-			# mäta med blurret av i SAMMA scen (samma skäl som crt=0 och vag=0).
-			ByScen.dof_av = true
+		elif f.begins_with("dof="):
+			# Granskningsflagga (M123): `dof=1` lägger en FÖRMJUKAD kopia av konsten på det bakersta
+			# lagret (2D-vyn har inget djupblurr alls), `dof=0` — standard — lämnar det skarpt. Frågan
+			# är hur mycket av bildens mjukhet som kommer av avståndsblurret och hur mycket som är
+			# konsten själv, och nolläget ska gå att mäta pixel för pixel mot den målade bilden.
+			ByScen.dof_på = float(f.substr(4)) > 0.0
 		elif f.begins_with("kamerapan="):
 			# Granskningsflagga (M122): panna byns kamera N px i sid- och höjdled innan provbilden
 			# tas. Frågan är hur mycket bakgrunden respektive husen flyttar sig, och det går bara att
@@ -3294,6 +3295,13 @@ func _refresh_shell() -> void:
 	_placera_vy()
 	var i_körning: bool = shell == "körning"
 	by_view.visible = shell == "hem"
+	# CRT-LAGRET ÄR RAKT ÖVER BYN (M123). Alex: *"Bort med ... CRT-kurvaturen/svart i hörnen/
+	# sträckningen i sidled."* Byn ligger kant i kant i hela fönstret, och där blir välvningen som
+	# störst: uv hamnade utanför bilden och kanten skars av i svart. Lagret är kvar (skanlinjer och
+	# vinjett var inte klagomålet, och raden i ALTERNATIV ska fortfarande styra det) men välvningen
+	# och färgdelningen är av så länge byn visas.
+	if crt != null:
+		crt.sätt_rak(shell == "hem")
 	karta_view.visible = shell == "karta"
 	trad_view.visible = shell == "trad"
 	butik_panel.visible = shell == "butik" or (shell == "smed" and _smed_läge == "shop")

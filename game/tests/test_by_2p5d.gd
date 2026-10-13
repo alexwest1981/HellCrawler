@@ -13,7 +13,10 @@
 ##      som skal-förhållandet mot fönstrets heltalsskala, både med och utan korg.
 ##   3. GÅNGAREN: EN komponent, som går till den valda platsen och först DÅ öppnar den — och samma
 ##      komponent på världskartan. Provet mäter vägen, tiden och att rätt plats öppnas.
-##   4. PARALAXEN: byn är en 3D-scen; kameran pannas N px och lager A flyttar a px, lager B b px, a≠b.
+##   4. PARALLAXEN: byn är 2D-lager; kameran pannas N px och lager A flyttar a px, lager B b px, a≠b.
+##
+## M123: själva utklippningen av husen, gatulinjen och nolläget mäts i `test_by_utklippt.gd`. Här står
+## den del som hörde hit: lagren, klickytan, skärpan och gångaren.
 ##
 ##   godot --headless --script res://tests/test_by_2p5d.gd
 extends SceneTree
@@ -299,8 +302,8 @@ func _initialize() -> void:
 	print("— 4. 2.5D: paralax och distansblur —")
 	var by3 := VillageView.new()
 	by3.size = VY
-	# Vyn måste in i trädet först: 3D-scenens kamera mäts med `unproject_position`, och den svarar
-	# bara för en kamera som står i en scen (samma skäl som korgen i avsnitt 2).
+	# Vyn måste in i trädet först: lagrens skärmpunkter läses ur deras canvas-transform, och den
+	# svarar bara för en nod som står i en scen (samma skäl som korgen i avsnitt 2).
 	var korg4 := SubViewportContainer.new()
 	korg4.stretch = false
 	korg4.scale = Vector2(3, 3)
@@ -313,62 +316,59 @@ func _initialize() -> void:
 	by3.visa(meta, order.size())
 	await process_frame
 	var scen := by3.scen3d()
-	check(scen != null and scen.klar(), "byn ritas som en 3D-scen, inte som en platt bild", "ByScen")
+	check(scen != null and scen.klar(), "byn ritas som 2D-lager med en kamera, inte som en platt bild", "ByScen")
 	var art := by3.byscen()
 	var ax := float(art.get_width()) * 0.5
 	var ay := float(art.get_height()) * 0.5
-	# DJUPEN: bakgrund och hus står på olika avstånd från kameran. Det är djupet som ger paralaxen.
-	var djup := scen.lagerdjup()
-	check(djup.y > 0.0 and djup.y < djup.x,
-		"bakgrund och hus står på OLIKA djup",
-		"bakgrund %.2f m, hus %.2f m (kvot %.2f)" % [djup.x, djup.y, djup.y / djup.x])
-	# PLACERINGEN: 3D-scenen sätter konsten exakt där den platta bilden ritade den.
+	# FAKTORERNA: bakgrund och hus har OLIKA parallaxfaktor. Det är faktorn som ger paralaxen.
+	var faktorer := scen.lagerfaktorer()
+	check(faktorer.y > faktorer.x, "bakgrund och hus har OLIKA parallaxfaktor",
+		"bakgrund %.2f, hus %.2f (kvot %.2f)" % [faktorer.x, faktorer.y, faktorer.y / faktorer.x])
+	# PLACERINGEN: i vila ligger konsten exakt där den platta bilden ritade den.
 	scen.sätt_kamera(0.0, 0.0)
+	await process_frame
 	var förväntad: float = ax * (by3.bild_storlek().x / float(art.get_width())) - by3.pan()
-	var p0 := scen.skärmpunkt(ax, ay, 1.0)
+	var p0 := scen.bak_skärmpunkt(ax, ay)
 	check(absf(p0.x - förväntad) < 0.5, "konsten hamnar där den platta bilden hade ritat den",
 		"%.1f px mot väntade %.1f" % [p0.x, förväntad])
-	# PARALAXEN. Kameran pannar N px; samma konstpunkt mäts på bakgrundens och husens djup.
+	# PARALAXEN. Kameran pannar N px; samma konstpunkt mäts på bakgrundens och husens lager.
+	# Parallax2D lägger sin förskjutning i sin EGEN processnotis, alltså i bildrutan EFTER att
+	# kameran flyttats — precis som i en körande körning. Provet väntar därför en bildruta, samma väg
+	# som spelet tar, i stället för att läsa ett halvfärdigt mellanläge.
 	scen.sätt_kamera(0.0, 0.0)
-	var a0 := scen.skärmpunkt(ax, ay, 1.0)
-	var b0 := scen.skärmpunkt(ax, ay, ByScen.DJUP_S)
+	await process_frame
+	var a0 := scen.bak_skärmpunkt(ax, ay)
+	var b0 := scen.hus_skärmpunkt(0, ax, ay)
 	var n := ByScen.SVEP
 	scen.sätt_kamera(n, 0.0)
-	var a1 := scen.skärmpunkt(ax, ay, 1.0)
-	var b1 := scen.skärmpunkt(ax, ay, ByScen.DJUP_S)
+	await process_frame
+	var a1 := scen.bak_skärmpunkt(ax, ay)
+	var b1 := scen.hus_skärmpunkt(0, ax, ay)
 	var flytt_a: float = absf(a1.x - a0.x)
 	var flytt_b: float = absf(b1.x - b0.x)
-	check(absf(flytt_a - n) < 0.5, "bakgrunden flyttar sig precis så mycket som kameran pannar",
+	check(absf(flytt_a - n * faktorer.x) < 0.5, "bakgrunden flyttar sig precis kamerans väg gånger sin faktor",
 		"%.1f px av %.1f" % [flytt_a, n])
-	check(absf(flytt_b - n / ByScen.DJUP_S) < 0.5, "husen flyttar sig MER — de står närmare kameran",
-		"%.1f px (%.1f / %.2f)" % [flytt_b, n, ByScen.DJUP_S])
+	check(absf(flytt_b - n * faktorer.y) < 0.5, "husen flyttar sig MER — de står närmare kameran",
+		"%.1f px (%.1f × %.2f)" % [flytt_b, n, faktorer.y])
 	check(absf(flytt_a - flytt_b) > 1.0,
 		"lagren rör sig OLIKA mycket — det är paralaxen (lika mycket är ingen paralax)",
 		"bakgrund %.1f px mot hus %.1f px (%.2f gånger, kvoten 1/%.2f)" % [flytt_a, flytt_b, flytt_b / flytt_a, ByScen.DJUP_S])
 	scen.sätt_kamera(0.0, 0.0)
-	# DJUPBLURRET (Alex: "lägg på distance blur"). Bara fjärr-blur, måttligt, och husen ska ligga
-	# FRAMFÖR där blurret börjar — annars hade skärpan betalats för djupet.
-	var at: CameraAttributesPractical = scen.attribut
-	check(at != null and not at.dof_blur_near_enabled, "bara fjärr-blur, ingen när-blur", "CameraAttributesPractical")
-	check(absf(at.dof_blur_amount - ByScen.DOF_STYRKA) < 0.0001,
-		"styrkan är den namngivna konstanten — en ratt på ett ställe",
-		"%.2f (ByScen.DOF_STYRKA)" % at.dof_blur_amount)
-	check(at.dof_blur_far_distance > djup.y + 0.05,
-		"blurret börjar BAKOM husen, inte i dem",
-		"%.2f m mot husens %.2f m" % [at.dof_blur_far_distance, djup.y])
-	check(at.dof_blur_far_enabled == ByScen.dof_finns(),
-		"fjärr-blurret är på precis när renderaren har det",
-		"på=%s, renderare=%s" % [str(at.dof_blur_far_enabled), RenderingServer.get_current_rendering_method()])
-	# WEB-VÄGEN: utan djupblur (gl_compatibility) läggs en FÖRMJUKAD kopia på det bakersta lagret.
-	# Mätt här med samma mått som bildmätningen: kantkontrasten (medelvärdet av grannskillnaden).
-	var mjuk := scen.mjuk_kopia(art)
-	var rå: float = _kantkontrast(art.get_image())
-	check(mjuk != null and mjuk.get_width() == art.get_width(),
-		"den förmjukade kopian har konstens mått", "%dx%d" % [mjuk.get_width(), mjuk.get_height()])
+	# AVSTÅNDSBLURRET (Alex: "lägg på distance blur"). I 2D finns inget djupblurr: det bakersta lagret
+	# får en FÖRMJUKAD kopia av konsten, och husen ritas alltid ur den SKARPA urklippta texturen.
+	var bak_tex := by3.bak_textur()
+	check(bak_tex != null, "scenen ritar bakgrunden ur bak.png (husen borttagna)", "bak.png")
+	var mjuk := scen.mjuk_kopia(bak_tex)
+	var rå: float = _kantkontrast(bak_tex.get_image())
+	check(mjuk != null and mjuk.get_width() == bak_tex.get_width(),
+		"den förmjukade kopian har bakgrundens mått", "%dx%d" % [mjuk.get_width(), mjuk.get_height()])
 	var mjuk_kk: float = _kantkontrast(mjuk.get_image())
-	check(mjuk_kk < rå * 0.9, "och är MÄTBART mjukare än konsten — webbygget blir inte skarpt",
-		"kantkontrast %.2f mot konstens %.2f (%.0f %% lägre)" % [mjuk_kk, rå, 100.0 * (1.0 - mjuk_kk / rå)])
-	# och SKÄRPAN i den här vyn är kvar: 1:1-vägen gäller fortfarande efter 3D-ombyggnaden
+	var hus_kk: float = _kantkontrast(load("res://assets/ui/byn/hus_tradet.png").get_image())
+	check(mjuk_kk < rå * 0.9, "och är MÄTBART mjukare än bakgrunden — webbygget blir inte skarpt",
+		"kantkontrast %.2f mot bakgrundens %.2f (%.0f %% lägre)" % [mjuk_kk, rå, 100.0 * (1.0 - mjuk_kk / rå)])
+	check(hus_kk > mjuk_kk * 2.0, "medan husen är SKARPA — de ritas ur sin egen urklippta textur",
+		"husets kantkontrast %.1f mot den mjuka bakgrundens %.1f" % [hus_kk, mjuk_kk])
+	# och SKÄRPAN i den här vyn är kvar: 1:1-vägen gäller fortfarande efter 2D-ombyggnaden
 	check(by3.fönsterskala() == 3.0, "vyn ritarläget är oförändrat skarpt (skala 3)", "%.0f" % by3.fönsterskala())
 	by3.free()
 	korg4.queue_free()
