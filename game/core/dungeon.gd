@@ -386,6 +386,182 @@ static func _spots(rng: RandomNumberGenerator, room: Rect2i) -> Array:
 	all.sort_custom(func(a, b): return keys[a] < keys[b])
 	return all
 
+# --- rummen och vägarna mellan dem (M119) -----------------------------------
+## Minikartan (MapView i main.gd) binder samman de rum som hänger ihop med en linje, så våningen läses
+## som en karta i stället för som lösa klumpar. Alex: *"Går det på något vis få en länk över hur vägen
+## går mellan de olika punkterna? Liksom en linje mellan punkt a och b?"*
+##
+## Kopplingarna måste vara SANNA: en linje får bara förbinda två rum som det verkligen finns en GÅNG
+## mellan i rutnätet, och gången får inte gå genom ett TREDJE rum — då vore linjen en genväg tvärs över
+## en vägg. Ingen dekorativ linje mellan "alla punkter".
+##
+## Rummen räknas ur RUTNÄTET, inte ur `Floor.rum`: den listan fyller bara generatorn, och de handritade
+## våningarna (`data/maps/*.json`, se MapIo.from_dict) har den tom — precis de våningar man möter
+## först. Samma räkning för båda slagen: en golvruta är KÄRNA om alla fyra grannarna är golv (en gångs
+## erosion — en korridor är en ruta bred och försvinner helt), och ett RUM är en sammanhängande
+## komponent av kärnor.
+
+const GRANNAR: Array[Vector2i] = [Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, 1)]
+
+## Kärnrutorna: golv med golv runt om. En korridor (1 ruta bred) har alltid en vägg intill och faller.
+static func kärnor(f: Floor) -> Dictionary:
+	var ut := {}
+	for y in f.h:
+		for x in f.w:
+			var p := Vector2i(x, y)
+			if not f.is_floor_at(p):
+				continue
+			var hel := true
+			for d in GRANNAR:
+				if not f.is_floor_at(p + d):
+					hel = false
+					break
+			if hel:
+				ut[p] = true
+	return ut
+
+
+## Rummen som listor av rutor (kärnornas komponenter), i läsordning. Handritade våningar har ingen
+## `rum`-lista att läsa, och en genererad vånings rum är dessutom RUTNÄTETS sanning — två källor till
+## samma sak glider isär.
+static func rum_ur_rutnätet(f: Floor) -> Array:
+	var kvar := kärnor(f)
+	var rum := []
+	for y in f.h:
+		for x in f.w:
+			var start := Vector2i(x, y)
+			if not kvar.has(start):
+				continue
+			var komponent := []
+			var kö: Array[Vector2i] = [start]
+			kvar.erase(start)
+			while not kö.is_empty():
+				var p: Vector2i = kö.pop_back()
+				komponent.append(p)
+				for d in GRANNAR:
+					var n: Vector2i = p + d
+					if kvar.has(n):
+						kvar.erase(n)
+						kö.append(n)
+			rum.append(komponent)
+	return rum
+
+
+## Rummets mitt: den kärnruta som ligger närmast kärnornas medelpunkt. En fast ruta (`rum[0]`) hamnade
+## i rummets hörn, och linjerna hade börjat olika långt in i varje rum.
+static func rumsmitt(rum: Array) -> Vector2i:
+	var summa := Vector2.ZERO
+	for p in rum:
+		summa += Vector2(p)
+	var m: Vector2 = summa / float(maxi(1, rum.size()))
+	var bäst: Vector2i = rum[0]
+	var bästa := INF
+	for p in rum:
+		var d: float = Vector2(p).distance_squared_to(m)
+		if d < bästa:
+			bästa = d
+			bäst = p
+	return bäst
+
+
+## Kopplingarna: paren av rum som en och samma korridor når, med SJÄLVA VÄGEN (rutorna från det ena
+## rummets mitt till det andras) så minikartan kan rita gången i stället för ett rakt streck över
+## väggarna. Varje par bekräftas av en egen BFS innan den blir en linje, så en linje utan gång aldrig
+## kan ritas.
+static func rumslänkar(f: Floor) -> Array:
+	var rum := rum_ur_rutnätet(f)
+	var tillhör := {}
+	for i in rum.size():
+		for p in rum[i]:
+			tillhör[p] = i
+	# Korridorrutorna: golv som INTE är kärna. Deras komponenter är gångarna, och en gång förbinder de
+	# rum den nuddar. En väg som skulle gå genom ett annat rum finns inte (kärnan är blockerad), så en
+	# gång är den ENDA bron mellan två rum — därför räcker det att para ihop de rum som nuddar samma
+	# komponent, och sedan låta BFS:en skriva ut vägen.
+	var korridor := {}
+	for y in f.h:
+		for x in f.w:
+			var p := Vector2i(x, y)
+			if f.is_floor_at(p) and not tillhör.has(p):
+				korridor[p] = true
+	var par := {}
+	while not korridor.is_empty():
+		var start: Vector2i = korridor.keys()[0]
+		var komponent := []
+		var kö: Array[Vector2i] = [start]
+		korridor.erase(start)
+		while not kö.is_empty():
+			var p: Vector2i = kö.pop_back()
+			komponent.append(p)
+			for d in GRANNAR:
+				var n: Vector2i = p + d
+				if korridor.has(n):
+					korridor.erase(n)
+					kö.append(n)
+		# Rummen som nuddar den här gången.
+		var vid := []
+		for p in komponent:
+			for d in GRANNAR:
+				var i := int(tillhör.get(p + d, -1))
+				if i >= 0 and not vid.has(i):
+					vid.append(i)
+		vid.sort()
+		for a in vid.size():
+			for b in range(a + 1, vid.size()):
+				par[Vector2i(vid[a], vid[b])] = true
+	var ut := []
+	var mitt := []
+	for i in rum.size():
+		mitt.append(rumsmitt(rum[i]))
+	var nycklar := par.keys()
+	nycklar.sort()
+	for k in nycklar:
+		var a: int = k.x
+		var b: int = k.y
+		var väg := _väg_mellan_rum(f, tillhör, mitt[a], mitt[b], a, b)
+		if not väg.is_empty():
+			ut.append({"a": a, "b": b, "väg": väg})
+	return ut
+
+
+## Kortaste gången på GOLV från `från` till `till`, där inget TREDJE rums kärna får beträdas. Tom lista =
+## ingen gång. Rutorna i svaret ligger alla på golv, och två i rad ligger intill varandra — det är
+## minikartans ritunderlag.
+static func _väg_mellan_rum(f: Floor, tillhör: Dictionary, från: Vector2i, till: Vector2i,
+		a: int, b: int) -> Array:
+	if från == till:
+		return []
+	var förälder := {från: från}
+	var kö: Array[Vector2i] = [från]
+	var huvud := 0
+	var hittad := false
+	while huvud < kö.size() and not hittad:
+		var p: Vector2i = kö[huvud]
+		huvud += 1
+		for d in GRANNAR:
+			var n: Vector2i = p + d
+			if förälder.has(n) or not f.is_floor_at(n):
+				continue
+			var ägare := int(tillhör.get(n, -1))
+			if ägare >= 0 and ägare != a and ägare != b:
+				continue                        # ett TREDJE rum: gången får inte gå genom det
+			förälder[n] = p
+			if n == till:
+				hittad = true
+				break
+			kö.append(n)
+	if not hittad:
+		return []
+	var väg := []
+	var p: Vector2i = till
+	while p != från:
+		väg.append(p)
+		p = förälder[p]
+	väg.append(från)
+	väg.reverse()
+	return väg
+
+
 # --- kontroller -------------------------------------------------------------
 ## Alla golvrutor som går att nå från startpunkten (flood fill).
 static func reachable(f: Floor) -> Dictionary:

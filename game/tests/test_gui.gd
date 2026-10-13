@@ -762,7 +762,9 @@ func _initialize() -> void:
 	await process_frame
 	check(absf(main.orb_rust.nivå() - 0.5) < 0.02, "rustningsklotet är halvfyllt när rustningen är halv",
 		"%.2f för %.0f/%.0f" % [main.orb_rust.nivå(), main.active_combat.armor, max_rust])
-	check(main.orb_rust.text.contains("/"), "och siffran står i klotet", main.orb_rust.text)
+	check(not main.orb_rust.text.contains("/")
+		and main.orb_rust.text == "%d" % int(main.active_combat.armor),
+		"och siffran i klotet är MÄNGDEN rustning, utan bråk (M119)", main.orb_rust.text)
 	main.active_combat.armor = 0.0
 	main._hud_sätt(main.active_combat.hp, true)
 	await process_frame

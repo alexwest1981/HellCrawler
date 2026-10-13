@@ -4027,6 +4027,21 @@ func _demo_gui() -> void:
 			txt = "  text '%s'" % kort_label.text
 		print("guiprov: %s %s syns %s%s" % [par[0], str(n.get_rect()) if n != null else "-",
 			str(n.visible) if n != null else "-", txt])
+	# RUSTNINGSKLOTET MED EN SIFFRA (M119). Startleken (`DECK`) har inget rustningskort, så en bild av
+	# HUD:en visade alltid "0" — provet lägger dit ett `warding_ring` (+8) ur spelets egen kortdatabas
+	# och spelar det med spelets egen väg (`_on_card`), alltså samma väg tangenten tar. Bilden visar
+	# klotets MÄNGD, och loggens rad i BILD 2 visar att kortet gick igenom.
+	if active_combat != null and not active_combat.over():
+		active_combat.hand.append(db["warding_ring"])
+		_refresh_hand()
+		await get_tree().process_frame
+		for i in hand_views.size():
+			if str(active_combat.hand[_hand_index(i)].id) == "warding_ring":
+				await _on_card(i)
+				break
+		await get_tree().create_timer(0.4).timeout
+		print("guiprov: rustningsklotet visar '%s' för %.0f rustning (tak %.0f)"
+			% [orb_rust.text, active_combat.armor, run.armor_tak])
 	# BILD 1: hela HUD:en med en LEVANDE fiende (fienderutan syns bara då).
 	print("guiprov: strid %s, fiender %d, mål %s" % ["ja" if active_combat != null else "nej",
 		active_combat.enemies.size() if active_combat != null else 0, str(_fiende_data(true).get("namn", "-"))])
@@ -5405,6 +5420,17 @@ class MapView extends Control:
 	var last_state := 0          ## läget förra bildrutan (tal, se _process)
 	var textlager: UiText            ## orden, ritade i FÖNSTRETS upplösning (se ui_text.gd)
 	var visa_legend := false     ## teckenförklaringen visas först när man klickar på kartan (M75)
+	## VÄGARNA MELLAN RUMMEN (M119), räknade en gång per våning: `Dungeon.rumslänkar` gör en BFS per
+	## koppling, och kartan ritas om varje gång spelaren flyttar sig. Våningen byts bara vid en
+	## nedstigning, så cachen håller hela våningen.
+	var _länk_våning: Dungeon.Floor = null
+	var _länkar: Array = []
+	## Färgen på vägen: en jordväg i paletten, ljus nog att synas mot den mörka spelplanen och skild
+	## från märkena (blodrött = strid, guld = kista, benvitt = spelaren).
+	const VÄG_FÄRG := 18
+	## Strecken som ritades SENAST. Provet mäter dem i stället för att räkna om kartans mått själv: det
+	## som ska bevisas är vad kartan ritar, och en egen formel i provet kunde glida ifrån `_draw`.
+	var _ritade_linjer: Array = []
 
 	func _ready() -> void:
 		custom_minimum_size = MAP_SIZE
@@ -5477,13 +5503,22 @@ class MapView extends Control:
 		# i marginalen mot svart), och kartans rutor ska ha den takt de alltid haft.
 		var karta := MAP_SIZE
 		draw_rect(Rect2(Vector2.ZERO, karta), TOM)
-		var cell: float = min(karta.x / float(f.w), karta.y / float(f.h))
-		var origin := (karta - Vector2(f.w, f.h) * cell) / 2.0
+		var mått := karta_mått(f)
+		var cell: float = mått[0]
+		var origin: Vector2 = mått[1]
 		for y in f.h:
 			for x in f.w:
 				var p := Vector2i(x, y)
 				var col := Color(0.15, 0.15, 0.20) if f.is_floor_at(p) else Color(0.42, 0.45, 0.56)
 				draw_rect(Rect2(origin + Vector2(x, y) * cell, Vector2(cell, cell)), col)
+		# VÄGARNA MELLAN RUMMEN (M119): en linje längs varje koppling i våningsdatan, ritad UNDER
+		# märkena så döskallen, kistan och spelarpricken ligger överst. Alex: *"en länk över hur vägen
+		# går mellan de olika punkterna ... en linje mellan punkt a och b"*. Linjerna är gångens EGNA
+		# rutor — inte ett rakt streck mellan två mittpunkter, som hade korsat väggar.
+		var bredd: float = maxf(1.0, roundf(cell * 0.55))
+		_ritade_linjer = länk_linjer()
+		for linje in _ritade_linjer:
+			draw_line(linje[0], linje[1], Palett.c(VÄG_FÄRG), bredd)
 		for n in f.nodes:
 			# Facklan står KVAR på kartan när vilan är tagen: ljuset är kvar på platsen (se
 			# `_add_lagor`), och en markör som försvinner säger "här finns ingenting" om ett ställe
@@ -5499,6 +5534,42 @@ class MapView extends Control:
 		draw_circle(me, max(1.5, cell * 0.4), Color(0.95, 0.95, 0.85))
 		draw_line(me, me + Vector2(d) * cell, Color(0.95, 0.95, 0.85), 1.0)
 		_legend()
+
+	## KOPPLINGARNA FÖR VÅNINGEN SOM VISAS (M119), cachade: `Dungeon.rumslänkar` gör en BFS per koppling
+	## och kartan ritas om varje gång spelaren flyttar sig, medan våningen bara byts vid nedstigning.
+	func länkar() -> Array:
+		if run == null or run.explore == null or run.explore.floor_ref == null:
+			return []
+		var f: Dungeon.Floor = run.explore.floor_ref
+		if f != _länk_våning:
+			_länk_våning = f
+			_länkar = Dungeon.rumslänkar(f)
+		return _länkar
+
+	## Kartans cellstorlek och origo ur våningens mått — samma tal som `_draw` ritar rutnätet med, och
+	## därför EN källa: en linje som räknades ur en egen formel kunde hamna vid sidan av rutorna.
+	func karta_mått(f: Dungeon.Floor) -> Array:
+		var cell: float = min(MAP_SIZE.x / float(f.w), MAP_SIZE.y / float(f.h))
+		return [cell, (MAP_SIZE - Vector2(f.w, f.h) * cell) / 2.0]
+
+	## Strecken som ritas för kopplingarna, i kontrollens px: ett streck per intilliggande par av gångens
+	## rutor, så linjen följer korridoren i stället för att skära genom väggar.
+	func länk_linjer() -> Array:
+		var ut := []
+		if run == null or run.explore == null or run.explore.floor_ref == null:
+			return ut
+		var f: Dungeon.Floor = run.explore.floor_ref
+		var mått := karta_mått(f)
+		var cell: float = mått[0]
+		var origin: Vector2 = mått[1]
+		for l in länkar():
+			var väg: Array = l["väg"]
+			for i in range(väg.size() - 1):
+				var a: Vector2i = väg[i]
+				var b: Vector2i = väg[i + 1]
+				ut.append([origin + (Vector2(a) + Vector2(0.5, 0.5)) * cell,
+					origin + (Vector2(b) + Vector2(0.5, 0.5)) * cell])
+		return ut
 
 	## Teckenförklaringen: samma märken som på kartan, en gång till och stora nog att se formen på
 	## (9 px mot kartans 3,5), ett per rad under kartan. Orden ritas av `ord_rader` i fönstret och
@@ -9250,7 +9321,11 @@ func _hud_sätt(hp: float, i_strid: bool) -> void:
 			orb_mana.sätt_text("%d/%d" % [int(s.get("mana", 0.0)), int(s.get("mana_max", 1.0))])
 			orb_rust.visible = hud_status.visible
 			orb_rust.sätt_nivå(float(s.get("rust", 0.0)) / maxf(1.0, float(s.get("rust_max", 1.0))))
-			orb_rust.sätt_text("%d/%d" % [int(s.get("rust", 0.0)), int(s.get("rust_max", 1.0))])
+			# RUSTNINGEN VISAR MÄNGDEN, INTE ETT BRÅK (M119). Alex: *"den skall bara visa mängden
+			# armor, inget 1/1 eller 8/8. Har man 8 i armor skall det bara stå 8."* HP och mana
+			# behåller sitt x/y — deras nämnare säger något (taket), medan rustningens tak är den
+			# högsta nivån poolen nått och alltså bara upprepar siffran.
+			orb_rust.sätt_text("%d" % int(s.get("rust", 0.0)))
 
 ## Fiendernas namn som en rad, för loggen. En strid med tre fiender ska inte skriva tre rader när ett
 ## enda anfall faller — namnen räknas upp i en rad.
@@ -10983,3 +11058,10 @@ func _end_or_continue() -> void:
 		return
 	_refresh_battle()
 	_refresh_hand()
+	# HUD:ENS SIFFROR MÅSTE FÖLJA MED (M119). Här slutade den enda vägen ut ur ett spelat kort, ur
+	# "spela allt" (P) och ur en avslutad tur (E) — stridspanelen och handen ritades om, men HUD:ens
+	# kärl gjorde det inte: `_hud_sätt` anropas BARA från `_refresh`, och ingen av de tre vägarna gick
+	# dit. Alex: *"När man mottagit en armor, så händer inget med armor-orben"* — mätt: klotet stod på
+	# "0/1" medan rustningen gick 0 → 8. Ett kort som ger rustning, helar eller fyller mana är en
+	# ändring av speltillståndet, och HUD:en ska visa det tillståndet.
+	_refresh()
