@@ -739,6 +739,7 @@ var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, 
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
 var _kamerapan_prov := Vector2.ZERO ## `kamerapan=N`: byns kamera pannad N px (granskningsflagga, M122)
+var _byplats_prov := -1            ## `byplats=N`: byns plats N vald innan provbilden (granskningsflagga, M123)
 var _vägar_av := false             ## `vag=0`: vägarna mellan platserna på kartan av — samma skäl
 var _kartprov := ""                ## `kartprov=<nod>,<dx>,<dy>`: provbilder av kart-editorns dragning
 var _prov_fönster := Vector2i.ZERO ## `fönster=941x1018`: mät HUD:en i en annan fönsterstorlek
@@ -876,6 +877,12 @@ func _ready() -> void:
 			# Formen är `kamerapan=16` eller `kamerapan=16,-8`.
 			var parter := f.substr(10).split(",")
 			_kamerapan_prov = Vector2(float(parter[0]), float(parter[1]) if parter.size() > 1 else 0.0)
+		elif f.begins_with("byplats="):
+			# Granskningsflagga (M123): `byplats=N` väljer plats N i byn innan provbilden tas, och
+			# sätter panoreringen direkt (ingen glid). Utan den går bara den FÖRSTA platsen att
+			# fotografera — resten av gatan ligger utanför utsnittet — och då går varken
+			# EXIT-skylten eller husen längre till höger att döma i bild.
+			_byplats_prov = maxi(0, int(f.substr(8)))
 		elif f.begins_with("crt="):
 			# Granskningsflagga: `crt=0` slår av CRT-lagret, `crt=0.5` halverar styrkan (skanlinjer,
 			# vinjett, välvd kant). Behövs för att kunna MÄTA hur mycket av bildens kontrast lagret
@@ -3335,6 +3342,12 @@ func _refresh_shell() -> void:
 	if shell == "hem":
 		# Byn och kartan ritar sig själva: de får metat och ordningen, inte en färdig textrad.
 		by_view.visa(meta, _stage_order.size())
+		if _byplats_prov >= 0:
+			# Granskningsflaggan `byplats=N`: markeringen GÅR till platsen (samma väg som pilarna) och
+			# panoreringen sätts direkt i stället för att glida, så provbilden visar platsen färdig.
+			while by_view.valt_index() < _byplats_prov and by_view.flytta(Vector2i(1, 0)):
+				pass
+			by_view.pan_klart()
 		if _kamerapan_prov != Vector2.ZERO:
 			by_view.kamera_lås(_kamerapan_prov)
 	elif shell == "smed" and _smed_läge == "sharpen":

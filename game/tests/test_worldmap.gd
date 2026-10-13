@@ -43,6 +43,34 @@ func _skriv_karta(noder: Array) -> bool:
 	f.close()
 	return true
 
+## DEN PLATS KARTAN PEKAR UT I EN RIKTNING, räknad ur FILENS EGNA x/y — kartans regel är "den NÄRMASTE
+## platsen inom ±60 grader" (se `WorldMapView.flytta`), och vilken nod det blir beror på lägena i
+## karta.json. Provet frågar därför kartan i stället för att peka på ett index: en flyttad nod i
+## Alex' editor ska flytta SVARET, inte göra provet rött.
+##
+## Vinkeln står som `cos(60°)` och inte som ett handhållet tal: det är regeln (±60 grader) som prövas,
+## och skrivs den av misstag om i vyn (eller tas den bort) faller kontrollen i `_init` nedan.
+## Toleransen ryms i en miljondel — en plats som ligger på exakt 60 grader ska inte avgöras av vilken
+## sida om flyttalet jämförelsen hamnar.
+func _närmaste_i_riktningen(k: Karta, i: int, d: Vector2i) -> int:
+	var här := k.bild_px(i)
+	var inom := cos(deg_to_rad(60.0)) - 0.000001
+	var bäst := -1
+	var bäst_d := 0.0
+	for j in k.antal():
+		if j == i:
+			continue
+		var v := k.bild_px(j) - här
+		var längd := v.length()
+		if längd < 0.001:
+			continue
+		if (v.x * float(d.x) + v.y * float(d.y)) / längd < inom:
+			continue
+		if bäst < 0 or längd < bäst_d:
+			bäst = j
+			bäst_d = längd
+	return bäst
+
 func _init() -> void:
 	# Provet bygger och sparar meta (`Meta.load_or_new` + `save()` nedan), och save() skriver
 	# Meta.PATH. Utan den här raden blir det spelarens sparfil — mätt: provet nollade en körande
@@ -128,20 +156,53 @@ func _init() -> void:
 		"ny spelare: första platsen öppen, sista låst", "%s / %s" % [v.läge(0), v.läge(karta.antal() - 1)])
 	v.gå_till(0)
 	check(not v.flytta(Vector2i(0, 0)), "ingen riktning flyttar ingenting")
-	check(v.flytta(Vector2i(0, -1)) and v.valt_index() == 1, "upp går till glaciärsjön",
-		"nod %d" % v.valt_index())
-	check(v.flytta(Vector2i(0, 1)) and v.valt_index() == 0, "och ned tillbaka till porten",
-		"nod %d" % v.valt_index())
-	# Kartan är fri: "vänster" betyder vänster inom ±60 grader, så närmaste plats dit vinner — inte
-	# ett "nej" för att ingen ligger rakt västerut. Vilken plats det blir beror på kartans lägen, så
-	# provet kräver att flytten GÅR och landar någon annanstans (M93: med 18 platser är grannen en
-	# annan än den var med tio).
-	check(v.flytta(Vector2i(-1, 0)) and v.valt_index() != 0, "vänster går till en plats, inte ett nej",
-		"nod %d" % v.valt_index())
+	# NAVIGERINGEN MÄTS MOT KARTFILENS EGNA LÄGEN, INTE MOT ETT HANDHÅLLET INDEX. Provet krävde förut
+	# att "upp" från första platsen gav nod 1 — kontrollen hette "upp går till glaciärsjön" och bar ett
+	# NAMNGIVET index. Kartan är fri ("upp" = närmaste plats inom ±60 grader), så svaret beror på
+	# lägena i filen: när Alex flyttade den nedre delen av kartan i editorn pekade samma regel på en
+	# annan nod (mätt: nod 16), och sviten blev röd på HANS kartredigering i stället för på ett fel.
+	# Regeln prövas därför som en EGENSKAP, för varje plats och varje riktning: den väntade noden
+	# räknas ur karta.json och jämförs med vad vyn gör. Provet biter fortfarande — en ändrad vinkel
+	# (60 grader), den LÄNGSTA i stället för den NÄRMASTE, ett tappat index eller en riktning som
+	# svarar "ja" utan plats faller alla på raden nedan.
+	var riktningar := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	var fel_nav := []
+	var utan_granne := 0
+	var par := karta.antal() * riktningar.size()
+	for i in karta.antal():
+		for d in riktningar:
+			var väntad := _närmaste_i_riktningen(karta, i, d)
+			v.gå_till(i)
+			var flyttade := v.flytta(d)
+			if väntad < 0:
+				utan_granne += 1
+				if flyttade:
+					fel_nav.append("%d %s -> %d (ingen plats dit)" % [i, str(d), v.valt_index()])
+			elif not flyttade or v.valt_index() != väntad:
+				fel_nav.append("%d %s -> %d, datan pekar på %d"
+					% [i, str(d), v.valt_index() if flyttade else -1, väntad])
+	check(fel_nav.is_empty(),
+		"navigeringen går till den närmaste platsen i riktningen — för varje plats och riktning",
+		"%d par, %d fel" % [par, fel_nav.size()])
+	# En riktning UTAN plats i den riktningen ska svara nej och låta markeringen stå kvar. Finns inget
+	# sådant par alls är kartan en rad, och då mäter kontrollen ovan ingenting om "nej".
+	check(utan_granne > 0, "och en riktning utan plats svarar nej i stället för att hitta på en granne",
+		"%d av %d par saknar granne" % [utan_granne, par])
+	# Ingen plats får vara en Ö: en plats utan granne i NÅGON riktning går inte att nå med markeringen,
+	# och då är BFS:en nedan det enda som ser den. Räknat ur filen, för alla kartor Alex bygger.
+	var öar := []
+	for i in karta.antal():
+		var har_granne := false
+		for d in riktningar:
+			if _närmaste_i_riktningen(karta, i, d) >= 0:
+				har_granne = true
+		if not har_granne and karta.antal() > 1:
+			öar.append("%d %s" % [i, str(karta.noder[i]["plats"])])
+	check(öar.is_empty(), "och ingen plats är en ö — varje plats går att gå till",
+		", ".join(öar))
 	# Hela kartan ska gå att nå med de fyra riktningarna: kartan är fri, så ingen plats får bli en ö.
 	var nådda := {0: true}
 	var kö := [0]
-	var riktningar := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 	while not kö.is_empty():
 		var i: int = kö.pop_back()
 		for d in riktningar:
