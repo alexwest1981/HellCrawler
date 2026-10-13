@@ -9,6 +9,10 @@ class_name Crt
 extends ColorRect
 
 const SHADER := "res://ui/crt.gdshader"
+## Shaderns standardvärden, satta UTTRYCKLIGEN av samma skäl som `styrka` (se `bygg`). De står här
+## för att `sätt_rak` ska kunna ge tillbaka dem utan att läsa shadern.
+const VÄLVNING := 0.018
+const KROMA := 0.5
 
 static func bygg() -> Crt:
 	var c := Crt.new()
@@ -21,8 +25,11 @@ static func bygg() -> Crt:
 		m.shader = load(SHADER)
 		# Styrkan sätts uttryckligen: en uniform som aldrig ställts in ligger kvar på shaderns
 		# standardvärde i ritningen, men `get_shader_parameter` svarar null — och då mätte provet 0,00
-		# samtidigt som effekten var fullt påslagen.
+		# samtidigt som effekten var fullt påslagen. Samma sak för välvningen och färgdelningen, som
+		# `sätt_rak` ska kunna stänga av och slå på igen.
 		m.set_shader_parameter("styrka", 1.0)
+		m.set_shader_parameter("valvning", VÄLVNING)
+		m.set_shader_parameter("kroma", KROMA)
 		c.material = m
 	return c
 
@@ -38,6 +45,21 @@ func är_på() -> bool:
 func sätt_styrka(v: float) -> void:
 	if material is ShaderMaterial:
 		(material as ShaderMaterial).set_shader_parameter("styrka", clampf(v, 0.0, 1.0))
+
+## RAKT LÄGE (M123): välvningen och färgdelningen av, allt annat kvar. Alex, om byn: *"Bort med ...
+## CRT-kurvaturen/svart i hörnen/sträckningen i sidled"*. Skanlinjerna och vinjetten var inte
+## klagomålet, men kanten buktade (svarta hörn där uv hamnade utanför bilden) och färgerna delades i
+## sidled. Uniformerna finns redan i shadern — ingen ny shader, ingen ny ruta.
+func sätt_rak(på: bool) -> void:
+	if material is ShaderMaterial:
+		(material as ShaderMaterial).set_shader_parameter("valvning", 0.0 if på else VÄLVNING)
+		(material as ShaderMaterial).set_shader_parameter("kroma", 0.0 if på else KROMA)
+
+func rak() -> bool:
+	if material is ShaderMaterial:
+		var v = (material as ShaderMaterial).get_shader_parameter("valvning")
+		return float(v) <= 0.0 if v != null else false
+	return false
 
 func styrka() -> float:
 	if material is ShaderMaterial:
