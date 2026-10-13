@@ -260,9 +260,24 @@ func skriv(fil := "") -> bool:
 			"sektion": maxi(1, int(n.get("sektion", 1))),
 			"nivåer": n["nivåer"],
 		})
-	var f := FileAccess.open(mål, FileAccess.WRITE)
+	var text := JSON.stringify(ut, " ", false)
+	# ATOMISKT: skriv till en temp-fil och BYT NAMN. En halvskriven fil (strömavbrott, full disk) får
+	# aldrig kunna ersätta den hela kartan — Alex' arbete får inte gå förlorat på en avbruten skrivning.
+	var tmp := mål + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if f == null:
 		return false
-	f.store_string(JSON.stringify(ut, " ", false))
+	f.store_string(text + "\n")
 	f.close()
+	# BACKUP av originalet EN gång: den första sparningen lägger originalet åt sidan, så en felaktig
+	# dragning går att backa för hand. Senare sparningar rör den inte — då är originalet redan tryggat.
+	var bak := mål + ".bak"
+	if FileAccess.file_exists(mål) and not FileAccess.file_exists(bak):
+		DirAccess.copy_absolute(ProjectSettings.globalize_path(mål), ProjectSettings.globalize_path(bak))
+	if DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(mål)) != OK:
+		# Fallback för ett filsystem som nekar en överskrivning: ta bort målet och byt namn igen. Inte
+		# atomiskt hela vägen, men bättre än att lämna en `.tmp` kvar och tro att kartan sparades.
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(mål))
+		if DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(mål)) != OK:
+			return false
 	return true

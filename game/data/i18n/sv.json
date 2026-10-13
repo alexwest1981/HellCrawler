@@ -198,7 +198,7 @@
  "ui.hud.logg.ingen": "ingen",
  "ui.by.plats.avsluta": "AVSLUTA",
  "ui.by.status.quit": "lämna spelet",
- "ui.map.hint_editor": "dra noden · piltangenter = finjustera · S = spara · E = klar",
+ "ui.map.hint_editor": "dra noden · piltangenter = finjustera · Z = ångra · S = spara · E = klar",
  "ui.map.pick": "VÄLJ NIVÅ",
  "ui.map.levels": "%d nivåer",
  "ui.map.cleared": "%d klara",

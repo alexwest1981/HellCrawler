@@ -72,7 +72,8 @@ func _initialize() -> void:
 	for r in main.meny.rader:
 		texter.append(r.text)
 	check(texter == ["NYTT SPEL", "SPARA SPEL", "LADDA SPEL", "ALTERNATIV", "AVSLUTA",
-			"BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)"],
+			"BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)",
+			"VÄRLDSKARTEDITOR (tillfällig)"],
 		"valen står i referensens ordning", str(texter))
 	check(main.meny.splash != null and main.meny.splash.texture != null,
 		"splashbilden är laddad (%s)" % ("ja" if main.meny.splash.texture != null else "nej"))
