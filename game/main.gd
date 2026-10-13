@@ -380,12 +380,13 @@ var inn_det_pris: Label
 var inn_hyr: Button              ## BEKRÄFTA-knappen (Alex' referens: Confirm när man är klar)
 var inn_index := 0
 ## KORTVÄGGARNAS GEMENSAMMA REGLER (Alex: "högst 4 per rad, helst 3 ... storlek före packning").
-## Regeln bor HÄR och inte i varje butik: värdshuset, juveleraren och butiken/smeden bryter raden
-## med samma funktion (`kortvägg_kolumner`), så en ny butik får den i samma ändring.
-const KORT_KOLUMNER := 3       ## helst tre per rad
-const KORT_TAK := 4           ## fler får ALDRIG ritas i en rad
-const KORT_MELLANRUM := 6.0   ## px mellan två kort/figurer i rutnätet
-const KORT_TAKBREDD := 468.0  ## hur brett ett rutnät får bli i den 480 px vida vyn
+## Regeln bor i `ui/kortvaggar.gd` och läses härifrån (M120): värdshuset, juveleraren, butiken/smeden
+## OCH fiendeeditorns fillista bryter raden med samma funktion, så en ny yta får regeln i samma ändring
+## i stället för att ärva en kopia som glider ifrån.
+const KORT_KOLUMNER := Kortvaggar.KOLUMNER      ## helst tre per rad
+const KORT_TAK := Kortvaggar.TAK                ## fler får ALDRIG ritas i en rad
+const KORT_MELLANRUM := Kortvaggar.MELLANRUM    ## px mellan två kort/figurer i rutnätet
+const KORT_TAKBREDD := Kortvaggar.TAKBREDD      ## hur brett ett rutnät får bli i den 480 px vida vyn
 ## Figurens ruta i värdshuset. Hjältearket är 128x128 och korten 64x64; `CardView.Ikon` ritar båda
 ## i den här rutan (helt steg där det går, proportionellt annars) — ingen ny grafik behövs.
 const INN_FIGUR := 64
@@ -2828,47 +2829,20 @@ func _buy_node(i: int) -> void:
 	else:
 		print("kan inte köpa %s: %s" % [id, res.reason])
 
-## KORTVÄGGARNAS RADBRYTNING (Alex: "högst 4 per rad, helst 3", och "storlek före packning").
-## Raden bryts vid KORT_KOLUMNER (3), och vid KORT_TAK (4) bara när det behövs för att fylla: 3
-## kolumner lämnar EN ensam cell på sista raden precis när antalet är 3n+1, och delar 4 jämnt
-## (4, 16) är den fjärde kolumnen det som fyller raden i stället för att lämna en efter sig.
-## Sedan kapas talet av vad som RYMS i bredden: butikens varor är 205 px breda och 3 av dem hade
-## blivit 631 px i en 480 px-vy — då står hellre 2 stora än 3 avklippta. Aldrig fler än KORT_TAK.
+## KORTVÄGGARNAS RADBRYTNING — regeln bor i `ui/kortvaggar.gd` (M120) och läses härifrån, så
+## värdshuset, juveleraren, butiken OCH fiendeeditorns fillista bryter raden på SAMMA sätt.
 func kortvägg_kolumner(antal: int, cell: float) -> int:
-	var regel := KORT_KOLUMNER
-	if antal > KORT_KOLUMNER and antal % KORT_KOLUMNER == 1 and antal % KORT_TAK == 0:
-		regel = KORT_TAK
-	var ryms := int(floor((KORT_TAKBREDD + KORT_MELLANRUM) / maxf(cell + KORT_MELLANRUM, 1.0)))
-	return clampi(mini(regel, ryms), 1, KORT_TAK)
+	return Kortvaggar.kolumner(antal, cell)
 
-## Lägg rutnätet i en rullare. Höjden är innehållets — eller `tak` när innehållet är högre, och då
-## rullar resten (Alex: "det är OK att man får scrolla upp och ned"). `custom_minimum_size` är det
-## som ger rullaren en FAST höjd: utan den mäter den sitt innehåll och panelen blir lika hög som
-## hela listan, alltså inget att rulla i. I sidled rullas aldrig — rutnätet ryms i bredden.
+## Lägg rutnätet i en rullare (se `Kortvaggar.rullare`: `custom_minimum_size` är det som ger rullaren
+## en FAST höjd, annars mäter den sitt innehåll och det finns inget att rulla i).
 func _kortvägg(rutnät: GridContainer, tak: float) -> ScrollContainer:
-	rutnät.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var rull := ScrollContainer.new()
-	rull.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	rull.custom_minimum_size = Vector2(0.0, minf(rutnät.get_combined_minimum_size().y, tak))
-	rull.add_child(rutnät)
-	return rull
+	return Kortvaggar.rullare(rutnät, tak)
 
 ## Skjut den valda cellen i bild — rutnätet är högre än sin ruta, så valet kan hamna nedanför kanten.
-## VÄNTAR TVÅ BILDRUTOR FÖRST: containern har inte lagt ut cellerna ännu, och en rullare som mäts
-## innan dess har ingen höjd att rulla inom — mätt: rullningen hamnade på MAXVÄRDET varje gång valet
-## låg utanför den första raden, alltså längst ned i stället för på valet.
+## Regeln (och de två bildrutornas väntan) bor i `Kortvaggar.visa`.
 func _kortvägg_visa(rull: ScrollContainer, nod: Control) -> void:
-	if rull == null or nod == null:
-		return
-	await get_tree().process_frame
-	await get_tree().process_frame
-	# Cellen kan ha bytts ut under väntan (två omritningar i samma ram frigör den gamla): rulla bara
-	# ett barn som fortfarande ligger i rullaren. `is_instance_valid` FÖRST — en frigjord nod fäller
-	# hela anropet på `is_inside_tree`.
-	if not (is_instance_valid(rull) and is_instance_valid(nod)):
-		return
-	if nod.is_inside_tree() and rull.is_ancestor_of(nod):
-		rull.ensure_control_visible(nod)
+	await Kortvaggar.visa(rull, nod, get_tree())
 
 ## Värdshuset: hjältar man hyr för guld. De blir EGNA KORT i startleken, och deras passiva verkan
 ## gäller varje tur så länge kortet finns i leken — en gång per tur, inte en gång per kopia i handen.
