@@ -32,3 +32,11 @@ build-linux/
 # sviten kör) och läses av ingenting — den är ett mellansteg i generatorn, inte en tillgång, så den
 # hör inte i git. Att ha den som okänd fil gör dessutom varje `git status` efter en svitkörning grumlig.
 game/assets/ui/_bar_sten_narbild.png
+
+# Världskarteditorns ATOMISKA skrivning (M121), samma skäl. `karta.json.bak` läggs åt sidan av
+# `Karta.skriv` vid den FÖRSTA sparningen och städas ALDRIG bort — den är Alex' handbackning av
+# originalet och ska finnas kvar på disk, men den är ingen tillgång och hör inte i git. `*.tmp` är
+# halvfärdiga skrivningen (temp-filen som byter namn till målet): den ligger bara kvar efter en
+# avbruten skrivning, och just därför ska den inte kunna råka bli en committad fil.
+game/data/karta.json.bak
+*.tmp
