@@ -80,6 +80,12 @@ var _ritade_vägar: Array = []
 ## Granskningsflagga (`vag=0`): vägarna av. Utan den går det inte att MÄTA hur många pixlar linjerna
 ## lägger till i SAMMA scen — samma skäl som `crt=0` för CRT-lagret.
 var vägar_av := false
+## GÅNGAREN (M122): EN figur som går mellan platserna — samma komponent som i byn (`ui/gangare.gd`).
+## Den går i KARTANS px (före kameran), så den står kvar på sin plats på kartan medan kameran glider.
+var _gångare: Gångare = null
+## Platsen figuren är på väg till, eller -1: panelen öppnas först när den är framme.
+var _väntar := -1
+var _figur: Texture2D = null
 var _t := 0.0
 var _ram := 0
 var _tex: Texture2D = null
@@ -103,6 +109,57 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_process(true)
 	textlager = UiText.fäst(self)
+	# Gångaren skapas på begäran (M122) — se `gångaren()`: ett prov gör en `WorldMapView.new()` utan
+	# träd, och då körs aldrig `_ready`.
+
+## Gångaren. Provet mäter samma sak här som i byn: vägen, tiden och att platsen öppnas först framme.
+func gångaren() -> Gångare:
+	if _gångare == null:
+		_gångare = Gångare.new()
+		_gångare.framme.connect(_framme)
+	return _gångare
+
+## VAR FIGUREN GÅR: nodens plats i KARTANS px (`_fort`, alltså före kameran). Kameran glider mot den
+## valda noden, och en punkt i skärmens px hade då glidit ifrån sin nod.
+func gångpunkt(i: int) -> Vector2:
+	if i < 0 or i >= _noder.size():
+		return Vector2.ZERO
+	return _fort(_bild_px(i))
+
+## Figuren är framme: öppna platsen man var på väg till. `_väntar` nollas först, så en andra ankomst
+## inte öppnar två gånger.
+func _framme() -> void:
+	queue_redraw()
+	var i := _väntar
+	_väntar = -1
+	if i >= 0:
+		försök_gå_in(i)
+
+## GÅ TILL PLATSEN OCH ÖPPNA DEN (M122). Är figuren redan framme är det ett vanligt `försök_gå_in`;
+## annars går den först — och panelen öppnas när den kommer fram, aldrig i samma ögonblick man
+## trycker. Svarar "går" medan den går, så skalet vet att det bara ska vänta.
+func gå_till_och_in(i: int = -1) -> Dictionary:
+	if i < 0:
+		i = _vald
+	if i >= _noder.size():
+		return försök_gå_in(i)
+	if i != _vald:
+		gå_till(i)
+		gångaren().starta(gångaren().pos(), gångpunkt(i))
+		if gångaren().går():
+			_väntar = i
+			queue_redraw()
+			return {"ok": false, "reason": "går", "stage_id": "", "text": "", "krav": "", "index": i}
+	return försök_gå_in(i)
+
+## Skicka figuren till den valda platsen (efter att markeringen flyttats). Att GÅ är inte att öppna:
+## panelen hör till `gå_till_och_in`.
+func _låt_gångaren_gå(i: int) -> void:
+	gångaren().starta(gångaren().pos(), gångpunkt(i))
+
+## Ställ figuren vid en plats utan att gå (när vyn visas).
+func _ställ_gångaren(i: int) -> void:
+	gångaren().starta(gångpunkt(i), gångpunkt(i))
 
 func _exit_tree() -> void:
 	# Lagret ligger i FÖNSTRET (annars vore orden uppskalade igen): det måste bort med vyn.
@@ -188,6 +245,7 @@ func visa(stages: Dictionary, order: Array, meta: Meta) -> void:
 	_vald = clampi(_vald, 0, maxi(0, _noder.size() - 1))
 	_nivå = clampi(_nivå, 0, maxi(0, nivåer(_vald).size() - 1))
 	_kamera_startad = false                # kameran hoppar till första platsen, glider sedan
+	_ställ_gångaren(_vald)
 	queue_redraw()
 
 ## Nodens plats i BILDENS px (ur filen). Transformen gör den till en skärmpunkt.
@@ -207,6 +265,7 @@ func gå_till(i: int) -> void:
 	_sparad = ""
 	_panel = false
 	_nivå = 0
+	_låt_gångaren_gå(_vald)
 	queue_redraw()
 
 ## Markeringen flyttas till den NÄRMASTE noden i den riktningen (inom ±60 grader). Kartan är fri —
@@ -240,6 +299,9 @@ func flytta(dir: Vector2i) -> bool:
 	_besked = ""
 	_panel = false
 	_nivå = 0
+	# Figuren går till den nya platsen (M122). Panelen öppnas inte av en flytt — det gör Enter
+	# (`gå_till_och_in`) när figuren är framme.
+	_låt_gångaren_gå(_vald)
 	queue_redraw()
 	return true
 
@@ -728,6 +790,11 @@ func _process(delta: float) -> void:
 	# noden, som är just den man håller i). `kamera_fryst` är samma lås som granskningsflagga.
 	if _drag < 0 and not kamera_fryst:
 		steg_kamera(delta)
+	# Figuren går ett steg per bildruta medan den går. Kommer den fram sänder den `framme`, och då
+	# öppnas platsen (se `_framme`) — därför ritas vyn om varje bildruta och inte bara vid pulsen.
+	if gångaren().går():
+		gångaren().steg(delta)
+		queue_redraw()
 	_t += delta
 	var ram := int(_t * 6.0) % PULS.size()
 	if ram != _ram:
@@ -793,6 +860,7 @@ func _draw() -> void:
 		_glöd(_vald)
 		_nod(_vald)
 		_markerad(_vald)
+	_figur_rita()
 	_kort(vp)
 	if _panel:
 		_panel_ruta()          # panelen ligger ÖVER kortet: den ritas efter (annars täcks den)
@@ -801,6 +869,22 @@ func _draw() -> void:
 func _ord() -> void:
 	if textlager != null:
 		textlager.sätt(etiketter(_vy()))
+
+## Gångaren ritas på kartan, OVANFÖR noderna och deras markering: hon står på platsen. Figuren ligger
+## i kartans px (se `gångpunkt`), så kameran dras in här — annars gled figuren ifrån sin nod.
+func _figur_rita() -> void:
+	if karta == null:
+		return
+	if _figur == null and ResourceLoader.exists(VillageView.FIGUR):
+		_figur = load(VillageView.FIGUR)
+	if _figur == null:
+		return
+	var p := gångaren().pos() - _kamera + fokus()
+	var m: Vector2 = _figur.get_size() * VillageView.FIGUR_SKALA
+	var x := p.x + gångaren().vick_sida()
+	var y := p.y - gångaren().vick_gupp()
+	draw_colored_polygon(_ellips(Vector2(x, y + m.y * 0.05), m.x * 0.36, 2.0), _a(Palett.c(0), 0.32))
+	draw_texture_rect(_figur, Rect2(Vector2(x - m.x * 0.5, y - m.y), m), false)
 
 ## Kartan i horisontella remsor: varje remsa är en rak ruta på skärmen (vinkeln sitter i
 ## transformen), så ingen shader behövs. Bara de remsor som syns i vyn ritas.
