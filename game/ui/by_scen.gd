@@ -194,6 +194,9 @@ func _lager_position(r: Rect2) -> Vector2:
 ## vyn-pixel väljer två grannpixlar i vyn OLIKA konstpixlar — då blir panoreringen inte en ren
 ## förskjutning av bilden (mätt: rest-SAD 8,48 mot 0,00 när förskjutningen hamnade på 5,5 vyn-px).
 ## I höjdled 0 — samma faktor uppåt som bakgrunden, annars lossnar fötterna från gatan.
+## ponytail: hela vyn-px betyder att kamerarörelser under 1,5 vyn-px ger exakt samma rörelse som
+## bakgrunden (ingen paralax alls) — 9 % av svepet. Uppgradera med en egen rasterisering av lagret
+## (rita husen ur en SubViewport i SKÄRMENS upplösning) om djupet måste kännas från första pixeln.
 func hus_forskjutning() -> Vector2:
 	return Vector2(roundf(_kx * (HUS_FAKTOR / BAK_FAKTOR - 1.0)), 0.0)
 
