@@ -121,6 +121,9 @@ var textlager: UiText                ## orden, ritade i FÖNSTRETS upplösning (
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP      # byn tar emot klick (husen är klickbara)
+	# NEAREST satt HÄR och inte bara i projektet: skärpan är ett krav på den här vyn (M122), och ett
+	# filter som ärvs från en projektinställning kan ändras utan att någon tittar på byn.
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_pan = _mål_pan(_vald)                        # bilden står vid den valda platsen från start
 	_pan_mål = _pan
 	set_process(true)
@@ -206,15 +209,49 @@ func status_text(i: int) -> String:
 		return ""
 	return str(_status[i]["text"])
 
-## Bildens mått i VYNS koordinater. Hela höjden syns och bredden följer bildens eget förhållande —
-## det är "originalsize": ingen förstoring, ingen skevhet. En 3232x1312-bild blir 665x270 logiska px
-## i en 480x270-vy, alltså 185 px att panorera i sidled.
+## Korgens heltalsskala: fönsterpixlar per vyn-pixel. Läses ur samma nod som textlagret räknar ur
+## (SubViewportContainer i main.gd, heltalsskalad och centrerad), så vyn och orden kan inte tro olika
+## saker om hur stora pixlarna är. Utanför spelet (ett prov utan korg) finns ingen skala: 1.
+func fönsterskala() -> float:
+	var korg := _korg()
+	if korg == null or korg.scale.x <= 0.0:
+		return 1.0
+	return maxf(1.0, roundf(korg.scale.x))
+
+## Korgen vyn ritas upp i (SubViewportContainer i main.gd). Samma uppslag som `UiText._korg`.
+func _korg() -> SubViewportContainer:
+	var vp := get_viewport()
+	if vp == null:
+		return null
+	return vp.get_parent() as SubViewportContainer
+
+## SKÄRPAN (M122). Alex: *"Jag vill ha en by i 2.5D med paralax och crisp grafik, vilket det inte är
+## idag."* Skärpan satt i OMSAMPLINGEN, inte i filtret: 3232x1312 konst ritas i 835x339 vyn-pixlar
+## (3,87 konstpixlar per vyn-pixel — ett icke-heltal) och skalas sedan upp 3x. Varje skärmpixel fick
+## sin färg ur 0,775 konstpixlar, alltså kastades detalj bort och pixlarna blev ojämna.
+##
+## Nu ritas konsten så att EN konstpixel är EXAKT en skärmpixel: vyn-pixlar per konstpixel = 1/k, där
+## k är fönstrets heltalsskala. Ingen omsampling alls — varje skärmpixel ÄR konstens egen pixel.
+##
+## Utan korg (ett prov utan fönster) finns ingen fönsterskala att räkna mot: då ryms hela konstens
+## HÖJD i vyn, som förr. Provet mäter 1:1-vägen genom att sätta en korg i skala 3.
 func bild_storlek() -> Vector2:
 	var vp := _vy()
 	var bild := byscen()
 	if bild == null or bild.get_height() <= 0:
 		return vp
-	return Vector2(vp.y * float(bild.get_width()) / float(bild.get_height()), vp.y)
+	var k := fönsterskala()
+	if _korg() == null:
+		return Vector2(vp.y * float(bild.get_width()) / float(bild.get_height()), vp.y)
+	return Vector2(float(bild.get_width()) / k, float(bild.get_height()) / k)
+
+## Rita PÅ PIXELGRIDEN: en konstpixel är en skärmpixel bara om konstens kant ligger på en hel
+## konstpixel. En förskjutning på en halv pixel (MÄTT: gatulinjen hamnade 0,70 vyn-px fel = 2,1
+## skärm-px) gav ojämna pixlar — två breda på sina ställen och tre på andra — fastän skalningen i sig
+## var heltalig. Steget är 1/k: en konstpixel i vyns px.
+func _pixel_låst(v: float) -> float:
+	var steg := 1.0 / fönsterskala()
+	return roundf(v / steg) * steg
 
 ## Platsens x i BILDENS koordinater (logiska px från bildens vänsterkant), ur dess procent.
 func _plats_x(i: int) -> float:
@@ -368,10 +405,15 @@ func _draw() -> void:
 ## Bilden: EN ruta, flyttad i sidled och skjuten i höjdled så att gatulinjen hamnar på MARKLINJE.
 ## Ingen remsa, ingen avbildning, ingen faktor — det finns ingenting kvar som kan dra i pixlarna, och
 ## det var hela poängen: Alex blev åksjuk av varje form av uttöjning.
+##
+## Rutan LÅSES till pixelgriden (`_pixel_låst`, M122): storleken är redan ett helt antal konstpixlar,
+## och kanten måste också ligga på en. Både panoreringen och gatulinjen snäpps, så gatulinjen hamnar
+## högst en skärmpixel från MARKLINJE — billigare än att låta varje pixel bli omsamplad.
 func _bilden(vp: Vector2, bild: Texture2D) -> void:
 	var mål := bild_storlek()
 	draw_texture_rect_region(bild,
-		Rect2(-_pan, marklinje() - mål.y * BILDENS_GATA / 100.0, mål.x, mål.y),
+		Rect2(_pixel_låst(-_pan),
+			_pixel_låst(marklinje() - mål.y * BILDENS_GATA / 100.0), mål.x, mål.y),
 		Rect2(0.0, 0.0, float(bild.get_width()), float(bild.get_height())))
 
 ## Orden i FÖNSTRETS upplösning (se ui_text.gd). Vyn ritar bara bilden, husen och listen — så

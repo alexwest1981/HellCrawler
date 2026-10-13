@@ -59,7 +59,7 @@ func _cirkel_antal(sökväg: String) -> int:
 	return text.count("draw_circle(")
 
 
-func _init() -> void:
+func _initialize() -> void:
 	var stages := Stages.load_all()
 	var order: Array = stages.keys()
 	order.sort_custom(func(a, b):
@@ -132,6 +132,59 @@ func _init() -> void:
 	by.släpp_hovring()
 	check(by.hovrad() == -1, "och hovringen släpps när pekaren lämnar")
 	by.free()
+
+	# ---------------------------------------------------------------- 2. SKÄRPAN
+	print("")
+	print("— 2. skärpan: en konstpixel = en skärmpixel —")
+	# Konstens mått och fönstrets heltalsskala avgör om bilden ritas 1:1.
+	var prov := VillageView.new()
+	prov.size = VY
+	var konst := prov.byscen()
+	check(konst != null, "byns konst finns att mäta", "res://assets/ui/byn.png")
+	if konst != null:
+		# Utan korg (ett prov utan fönster) finns ingen skala att räkna mot — då ryms hela konstens
+		# höjd i vyn, precis som förr.
+		var b1 := prov.bild_storlek()
+		check(absf(b1.x * float(konst.get_height()) - b1.y * float(konst.get_width())) < 1.0
+				and prov.fönsterskala() == 1.0,
+			"utan korg följer rutan konstens eget förhållande (ingen skevhet)",
+			"%.1f x %.1f, skala %.0f" % [b1.x, b1.y, prov.fönsterskala()])
+		# MED en korg i skala 3 (samma väg som spelet): konsten ska ritas i 1/3 vyn-pixel per
+		# konstpixel — alltså EXAKT en skärmpixel per konstpixel, ingen omsampling.
+		var korg := SubViewportContainer.new()
+		korg.stretch = false
+		korg.scale = Vector2(3, 3)
+		var vp := SubViewport.new()
+		vp.size = Vector2i(VY)
+		korg.add_child(vp)
+		root.add_child(korg)
+		await process_frame                   # vyn måste vara i trädet innan `get_viewport()` svarar
+		vp.add_child(prov)
+		check(prov.fönsterskala() == 3.0, "fönstrets heltalsskala läses ur korgen",
+			"%.0f" % prov.fönsterskala())
+		var b3 := prov.bild_storlek()
+		check(absf(b3.x * 3.0 - float(konst.get_width())) < 0.01
+				and absf(b3.y * 3.0 - float(konst.get_height())) < 0.01,
+			"i skala 3 ritas konsten 1:1 mot skärmpixlarna",
+			"%.2f x %.2f vyn-px = %.1f x %.1f skärm-px mot konstens %d x %d"
+				% [b3.x, b3.y, b3.x * 3.0, b3.y * 3.0, konst.get_width(), konst.get_height()])
+		# Kanten LÅSES till pixelgriden: annars ligger konstens pixelkanter mitt emellan skärmens och
+		# varje pixel blir omsamplad (2 px bred på sina ställen, 3 på andra).
+		var steg := 1.0 / 3.0
+		var låst := prov._pixel_låst(10.17)
+		check(absf(låst / steg - roundf(låst / steg)) < 0.001,
+			"konstens kant snäpps till en hel konstpixel",
+			"10,17 -> %.4f vyn-px = %d konstpixlar" % [låst, int(roundf(låst / steg))])
+		# Och den gamla vägen (fit-height, icke-heltalig) ska INTE vara den som används i spelet: den
+		# gav 3,87 konstpixlar per vyn-pixel, alltså 0,775 per skärmpixel.
+		var gammal := VY.y * float(konst.get_width()) / float(konst.get_height())
+		check(absf(b3.x - gammal) > 100.0,
+			"skalan är inte längre den gamla (hela höjden i vyn)",
+			"%.1f mot gamla %.1f vyn-px" % [b3.x, gammal])
+		prov.free()
+		korg.free()
+	else:
+		prov.free()
 
 	_clean()
 	print("")
