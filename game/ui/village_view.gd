@@ -318,6 +318,12 @@ func visa(meta: Meta, antal_banor: int) -> void:
 	_pan_mål = _pan
 	_hover = -1
 	_bygg_scen()
+	# SCENEN MÅSTE FÅ PANORERINGEN ÄVEN NÄR DEN INTE BYGGS OM. `_bygg_scen` lämnar tidigt när vyns
+	# storlek är oförändrad, och då står BILDEN kvar på sin gamla panorering medan vyn (och markören)
+	# redan har flyttat sig — samma felfamilj som `pan_klart` (mätt: gömd mitt i ett glid, sedan visad
+	# igen stod husen kvar där glidet släppte). Anropet är idempotent och flyttar bara sprites.
+	if _scen3d != null:
+		_scen3d.sätt_pan(_pan)
 	_om_markering()
 	_ställ_gångaren()
 	var tree_buyable := 0
@@ -479,8 +485,17 @@ func flytta(dir: Vector2i) -> bool:
 
 ## Panorera till den valda platsen direkt, utan glid. Provet (och en skärmbild) behöver ett vaket
 ## läge utan att vänta på bildrutor, och spelet använder samma väg när vyn visas på nytt.
+##
+## PANORERINGEN BOR I SCENEN (M123, mätt): bakgrunden och husen är sprites vars positioner räknas ur
+## `_pan`, så att sätta `_pan` utan att säga det till scenen lämnar BILDEN kvar på sin gamla plats
+## medan vyn tror att den flyttat sig. Mätt: vid sista platsen stod `_pan` på 976 vyn-px medan
+## bakgrunden ritades vid 0 — utsnittet var kvar på konstens x 0..1278 och EXIT-skylten (konstens
+## x 2424..2780) fanns inte i bilden, fast vyns egen ruta för platsen låg mitt i vyn. Glidet döljer
+## felet i spelet (det anropar `sätt_pan` varje bildruta); den här vägen och `visa()` gjorde det inte.
 func pan_klart() -> void:
 	_pan = _pan_mål
+	if _scen3d != null:
+		_scen3d.sätt_pan(_pan)
 	queue_redraw()
 
 ## Gå in i plats i. Utan index: den valda. Ett index som inte finns nekas — den som pekar på en
