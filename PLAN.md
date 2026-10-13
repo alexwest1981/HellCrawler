@@ -435,7 +435,7 @@ vilka banor man låst upp osv."*
 Spelet började kasta spelaren rakt in i bana 1, och byn var en textruta ovanför `R = ny körning`.
 Nu är byn navet:
 
-- **`shell` styr skärmen**: `hem` (byn) · `butik` · `karta` · `körning`. Bara körningen ritar 3D-vyn.
+- **`shell` styr skärmen**: `hem` (byn) · `butik` · `karta` · `körning`. Bara körningen ritar spelet i 3D — byn är ett medvetet undantag: en grund 2.5D-scen (paralax och fjärr-blur).
 - **Sparfilen (version 2)**: `unlocked` (lista), `best_floor` (bana → högsta våning), `runs`. En
   version 1-fil behåller guld och ranger och får första banan öppen — att gissa vilka banor spelaren
   klarat vore värre än att låta hen spela om en bana.
