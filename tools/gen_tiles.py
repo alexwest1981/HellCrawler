@@ -43,7 +43,10 @@ ROOT = Path(__file__).resolve().parent.parent
 PALETTE_FILE = ROOT / "game" / "assets" / "palette.json"
 OUT_DIR = ROOT / "game" / "assets" / "tiles"
 SHEET_FILE = OUT_DIR / "_teman.png"
-SIZE = 128          ## Rutan täcker 0,5 m i spelet: 256 px/m (var 64 px = 128 px/m, 32 px = 64).
+SIZE = 128          ## Palett-fallbackens ruta (se utskriften i --check: rutorna PÅ DISK är 256, skrivna
+                    ## av tools/gen_tiles_alex.py ur Alex' ark). Ändras den här siffran måste
+                    ## varianterna i TEMA mätas om — 256 gav `krypta wall/wall_3` 2,8 % skillnad mot
+                    ## grannen, under grindens 3 %, alltså två varianter som är samma ruta.
 SEED = 20260919
 
 # Palettens index (se palette.json). 0-15 är spelets grund; 16-24 är tillägg för jord/trä (16-18),
@@ -1240,11 +1243,20 @@ def check(pal: list[tuple[int, int, int]]) -> int:
             if len([x for x in ytor if x.startswith(grupp)
                     and x not in ("wall_moss", "floor_crack")]) >= 2:
                 super_rutor += 4
+    # STORLEKEN LÄSES UR EN RUTA PÅ DISK, inte ur SIZE. Filerna skrivs av tools/gen_tiles_alex.py
+    # (Alex' ark, 256 px per ruta) medan SIZE är den här körningens fallback — utskriften ska säga vad
+    # spelet faktiskt laddar, inte vad fallbacken skulle ha skrivit. Samma väg som gen_material_tiles.py
+    # tar med sin MALL.
+    sida = SIZE
+    mall = OUT_DIR / "krypta" / "floor.png"
+    if mall.exists():
+        with Image.open(mall) as m:
+            sida = m.size[0]
     texturer = (antal + super_rutor) * 3
-    pixlar = (antal + super_rutor * 4) * SIZE * SIZE
+    pixlar = (antal + super_rutor * 4) * sida * sida
     print("  %d px per ruta (0,5 m) = %d px/m. %d texturer i %dx%d (%d rutor + %d super-rutor): "
         "%.1f MB oformaterat (RGB8), %.1f MB i VRAM (BC1)"
-        % (SIZE, SIZE * 2, texturer, SIZE, SIZE, antal, super_rutor,
+        % (sida, sida * 2, texturer, sida, sida, antal, super_rutor,
            pixlar * 3 * 3 / 1048576.0, pixlar * 3 * 0.5 / 1048576.0))
     return fel
 

@@ -38,8 +38,23 @@ ROT = Path(__file__).resolve().parent.parent
 ARK = ROT / "game" / "images"
 UT = ROT / "game" / "assets" / "tiles"
 
-STL = 128          # rutans kant, samma som gen_tiles.py
-SUPER = 256        # super-rutan = fyra block, samma som gen_tiles.py
+STL = 256          # rutans kant, 2x gen_tiles.py. Se nedan: MÄTT 2026-10-13.
+SUPER = 512        # super-rutan = fyra block, samma 2x.
+
+# VARFÖR 256 OCH INTE 128 (MÄTT 13/10, Alex: *"Jag vill ha vassare"*). Motorn ritar 3D:n i spelvyn
+# 270 spelpixlar hög och skalar upp den med HELTAL (se main.gd `_placera_vy`) — på Alex' fönster
+# 941x1018 ger det skala 3, alltså 3 skärmpixlar per spelpixel. En yta 1 m bort ritar 674
+# skärmpixlar per meter, medan 128-rutan bara bär 256 texturpixlar per meter: texturen var alltså
+# FÖRSTORAD 2,6x på skärmen och rutans egen upplösning var det som satte taket. Vid 256 px per ruta
+# (512 px/m) är ytan i stället ~1,3x förstorad på 1 m och strax översamplad på 2 m — taket ligger
+# där ögat slutar se skillnad.
+#
+# MÄTT i EN körning, samma prov (stage=stage_90 vaning=3, frö 20260919), samma kamera, bara plattorna
+# bytta: medel-|gradient| mellan grannar i SPELPIXELGRIDEN gick från 1,66 till 2,49 på väggen (1,50x)
+# och från 3,38 till 6,09 på golvet (1,80x) — taket står nästan still (1,07x, det ligger längst bort
+# och är minst). Priset: assets/tiles gick från 25 MB till 76 MB (3x, PNG komprimerar mindre än
+# pixelantalet växer). Källkonsten bär det: arkens ruta är 704x768 px, så 256 är fortfarande en
+# nedskalning (2,75x) och inget är påhittat.
 
 # (fil, ruta) — rutan räknas 4 per rad, 0-3 övre raden, 4-7 undre. Numren kommer från
 # kontaktkartan över arken, inte från en gissning: varje ruta i arken bär sin egen titel.
