@@ -9338,8 +9338,10 @@ func _refresh() -> void:
 		run.level, hp_nu, run.max_hp, meta.gold, run.gold, run.xp]
 	_hud_sätt(hp_nu, i_strid)
 	# Jukeboxen (M54): spåret som spelar står i tipsraden. Tangenten N byter, och utan namnet här
-	# vore bytet tyst — en spellista man inte ser är en spellista man inte styr.
-	if musik != null and musik.antal() > 0:
+	# vore bytet tyst — en spellista man inte ser är en spellista man inte styr. I BYGGLÄGET står
+	# raden inte kvar: där svarar N på temats ruta, och en ledtråd som pekar på en tangent som gör
+	# något annat är värre än ingen ledtråd.
+	if musik != null and musik.antal() > 0 and not byggläge:
 		hint += " · N ♪ %s" % musik.nuvarande()
 	hint_label.text = hint
 	_refresh_stats()
@@ -10190,9 +10192,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key == KEY_L:
 		_cycle_language()
 		return
-	# Jukeboxen (M54) svarar före skalet: musiken hör inte till en skärm, och N ska byta låt både i
-	# byn och i en bana. Piltangenter och Enter går till menyn och skalet som förut — N är ledig.
-	if key == KEY_N and musik != null and musik.antal() > 0:
+	# JUKEBOXEN (M54) SVARAR BARA DÄR SPELET SJÄLVT HAR TANGENTBORDET — den fria gången, alltså byn
+	# och banan (utan byggläget). Grenen låg först av ALLA i `_unhandled_input` och tog därför N i varje
+	# skärm och varje LÄGE: N var "ny plats" i kart-editorn och "temats ruta" i byggläget, och båda de
+	# knapparna var DÖDA så länge spellistan var laddad (N gick till jukeboxen i stället för till
+	# läget). Här, på den enda plats som delar ut N, ärver en ny skärm skyddet: jukeboxen kan inte ta
+	# en tangent från en skärm den inte känner. Piltangenter och Enter går till menyn och skalet som
+	# förut — N är ledig i de lägena.
+	if key == KEY_N and (shell == "körning" or shell == "hem") and not byggläge \
+			and musik != null and musik.antal() > 0:
 		musik.nästa()
 		_refresh()
 		return

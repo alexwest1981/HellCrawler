@@ -196,6 +196,40 @@ func _initialize() -> void:
 	check(main.musik.playing, "musiken fortsätter när spelet börjar", main.musik.nuvarande())
 
 	print("")
+	print("— N: jukeboxen i spel, men inte i ett läge —")
+	# ROTEN TILL EN BUGG SOM SÅG UT SOM EN TRASIG TANGENT: jukeboxens N-gren låg FÖRST av allt i
+	# `_unhandled_input`, alltså före både skalet och lägena, så N gick till spellistan i varje skärm.
+	# N är samtidigt "ny plats" i kart-editorn och "temats ruta" i byggläget — två riktiga knappar var
+	# döda så länge spellistan var laddad (den är det: sex spår, mätt här ovanför). Provet mäter BÅDA
+	# hållen: att N fortfarande byter låt i den fria gången, och att samma tangent når editorn.
+	var spår_hem: String = main.musik.nuvarande()
+	_tangent(KEY_N)
+	await process_frame
+	check(main.musik.nuvarande() != spår_hem, "N byter låt i byn (den fria gången)",
+		"%s -> %s" % [spår_hem, main.musik.nuvarande()])
+	main._välj_skarm("karta")
+	await process_frame
+	main.karta_view.editor = true
+	main.karta_view.gå_till(main._first_playable())
+	main.karta_view.steg_kamera(0.0, true)
+	main.karta_view.försök_gå_in()             # nivåpanelen: N lägger en NY plats för nivån i den
+	check(main.karta_view.panel_öppen(), "nivåpanelen är öppen (N kräver en nivå att lägga ut)")
+	var platser_före: int = main.karta_view.karta.antal()
+	var spår_editor: String = main.musik.nuvarande()
+	_tangent(KEY_N)
+	await process_frame
+	check(main.karta_view.karta.antal() == platser_före + 1,
+		"N når kart-editorn: tangenten lägger till en NY plats",
+		"%d -> %d platser" % [platser_före, main.karta_view.karta.antal()])
+	check(main.musik.nuvarande() == spår_editor,
+		"och jukeboxen rör sig INTE av samma tangent (den äter den inte längre)", spår_editor)
+	check(main.shell == "karta" and main.karta_view.editor,
+		"provets läge är kvar (editorn, inte en körning)", main.shell)
+	main.karta_view.editor = false
+	main._show_home()
+	await process_frame
+
+	print("")
 	print("— LADDA SPEL återupptar en sparad körning —")
 	# En körning spelas fram några steg, sparas, och återupptas: våning, HP och leken ska komma tillbaka.
 	main._start_run("stage_01", 20260919, 2)
