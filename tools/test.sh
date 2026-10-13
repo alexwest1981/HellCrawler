@@ -64,6 +64,12 @@ python3 ../tools/gen_i18n.py --check || fail=1
 # bytes — en generator som ger olika PNG varje gång kan inte --check:as.
 echo "=== tools/gen_bar_sten.py --check"
 python3 ../tools/gen_bar_sten.py --check || fail=1
+# Byns byggnader (M123): husen klipps ur game/assets/ui/byn.png till EGNA texturer, och bakgrunden
+# får husens hål ifyllda. Provet mäter måtten, att husets RGB är BYTE-IDENTISKT med bildens ruta,
+# att himlen blev genomskinlig, att bakgrunden är orörd utanför hålen och att två körningar ger samma
+# bytes — en generator som ger olika PNG varje gång kan inte --check:as.
+echo "=== tools/gen_by_hus.py --check"
+python3 ../tools/gen_by_hus.py --check || fail=1
 # Summan räknas ur ok/FEL-raderna, inte ur filernas egna sammanfattningar: de är indragna med
 # två mellanslag och försvinner ur en naiv summering. Mätt: ett sådant försök gav 559 i stället
 # för 567 — åtta kontroller var tysta. Summan skrivs därför av skriptet självt.
