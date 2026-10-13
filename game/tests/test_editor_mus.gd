@@ -79,6 +79,13 @@ func _initialize() -> void:
 	var editor: Control = scen.instantiate()
 	root.add_child(editor)
 	await process_frame
+	# ETT TOLKNINGSFEL I EDITORN FÅR PROVET ATT HÄNGA i stället för att falla (scriptfelet avbryter
+	# `_initialize` och trädet snurrar vidare). Vakta först, så sviten får en rad i stället för
+	# två minuters timeout.
+	if not editor.has_method("rita_till"):
+		print("  FEL  editorns script laddades inte (se Parse Error ovan)")
+		quit(1)
+		return
 	check(editor.bild != null, "fiendens duk är laddad", str(editor.id))
 	if editor.bild == null:
 		quit(1)

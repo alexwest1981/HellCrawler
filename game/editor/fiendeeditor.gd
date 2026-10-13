@@ -24,8 +24,15 @@ const FÖRSTORARE := 7                   ## sidan på förstorarens fönster, i 
 ## den till fönstret). Fillistan är den nya hyresgästen och de andra raderna har flyttat ihop för
 ## att ge den plats — förstoraren stod mitt i panelen och en lista UNDER den går inte att klicka i.
 const PANEL_BREDD := 214.0              ## panelens egen bredd (480 - PANEL_X - marginal)
-const LISTA_TOP := 118.0                ## fillistans överkant
-const LISTA_BOTTEN := 200.0             ## dess underkant (rullarens fönster)
+const PENSEL := 12.0                    ## en färgrutas sida i paletten (BASE-pixlar)
+const PENSEL_GLAPP := 2.0               ## mellan två färgrutor
+const PALETT_RUBRIK_Y := 70.0           ## palettens rubrikrad
+const PALETT_Y := 80.0                  ## palettens första rad av färgrutor
+const LJUS_ANKA := Vector2(PANEL_X, 112.0)  ## ljuskälla-radens kryssruta
+const LJUS_RUBRIK_Y := 122.0
+const LISTA_RUBRIK_Y := 130.0           ## "FILER (n)"-raden
+const LISTA_TOP := 140.0                ## fillistans överkant
+const LISTA_BOTTEN := 204.0             ## dess underkant (rullarens fönster)
 const LISTA_BREDD := 100.0              ## en cells bredd (så ett artnamn ryms)
 const LISTA_RAD := 16.0                 ## en cells höjd
 const FÖRSTORARE_ANKA := Vector2(PANEL_X, 206.0)
@@ -80,6 +87,10 @@ func _ready() -> void:
 			# BILDEN AV STRECKET (prov): samma händelser en hand ger, in i samma `_gui_input`, och
 			# sedan fotograferas ytan. Siffran står i `test_editor_mus.gd`; bilden visar linjen.
 			musprov()
+			await get_tree().process_frame
+		if args.has("palettprov"):
+			# PALETTEN OCH DET MÅLADE (prov): välj en färg ur paletten och rita ett streck med den.
+			palettprov()
 			await get_tree().process_frame
 		await _skott()
 
@@ -241,6 +252,29 @@ func _musslag(p: Vector2i, slag: int, tryckt: bool) -> void:
 	_gui_input(e)
 
 
+## KLICKA EN FÄRGRUTA, som en hand gör: skärmpunkten mitt i rutan in i samma `_gui_input`.
+func klick_palett(i: int) -> bool:
+	if i < 0 or i >= Palett.antal():
+		return false
+	var r := palett_ruta(i)
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = true
+	e.position = _ruta(r.position + r.size * 0.5)
+	_gui_input(e)
+	return true
+
+
+## VÄLJ EN FÄRG UR PALETTEN OCH MÅLA MED DEN, TILL BILDEN (prov). Färg 13 är FLAME i `tools/gen_props.py`
+## — samma varma celler som kandelaberns glöd släpper igenom (M115), så bilden visar både att paletten
+## valde färgen och att den färgen hamnade i duken.
+func palettprov() -> void:
+	klick_palett(13)
+	_musslag(Vector2i(30, 52), 1, true)
+	_musslag(Vector2i(92, 74), 2, false)
+	_musslag(Vector2i(92, 74), 1, false)
+
+
 ## FILLISTAN (M120): alla redigerbara tillgångar (assets/enemies) i ett rutnät man klickar i.
 ##
 ## RADBRYTNINGEN OCH RULLAREN ÄR DE DELADE — `Kortvaggar` (ui/kortvaggar.gd), samma regel som
@@ -310,6 +344,63 @@ func _lista_visa_val() -> void:
 	await Kortvaggar.visa(rull, _knappar.get(id), get_tree())
 
 
+## PALETTEN (M120). Alex: *"en palett att plocka från i stället för att gissa vilka färger finns"*.
+##
+## FÄRGERNA KOMMER UR SPELETS EGEN PALETT — `ui/palett.gd` läser `assets/palette.json`, samma fil som
+## `tools/gen_*.py` kvantiserar rutorna, fienderna och rekvisiten mot. Ingen egen lista i editorn: en
+## sådan hade glidit ifrån spelets färger utan att någon märkt det. (Och `Palett.c` svarar MAGENTA om
+## filen är borta, så en trasig palett syns i stället för att bli tom.)
+func palett_per_rad() -> int:
+	return maxi(1, int(floor((PANEL_BREDD + PENSEL_GLAPP) / (PENSEL + PENSEL_GLAPP))))
+
+
+func palett_rader() -> int:
+	return int(ceil(float(Palett.antal()) / float(palett_per_rad())))
+
+
+## Rutan för färg nummer `i`, i BASE-pixlar. Ritaren OCH träffkontrollen räknar med den här, så en
+## klickad ruta och en ritad ruta inte kan hamna på olika ställen.
+func palett_ruta(i: int) -> Rect2:
+	var per := palett_per_rad()
+	return Rect2(Vector2(PANEL_X + (i % per) * (PENSEL + PENSEL_GLAPP),
+		PALETT_Y + (i / per) * (PENSEL + PENSEL_GLAPP)), Vector2(PENSEL, PENSEL))
+
+
+## Vilken färgruta en SKÄRMPUNKT träffar (-1 = ingen). Panelen ritas i den logiska ytan och musen
+## kommer i riktiga pixlar, så punkten räknas om till BASE först.
+func palett_index_vid(pos: Vector2) -> int:
+	if _skala <= 0.0:
+		return -1
+	var p := pos / _skala
+	for i in Palett.antal():
+		if palett_ruta(i).has_point(p):
+			return i
+	return -1
+
+
+## VÄLJ EN FÄRG. Returnerar false om punkten inte är en färgruta — då ska klicket gå vidare till
+## ritytan (annars kunde ett klick i paletten sätta en pixel i duken under den).
+func valj_palettfarg(i: int) -> bool:
+	if i < 0 or i >= Palett.antal():
+		return false
+	vald_färg = Palett.c(i)
+	# Att plocka en färg är att vilja måla med den: stod verktyget kvar på "sudda" suddade nästa
+	# musklick i duken i stället för att måla, och då ser paletten ut att inte ha gjort något.
+	verktyg = "måla"
+	status = "palett %d: %s — vänsterklick målar" % [i, vald_färg.to_html(false)]
+	queue_redraw()
+	return true
+
+
+## Numret på den valda färgen (-1 om penseln kommer från `C`/en pixel och inte ur paletten).
+func palett_vald() -> int:
+	var hex := vald_färg.to_html(false)
+	for i in Palett.antal():
+		if Palett.c(i).to_html(false) == hex:
+			return i
+	return -1
+
+
 func _om_skala() -> void:
 	_skala_om()
 	_lista_om()
@@ -374,6 +465,10 @@ func _gui_input(e: InputEvent) -> void:
 		if not mb.pressed:
 			_drar = false
 			_senaste = Vector2i(-1, -1)
+			return
+		# PALETTEN FÖRST (M120): en färgruta ligger utanför duken, och ett klick där får inte falla
+		# igenom till ritytan — annars satte man en pixel i figuren varje gång man valde en färg.
+		if mb.button_index == MOUSE_BUTTON_LEFT and valj_palettfarg(palett_index_vid(mb.position)):
 			return
 		var p := _duk_pixel(mb.position)
 		if p.x < 0:
@@ -527,15 +622,27 @@ func _draw() -> void:
 	_text(Vector2(PANEL_X, 60), "pensel %s" % vald_färg.to_html(false))
 	draw_rect(Rect2(_ruta(Vector2(PANEL_X + 96, 52)), _ruta(Vector2(12, 12))), vald_färg)
 	draw_rect(Rect2(_ruta(Vector2(PANEL_X + 96, 52)), _ruta(Vector2(12, 12))), Color(0.6, 0.6, 0.65), false, 1.0)
-	_text(Vector2(PANEL_X, 108), "FILER (%d) — klicka för att välja" % filer.size(), Color(0.9, 0.85, 0.6))
+	# PALETTEN: spelets egna färger som rutor (M120). Den VALDA har en vit ram — och ramen ligger i
+	# glappet utanför rutan, så den syns även när den valda färgen är nästan vit.
+	_text(Vector2(PANEL_X, PALETT_RUBRIK_Y), "PALETT — %d färger (palette.json)" % Palett.antal(),
+		Color(0.9, 0.85, 0.6))
+	var vald_i := palett_vald()
+	for pi in Palett.antal():
+		var r := palett_ruta(pi)
+		draw_rect(Rect2(_ruta(r.position), _ruta(r.size)), Palett.c(pi))
+		if pi == vald_i:
+			draw_rect(Rect2(_ruta(r.position) - Vector2(2, 2), _ruta(r.size) + Vector2(4, 4)),
+				Color(1, 1, 1), false, maxf(1.0, 2.0 * _skala))
+	_text(Vector2(PANEL_X, LISTA_RUBRIK_Y), "FILER (%d) — klicka för att välja" % filer.size(),
+		Color(0.9, 0.85, 0.6))
 	# Tangentlistan: kompakt, till höger om förstoraren — ytan är 270 px hög och åtta rader à 14 px
 	# gick utanför nederkanten när listan tog plats (mätt på bild).
 	var rader := [
-		"vänsterklick ritar · höger tar bort",
+		"vänster ritar · höger tar bort",
+		"klicka en färgruta = pensel",
 		"← → ↑ ↓ markör · space sudda",
-		"T verktyg · C hämta färg · X rensa",
-		", . art · S spara · M meny",
-		"Q avsluta",
+		"T verktyg · C färg · S spara",
+		", . art · L ljuskälla · M/Q",
 	]
 	for n in rader.size():
 		_text(Vector2(TANGENT_ANKA.x, TANGENT_ANKA.y + n * 9), rader[n], Color(0.7, 0.72, 0.78))
