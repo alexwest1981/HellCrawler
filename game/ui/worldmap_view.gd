@@ -88,6 +88,15 @@ var _kamera_startad := false
 var _panel := false                    ## nivåpanelen är öppen
 var _nivå := 0                         ## nivån panelen står på
 var _drag := -1                        ## editorn: noden som hålls med muspekaren
+var _drag_mus := Vector2.ZERO          ## pekarens punkt (vyns px) när noden greppades
+var _drag_nod := Vector2.ZERO          ## nodens plats (procent) vid samma grepp
+## ÅNGRA (en nivå): positionen FÖRE den senaste flytten. Sätts när rörelsen BÖRJAR (greppet eller ett
+## piltryck), inte per musrörelse — annars skrev varje bildruta över målet och Z återställde ett steg
+## i stället för hela dragningen. `i` = -1 betyder "inget att ångra".
+var _före := {"i": -1, "x": 0.0, "y": 0.0}
+## Granskningsflagga: kameran står still. En provbild ska visa FÖRE och EFTER i SAMMA ruta, och en
+## kamera som glider mot den flyttade noden hade gett två bilder av olika utsnitt.
+var kamera_fryst := false
 var textlager: UiText                  ## orden, ritade i FÖNSTRETS upplösning (se ui_text.gd)
 
 func _ready() -> void:
@@ -602,6 +611,7 @@ func steg_kamera(delta: float, direkt := false) -> void:
 func nudga(dir: Vector2i) -> bool:
 	if karta == null or _noder.is_empty():
 		return false
+	_minns(_vald)
 	flytta_nod(_vald, Vector2(float(dir.x), float(dir.y)) * 0.1)
 	return true
 
@@ -610,11 +620,44 @@ func nudga(dir: Vector2i) -> bool:
 func flytta_nod(i: int, dprocent: Vector2) -> void:
 	if karta == null or i < 0 or i >= karta.antal():
 		return
-	var p := karta.plats(i) + dprocent
+	sätt_nod(i, karta.plats(i) + dprocent)
+
+## Sätter en nods x/y (i procent av bilden). Dragningen OCH finjusteringen går genom den, så klämmen
+## till kartan och avrundningen till filens 0,1 % bara finns på ett ställe.
+func sätt_nod(i: int, p: Vector2) -> void:
+	if karta == null or i < 0 or i >= karta.antal():
+		return
 	karta.noder[i]["x"] = roundf(clampf(p.x, 0.0, 100.0) * 10.0) / 10.0
 	karta.noder[i]["y"] = roundf(clampf(p.y, 0.0, 100.0) * 10.0) / 10.0
 	_sparad = ""
 	queue_redraw()
+
+## ÅNGRA (en nivå): kom ihåg var noden stod innan rörelsen började. Anropas av greppet och av
+## finjusteringen — ALDRIG av varje musrörelse, för då vore målet det föregående steget i dragningen.
+func _minns(i: int) -> void:
+	if karta == null or i < 0 or i >= karta.antal():
+		return
+	_före = {"i": i, "x": float(karta.noder[i]["x"]), "y": float(karta.noder[i]["y"])}
+
+## Har en rörelse skett som går att ångra? Provet och statusraden frågar.
+func kan_ångra() -> bool:
+	return int(_före["i"]) >= 0
+
+## Lägger tillbaka noden på den plats den hade innan den senaste dragningen eller finjusteringen.
+## `false` när inget finns att ångra — en knapp vars verkan man måste gissa går inte att skilja från en
+## trasig. Noden blir den VALDA, så man ser vilken som flyttades tillbaka, och kvittot nollas (filen på
+## disk är nu inte längre vad vyn visar).
+func ångra() -> bool:
+	var i: int = int(_före["i"])
+	if karta == null or i < 0 or i >= karta.antal():
+		return false
+	karta.noder[i]["x"] = float(_före["x"])
+	karta.noder[i]["y"] = float(_före["y"])
+	_före = {"i": -1, "x": 0.0, "y": 0.0}
+	_vald = i
+	_sparad = ""
+	queue_redraw()
+	return true
 
 ## Editorn: flytta den valda noden till en annan sektion (tangent 1..9 på kartan i editorn). Noden
 ## byter då grind, så läget räknas om — en nod i en öppen sektion är spelbar, inte låst.
@@ -680,7 +723,11 @@ func _process(delta: float) -> void:
 	# 4 fps, när en gömd vy byggde sina textrader varje bildruta).
 	if not is_visible_in_tree():
 		return
-	steg_kamera(delta)
+	# KAMERAN STÅR STILL UNDER EN DRAGNING. Glider den medan man drar flyttar den kartan UNDER
+	# pekaren, och noden lämnar muspekaren i stället för att följa den (kameran siktar på den valda
+	# noden, som är just den man håller i). `kamera_fryst` är samma lås som granskningsflagga.
+	if _drag < 0 and not kamera_fryst:
+		steg_kamera(delta)
 	_t += delta
 	var ram := int(_t * 6.0) % PULS.size()
 	if ram != _ram:
@@ -692,9 +739,12 @@ func _gui_input(event: InputEvent) -> void:
 	if karta == null:
 		return
 	if event is InputEventMouseMotion and _drag >= 0:
-		var p := _omvänt((event as InputEventMouseMotion).position)
-		var mål := Vector2(p.x / Karta.BILD_BREDD * 100.0, p.y / Karta.BILD_HÖJD * 100.0)
-		flytta_nod(_drag, mål - karta.plats(_drag))
+		# NODEN FÖLJER PEKAREN: platsen vid greppet PLUS musens rörelse sedan greppet, räknad genom
+		# samma transform som ritar den (`_omvänt`). Skillnaden — inte pekarens punkt — annars hoppar
+		# en nod man greppat en bit ifrån sitt märke till mitten under pekaren.
+		var mm := event as InputEventMouseMotion
+		var d := _omvänt(mm.position) - _omvänt(_drag_mus)
+		sätt_nod(_drag, _drag_nod + Vector2(d.x / Karta.BILD_BREDD * 100.0, d.y / Karta.BILD_HÖJD * 100.0))
 		return
 	if not (event is InputEventMouseButton):
 		return
@@ -717,6 +767,9 @@ func _gui_input(event: InputEvent) -> void:
 	if editor:
 		_vald = bäst
 		_drag = bäst
+		_drag_mus = m.position
+		_drag_nod = karta.plats(bäst)
+		_minns(bäst)                           # ångra: positionen FÖRE hela dragningen
 		steg_kamera(0.0, true)                 # kameran hakar fast i noden man tar tag i
 		queue_redraw()
 		return
@@ -1103,7 +1156,7 @@ func etiketter(vp: Vector2) -> Array:
 	# 5) Sist: beskedet (en låst plats) eller ledtråden. Beskedet MÅSTE ligga sist — provet jämför
 	#    sista raden med `besked()`, och en rad som byter plats med ledtråden är ett fel i bild.
 	var nederst := Tr.t("ui.map.hint", "← → ↑ ↓ välj plats · Enter = nivåer · Esc = byn") if not editor \
-		else Tr.t("ui.map.hint_editor", "dra noden · piltangenter = finjustera · S = spara · E = klar")
+		else Tr.t("ui.map.hint_editor", "dra noden · piltangenter = finjustera · Z = ångra · S = spara · E = klar")
 	var färg := Palett.c(7)
 	var grupp := "ledtråd"
 	if not _besked.is_empty():

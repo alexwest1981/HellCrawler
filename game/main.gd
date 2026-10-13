@@ -732,6 +732,7 @@ var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, 
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
 var _vägar_av := false             ## `vag=0`: vägarna mellan platserna på kartan av — samma skäl
+var _kartprov := ""                ## `kartprov=<nod>,<dx>,<dy>`: provbilder av kart-editorns dragning
 var _prov_fönster := Vector2i.ZERO ## `fönster=941x1018`: mät HUD:en i en annan fönsterstorlek
 var _sten_mjuk := false  ## `sten=mjuk`: barens sten ritas med mjuk filtrering (provbild)
                                    ## hur mycket kontrast lagret tar (samma skäl som ssr=0/vol=0)
@@ -1020,6 +1021,11 @@ func _ready() -> void:
 			nodprov = f.substr(8)
 		elif f.begins_with("skarm="):
 			skarm = f.substr(6)
+		elif f.begins_with("kartprov="):
+			# Kart-editorns provbilder (M121): `kartprov=<nod>,<dx>,<dy>` visar editorn,
+			# fotograferar FÖRE, utför en RIKTIG musdragning och fotograferar EFTER — se
+			# `_kartprov_bilder`.
+			_kartprov = f.substr(9)
 		elif f.begins_with("fiendevisprov="):
 			# Materialprovet (M73): tvinga fram EN fiendetyp i våningens strid, så en mask kan dömas mot
 			# sin egen fiende i stället för mot den tier-1-figur som råkar stå där. Tvingar bara VILKEN
@@ -3457,12 +3463,72 @@ func _shot_skarm(skarm: String) -> void:
 				var k: Control = r
 				delar.append("%s=%.1f,%.1f,%.0f" % [k.name, k.global_position.x, k.global_position.y, k.size.x])
 			print("trädprov: %d ikoner vyn %s :: %s" % [rutor.size(), trad_view.size, " ".join(delar)])
+	# KART-EDITORNS PROVBILDER (M121): visa editorn, fotografera FÖRE, utför en RIKTIG musdragning och
+	# fotografera EFTER — två bilder ur samma scen och samma kamera.
+	if skarm == "karta" and not _kartprov.is_empty():
+		await _kartprov_bilder()
 	# BUTIKERNAS KORTVÄGGAR MÄTS I SAMMA KÖRNING SOM BILDEN TAS (Alex: "mät i varje butik").
 	_kortvägg_prov()
 	_spara_bild("user://shot.png")
 	print("skärmbild (%s): %s" % [skarm if not skarm.is_empty() else "by",
 		ProjectSettings.globalize_path("user://shot.png")])
 	get_tree().quit()
+
+## PROVBILDERNA FÖR KART-EDITORN (M121): FÖRE och EFTER en musdragning, i samma ruta. Kameran LÅSES
+## (`kamera_fryst`) så de två bilderna visar samma utsnitt — annars vore skillnaden kamerans glidning
+## mot den flyttade noden, inte nodens nya plats. Dragningen går genom `_gui_input`, alltså samma väg
+## in som spelets egen mus, och inte genom en genväg till `sätt_nod`.
+func _kartprov_bilder() -> void:
+	var delar := _kartprov.split(",")
+	var i: int = int(delar[0]) if delar.size() > 0 else 0
+	var dx: float = float(delar[1]) if delar.size() > 1 else -110.0
+	var dy: float = float(delar[2]) if delar.size() > 2 else -70.0
+	karta_view.editor = true
+	karta_view.gå_till(i)
+	karta_view.steg_kamera(0.0, true)
+	karta_view.kamera_fryst = true
+	for k in 4:
+		await get_tree().process_frame
+	await get_tree().create_timer(0.4).timeout
+	_frys_kartan()
+	var p0: Vector2 = karta_view.plats(i)
+	print("kartprov FÖRE:  %s  skärm %.1f, %.1f" % [karta_view.nod_text(i), p0.x, p0.y])
+	_spara_bild("user://karta-fore.png")
+	var ned := InputEventMouseButton.new()
+	ned.button_index = MOUSE_BUTTON_LEFT
+	ned.pressed = true
+	ned.position = p0
+	ned.global_position = p0
+	karta_view._gui_input(ned)
+	var rör := InputEventMouseMotion.new()
+	rör.position = p0 + Vector2(dx, dy)
+	rör.global_position = rör.position
+	karta_view._gui_input(rör)
+	var upp := InputEventMouseButton.new()
+	upp.button_index = MOUSE_BUTTON_LEFT
+	upp.pressed = false
+	upp.position = rör.position
+	upp.global_position = rör.position
+	karta_view._gui_input(upp)
+	for k in 3:
+		await get_tree().process_frame
+	await get_tree().create_timer(0.3).timeout
+	_frys_kartan()
+	var p1: Vector2 = karta_view.plats(i)
+	print("kartprov EFTER: %s  skärm %.1f, %.1f  | noden rörde sig %.1f, %.1f px (musen %.0f, %.0f)"
+		% [karta_view.nod_text(i), p1.x, p1.y, p1.x - p0.x, p1.y - p0.y, dx, dy])
+	_spara_bild("user://karta-efter.png")
+
+## FRYS KARTAN FÖR ETT SKOTT: pulsens fas pinnas och `_process` stängs av. Namnplaketterna flyttar sig
+## ett par px med markörens puls, så två körningar av SAMMA konfiguration skilde sig på ~16 000 px
+## (mätt) — brus som gör en bilddiff oanvändbar. Med frusen fas är FÖRE och EFTER pixel-identiska utom
+## det som faktiskt ändrades.
+func _frys_kartan() -> void:
+	karta_view.set_process(false)
+	karta_view._t = 0.0
+	karta_view._ram = 0
+	karta_view._ord()
+	karta_view.queue_redraw()
 
 ## EN RAD PER BUTIKS KORTVÄGG (Alex: "mät i varje butik"). Skärmbilden säger hur butiken ser ut;
 ## den här raden säger hur mycket plats kortväggen tar — panelen, rullaren och rutnätet som rutor,
@@ -3497,7 +3563,8 @@ func _meny_rubriker() -> Array:
 	# Redigerarna är utvecklarverktyg och otversatta med flit: raderna finns bara i debug-bygget, och
 	# deras filer filtreras bort ur exporten (export_presets.cfg). En köpare får fem menyrader.
 	if OS.is_debug_build():
-		rader.append_array(["BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)"])
+		rader.append_array(["BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)",
+			"VÄRLDSKARTEDITOR (tillfällig)"])
 	return rader
 
 ## Bottenraden: tipset överst, version och copyright under. Finns en sparad körning står det i tipset
@@ -3585,6 +3652,14 @@ func _meny_val(i: int) -> void:
 		7:
 			# Trädeditorn: plattan med noderna i, och S sparar data/trad_sockets.json.
 			get_tree().change_scene_to_file("res://editor/trad_editor.tscn")
+		8:
+			# VÄRLDSKARTEDITORN (M121). Alex: *"Kan vi skapa en world map editor istället, så jag kan
+			# flytta noderna själv?"* Kartan ÄR sin egen skärm, och editorn ett LÄGE i den (som
+			# byggläget F1 i en bana) — raden går in i kartan med läget på, så man slipper hitta E.
+			_dölj_meny()
+			_välj_skarm("karta")
+			karta_view.editor = true
+			return
 
 ## SPARA SPEL i menyn. Körningen sparar sig visserligen själv så fort något ändras (M39), men den som
 ## ska stänga spelet vill kunna VÄLJA att spara — och se att det blev gjort. `tvinga` skriver filen
@@ -4410,6 +4485,14 @@ func _karta_tangent(key: int) -> bool:
 			KEY_S:
 				print("kartan: %s" % Tr.t("ui.map.saved", "kartan sparad") if karta_view.skriv_karta()
 					else "kartan: %s" % Tr.t("ui.map.save_failed", "kunde inte skriva kartan"))
+			KEY_Z:
+				# ÅNGRA (en nivå): lägger tillbaka noden där den stod innan den senaste flytten. Säger
+				# till när det inte finns något att ångra — en tangent som tiger går inte att skilja
+				# från en trasig.
+				if karta_view.ångra():
+					print("kartan: ångrade %s" % karta_view.nod_text(karta_view.valt_index()))
+				else:
+					print("kartan: inget att ångra")
 			KEY_N:
 				# Alex' editor: nivån panelen står på flyttas till en NY plats på kartan. Sedan
 				# flyttar pilarna den — och S skriver filen. Fler banor = fler noder.
@@ -10112,6 +10195,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key == KEY_N and musik != null and musik.antal() > 0:
 		musik.nästa()
 		_refresh()
+		return
+	# ÅNGRA I KART-EDITORN (Ctrl+Z). Läses HÄR och inte i `_input_shell`, för kontrolltangenten finns
+	# bara på EVENTET; `Z` ensam går samma väg i `_karta_tangent`.
+	if shell == "karta" and karta_view != null and karta_view.editor \
+			and (event as InputEventKey).ctrl_pressed and key == KEY_Z:
+		if karta_view.ångra():
+			print("kartan: ångrade %s" % karta_view.nod_text(karta_view.valt_index()))
 		return
 	# Skalet först: en meny delar inte tangentbord med spelet bakom sig.
 	if shell != "körning":
