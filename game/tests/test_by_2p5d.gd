@@ -60,6 +60,25 @@ func _cirkel_antal(sökväg: String) -> int:
 
 
 ## Kör gångaren fram till målet i fasta steg, och säg hur många steg (och hur lång tid) det tog.
+## Kantkontrasten i en bild: medelvärdet av skillnaden mellan grannpixlar. Lågt = mjukt (samma mått
+## som rapportens bildmätning av det bakersta lagret).
+func _kantkontrast(bild: Image) -> float:
+	if bild == null:
+		return 0.0
+	var b := bild
+	if b.get_format() != Image.FORMAT_RGBA8:
+		b = b.duplicate()
+		b.convert(Image.FORMAT_RGBA8)
+	var summa := 0.0
+	var antal := 0
+	for y in range(0, b.get_height(), 3):
+		for x in range(1, b.get_width(), 3):
+			var a := b.get_pixel(x - 1, y)
+			var c := b.get_pixel(x, y)
+			summa += absf(a.r - c.r) + absf(a.g - c.g) + absf(a.b - c.b)
+			antal += 1
+	return summa / maxf(1.0, float(antal))
+
 func _gå_klart(g: Gångare, dt: float = 0.05) -> Dictionary:
 	var antal := 0
 	while g.går() and antal < 100000:
@@ -274,6 +293,85 @@ func _initialize() -> void:
 		"och först framme öppnas platsen (eller dess besked)",
 		"panel=%s besked='%s', %.2f s" % [str(kvy.panel_öppen()), kvy.besked(), float(kres["tid"])])
 	kvy.free()
+
+	# ---------------------------------------------------------------- 4. 2.5D: paralax och distansblur
+	print("")
+	print("— 4. 2.5D: paralax och distansblur —")
+	var by3 := VillageView.new()
+	by3.size = VY
+	# Vyn måste in i trädet först: 3D-scenens kamera mäts med `unproject_position`, och den svarar
+	# bara för en kamera som står i en scen (samma skäl som korgen i avsnitt 2).
+	var korg4 := SubViewportContainer.new()
+	korg4.stretch = false
+	korg4.scale = Vector2(3, 3)
+	var vp4 := SubViewport.new()
+	vp4.size = Vector2i(VY)
+	korg4.add_child(vp4)
+	root.add_child(korg4)
+	await process_frame
+	vp4.add_child(by3)
+	by3.visa(meta, order.size())
+	await process_frame
+	var scen := by3.scen3d()
+	check(scen != null and scen.klar(), "byn ritas som en 3D-scen, inte som en platt bild", "ByScen")
+	var art := by3.byscen()
+	var ax := float(art.get_width()) * 0.5
+	var ay := float(art.get_height()) * 0.5
+	# DJUPEN: bakgrund och hus står på olika avstånd från kameran. Det är djupet som ger paralaxen.
+	var djup := scen.lagerdjup()
+	check(djup.y > 0.0 and djup.y < djup.x,
+		"bakgrund och hus står på OLIKA djup",
+		"bakgrund %.2f m, hus %.2f m (kvot %.2f)" % [djup.x, djup.y, djup.y / djup.x])
+	# PLACERINGEN: 3D-scenen sätter konsten exakt där den platta bilden ritade den.
+	scen.sätt_kamera(0.0, 0.0)
+	var förväntad: float = ax * (by3.bild_storlek().x / float(art.get_width())) - by3.pan()
+	var p0 := scen.skärmpunkt(ax, ay, 1.0)
+	check(absf(p0.x - förväntad) < 0.5, "konsten hamnar där den platta bilden hade ritat den",
+		"%.1f px mot väntade %.1f" % [p0.x, förväntad])
+	# PARALAXEN. Kameran pannar N px; samma konstpunkt mäts på bakgrundens och husens djup.
+	scen.sätt_kamera(0.0, 0.0)
+	var a0 := scen.skärmpunkt(ax, ay, 1.0)
+	var b0 := scen.skärmpunkt(ax, ay, ByScen.DJUP_S)
+	var n := ByScen.SVEP
+	scen.sätt_kamera(n, 0.0)
+	var a1 := scen.skärmpunkt(ax, ay, 1.0)
+	var b1 := scen.skärmpunkt(ax, ay, ByScen.DJUP_S)
+	var flytt_a: float = absf(a1.x - a0.x)
+	var flytt_b: float = absf(b1.x - b0.x)
+	check(absf(flytt_a - n) < 0.5, "bakgrunden flyttar sig precis så mycket som kameran pannar",
+		"%.1f px av %.1f" % [flytt_a, n])
+	check(absf(flytt_b - n / ByScen.DJUP_S) < 0.5, "husen flyttar sig MER — de står närmare kameran",
+		"%.1f px (%.1f / %.2f)" % [flytt_b, n, ByScen.DJUP_S])
+	check(absf(flytt_a - flytt_b) > 1.0,
+		"lagren rör sig OLIKA mycket — det är paralaxen (lika mycket är ingen paralax)",
+		"bakgrund %.1f px mot hus %.1f px (%.2f gånger, kvoten 1/%.2f)" % [flytt_a, flytt_b, flytt_b / flytt_a, ByScen.DJUP_S])
+	scen.sätt_kamera(0.0, 0.0)
+	# DJUPBLURRET (Alex: "lägg på distance blur"). Bara fjärr-blur, måttligt, och husen ska ligga
+	# FRAMFÖR där blurret börjar — annars hade skärpan betalats för djupet.
+	var at: CameraAttributesPractical = scen.attribut
+	check(at != null and not at.dof_blur_near_enabled, "bara fjärr-blur, ingen när-blur", "CameraAttributesPractical")
+	check(absf(at.dof_blur_amount - ByScen.DOF_STYRKA) < 0.0001,
+		"styrkan är den namngivna konstanten — en ratt på ett ställe",
+		"%.2f (ByScen.DOF_STYRKA)" % at.dof_blur_amount)
+	check(at.dof_blur_far_distance > djup.y + 0.05,
+		"blurret börjar BAKOM husen, inte i dem",
+		"%.2f m mot husens %.2f m" % [at.dof_blur_far_distance, djup.y])
+	check(at.dof_blur_far_enabled == ByScen.dof_finns(),
+		"fjärr-blurret är på precis när renderaren har det",
+		"på=%s, renderare=%s" % [str(at.dof_blur_far_enabled), RenderingServer.get_current_rendering_method()])
+	# WEB-VÄGEN: utan djupblur (gl_compatibility) läggs en FÖRMJUKAD kopia på det bakersta lagret.
+	# Mätt här med samma mått som bildmätningen: kantkontrasten (medelvärdet av grannskillnaden).
+	var mjuk := scen.mjuk_kopia(art)
+	var rå: float = _kantkontrast(art.get_image())
+	check(mjuk != null and mjuk.get_width() == art.get_width(),
+		"den förmjukade kopian har konstens mått", "%dx%d" % [mjuk.get_width(), mjuk.get_height()])
+	var mjuk_kk: float = _kantkontrast(mjuk.get_image())
+	check(mjuk_kk < rå * 0.9, "och är MÄTBART mjukare än konsten — webbygget blir inte skarpt",
+		"kantkontrast %.2f mot konstens %.2f (%.0f %% lägre)" % [mjuk_kk, rå, 100.0 * (1.0 - mjuk_kk / rå)])
+	# och SKÄRPAN i den här vyn är kvar: 1:1-vägen gäller fortfarande efter 3D-ombyggnaden
+	check(by3.fönsterskala() == 3.0, "vyn ritarläget är oförändrat skarpt (skala 3)", "%.0f" % by3.fönsterskala())
+	by3.free()
+	korg4.queue_free()
 
 	_clean()
 	print("")

@@ -130,6 +130,12 @@ var _status: Array = []              ## [{text, ljus}] per plats — det som st�
 var _t := 0.0
 var _ram := 0                        ## bildrutan i guppet; ritas bara om när den byter
 var _tex: Texture2D = null           ## byns bild, läst en gång
+## BYN I 3D (M122): bakgrund och hus på olika djup med en kamera som pannar lite — det är paralaxen.
+var _scen3d: ByScen = null
+var _gata_px := 0.0                   ## gatans rad i KONSTENS px (3D-scenen mäter därifrån)
+## Kamerans sidled/höjdled i vyns px. Följer pekaren (man ser sig om i byn); `kamerapan=` låser den.
+var _kamerapan := Vector2.ZERO
+var _kamera_låst := false
 var textlager: UiText                ## orden, ritade i FÖNSTRETS upplösning (se ui_text.gd)
 
 func _ready() -> void:
@@ -208,6 +214,48 @@ func byscen() -> Texture2D:
 		_tex = load(BILD)
 	return _tex
 
+## 3D-SCENEN (M122). Null när konsten saknas — då ritar vyn sin platta som förr.
+func scen3d() -> ByScen:
+	return _scen3d
+
+## Bygg scenen för vyns aktuella storlek. Husens rutor i KONSTENS px är desamma som klickytan
+## (`x0`/`x1`) och höjden går från `HUS_TOPP` ned till gatulinjen — huset man ser är det som reses.
+## Byggs om bara när vyns storlek har ändrats: i en kedja av bildrutor räcker det.
+func _bygg_scen() -> void:
+	var konst := byscen()
+	if konst == null or konst.get_height() <= 0:
+		_scen3d = null
+		return
+	var vy := _vy()
+	if _scen3d != null and _scen3d.klar() and _scen3d.vp.size == Vector2i(int(vy.x), int(vy.y)):
+		return
+	var art := Vector2(konst.get_width(), konst.get_height())
+	_gata_px = art.y * BILDENS_GATA / 100.0
+	var hus: Array = []
+	for p in PLATSER:
+		hus.append(Rect2(art.x * float(p["x0"]) / 100.0, art.y * HUS_TOPP / 100.0,
+			art.x * (float(p["x1"]) - float(p["x0"])) / 100.0,
+			art.y * (BILDENS_GATA - HUS_TOPP) / 100.0))
+	if _scen3d == null:
+		_scen3d = ByScen.new()
+	_scen3d.bygg(self, vy, konst, hus, _gata_px, bild_storlek().x / art.x)
+	for i in PLATSER.size():
+		_scen3d.sätt_hus_centrum(i, (hus[i] as Rect2).get_center())
+	_scen3d.sätt_pan(_pan)
+	_scen3d.sätt_kamera(_kamerapan.x, _kamerapan.y)
+
+## Kameran i sidled/höjdled. Pekaren styr den (en liten rörelse ger djupkänsla), och `kamerapan=x,y`
+## låser den så en provbild kan mäta paralaxen i SAMMA scen.
+func kamera_lås(px: Vector2, låst: bool = true) -> void:
+	_kamerapan = px
+	_kamera_låst = låst
+	if _scen3d != null:
+		_scen3d.sätt_kamera(_kamerapan.x, _kamerapan.y)
+		queue_redraw()
+
+func kameraposition() -> Vector2:
+	return _kamerapan
+
 ## Fyll statusraderna ur metat. Anropas varje gång skärmen visas: guld och framsteg ändras av
 ## körningen, och en gammal siffra på markeringen är en lögn om spelarens läge.
 func visa(meta: Meta, antal_banor: int) -> void:
@@ -216,6 +264,7 @@ func visa(meta: Meta, antal_banor: int) -> void:
 	_pan = _mål_pan(_vald)
 	_pan_mål = _pan
 	_hover = -1
+	_bygg_scen()
 	_ställ_gångaren()
 	var tree_buyable := 0
 	for gren in meta.branches():
@@ -251,6 +300,10 @@ func visa(meta: Meta, antal_banor: int) -> void:
 
 func valt_index() -> int:
 	return _vald
+
+## Panoreringen i vyns px. Provet räknar ut var konsten ska hamna och jämför med 3D-scenens kamera.
+func pan() -> float:
+	return _pan
 
 ## Platsen muspekaren står över (-1 = ingen). Egen funktion för att provet ska kunna bevisa att
 ## hovringen träffar rätt HUS — och att den släpps när pekaren lämnar vyn.
@@ -432,7 +485,10 @@ func _process(delta: float) -> void:
 		_pan = lerpf(_pan, _pan_mål, 1.0 - exp(-PAN_FART * delta))
 		if absf(_pan_mål - _pan) <= 0.05:
 			_pan = _pan_mål
+		if _scen3d != null:
+			_scen3d.sätt_pan(_pan)      # husen och bakgrunden flyttas i 3D-rymden, inte på skärmen
 		queue_redraw()
+	_sätt_figur()
 	# Orden sätts HÄR, inte i `_draw`: lagret ligger i fönstret och måste ha raderna innan bildrutan
 	# ritas (annars står den första bildrutan tom).
 	_ord()
@@ -441,7 +497,14 @@ func _gui_input(event: InputEvent) -> void:
 	# HOVRINGEN (M122): vilket hus pekaren står över. Läses på musens RÖRELSE, och vyn ritas bara om
 	# när platsen BYTS — en ommålning per musrörelse vore en ommålning per bildruta.
 	if event is InputEventMouseMotion:
-		var ny := plats_vid((event as InputEventMouseMotion).position)
+		var pos := (event as InputEventMouseMotion).position
+		# KAMERAN SER SIG OM (M122): pekaren drar kameran en liten bit i sid- och höjdled. Det är den
+		# rörelsen som ger paralax — husen och bakgrunden flyttar sig olika mycket (se by_scen.gd).
+		if not _kamera_låst and _scen3d != null:
+			var halv := _vy() * 0.5
+			_kamerapan = Vector2((pos.x - halv.x) / maxf(1.0, halv.x), (pos.y - halv.y) / maxf(1.0, halv.y)) * ByScen.SVEP
+			_scen3d.sätt_kamera(_kamerapan.x, _kamerapan.y)
+		var ny := plats_vid(pos)
 		if ny != _hover:
 			_hover = ny
 			queue_redraw()
@@ -460,9 +523,12 @@ func _gui_input(event: InputEvent) -> void:
 # --- ritningen ---------------------------------------------------------------
 func _draw() -> void:
 	var vp := _vy()
-	var bild := byscen()
-	if bild != null:
-		_bilden(vp, bild)
+	if _scen3d != null and _scen3d.klar():
+		# 3D-SCENEN (M122): bakgrund och hus ritas i den inre vyn, på var sitt djup, och den ritas
+		# 1:1 här — en pixel i den inre vyn är en pixel i vyn, som skalas till skärmen med heltalet.
+		draw_texture_rect(_scen3d.textur(), Rect2(Vector2.ZERO, vp), false)
+	elif byscen() != null:
+		_bilden(vp, byscen())
 	else:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
 	# En mörk ton nedtill, tonad i åtta steg: etiketterna ska läsas mot en lugn yta, inte mot
@@ -474,22 +540,21 @@ func _draw() -> void:
 	# cirkel ritas i den här vyn — kloten är borta (M122).
 	for i in PLATSER.size():
 		_hus(i)
-	_figur_rita()
 
-## Gångaren ritas PÅ gatan, framför husen. Figuren ligger i bildens px (se `gångpunkt`), så
-## panoreringen dras av här — annars stod figuren still medan byn gled.
-func _figur_rita() -> void:
+## Gångaren: hon står i 3D-SCENEN, på husens djup, med fötterna på gatulinjen. Att hon ligger hos
+## husen och inte hos bakgrunden är det som gör att hon står kvar på gatan när kameran pannar — hon
+## följer scenens närmaste lager, inte tavlan bakom.
+func _sätt_figur() -> void:
+	if _scen3d == null or not _scen3d.klar() or _gata_px <= 0.0:
+		return
 	if _figur == null and ResourceLoader.exists(FIGUR):
 		_figur = load(FIGUR)
 	if _figur == null:
 		return
 	var p := gångaren().pos()
 	var m: Vector2 = _figur.get_size() * FIGUR_SKALA
-	var x := p.x - _pan + gångaren().vick_sida()
-	var y := marklinje() - gångaren().vick_gupp()
-	# Skuggan under figuren: utan den svävar den över gatan (samma regel som husens platta).
-	draw_colored_polygon(_ellips(Vector2(x, y), m.x * 0.36, 2.0), _a(Palett.c(0), 0.32))
-	draw_texture_rect(_figur, Rect2(Vector2(x - m.x * 0.5, y - m.y), m), false)
+	_scen3d.sätt_figur(_figur, p.x + gångaren().vick_sida(),
+		_gata_px - m.y - gångaren().vick_gupp(), m, true)
 
 ## Bilden: EN ruta, flyttad i sidled och skjuten i höjdled så att gatulinjen hamnar på MARKLINJE.
 ## Ingen remsa, ingen avbildning, ingen faktor — det finns ingenting kvar som kan dra i pixlarna, och

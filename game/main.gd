@@ -738,6 +738,7 @@ var _vol := true                   ## volymetrisk dimma: ljuskäglorna i luften 
 var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, se LJUSPROVET nedan
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
+var _kamerapan_prov := Vector2.ZERO ## `kamerapan=N`: byns kamera pannad N px (granskningsflagga, M122)
 var _vägar_av := false             ## `vag=0`: vägarna mellan platserna på kartan av — samma skäl
 var _kartprov := ""                ## `kartprov=<nod>,<dx>,<dy>`: provbilder av kart-editorns dragning
 var _prov_fönster := Vector2i.ZERO ## `fönster=941x1018`: mät HUD:en i en annan fönsterstorlek
@@ -862,6 +863,18 @@ func _ready() -> void:
 			# Frågan är vad töjningen gör med pixelkonsten — hårda pixelränder eller gråa band —
 			# och provbilderna från de två lägena är svaret (Alex valde det som står i hud_ram).
 			_sten_mjuk = true
+		elif f == "dof=0":
+			# Granskningsflagga (M122): fjärr-blurret av. Frågan är hur mycket av bildens mjukhet som
+			# kommer av djupblurret och hur mycket som kommer av 3D-vägen i sig — det går bara att
+			# mäta med blurret av i SAMMA scen (samma skäl som crt=0 och vag=0).
+			ByScen.dof_av = true
+		elif f.begins_with("kamerapan="):
+			# Granskningsflagga (M122): panna byns kamera N px i sid- och höjdled innan provbilden
+			# tas. Frågan är hur mycket bakgrunden respektive husen flyttar sig, och det går bara att
+			# mäta med kameran i två lägen i SAMMA scen — samma skäl som crt=0 och vag=0.
+			# Formen är `kamerapan=16` eller `kamerapan=16,-8`.
+			var parter := f.substr(10).split(",")
+			_kamerapan_prov = Vector2(float(parter[0]), float(parter[1]) if parter.size() > 1 else 0.0)
 		elif f.begins_with("crt="):
 			# Granskningsflagga: `crt=0` slår av CRT-lagret, `crt=0.5` halverar styrkan (skanlinjer,
 			# vinjett, välvd kant). Behövs för att kunna MÄTA hur mycket av bildens kontrast lagret
@@ -3314,6 +3327,8 @@ func _refresh_shell() -> void:
 	if shell == "hem":
 		# Byn och kartan ritar sig själva: de får metat och ordningen, inte en färdig textrad.
 		by_view.visa(meta, _stage_order.size())
+		if _kamerapan_prov != Vector2.ZERO:
+			by_view.kamera_lås(_kamerapan_prov)
 	elif shell == "smed" and _smed_läge == "sharpen":
 		# Trädet bor inte här (M95). Alex: *"Smeden har inget att göra med Skill Tree — Smeden skall
 		# skärpa de vapen man samlat in på kort."* Tills verkstaden finns står det rakt ut här i
