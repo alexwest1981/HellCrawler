@@ -168,7 +168,7 @@
  "ui.hud.logg.ingen": "aucun",
  "ui.by.plats.avsluta": "QUITTER",
  "ui.by.status.quit": "quitter le jeu",
- "ui.map.hint_editor": "glisser le nœud · flèches = ajuster · S = enregistrer · E = terminé",
+ "ui.map.hint_editor": "glisser le nœud · flèches = ajuster · Z = annuler · S = enregistrer · E = terminé",
  "ui.map.pick": "CHOISIR NIVEAU",
  "ui.map.levels": "%d niveaux",
  "ui.map.cleared": "%d terminés",

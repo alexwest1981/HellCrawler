@@ -168,7 +168,7 @@
  "ui.hud.logg.ingen": "无",
  "ui.by.plats.avsluta": "退出",
  "ui.by.status.quit": "退出游戏",
- "ui.map.hint_editor": "拖动节点 · 方向键 = 微调 · S = 保存 · E = 完成",
+ "ui.map.hint_editor": "拖动节点 · 方向键 = 微调 · Z = 撤销 · S = 保存 · E = 完成",
  "ui.map.pick": "选择等级",
  "ui.map.levels": "%d 等级",
  "ui.map.cleared": "%d 已通关",

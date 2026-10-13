@@ -198,7 +198,7 @@
  "ui.hud.logg.ingen": "none",
  "ui.by.plats.avsluta": "QUIT",
  "ui.by.status.quit": "leave the game",
- "ui.map.hint_editor": "drag the node · arrows = fine-tune · S = save · E = done",
+ "ui.map.hint_editor": "drag the node · arrows = fine-tune · Z = undo · S = save · E = done",
  "ui.map.pick": "PICK LEVEL",
  "ui.map.levels": "%d levels",
  "ui.map.cleared": "%d cleared",

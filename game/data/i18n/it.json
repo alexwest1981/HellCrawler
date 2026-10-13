@@ -168,7 +168,7 @@
  "ui.hud.logg.ingen": "nessuno",
  "ui.by.plats.avsluta": "ESCI",
  "ui.by.status.quit": "esci dal gioco",
- "ui.map.hint_editor": "trascina il nodo · frecce = regola · S = salva · E = fine",
+ "ui.map.hint_editor": "trascina il nodo · frecce = regola · Z = annulla · S = salva · E = fine",
  "ui.map.pick": "SCEGLI LIVELLO",
  "ui.map.levels": "%d livelli",
  "ui.map.cleared": "%d completati",

@@ -168,7 +168,7 @@
  "ui.hud.logg.ingen": "ninguém",
  "ui.by.plats.avsluta": "SAIR",
  "ui.by.status.quit": "sair do jogo",
- "ui.map.hint_editor": "arraste o nó · setas = ajustar · S = salvar · E = pronto",
+ "ui.map.hint_editor": "arraste o nó · setas = ajustar · Z = desfazer · S = salvar · E = pronto",
  "ui.map.pick": "ESCOLHER NÍVEL",
  "ui.map.levels": "%d níveis",
  "ui.map.cleared": "%d concluídos",

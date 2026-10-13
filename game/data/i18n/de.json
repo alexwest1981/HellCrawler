@@ -168,7 +168,7 @@
  "ui.hud.logg.ingen": "keine",
  "ui.by.plats.avsluta": "BEENDEN",
  "ui.by.status.quit": "Spiel beenden",
- "ui.map.hint_editor": "Knoten ziehen · Pfeile = feinjustieren · S = speichern · E = fertig",
+ "ui.map.hint_editor": "Knoten ziehen · Pfeile = feinjustieren · Z = rückgängig · S = speichern · E = fertig",
  "ui.map.pick": "STUFE WÄHLEN",
  "ui.map.levels": "%d Stufen",
  "ui.map.cleared": "%d geschafft",

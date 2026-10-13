@@ -168,7 +168,7 @@
  "ui.hud.logg.ingen": "nikt",
  "ui.by.plats.avsluta": "WYJDŹ",
  "ui.by.status.quit": "wyjdź z gry",
- "ui.map.hint_editor": "przeciągnij węzeł · strzałki = dostrój · S = zapisz · E = gotowe",
+ "ui.map.hint_editor": "przeciągnij węzeł · strzałki = dostrój · Z = cofnij · S = zapisz · E = gotowe",
  "ui.map.pick": "WYBIERZ POZIOM",
  "ui.map.levels": "%d poziomów",
  "ui.map.cleared": "%d ukończonych",

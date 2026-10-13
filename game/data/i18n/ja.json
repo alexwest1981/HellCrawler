@@ -168,7 +168,7 @@
  "ui.hud.logg.ingen": "なし",
  "ui.by.plats.avsluta": "終了",
  "ui.by.status.quit": "ゲームを終了",
- "ui.map.hint_editor": "ノードをドラッグ · 矢印 = 微調整 · S = 保存 · E = 完了",
+ "ui.map.hint_editor": "ノードをドラッグ · 矢印 = 微調整 · Z = 元に戻す · S = 保存 · E = 完了",
  "ui.map.pick": "レベルを選ぶ",
  "ui.map.levels": "%d レベル",
  "ui.map.cleared": "%d クリア",

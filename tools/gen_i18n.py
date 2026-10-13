@@ -2225,9 +2225,17 @@ def check() -> int:
                 avvikande.append("%s (%s mot %s)" % (
                     k, " ".join(platshallare(str(fil[k]))), " ".join(platshallare(str(källa[k])))))
         egna = sum(1 for k in nycklar if k in källa and str(fil[k]) != str(källa[k]))
-        if extra or saknade or tomma or avvikande:
+        # FILEN SKA VARA GENERATORNS EGEN UTGÅNG. Kontrollerna här ser nycklar, tomma värden och
+        # platshållare — en handredigering av en genererad RAD gick rakt igenom dem (mätt: Z-ledtråden
+        # skrevs för hand i sv.json, `--check` var grön, och nästa körning av generatorn skrev bort
+        # raden igen). En genererad fil är generatorns utdata, inte ett dokument: jämför hela texten.
+        drift = Path(f).read_text() != json.dumps(build(kod), ensure_ascii=False, indent=1) + "\n"
+        if extra or saknade or tomma or avvikande or drift:
             fel += 1
-            print("  %-8s FEL extra: %s  tomma: %s" % (kod, sorted(extra)[:4], tomma[:4]))
+            print("  %-8s FEL extra: %s  tomma: %s%s" % (
+                kod, sorted(extra)[:4], tomma[:4],
+                "  filen skiljer sig från generatorns utdata — kör `tools/gen_i18n.py`, rör aldrig en "
+                "genererad rad för hand" if drift else ""))
             # Skillnaden mot svenska, nyckel för nyckel: en nyckel som saknas är en tom ruta i
             # gränssnittet, och den syntes inte här innan (kontrollen såg bara påhittade nycklar).
             if saknade:

@@ -168,7 +168,7 @@
  "ui.hud.logg.ingen": "없음",
  "ui.by.plats.avsluta": "종료",
  "ui.by.status.quit": "게임 종료",
- "ui.map.hint_editor": "노드 끌기 · 화살표 = 미세 조정 · S = 저장 · E = 완료",
+ "ui.map.hint_editor": "노드 끌기 · 화살표 = 미세 조정 · Z = 실행 취소 · S = 저장 · E = 완료",
  "ui.map.pick": "레벨 선택",
  "ui.map.levels": "%d 레벨",
  "ui.map.cleared": "%d 완료",
