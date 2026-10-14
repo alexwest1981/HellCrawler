@@ -247,6 +247,10 @@ func _svara_pa_kortval(run: Run, kompetent: bool) -> void:
 			return
 
 ## Grov rangordning av ett kortval för autospelaren: skada först, sedan rustning, sedan mana.
+## ETT KORT SOM STANNAR I SPEL ÄR VÄRT MER ÄN SIN ENGÅNGSSIFFRA (M119): det lägger sin effekt på bordet
+## och reagerar `duration` gånger till, alltså 1 + duration verkan. Utan den raden värderade den
+## "kompetenta" policyn den nya mekaniken som alla andra kort, och mätningen hade dömt den för att
+## provets egen spelare inte begrep den — samma fälla som regel 3 i autospelaren.
 func _styrka(kort) -> float:
 	if kort == null:
 		return -1.0
@@ -261,7 +265,7 @@ func _styrka(kort) -> float:
 				v += float(e.get("amount", 0)) * 4.0
 			"heal":
 				v += float(e.get("amount", 0)) * 3.0
-	return v
+	return v * (1.0 + float(kort.duration))
 
 ## Vilken ratt flyttar mest? En ratt i taget mot basen (HEAD), samma frön och samma startlek, och BÅDA
 ## policies — frågan är inte bara "blir det svårare" utan "blir det svårare för den som klickar

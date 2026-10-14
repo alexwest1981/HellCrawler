@@ -17,6 +17,15 @@ class Card extends RefCounted:
 	var rarity: String = "common"
 	var effects: Array = []        # [{op, ...}, ...]
 	var keywords: Array = []       # ["Destroy", "Evolved", "Return", ...]
+	## Referensens flagga per kort (`ReceivesComboMultiplier`): false = kortet får ingen
+	## kedjemultiplikator, hur väl kedjan än ligger. Kedjan själv räknas ändå vidare.
+	var receives_combo: bool = true
+	## Referensens Crawlers: kortet STANNAR i spel och triggar sina effekter `duration` gånger innan
+	## det lämnar ("Crawlers trigger 2 more abilities before leaving"). 0 = vanligt engångskort.
+	var duration: int = 0
+	## Vad i spel som får kortet att trigga: en KORTTYP ("mana", "attack", "item", "crawler").
+	## Tom sträng = varje spelat kort.
+	var trigger: String = ""
 	var text: String = ""          # visas på kortet; tom = genereras ur effekterna
 
 	func is_wild() -> bool:
@@ -55,6 +64,12 @@ class Card extends RefCounted:
 			# ("kw.evolved"): uppslaget MÅSTE gemenas, annars faller varje nyckelord tillbaka på
 			# engelska på kortet — i alla 13 språk (mätt: 3 nyckelord × 13 språk var döda).
 			parts.append(Tr.t("kw." + str(k).to_lower(), str(k)))
+		# BETEENDET SYNS PÅ KORTET (M119): flaggorna är data, men en spelare som inte kan läsa dem kan
+		# inte välja mellan korten. Samma väg som nyckelorden — en nyckel per språk, ingen ny rad kod.
+		if duration > 0:
+			parts.append(Tr.t("kw.stannar", "stannar %d turer (på %s)") % [duration, trigger])
+		if not receives_combo:
+			parts.append(Tr.t("kw.nocombo", "utan kedja"))
 		return ", ".join(parts)
 
 	static func from_dict(d: Dictionary) -> Card:
@@ -68,6 +83,9 @@ class Card extends RefCounted:
 		c.rarity = str(d.get("rarity", "common"))
 		c.effects = d.get("effects", [])
 		c.keywords = d.get("keywords", [])
+		c.receives_combo = bool(d.get("receives_combo", true))
+		c.duration = int(d.get("duration", 0))
+		c.trigger = str(d.get("trigger", ""))
 		c.text = str(d.get("text", ""))
 		return c
 

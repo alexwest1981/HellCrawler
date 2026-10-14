@@ -11347,6 +11347,15 @@ func _on_card(index: int) -> void:
 			_logga(Tr.t("ui.hud.logg.spelat", "%s spelas") % kort.title(), Palett.c(23))
 		var träffad := _enemy_reaktion(r.multiplier)
 		_attack_fx(kort, träffad, r.multiplier)     # figuren visar vad siffrorna redan gjort
+		# KOMPANJONERNA I SPEL KVITTERAS SOM KORTET (M119): reaktionerna är samma rapportform som
+		# kortets eget slag, så loggen kan inte säga något annat än bordet gjorde.
+		for t in r.triggered:
+			var namn: String = Tr.name_of("card", str(t.card_id), str(t.card_id))
+			if t.damage > 0.0:
+				_logga(Tr.t("ui.hud.logg.reagerar_skada", "%s reagerar: %.0f skada") % [namn, t.damage],
+					Palett.c(11))
+			else:
+				_logga(Tr.t("ui.hud.logg.reagerar", "%s reagerar") % namn, Palett.c(23))
 	_end_or_continue()
 
 func _on_play_all() -> void:

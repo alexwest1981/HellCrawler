@@ -209,7 +209,7 @@ byggs.
 | # | Referensen | Vi (mätt) | Ändringen | Grinden som bevisar den | Status |
 |---|---|---|---|---|---|
 | A | Svårigheten bor **på kartan**: varje ruta får en svårighetsgrad ur en kurva (`CalculatePathDifficulties`), och mötet väljer fiender i ett spann kring den (`EncounterTemplate.EnemySelectionRule[,]` med `Min/MaxEnemyVariance`) | Per bana + per våning — varje rum i en våning hade samma form | En svårighetsgrad per rum, härledd ur avståndet från starten med spridning ur våningens frö; den styr antal fiender, HP och skada | Spridningen i tagen skada ökar *inom* en bana; slumpens andel faller utan att autospelarens gör det | **byggd** |
-| B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | planerad |
+| B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | **halvbyggd**: flaggan per kort finns och mäts; relicen som låser upp kedjan är kvar |
 | C | **Belöningarna är strypta**: `RewardProbability` per kort, `CardLimit` per kortgrupp, Reroll/Skip/Banish | Fler fiender = fler kort = **lättare**. Mätt: `fiender=3` gav slumpen **+20 pp** | Kortvalet på sannolikhet (under 1) och/eller trögare XP-kurva | Ny grindrad: "fler fiender får inte göra banan lättare" | **prövad, nedlagd** (se nedan) |
 | D | **Gratis är inte gratis**: 0-kostnadskort är Crawlers med Duration, eller wilds som förstörs | 18 kort på kostnad 0 ligger kvar; startleken har 4×`lash` (12 skada utan villkor) och **6 mana-positiva** kort (`ember_tome` 1→+2, `hourglass` 3→+5) | Duration/Destroy på gratiskorten (nyckelorden finns redan i 7 kort), eller mananeutrala tomtar | Gratiskortens andel av spelade kort faller; manan slutar gå plus | planerad |
 | E | Fienden **telegraferar**, spelaren väljer mål | Ingen målväljning i maskinen. Mätt: att styra skadan mot främre raden gjorde det *sämre* (överkill — gissning, inte mätt) | Intents och överspill, eller uttalat målval i vyn | En policy som väljer mål bra ska slå en som väljer dåligt | planerad |
@@ -231,6 +231,36 @@ byggs.
   den mäter provet bara att kurvan FINNS, inte att den är värd något. Mätt: **rutten klarar 17 av 60 mot
   autospelarens 10** — kartans svårighet går att agera på, och det är hela poängen med att lägga den där.
 
+### B, halvbyggd och mätt (M119)
+
+Referensen har två saker här: multiplikatorn sitter **per kort** (`ReceivesComboMultiplier`) och hela
+kedjan är något man **hittar** (relicen Combo Stack). Den första är byggd. Den andra är kvar, och
+mätningen säger varför den inte är gratis att lägga in.
+
+- **Flaggan per kort:** `receives_combo` i kortets data. Ett flaggat kort tar ingen multiplikator — men
+  behåller sin PLATS i stegen, så kortet efter får det steg det gav. `tests/test_kort_beteende.gd` mäter
+  båda halvorna (×1 på kortet, ×4 på kortet efter). Spelaren ser flaggan på kortet ("utan kedja").
+- **Den breda regeln prövades och förkastades:** först flaggades ALLA kort med rå skada ≥ 150 (sex kort).
+  Mätt: slumpen 5 → 2 och rutten 17 → 6 av 60, stage_02 och stage_03 till 0–5 % för alla policies.
+  Startlekens enda avslutare är `bell` (195 för 2 mana) — utan dess multiplikator kan decken inte döda
+  bossarna. Regeln är därför **stort OCH sällsynt** (fyra kort: `grave_choir`, `the_long_winter`,
+  `shrouded_bell`, `frost_bell`), alltså de kort som DYRT dyker upp ur en draft och avgör en körning på
+  tur. Provet grindar regeln åt båda hållen, inklusive att `bell` och `emberstorm` behåller kedjan.
+- **Talet efter:** slump 5, autospelaren 11, rutten 15 av 60 (25 %, 3,0× slumpen). Grindarna är gröna,
+  men kvoten ligger PRECIS på sin gräns (minst 3,0) — nästa ändring som rör startleken ska mätas innan
+  den får ligga.
+- **Crawlers som STANNAR** (`duration` + `trigger` i kortets data): kortet går in i spel i stället för i
+  kast-högen, reagerar när spelaren spelar den korttyp det reagerar på, och lämnar bordet efter
+  `duration` reaktioner — referensens *"Crawlers trigger 2 more abilities before leaving"*, där deras
+  exempel är exakt vårt ("heal when a blue card is played"). Två kompanjoner använder det: `tarboy`
+  (på mana) och `cleric_of_light` (på attacker), båda 2 turer. Autospelaren fick regel 7: inom samma
+  kostnad går ett kort som stannar först.
+- **FYNDET: mekaniken går inte att mäta i balansmätaren.** Kompanjonerna kommer in via kistor och
+  kortval i metan, aldrig via nivåuppgångens draft (`progress.gd` säger det rakt ut), så mätarens lekar
+  innehåller aldrig ett kort som stannar. Att göra den mätbar kräver antingen en lek i mätaren med en
+  kompanjon i, eller att kompanjonerna också kan komma ur draften. Provet `test_kort_beteende.gd` visar
+  att mekaniken FUNGERAR; hur den BALANSERAR på sikt är omätt.
+
 ### C, prövad och nedlagd (M118)
 
 Ratten `xp_per_extra` (XP för fiende 2, 3 … i samma möte) sattes först till 0,25 för att mötet — inte
@@ -241,6 +271,6 @@ spelaren något annat att vara bra på. Ratten står kvar på 1,0 med mätningen
 inversionen är borta ändå — det var RUMMETS PACKET som tog bort den (`fiender=3` straffar nu i stället
 för att belöna).
 
-Ordningen de tas i är inte tabellordningen: **C** prövades först och lades ned, **A** är byggd, sedan **B**
-(störst känsloförändring, rör regler, kort och vy), sedan **D** (kortdata är Alex' konst) och sist **E**
-(ny mekanik i striden).
+Ordningen de tas i är inte tabellordningen: **C** prövades först och lades ned, **A** är byggd, **B** är
+halvvägs (flaggan per kort är byggd och mätt, relicen som låser upp kedjan är kvar), sedan **D** (kortdata
+är Alex' konst) och sist **E** (ny mekanik i striden).

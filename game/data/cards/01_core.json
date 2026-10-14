@@ -26,6 +26,6 @@
 
   {"id": "hourglass",     "name": "Hourglass",     "cost": 3, "type": "mana",   "rarity": "rare",      "effects": [{"op": "mana", "amount": 5}, {"op": "draw", "amount": 2}]},
   {"id": "black_lantern", "name": "Black Lantern", "cost": 3, "type": "item",   "rarity": "rare",      "effects": [{"op": "armor", "amount": 20}, {"op": "heal", "amount": 10}]},
-  {"id": "grave_choir",   "name": "Grave Choir",   "cost": 4, "type": "attack", "rarity": "rare",      "effects": [{"op": "damage", "damage": 90, "hits": 3}]},
-  {"id": "the_long_winter","name": "The Long Winter","cost": 4,"type": "attack","rarity": "rare",      "keywords": ["Evolved"], "effects": [{"op": "damage", "damage": 120, "hits": 2}, {"op": "freeze", "amount": 2, "hits": 3}]}
+  {"id": "grave_choir",   "name": "Grave Choir",   "cost": 4, "type": "attack", "receives_combo": false, "rarity": "rare",      "effects": [{"op": "damage", "damage": 90, "hits": 3}]},
+  {"id": "the_long_winter","name": "The Long Winter","cost": 4,"type": "attack","receives_combo": false,"rarity": "rare",      "keywords": ["Evolved"], "effects": [{"op": "damage", "damage": 120, "hits": 2}, {"op": "freeze", "amount": 2, "hits": 3}]}
 ]

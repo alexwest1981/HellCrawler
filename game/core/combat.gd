@@ -43,6 +43,9 @@ class PlayResult extends RefCounted:
 	var gold := 0                     ## guld ur en ädelsten (girigstenen), läggs på körningen
 	var mana := 0                     ## mana gained from card effects
 	var hp := 0                       ## hp healed by card effects
+	## Vad KOMPANJONERNA I SPEL gjorde av det här kortet (M119): en rapport per reaktion, i samma form
+	## som kortets egen, så UI:t kan kvittera dem likadant och testerna mäta dem.
+	var triggered: Array = []
 
 # --- staten -----------------------------------------------------------------
 var rng: RandomNumberGenerator
@@ -71,6 +74,9 @@ var draw_pile: Array = []
 var hand: Array = []
 var discard_pile: Array = []
 var exile_pile: Array = []
+## Kompanjonerna som STANNAR i spel (M119): [{kort: Card, kvar: int}]. Ett kort med `duration > 0`
+## hamnar här i stället för i kast- eller exilhögen, och reagerar på det spelaren spelar.
+var field: Array = []
 var enemies: Array = []
 
 var mana := 0
@@ -88,6 +94,7 @@ func begin(deck: Array, enemy_list: Array) -> void:
 	hand.clear()
 	discard_pile.clear()
 	exile_pile.clear()
+	field.clear()
 	enemies = enemy_list
 	combo = 0
 	last_cost = Rules.NO_CARD_YET
@@ -156,6 +163,11 @@ func play(index: int, target: Enemy = null) -> PlayResult:
 	if not continuing:
 		combo_used = 0
 		r.broke_chain = true
+	# KEDJAN GÅR ATT VÄGRA (M119, referensens `ReceivesComboMultiplier` per kort): några kort får ingen
+	# multiplikator hur väl kedjan än ligger. Kortet vägrar sin EGEN multiplikator — steget i kedjan
+	# räknas ändå vidare, för nästa kort.
+	if not card.receives_combo:
+		combo_used = 0
 
 	r.combo = combo_used
 	r.multiplier = Rules.damage_multiplier(combo_used)
@@ -172,12 +184,43 @@ func play(index: int, target: Enemy = null) -> PlayResult:
 	if not card.is_wild():
 		last_cost = card.cost
 	hand.remove_at(index)
-	if card.keywords.has("Destroy"):
+	if card.duration > 0:
+		# KORTET STANNAR (M119). Referensens Crawlers ligger kvar i spel och gör sitt när spelaren gör
+		# det de reagerar på ("Deal 40 damage [...] when a purple card is played"), och lämnar efter
+		# `duration` sådana gånger. Ett kort i spel hamnar varken i kast- eller exilhögen — det står på
+		# bordet, och ligger kvar där striden varar.
+		field.append({"kort": card, "kvar": card.duration})
+	elif card.keywords.has("Destroy"):
 		exile_pile.append(card)
 	else:
 		discard_pile.append(card)
+	r.triggered = _reagera_i_spel(card)
 	r.ok = true
 	return r
+
+## Kompanjonerna i spel reagerar på kortet som just spelades (M119). Effekterna går genom SAMMA väg som
+## ett spelat kort (`_apply_effects`), men utan kedjemultiplikator: de är redan betalda en gång, och
+## kedjan hör till korten på handen. Varje reaktion räknas ner, och vid noll lämnar kortet bordet.
+## Ett kort som just gick in i spel reagerar inte på sig självt.
+func _reagera_i_spel(spelat: Cards.Card) -> Array:
+	var ut := []
+	for i in range(field.size() - 1, -1, -1):
+		var post: Dictionary = field[i]
+		var kort: Cards.Card = post["kort"]
+		if kort == spelat:
+			continue
+		if not kort.trigger.is_empty() and kort.trigger != spelat.card_type:
+			continue
+		var rr := PlayResult.new()
+		rr.card_id = kort.id
+		rr.ok = true
+		rr.damage = _apply_effects(kort, 0, null, rr)
+		post["kvar"] = int(post["kvar"]) - 1
+		if int(post["kvar"]) <= 0:
+			field.remove_at(i)
+			discard_pile.append(kort)
+		ut.append(rr)
+	return ut
 
 ## Avsluta turen: fienden slår (främre raden först), sedan ny tur.
 func end_turn() -> Array:
@@ -258,6 +301,7 @@ func enemy_hp_percent() -> float:
 ##   4. wild kort används bara som bro när inget annat kort kan spelas
 ##   5. spela aldrig Destroy-kort automatiskt (de är engångsresurser spelaren vill behålla)
 ##   6. spela aldrig ett kort som saknar manakostnad kvar att betala
+##   7. inom SAMMA kostnad går ett kort som STANNAR i spel först (det betalar igen nästa tur)
 ##
 ## REGEL 3 ÄR MÄTT IN (14/10): förut STANNADE autospelaren vid första glappet och lämnade både mana och
 ## kort ospelade. I en mätning klarade slumppolicyn 8 % av körningarna och solvern 2 % — den var alltså
@@ -309,7 +353,10 @@ func _basta_kort(maste_fortsatta: bool) -> int:
 			continue
 		if not maste_fortsatta and card.cost == last_cost and last_cost != Rules.NO_CARD_YET:
 			continue                     # samma steg bryter kedjan utan att höja den
-		var key := [card.cost, HandView.role(card), card.name]
+		# Kostnaden är FÖRST (kedjan är en stigande trappa), och inom samma kostnad går ett kort som
+		# stannar i spel före ett engångskort: det lägger sin effekt på bordet och betalar igen nästa
+		# tur. Regeln står överst i avsnittet (regel 7).
+		var key := [card.cost, 0 if card.duration > 0 else 1, HandView.role(card), card.name]
 		if best < 0 or _less(key, best_key):
 			best = i
 			best_key = key
