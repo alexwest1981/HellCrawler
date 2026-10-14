@@ -29,7 +29,7 @@ tabellen nedan. Det här dokumentet är sammanställningen; paketets egen fil ä
 | 32rogues | Seth Boyles | egen licens, **får ej vidaredistribueras** | **nej — undantagen** | (utanför repot) |
 | 400 Sounds Pack | okänd upphovsman | ingen licensfil hittad | **nej — utanför git** | — se nedan |
 | Horror SFX Free | okänd upphovsman | ingen licensfil hittad | **nej — utanför git** | — se nedan |
-| Item icons (1244 st, 16x16) | okänd upphovsman | ingen licensfil hittad | ja (med förbehåll) | — se nedan |
+| Item icons (1244 st, 16x16) | okänd upphovsman | ingen licensfil hittad | **nej — utanför git** | — se nedan |
 
 Tröskeln är repots publika läge: **den som får ligga här måste licensen tillåta det.** Ett paket
 vars licens förbjuder vidaredistribution ligger utanför git men används ändå i spelet — och tackas
@@ -153,16 +153,16 @@ för det. Ett tack är inte samma sak som vidaredistribution.
 De tre paketen nedan kom utan `license.txt`/`README`. Alex uppger att de är hämtade från itch.io
 under en free-licens. Den uppgiften räcker för att **använda** dem i spelet, men den är ingen
 licenstext — och utan en licenstext finns inget som tillåter vidaredistribution, vilket är precis vad
-ett publikt repo är. **Ljuden togs därför ur git 14/10** (regeln står i `.gitignore`, i samma form som
-32rogues-regeln): filerna ligger kvar på disk och spelet använder dem, men de publiceras inte.
-Underlaget står skrivet i paketets `KÄLLA.txt` så att det går att ändra i efterhand. Ikonpaketet
-ligger kvar i repot med förbehållet att Alex' uppgift är hela underlaget.
+ett publikt repo är. **Alla tre togs därför ur git 14/10** (reglerna står i `.gitignore`, i samma form
+som 32rogues-regeln): filerna ligger kvar på disk och spelet använder dem, men de publiceras inte.
+Underlaget står skrivet i paketets `KÄLLA.txt` så att det går att ändra tillbaka i efterhand om källan
+kan beläggas.
 
 | Paket | Mapp | I repot | Vad som ligger där |
 |---|---|---|---|
 | 400 Sounds Pack | `game/assets/tredjepart/ljud_400/` | **nej — utanför git** | 400 wav i nio underkataloger (Card and Board, Weapons, …) |
 | Horror SFX Free | `game/assets/tredjepart/ljud_horror/` | **nej — utanför git** | 149 wav i sex underkataloger (Ambient, Monsters & Ghosts, …) — **en fil är utelämnad**, se nedan |
-| Item icons | `game/assets/tredjepart/ikoner_1244/` | ja (med förbehåll) | 1244 png, 16x16 |
+| Item icons | `game/assets/tredjepart/ikoner_1244/` | **nej — utanför git** | 1244 png, 16x16 |
 
 **En fil är utelämnad ur Horror SFX Free:** `Ambient/Suburban Neighborhood_morning.wav`,
 141,6 MB (2 kanaler, 48 kHz, 16 bit, 773 s). GitHub tar inte emot en fil över 100 MB, så
