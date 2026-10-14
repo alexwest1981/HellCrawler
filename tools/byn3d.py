@@ -15,17 +15,25 @@ HUSEN BYGGS UR BILDEN (M-ny). Förr var varje hus en generisk låda med en takpl
 fönster, och alla stod dörr i dörr. Alex: *"De skall spridas ut, men behöver även modelleras så de
 ser ut som på bilden."* Nu kommer formen ur husets EGNA ruta i byn.png:
 
-  * SILHUETTEN: för varje kolumn i husets ruta mäts husets överkant mot himlen/bakgrunden (den
-    första raden nedifrån sett uppåt som inte är himmel, dis eller blek himmel). Konturen
-    kvantiseras till NIVÅER höjdsteg, och varje sammanhängande kolumnremsa blir ett rätblock per steg
-    — taklutning, tillbyggnader, torn och skorstenar sitter då där bilden visar dem, för de ÄR
-    bildens kontur. En smal, hög remsa blir en skorsten; en låg remsa vid sidan blir en tillbyggnad.
+  * SILHUETTEN: för varje kolumn i husets ruta mäts husets överkant mot himlen — den första raden i
+    en SAMMANHÄNGANDE husmassa (MIN_SOLID px i rad). Utan den raden blev dis och molnkanter i himlen
+    en falsk skorsten (mätt: smedjans ruta hade 1-33 lösryckta "huspixlar" per rad 130 px över taket).
+  * HÖJDSTEGEN ÄR EN MÄTNING, inte en konstant: konturen kvantiseras till ett steg per STEG_PIXLAR
+    källpixlar i husets EGEN höjd. Förr var stegen 8, och då blev ett steg 111 px — en spetsig gavel
+    med nock kunde inte ritas: taket blev platt, kroppen för bred och skorstenen nådde inte över
+    nocken fast konsten visar den där. Ett rätblock per kolumnremsa och steg blir då tusentals lådor,
+    så rutnätet (kolumn × steg) slås ihop till så få rätblock som möjligt — i sidled, i höjdled och
+    mellan grannar vars färger ligger inom FÄRG_TOL. Samma princip som spelets Voxel._stäng:
+    silhuetten ska bli REN, inte en randig trappa.
   * FÄRGEN: varje rätblock färgas av de pixlar det täcker i bilden (närmaste palettfärg i
-    palette.json). Bilden är INTE palettindexerad (mätt: 249 141 unika färger, 0 % exakta
-    palettpixlar, 2,1 % inom |Δ|<10), så färgen är en NÄRMASTE träff, inte ett uppslag.
-  * DETALJERNA: dörren läggs där bilden är som mörkast i husets nederkant, fönstren där bilden är
-    ljus i väggen — mätt, inte gissat. Torn/skorsten kommer ur silhuetten (se ovan). Skylten
-    (skyltbrädan) sitter på fasaden; ässja, tunnor, tinnar, baner och facklor är ORDBOKEN från
+    palette.json), mätt över ett grovt block. Bilden är INTE palettindexerad (mätt: 249 141 unika
+    färger, 0 % exakta palettpixlar, 2,1 % inom |Δ|<10), så färgen är en NÄRMASTE träff över ett
+    block — pixel för pixel blev fasaden ränder av bildens brus.
+  * DETALJERNA: dörren sitter där bilden är som MÖRKAST i husets nederkant och är så bred och så hög
+    som bilden visar; skylten sitter där väggen är som LJUSAST mellan dörren och takfoten (mätt: förr
+    satt den på 78 % av höjden, nära taket, oavsett bilden). Torn och skorstenar kommer ur
+    silhuetten. Ett DJUP per hus: annars blir varje remsa sin egen platta ut mot gatan och huset en
+    färgpelare i stället för en fasad. Ässja, tunnor, tinnar, baner och facklor är ORDBOKEN från
     Alex' referensbyggnad, men färgerna är palettens.
 
 SPRIDNINGEN: husen står på EN gata i PLATSER:s ordning med luft mellan sig — luften är 0,55 av
@@ -39,10 +47,13 @@ träden 15). Utan det står husen mot en tom himmel.
 FORMSPRÅKET: bara rätblock, inga rundningar, inga avfasningar, inga högdetaljerade modeller — samma
 platåiga voxelstil som spelets egen grafik.
 
-UTFILER: game/assets/by/byn.glb (mesharna, importerbar i Godot), en renderad stillbild av hela byn
-och en NÄRBILD på ett hus bredvid dess egen bildyta. Provet `-- --kolla` håller räkningen i kontroll
-(ytor = 6 * antal lådor), mäter att inga hus' x-intervall skär varandra och faller hellre än skriver
-en tom fil.
+UTFILER: game/assets/by/byn.glb (mesharna, importerbar i Godot), en renderad stillbild av hela byn,
+en helhetsbild från spelets EGEN vinkel (ortografiskt rakt framifrån, se FRONTKAMERA) och en NÄRBILD
+på ett hus bredvid dess egen bildyta. Provet `-- --kolla` håller räkningen i kontroll (ytor = 6 *
+antal lådor), mäter att inga hus' x-intervall skär varandra, RENDERAR varje hus framifrån och mäter
+modellens tak mot husets EGEN överkant i bilden (medel och störst, i bildpixlar, och riktningarna var
+för sig) — och faller om dörren saknas eller drunknar i väggen, om skorstenen inte når över nocken
+där bilden visar en skorsten, eller om skylten sitter mer än ett höjdsteg fel.
 """
 
 from __future__ import annotations
@@ -66,6 +77,10 @@ BYBILD = ROOT / "game" / "assets" / "ui" / "byn.png"
 GLB = ROOT / "game" / "assets" / "by" / "byn.glb"
 BILD = Path.home() / ".hermes" / "cache" / "scratch" / "omd" / "byn3d.png"
 NÄRBILD = Path.home() / ".hermes" / "cache" / "scratch" / "omd" / "byn3d_nara.png"
+## Spelets EGEN vinkel: 2.5D-konsten är ritad RAKT FRAMIFRÅN, så det är den vyn Alex känner igen sin
+## by i. Ortografiskt, med referensens egna kameratal (plats, rotation, ortho_scale).
+FRONTBILD = Path.home() / ".hermes" / "cache" / "scratch" / "omd" / "byn_front.png"
+FRONTKAMERA = ((0.5, -22.0, 3.6), 1.5009831190109253, 34.0)
 
 ## Den bredaste platsen (smedjan, 550 px) blir så här bred i världen. 1 bildpixel = 0,0109 enheter.
 BREDASTE_HUS = 6.0
@@ -74,10 +89,36 @@ BREDASTE_HUS = 6.0
 MELLANRUM = 0.55
 ## Husets djup som andel av dess bredd. Sidovyn säger ingenting om djupet: det är designat.
 DJUP = 0.50
-## Hur många höjdsteg bildens kontur kvantiseras till. Fler steg = trognare kontur, fler lådor.
-NIVÅER = 8
-## En kolumnremsa som är smalare än så här (andel av husets bredd) smälts in i grannen.
-MIN_REMSA = 0.035
+## Ett höjdsteg per så här många KÄLLPIXLAR i husets egen höjd. Det är en mätning av vad källan
+## försvarar (1-3 px), inte en konstant: de gamla 8 stegen gav 111 px per steg på smedjan.
+STEG_PIXLAR = 2.0
+## Färgen mäts i block: FÄRGBAND_PX pixlar i höjdled och FÄRG_BLOCK av husets bredd i sidled. Bilden
+## är brusig (249 141 unika färger), så en pixel-trogen färg blir ränder i stället för en vägg.
+FÄRGBAND_PX = 24
+FÄRG_BLOCK = 0.10
+## Två grannblock vars palettfärger ligger närmare varandra än så här (8-bitars kanalavstånd) är
+## SAMMA yta. Utan toleransen blir rutnätet randigt och huset en färgpelare.
+FÄRG_TOL = 26
+## Silhuetten: en kolumns överkant räknas först när så här många huspixlar ligger i rad — annars blir
+## dis och molnkanter i himlen en falsk skorsten.
+MIN_SOLID = 6
+## Dörren: den mörkaste sektionen i husets nederkant. Söks i DÖRR_BAND (av husets höjd), är DÖRR_ANDEL
+## av husets bredd och får inte bli högre än DÖRR_HÖJD_MAX av husets höjd.
+DÖRR_BAND = 0.30
+DÖRR_ANDEL = 0.16
+DÖRR_HÖJD_MAX = 0.55
+## Skylten: den LJUSASTE sektionen i väggen mellan dörren och takfoten — aldrig nära taket.
+SKYLT_BAND = (0.30, 0.78)
+SKYLT_HÖJD = 0.10
+SKYLT_ANDEL = 0.30
+## Modellens kontur ska följa bildens inom så här många BILDPIXLAR (källans egen upplösning). Ett
+## tak som ligger mer än så UNDER bildens kontur är ett fel; det är den här raden som fäller en för
+## grov kvantisering (mätt: 8 fasta höjdsteg gav 56-132 px under).
+KONTUR_PX = 3.0
+## Rätblocken följer bildens kontur inom ett par höjdsteg. En UTSMYCKNING (tinne, skyltbräda) sitter
+## ovanpå och får sticka upp med högst så här mycket av husets höjd — utan undantaget hade portens
+## tinnar fällt provet trots att kroppen sitter rätt, för tinnar sitter PÅ taket.
+UTSMYCKNING = 0.04
 ## Bakgrundsfamiljer i paletten: himmel/blågrått, skogsgrönt och blekt (moln/dis). Det som ligger
 ## ovanför huset och hör till himlen eller åsen bakom.
 FÄRG_HIMMEL = 26
@@ -139,6 +180,11 @@ def färg(palett: list, i: int) -> tuple[int, int, int]:
     return palett[max(0, min(len(palett) - 1, i))]
 
 
+def ljushet(c) -> float:
+    """Upplevd ljushet i en palettfärg (samma vikter som bildens luminans)."""
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+
 def linjär(c8: tuple[int, int, int]) -> tuple[float, float, float]:
     """8-bitars sRGB → linjärt (Blender räknar i linjärt ljus, palettens tal är sRGB)."""
 
@@ -175,8 +221,30 @@ class Bild:
         # ligger i samma färgfamilj som taken (gråbrun/skiffer), så himlen kan inte skiljas från
         # huset med enbart ljushet — blåheten är det som skiljer.
         self.bakgrund = ((b > g) & (g >= r) & (b - r > 15)) | (rgb.min(axis=2) > 168)
-        self.mörk = rgb.max(axis=2) < 88
-        self.ljus = (rgb.min(axis=2) > 168) & ~self.bakgrund
+        # Ljusheten per pixel. Detaljerna (dörr, skylt) mäts mot husets EGEN ljushet och inte mot ett
+        # fast tal: bildens hus ligger på median 74-89 av 255, så "mörk" med fast tröskel blev ett
+        # slumpmässigt urval av kolumner i stället för den mörka sektionen.
+        self.luminans = 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+    def topprader(self, y0: int, gata: int, x0: int, x1: int,
+                  min_solid: int = MIN_SOLID) -> np.ndarray:
+        """Husets överkant per kolumn: första raden i en SAMMANHÄNGANDE husmassa (min_solid rader).
+
+        Mätt: smedjans ruta hade 1-33 lösryckta "huspixlar" per rad ända upp i rutans överkant (dis
+        och molnkanter som inte är blå nog att kännas igen som himmel). Utan kravet på sammanhang
+        blev de en falsk skorsten så hög som hela rutan. Kolumner utan hus alls får gata (profil 0).
+        """
+        m = ~self.bakgrund[y0:gata, x0:x1]
+        löp = np.zeros(m.shape, dtype=np.int32)
+        nästa = np.zeros(m.shape[1], dtype=np.int32)
+        for rad_i in range(m.shape[0] - 1, -1, -1):
+            nästa = (nästa + 1) * m[rad_i]
+            löp[rad_i] = nästa
+        klar = löp >= min_solid
+        har = klar.any(axis=0)
+        ut = np.full(m.shape[1], gata, dtype=np.int32)
+        ut[har] = klar.argmax(axis=0)[har] + y0
+        return ut
 
     def närmast_palett(self, palett_np: np.ndarray, ruta: tuple) -> np.ndarray:
         """Närmaste palettindex per pixel i en ruta (y0, y1, x0, x1). Kastar hellre än gissar."""
@@ -206,89 +274,298 @@ def medianfiltra(v: np.ndarray, halv: int) -> np.ndarray:
 # ------------------------------------------------------------------ mätningen av ett hus
 
 
-def mät_hus(p: dict, bild: Bild, palett_np: np.ndarray, hus_topp: float, gata_procent: float) -> dict:
-    """Husets mått ur dess EGEN ruta i byn.png: bredd, kontur per kolumn och färg per höjdband."""
+def mät_hus(p: dict, bild: Bild, palett_np: np.ndarray, hus_topp: float, gata_procent: float,
+            tvinga_steg: int = 0) -> dict:
+    """Husets mått ur dess EGEN ruta i byn.png: bredd, kontur per kolumn, dörr, skylt och färger.
+
+    `tvinga_steg` finns bara för NEGATIVTESTET (--bryt tak): det tvingar fram det gamla felet, 8 fasta
+    höjdsteg, så att provet kan visas bita.
+    """
     x0 = int(round(bild.bredd * p["x0"] / 100.0))
     x1 = int(round(bild.bredd * p["x1"] / 100.0))
     y0 = int(round(bild.höjd * hus_topp / 100.0))
     gata = int(round(bild.höjd * gata_procent / 100.0))
     if x1 - x0 < 8:
         raise SystemExit("FEL: %s har en ruta på %d px" % (p["id"], x1 - x0))
-    # 1) SILHUETTEN: första raden ovanifrån som inte är bakgrund, per kolumn.
-    topp = np.full(x1 - x0, gata, dtype=int)
-    for c in range(x0, x1):
-        k = np.nonzero(~bild.bakgrund[y0:gata, c])[0]
-        if k.size:
-            topp[c - x0] = y0 + int(k[0])
-    topp = medianfiltra(topp, 10)               # ±10 px: en fågel eller ett moln får inte bli ett torn
-    profil = (gata - topp).astype(int)          # husets höjd över gatan, i px, per kolumn
-    # 2) HÖJDSTEGEN: kvantisera konturen. Ett steg är en sjättedel av husets egen höjd.
-    steg = max(1.0, float(profil.max()) / NIVÅER)
-    nivå = np.clip(np.round(profil / steg), 1, NIVÅER).astype(int)
-    # 3) REMSOR: slå ihop korta remsor med grannen till vänster (en 3 px spik är ingen tillbyggnad).
-    remsor: list[list[int]] = []
-    for i in range(nivå.size):
-        if remsor and remsor[-1][2] == nivå[i]:
-            remsor[-1][1] = i
-        else:
-            remsor.append([i, i, int(nivå[i])])
-    min_px = max(4, int(MIN_REMSA * (x1 - x0)))
-    ren: list[list[int]] = []
-    for a, b, n in remsor:
-        if (b - a + 1) < min_px and ren:
-            ren[-1][1] = b                     # smält in i grannen: behåll grannens nivå
-        else:
-            ren.append([a, b, n, n])
-    # 4) FÄRGEN per band: de pixlar bandet täcker i bilden, matchade mot paletten.
-    idx = bild.närmast_palett(palett_np, (y0, gata, x0, x1))
-    idx = idx.reshape(gata - y0, x1 - x0)
-    bandfärg: dict[tuple[int, int, int], int] = {}
-    for a, b, n, _ in ren:
-        for L in range(1, n + 1):
-            ra = max(0, (gata - y0) - int(L * steg))
-            rb = max(1, (gata - y0) - int((L - 1) * steg))
-            region = idx[ra:rb, a:b + 1].ravel()
-            egna = region[~np.isin(region, list(FÄRG_BAKGRUND))]
-            if egna.size == 0:
-                egna = region
-            bandfärg[(a, b, L)] = int(np.bincount(egna).argmax()) if egna.size else int(p["färg"])
-    # 5) DETALJER: dörr (mörkt i nederkanten), fönster (ljust i väggen), skylt (ljust/guld högt).
+    bredd, rutt = x1 - x0, gata - y0
+    # 1) SILHUETTEN: husets överkant per kolumn (en sammanhängande massa, se Bild.topprader).
+    topp = medianfiltra(bild.topprader(y0, gata, x0, x1), 10)   # ±10 px: en fågel blir inget torn
+    profil = (gata - topp).astype(int)                          # höjden över gatan, i px, per kolumn
     höjd = int(profil.max())
-    mörkreg = bild.mörk[y0:gata, x0:x1]
-    ljusreg = bild.ljus[y0:gata, x0:x1]
-    dörrband = mörkreg[max(0, (gata - y0) - int(0.30 * höjd)):, :]
-    dörr = _kluster(dörrband, 0.45, max(6, int(0.04 * (x1 - x0))))
-    fönsterband = ljusreg[max(0, (gata - y0) - int(0.80 * höjd)):max(1, (gata - y0) - int(0.30 * höjd)), :]
-    fönster = _kluster(fönsterband, 0.25, max(6, int(0.05 * (x1 - x0))))[:3]
-    skyltband = ljusreg[max(0, (gata - y0) - int(1.0 * höjd)):max(1, (gata - y0) - int(0.80 * höjd)), :]
-    skylt = _kluster(skyltband, 0.30, max(6, int(0.06 * (x1 - x0))))
+    if höjd < 40:
+        raise SystemExit("FEL: %s har bara %d px hus över gatan" % (p["id"], höjd))
+    # 2) HÖJDSTEGEN ÄR EN MÄTNING: ett steg per STEG_PIXLAR källpixlar i husets EGEN höjd.
+    antal = tvinga_steg or max(2, int(round(höjd / STEG_PIXLAR)))
+    steg = höjd / antal
+    nivå = np.clip(np.round(profil / steg), 1, antal).astype(int)
+    # 3) FÄRGEN per kolumn och höjdsteg, mätt i grova block, och rutnätet slaget ihop till rätblock.
+    idx = bild.närmast_palett(palett_np, (y0, gata, x0, x1)).reshape(rutt, bredd)
+    färgkort = _färgkort(bild.px[y0:gata, x0:x1], idx, palett_np, antal, steg, bredd, rutt)
+    rutor = _rätblock(nivå, färgkort, palett_np)
+    # 4) DETALJERNA: dörren (mörkast i nederkanten) och skylten (ljusast i väggen, inte vid taket).
+    ljus = bild.luminans[y0:gata, x0:x1]
+    inne = np.zeros((rutt, bredd), dtype=bool)                   # husets egen massa, inte himlen
+    for c in range(bredd):
+        inne[rutt - profil[c]:, c] = True
+    dörr, dörrfärg, dörr_kand, dörr_vägg = _dörren(ljus, inne, idx, bredd, höjd, rutt, p["färg"], palett_np)
+    if dörr:
+        # Dörren ska inte smälta in i KROPPENS rätblock den ligger an mot (mätt: skylten låg 8 av 255
+        # från blocket under sig och försvann i renderingen). Bildens väggfärg intill räcker inte som
+        # mått — färgen väljs om mot blocken under dörrens ruta.
+        dörrfärg = _skild_färg(palett_np, dörr_kand,
+                               [dörr_vägg] + _rutor_bak(rutor, dörr[0], dörr[1], 0,
+                                                        int(round(dörr[2] / steg))), mörkast=True)
+    skylt = _skylten(ljus, inne, idx, bredd, höjd, rutt, dörr, palett_np, profil)
+    skyltfärg = skylt[1] if skylt else FÄRG_SKYLT
+    if skylt:
+        sk, sk_kand, sk_vägg = skylt[0], skylt[2], skylt[3]
+        band = max(8, int(round(SKYLT_HÖJD * höjd)))
+        skyltfärg = _skild_färg(palett_np, sk_kand,
+                                [sk_vägg] + _rutor_bak(rutor, sk[0], sk[1],
+                                                       int((sk[2] - band / 2) / steg),
+                                                       int((sk[2] + band / 2) / steg)), mörkast=False)
+    skylt = skylt[0] if skylt else None
     return {
         "x0_px": x0, "x1_px": x1, "y0_px": y0, "gata_px": gata,
-        "bredd_px": x1 - x0, "höjd_px": höjd,
+        "bredd_px": bredd, "höjd_px": höjd,
         "topp_px": topp.tolist(), "profil_px": profil.tolist(),
-        "remsor": ren, "bandfärg": bandfärg, "steg_px": steg,
-        "dörr": dörr, "fönster": fönster, "skylt": skylt,
+        "rutor": rutor, "antal_steg": antal, "steg_px": steg,
+        "dörr": dörr, "dörrfärg": dörrfärg, "dörr_bild": dörr[2] if dörr else 0,
+        "skylt": skylt, "skyltfärg": skyltfärg, "skylt_bild": skylt[2] if skylt else 0,
+        "skorsten": _skorstenen(profil, höjd, bredd),
         "färger": _dominanta(idx, 6),
     }
 
 
-def _kluster(reg: np.ndarray, andel: float, min_px: int) -> list[tuple[int, int]]:
-    """Sammanhängande kolumnremsor där en andel av raderna är markerade. (x-led, i rutan.)"""
-    if reg.size == 0 or reg.shape[0] == 0:
-        return []
-    kol = reg.mean(axis=0) >= andel
-    ut: list[tuple[int, int]] = []
+def _färgkort(px_rut: np.ndarray, idx: np.ndarray, palett_np: np.ndarray, antal: int, steg: float,
+              bredd: int, rutt: int) -> np.ndarray:
+    """Palettindex per höjdsteg och kolumn, mätt i grova block (FÄRGBAND_PX × FÄRG_BLOCK).
+
+    Färgen är det VANLIGASTE palettindexet i blocket, utan bakgrundsfärgerna. Mätt pixel för pixel
+    blev fasaden ränder av bildens brus (249 141 unika färger, 2,1 % inom |Δ|<10 av paletten).
+    Ett block som BARA består av himmelsfärger (bildens bleka torn och tak ligger i samma familj som
+    himlen) får den närmaste palettfärgen UTANFÖR familjen — annars byggdes de i himlens egen färg
+    och försvann mot himlen i renderingen (mätt: smedjans torn saknades i renderingen).
+    """
+    block = max(4, int(FÄRG_BLOCK * bredd))
+    band = max(1, int(math.ceil(antal * steg / FÄRGBAND_PX)))
+    bandfärg = np.empty((band, bredd), dtype=np.int32)
+    förbjudna = list(FÄRG_BAKGRUND)
+    for b_i in range(band):
+        rb = rutt - int(b_i * FÄRGBAND_PX)
+        ra = max(0, rutt - int((b_i + 1) * FÄRGBAND_PX))
+        ra = min(ra, rb - 1)
+        rad = idx[ra:rb, :]
+        for c in range(0, bredd, block):
+            c2 = min(bredd, c + block)
+            cell = rad[:, c:c2].ravel()
+            egna = cell[~np.isin(cell, förbjudna)]
+            if egna.size >= max(4, 0.10 * cell.size):
+                bandfärg[b_i, c:c2] = int(np.bincount(egna).argmax())
+            else:
+                medel = px_rut[ra:rb, c:c2].reshape(-1, 3).mean(axis=0)
+                d = ((palett_np - medel) ** 2).sum(axis=1)
+                d[förbjudna] = 10 ** 9
+                bandfärg[b_i, c:c2] = int(d.argmin())
+    # varje höjdsteg hör till bandet kring sin egen mitt
+    nivåband = np.array([min(band - 1, int(((L + 0.5) * steg) / FÄRGBAND_PX)) for L in range(antal)])
+    return bandfärg[nivåband]
+
+
+def _nära(f1: int, f2: int, palett_np: np.ndarray, tol: int = FÄRG_TOL) -> bool:
+    """Är två palettindex SAMMA yta? Nära nog räknas som samma färg — bruset ska inte bli ränder."""
+    return int(np.abs(palett_np[f1] - palett_np[f2]).max()) <= tol
+
+
+def _rätblock(nivå: np.ndarray, färgkort: np.ndarray, palett_np: np.ndarray) -> list[tuple]:
+    """Rutnätet (kolumn × höjdsteg) → så få rätblock som möjligt.
+
+    Rad för rad (nedifrån) slås celler med samma färg ihop i sidled, och en remsa med EXAKT samma
+    x-intervall och färg som remsan under växer i höjdled i stället för att bli en ny låda. Samma
+    princip som spelets Voxel._stäng: grannar med samma färg ska bli EN yta, inte en randig trappa —
+    ett hus med 450 höjdsteg blev annars tusentals smålådor. Returnerar (a, b, nivå0, nivå1, färg).
+    """
+    bredd = nivå.size
+    klara: list[list[int]] = []
+    öppna: dict[tuple[int, int], list[int]] = {}
+    for r in range(färgkort.shape[0]):
+        nya: dict[tuple[int, int], list[int]] = {}
+        c = 0
+        while c < bredd:
+            if nivå[c] <= r:                      # huset är lägre här: ingen cell
+                c += 1
+                continue
+            f0 = int(färgkort[r, c])
+            e = c + 1
+            while e < bredd and nivå[e] > r and _nära(f0, int(färgkort[r, e]), palett_np):
+                e += 1
+            nyckel = (c, e - 1)
+            gammal = öppna.pop(nyckel, None)
+            if gammal is not None and _nära(gammal[4], f0, palett_np):
+                gammal[3] = r                     # samma remsa som under → väx uppåt
+                nya[nyckel] = gammal
+            else:
+                if gammal is not None:
+                    klara.append(gammal)
+                nya[nyckel] = [c, e - 1, r, r, f0]
+            c = e
+        klara += list(öppna.values())             # remsor som inte fortsätter uppåt
+        öppna = nya
+    klara += list(öppna.values())
+    return [(a, b, r0, r1, f) for a, b, r0, r1, f in klara]
+
+
+def _skild_färg(palett_np: np.ndarray, kandidater: list, vägg, mörkast: bool) -> int:
+    """Den mörkaste/ljusaste av kandidaterna — och som SYNS mot väggfärgen/färgerna intill.
+
+    En dörr med palettens mörka rakt av drunknade i en lika mörk vägg (mätt: 0 av 255 i skillnad):
+    färgen ska vara bildens OCH skilja sig från fasaden den sitter på, annars syns detaljen inte.
+    `vägg` får vara en färg eller en LISTA av färger (kroppens rätblock under detaljen).
+    """
+    if not kandidater:
+        kandidater = list(range(palett_np.shape[0]))
+    mot = [int(v) for v in ([vägg] if isinstance(vägg, (int, np.integer)) else list(vägg))]
+    for i in sorted(kandidater, key=lambda i2: ljushet(palett_np[i2]), reverse=not mörkast):
+        if not any(_nära(i, v, palett_np) for v in mot):
+            return i
+    return max(range(palett_np.shape[0]),
+               key=lambda i2: min(int(np.abs(palett_np[i2] - palett_np[v]).max()) for v in mot))
+
+
+def _rutor_bak(rutor: list, ka: int, kb: int, r0: int, r1: int) -> list[int]:
+    """Färgerna på de rätblock i KROPPEN som en detalj ligger an mot.
+
+    Bildens väggfärg intill är inte samma sak som kroppens blockfärg: mätt låg smedjans skylt 8 av
+    255 från blocket under sig och försvann i renderingen, trots att den skilde sig från bildens vägg.
+    """
+    return sorted({f for a, b, p0, p1, f in rutor if a <= kb and b >= ka and p0 <= r1 and p1 >= r0})
+
+
+def _dörren(ljus: np.ndarray, inne: np.ndarray, idx: np.ndarray, bredd: int, höjd: int, rutt: int,
+            fallback: int, palett_np: np.ndarray) -> tuple:
+    """Dörren: den MÖRKASTE sektionen i husets nederkant — mätt, inte satt på en fast höjd.
+
+    Tröskeln är husets EGEN ljushet i bandet (bildens hus ligger på median 74-89 av 255, så ett fast
+    tal gav en slumpmässig kolumn). Höjden är överkanten på den mörka massan i den kolumnsektionen —
+    MÄTT: den nedersta raden är markens skugga, inte dörren, så mörkret räknas ovanför den.
+    Returnerar ((a, b, överkant_px), palettindex).
+    """
+    band = min(rutt, max(8, int(round(DÖRR_BAND * höjd))))
+    sektion = max(6, int(round(DÖRR_ANDEL * bredd)))
+    if sektion >= bredd:
+        sektion = max(4, bredd // 2)
+    under = ljus[rutt - band:, :]
+    under_inne = inne[rutt - band:, :]
+    if not under_inne.any():
+        return None, FÄRG_DÖRR
+    mask = np.where(under_inne, under, np.nan)
+    kolm = np.nanmean(mask, axis=0)
+    kolm = np.where(np.isnan(kolm), np.nanmax(kolm), kolm)
+    medel = np.convolve(kolm, np.ones(sektion) / sektion, mode="valid")
+    a = int(np.argmin(medel))
+    b = a + sektion - 1
+    tröskel = float(np.median(kolm))
+    # rad 0 i bandet är överkanten (band px över gatan), band-1 är marken.
+    mörka = np.nan_to_num(np.nanmean(mask[:, a:b + 1], axis=1), nan=1e9) < tröskel
+    topp = 0
+    i = band - 1
+    while i >= 0:
+        if mörka[i]:
+            j = i
+            while j >= 0 and mörka[j]:
+                j -= 1
+            if i - j >= 3:                       # en riktig massa, inte en enstaka rad
+                topp = band - j                  # överkanten, i px över gatan
+                break
+            i = j - 1
+            continue
+        i -= 1
+    topp = int(min(max(topp, 0.10 * höjd), DÖRR_HÖJD_MAX * höjd))
+    # färgen: den mörkaste palettfärgen i rutan, men SKILD från väggen intill.
+    region = idx[rutt - topp:rutt, a:b + 1].ravel()
+    u, n = np.unique(region, return_counts=True)
+    kandidater = [int(i2) for i2, n2 in zip(u, n) if n2 >= max(3, 0.05 * region.size)]
+    sidor = np.concatenate([
+        idx[rutt - topp:rutt, max(0, a - 2 * sektion):a].ravel(),
+        idx[rutt - topp:rutt, b + 1:min(bredd, b + 1 + 2 * sektion)].ravel()])
+    if sidor.size == 0:
+        sidor = region
+    vägg = int(np.bincount(sidor).argmax())
+    return (a, b, topp), _skild_färg(palett_np, kandidater or [fallback], vägg, mörkast=True), \
+        (kandidater or [fallback]), vägg
+
+
+def _skylten(ljus: np.ndarray, inne: np.ndarray, idx: np.ndarray, bredd: int, höjd: int, rutt: int,
+             dörr, palett_np: np.ndarray, profil: np.ndarray) -> tuple | None:
+    """Skylten: den LJUSASTE sektionen i väggen mellan dörren och takfoten.
+
+    Mätt ur bilden: det band (SKYLT_HÖJD av husets höjd) i SKYLT_BAND vars ljusaste femtedel är
+    ljusast, och inom bandet den bredaste ljusa kolumnsektionen (SKYLT_ANDEL av husets bredd). Förr
+    satt skylten på 78 % av husets höjd, tätt under taket, oavsett var bilden visar den.
+    Returnerar (a, b, höjd_px, färg) med höjden i bandets mitt, i px över gatan.
+    """
+    dtopp = dörr[2] if dörr else int(0.25 * höjd)
+    band = max(8, int(round(SKYLT_HÖJD * höjd)))
+    under = int(max(dtopp, SKYLT_BAND[0] * höjd))
+    bästa = None
+    while under + band <= SKYLT_BAND[1] * höjd:
+        ra, rb = rutt - (under + band), rutt - under
+        egna = ljus[ra:rb, :][inne[ra:rb]]
+        if egna.size:
+            p = float(np.percentile(egna, 90))
+            if bästa is None or p > bästa[0]:
+                bästa = (p, under)
+        under += max(2, band // 3)
+    if bästa is None:
+        return None
+    under = bästa[1]
+    ra, rb = rutt - (under + band), rutt - under
+    kolm = np.clip(np.where(inne[ra:rb], ljus[ra:rb], 0.0).max(axis=0), 0.0, None)
+    sektion = min(bredd, max(6, int(round(SKYLT_ANDEL * bredd))))
+    a = 0 if sektion >= bredd else int(np.argmax(np.convolve(
+        kolm, np.ones(sektion) / sektion, mode="valid")))
+    b = a + sektion - 1
+    # Skylten får inte skjuta upp över taket i sina EGNA kolumner (mätt: smedjans skylt låg 15 px över
+    # bildens kontur vid takfoten och syntes som en platta tvärs över taket).
+    mitt = min(under + band // 2, int(profil[a:b + 1].min()) - band // 2)
+    mitt = max(mitt, int(0.12 * höjd))
+    # färgen: den ljusaste palettfärgen i rutan, men skild från väggen UNDER — annars syns inte skylten.
+    under_ra = max(0, ra - band)
+    väggyta = idx[under_ra:ra, a:b + 1].ravel()
+    vägg = int(np.bincount(väggyta).argmax()) if väggyta.size else 0
+    region = idx[ra:rb, a:b + 1].ravel()
+    u, n = np.unique(region, return_counts=True)
+    kandidater = [int(i2) for i2, n2 in zip(u, n) if n2 >= max(3, 0.03 * region.size)]
+    return (a, b, mitt), _skild_färg(palett_np, kandidater, vägg, mörkast=False), kandidater, vägg
+
+
+def _skorstenen(profil: np.ndarray, höjd: int, bredd: int) -> tuple | None:
+    """Var bilden visar en skorsten: en smal kolumnremsa som sticker upp över taket runtomkring.
+
+    Returnerar (a, b, topp_px, nock_px): kolumnerna, hur högt skorstenen når och hur högt taket
+    runtomkring ligger. Visar bilden ingen skorsten blir det None — då ställer provet inget krav.
+    """
+    fönster = max(5, int(0.25 * bredd))
+    med = np.array([np.median(profil[max(0, c - fönster):c + fönster + 1]) for c in range(bredd)])
+    höga = profil > med + max(20.0, 0.10 * höjd)
+    bästa = None
     a = -1
-    for i, v in enumerate(kol):
+    for i in range(bredd + 1):
+        v = bool(höga[i]) if i < bredd else False
         if v and a < 0:
             a = i
         elif not v and a >= 0:
-            if i - a >= min_px:
-                ut.append((a, i))
+            if (i - a) < 0.6 * bredd and (bästa is None or
+                                          profil[a:i].max() > profil[bästa[0]:bästa[1]].max()):
+                bästa = (a, i)
             a = -1
-    if a >= 0 and len(kol) - a >= min_px:
-        ut.append((a, len(kol)))
-    return sorted(ut, key=lambda t: t[0] - t[1])
+    if bästa is None:
+        return None
+    a, b = bästa
+    runtom = np.concatenate([profil[max(0, a - fönster):a], profil[b:b + fönster]])
+    if runtom.size == 0:
+        return None
+    return (a, b, int(profil[a:b].max()), int(round(np.median(runtom))))
 
 
 def _dominanta(idx: np.ndarray, antal: int) -> list[tuple[int, int]]:
@@ -384,55 +661,90 @@ def gör_objekt(bygge: Bygge, palett: list, samling) -> "bpy.types.Object":
 # ------------------------------------------------------------------ byggnaderna ur bilden
 
 
-def bygg_hus(p: dict, mått: dict, palett: list, skala: float, x_mitt: float, botten: float) -> Bygge:
-    """Ett hus: bildens kontur som staplade rätblock, bildens färger, dörr och fönster där de sitter."""
+def _kroppen(bygge: Bygge, mått: dict, skala: float, x_mitt: float, botten: float) -> None:
+    """Husets KROPP: rutnätet ur bilden, slaget ihop till rätblock (se _rätblock).
+
+    ETT djup per hus: blev varje rätblock sin egen platta ut mot gatan blev fasaden en trappa av
+    fenor och huset en färgpelare i stället för en huskropp. Kroppen byggs också för sig själv (se
+    --kolla): då kan provet rendera huset MED och UTAN detaljer och se att dörren och skylten syns.
+    """
     b = mått["bredd_px"] * skala
     d = DJUP * b
-    bygge = Bygge("hus_" + p["id"])
     steg = mått["steg_px"] * skala
-    # KROPPEN: en stapel per kolumnremsa och höjdsteg — konturen blir trappad, aldrig en slät låda.
-    for a, bb, n, _ in mått["remsor"]:
+    for a, bb, r0, r1, fi in mått["rutor"]:
         bredd = (bb - a + 1) * skala
         cx = x_mitt - b / 2.0 + (a + (bb - a + 1) / 2.0) * skala
-        # Ett smalt, högt torn är smalare på djupet än en bred kropp (annars blir det en platta).
-        djup = min(d, max(0.45, DJUP * bredd))
-        for L in range(1, n + 1):
-            fi = mått["bandfärg"].get((a, bb, L), FÄRG_SKYLT)
-            bygge.låda((cx, 0.0, botten + (L - 0.5) * steg), (bredd, djup, steg), fi)
-    # DÖRREN: där bilden är som mörkast i husets nederkant (annars mitt på fasaden).
-    fram = -d / 2.0 - 0.05
+        z0, z1 = botten + r0 * steg, botten + (r1 + 1) * steg
+        bygge.låda((cx, 0.0, (z0 + z1) / 2.0), (bredd, d, z1 - z0), fi)
+
+
+def _utan_detalj(pl: dict, mått: dict, palett: list, skala: float, hoppa: str,
+                 samling: "bpy.types.Collection", sökväg: Path) -> np.ndarray:
+    """Samma hus utan EN detalj (dörren eller skylten), i samma kamera.
+
+    Provet jämför den renderingen med huset med allt: skillnaden ÄR detaljen. En detalj som inte
+    byggdes, eller som gömmer sig inne i ett block, ger ingen skillnad alls — då faller provet.
+    """
+    sparat = {nyckel: mått.get(nyckel) for nyckel in ("dörr_byggd", "skylt_byggd")}
+    mått[hoppa] = True
+    variant = bygg_hus(pl, mått, palett, skala, mått["x_mitt"], 0.0)
+    mått.pop(hoppa)
+    mått.update(sparat)
+    return hus_framifrån(mått, gör_objekt(variant, palett, samling), sökväg)[0]
+
+
+def bygg_hus(p: dict, mått: dict, palett: list, skala: float, x_mitt: float, botten: float) -> Bygge:
+    """Ett hus: bildens kontur som staplade rätblock, bildens färger, dörr och skylt där de sitter."""
+    b = mått["bredd_px"] * skala
+    d = DJUP * b
     höjd = mått["höjd_px"] * skala
+    bygge = Bygge("hus_" + p["id"])
+    _kroppen(bygge, mått, skala, x_mitt, botten)
+    fram = -d / 2.0 - 0.05      # 0,05 utanför fasaden: aldrig två ytor i samma plan (z-fighting)
     hus_a, hus_b = x_mitt - b / 2.0, x_mitt + b / 2.0
-    if mått["dörr"]:
-        a, bb = mått["dörr"][0]
-        dx = x_mitt - b / 2.0 + (a + bb) / 2.0 * skala
-        dbredd = max(0.5, (bb - a) * skala)
+    # DÖRREN: mätt ur bilden — den mörkaste sektionen i nederkanten, med sin EGEN bredd och höjd.
+    if mått.get("hoppa_dörr"):
+        topp_px = 0.0           # NEGATIVTEST (--bryt dörr): ingen dörr alls
+        mått["dörr_byggd"] = None
     else:
-        dx, dbredd = x_mitt, max(0.5, b * 0.20)
-    bygge.låda((_innanför(dx, dbredd, hus_a, hus_b), fram, botten + höjd * 0.16),
-               (min(dbredd, b), 0.12, höjd * 0.32), FÄRG_DÖRR)
-    # FÖNSTREN: där bilden är ljus i väggen (annars två symmetriska).
-    if mått["fönster"]:
-        for a, bb in mått["fönster"]:
-            fx = x_mitt - b / 2.0 + (a + bb) / 2.0 * skala
-            fbredd = max(0.35, (bb - a) * skala)
-            bygge.låda((_innanför(fx, fbredd, hus_a, hus_b), fram, botten + höjd * 0.52),
-                       (min(fbredd, b), 0.12, höjd * 0.16), FÄRG_FÖNSTER)
-    else:
-        for dx_ in (-0.28, 0.28):
-            bygge.låda((x_mitt + b * dx_, fram, botten + höjd * 0.52),
-                       (b * 0.16, 0.12, höjd * 0.16), FÄRG_FÖNSTER)
-    # SKYLTEN: en bräda på fasaden där bilden är ljus högt upp (annars över dörren).
+        if mått["dörr"]:
+            a, bb, topp_px = mått["dörr"]
+            dx = x_mitt - b / 2.0 + (a + (bb - a + 1) / 2.0) * skala
+            dbredd = max(0.5, (bb - a + 1) * skala)
+        else:
+            dx, dbredd, topp_px = x_mitt, max(0.5, b * 0.20), 0.32 * mått["höjd_px"]
+        dbredd = min(dbredd, b)
+        dxk = _innanför(dx, dbredd, hus_a, hus_b)
+        bygge.låda((dxk, fram, botten + topp_px * skala / 2.0),
+                   (dbredd, 0.12, topp_px * skala), mått["dörrfärg"])
+        # Bygget redovisar VAR dörren hamnade (kolumner i husets egen ruta) och hur hög den blev:
+        # provet mäter synligheten på den byggda rutan, inte på den mätta (den kläms in i huset).
+        mått["dörr_byggd"] = (int(round((dxk - dbredd / 2.0 - hus_a) / skala)),
+                              int(round((dxk + dbredd / 2.0 - hus_a) / skala)), topp_px)
+    # SKYLTEN: mätt ur bilden — den ljusaste sektionen i väggen mellan dörren och takfoten.
     if mått["skylt"]:
-        a, bb = mått["skylt"][0]
-        sx = x_mitt - b / 2.0 + (a + bb) / 2.0 * skala
-        sbredd = max(0.5, (bb - a) * skala)
+        sa, sb, sho = mått["skylt"]
+        sx = x_mitt - b / 2.0 + (sa + (sb - sa + 1) / 2.0) * skala
+        sbredd = max(0.5, (sb - sa + 1) * skala)
     else:
-        sx, sbredd = x_mitt, max(0.5, b * 0.55)
-    bygge.låda((_innanför(sx, sbredd, hus_a, hus_b), fram - 0.08, botten + höjd * 0.78),
-               (min(sbredd, b), 0.10, höjd * 0.12), FÄRG_SKYLT)
+        sx, sbredd, sho = x_mitt, max(0.5, b * 0.55), 0.62 * mått["höjd_px"]
+    sh = max(0.10, SKYLT_HÖJD * höjd)
+    sbredd = min(sbredd, b)
+    sxk = _innanför(sx, sbredd, hus_a, hus_b)
+    if not mått.get("hoppa_skylt"):
+        bygge.låda((sxk, fram - 0.08, botten + sho * skala), (sbredd, 0.10, sh), mått["skyltfärg"])
+        mått["skylt_byggd"] = (int(round((sxk - sbredd / 2.0 - hus_a) / skala)),
+                               int(round((sxk + sbredd / 2.0 - hus_a) / skala)), sho)
+    else:
+        mått["skylt_byggd"] = None
+    # FÖNSTREN: två symmetriska i väggen under skylten. Bildens fönster går inte att mäta: de ljusa
+    # pixlarna ligger i samma familj som himlen och blir bakgrund i Bild.bakgrund.
+    fz = botten + 0.5 * (topp_px * skala + sho * skala)
+    for dx_ in (-0.28, 0.28):
+        bygge.låda((x_mitt + b * dx_, fram, fz),
+                   (b * 0.16, 0.12, max(0.20, höjd * 0.16)), FÄRG_FÖNSTER)
     # PLATSENS EGET: ordboken från referensen, färgerna ur paletten.
-    bygge = _saken(p, bygge, x_mitt, b, d, höjd, botten)
+    bygge = _saken(p, bygge, x_mitt, b, d, höjd, botten, mått["profil_px"], skala)
     return bygge
 
 
@@ -447,7 +759,8 @@ def _innanför(x: float, bredd: float, hus_a: float, hus_b: float) -> float:
     return min(max(x, hus_a + halv), hus_b - halv)
 
 
-def _saken(p: dict, bygge: Bygge, x: float, b: float, d: float, h: float, botten: float) -> Bygge:
+def _saken(p: dict, bygge: Bygge, x: float, b: float, d: float, h: float, botten: float,
+           profil: list, skala: float) -> Bygge:
     """Ässja, tunnor, tinnar, facklor, baner, tygrullar, städ — det som skiljer platserna åt."""
     sak = SAKER.get(p["id"], {}).get("sak", "")
     fram = -d / 2.0
@@ -469,11 +782,19 @@ def _saken(p: dict, bygge: Bygge, x: float, b: float, d: float, h: float, botten
             dlåda(b * dx, fram - 0.45 - 0.12 * i, h * 0.10, (b * 0.10, b * 0.10, h * 0.20), 16)
         dlåda(0.0, fram - 0.06, h * 0.30, (b * 0.34, 0.12, h * 0.22), 13)
     elif sak == "port":
-        # PORTEN: tinnar (krenelering) längs taket, facklor och två baner.
-        steg = max(0.30, b * 0.07)
-        n = max(3, int(b / (steg * 2.2)))
+        # PORTEN: tinnar (krenelering) längs taket, facklor och två baner. Tinnarna sitter PÅ taket
+        # där bildens kontur går — och i den LÄGSTA punkten inom sin egen bredd. En fast höjd lade dem
+        # 62 px över bildens kontur vid portens hörn (en platta tvärs över taket), och att följa bara
+        # mittenkolumnen lämnade 63 px över vid kanten där taket sluttar. Tinnens egen höjd är det
+        # enda den får sticka upp med.
+        tinnbredd = max(0.30, b * 0.07)
+        n = max(3, int(b / (tinnbredd * 2.2)))
+        halv = max(1, int(tinnbredd / 2.0 / skala))
         for i in range(n):
-            dlåda(-b / 2.0 + b * (i + 0.5) / n, 0.0, h * 0.98, (steg, d * 0.5, h * 0.06), 22)
+            kx = -b / 2.0 + b * (i + 0.5) / n
+            kol = int(min(len(profil) - 1, max(0, (kx + b / 2.0) / skala)))
+            tak = min(profil[max(0, kol - halv):kol + halv + 1]) * skala
+            dlåda(kx, 0.0, tak + h * 0.015, (tinnbredd, d * 0.5, h * 0.03), 22)
         for dx, fi in ((-0.34, 11), (0.34, 25)):
             dlåda(b * dx, fram - 0.05, h * 0.62, (b * 0.10, 0.10, h * 0.16), 13)
             dlåda(b * dx, fram - 0.02, h * 0.80, (b * 0.14, 0.06, h * 0.22), fi)
@@ -495,6 +816,28 @@ def _saken(p: dict, bygge: Bygge, x: float, b: float, d: float, h: float, botten
         bygge.låda((x, fram - 0.20, botten + h * 0.52), (b * 0.90, 0.16, h * 0.12), 24)
         bygge.låda((x, fram - 0.28, botten + h * 0.52), (b * 0.70, 0.04, h * 0.08), 14)
     return bygge
+
+
+def bryt_provet(mått: list, vad: str) -> None:
+    """NEGATIVTEST: bryt med flit mot EN regel så att `--kolla` MÅSTE falla (se `--bryt`).
+
+    Varje rad gör exakt det som ett prov ska fånga, och används för att visa att provet biter:
+      tak      — 8 fasta höjdsteg (det gamla felet; sätts i mät_hus),
+      dörr     — ingen dörr byggs (`hoppa_dörr`),
+      skylt    — skylten sätts på 78 % av höjden, nära taket (den gamla fasta höjden),
+      skorsten — taket kapas vid nocken, så inget torn når över.
+    """
+    for m in mått:
+        if vad == "dörr":
+            m["hoppa_dörr"] = True
+        elif vad == "skylt":
+            if m["skylt"]:
+                a, b, _ = m["skylt"]
+                m["skylt"] = (a, b, int(0.78 * m["höjd_px"]))
+        elif vad == "skorsten":
+            nock = int(m["skorsten"][3] / m["steg_px"]) if m["skorsten"] else m["antal_steg"]
+            m["rutor"] = [(a, b, r0, min(r1, nock - 1), f)
+                          for a, b, r0, r1, f in m["rutor"] if r0 < nock]
 
 
 def dela_ut(mått: list, skala: float, mellanrum: float = MELLANRUM) -> list[tuple[float, float]]:
@@ -525,6 +868,11 @@ def bygg_mark(x0: float, x1: float, palett: list) -> Bygge:
     längd = x1 - x0
     mitt = (x0 + x1) / 2.0
     mark.låda((mitt, 6.0, -0.30), (längd + 26.0, 30.0, 0.60), FÄRG_GRÄS)          # gräset bakom
+    # UNDERLAGET: spelets EGEN vy är ortografisk rakt framifrån (se FRONTKAMERA), och där ser kameran
+    # också UNDER gatans nivå. Utan den här plattan syntes ett tomt hål under marken (mätt: nedersta
+    # femtedelen av frontbilden var himmel). Den går fram till kameran och ned under bildrutan, och
+    # möter gräset kant mot kant (överkant -0,6 = gräsets underkant) så inga ytor hamnar i samma plan.
+    mark.låda((mitt, -15.0, -8.3), (längd + 26.0, 12.0, 15.4), FÄRG_GRÄS)
     mark.låda((mitt, -0.6, -0.15), (längd + 10.0, 9.0, 0.30), FÄRG_MARK)          # jorden
     mark.låda((mitt, -1.4, 0.02), (längd + 8.0, 4.6, 0.10), FÄRG_GATA)            # kullerstensgatan
     mark.låda((mitt, 0.9, 0.06), (längd + 8.0, 0.30, 0.16), FÄRG_MUR)             # trottoarkanten
@@ -686,6 +1034,29 @@ def rendera(bild: Path) -> None:
     bpy.ops.render.render(write_still=True)
 
 
+def rendera_front(bild: Path) -> None:
+    """Helhetsbilden från spelets EGEN vinkel: ortografiskt rakt framifrån (FRONTKAMERA).
+
+    Den sneda bilden ovanifrån visar byn som modell; den här visar den som spelet ser den (2.5D-konsten
+    är ritad rakt framifrån), och från den vinkeln syns också att marken räcker ned under gatan.
+    """
+    scen = bpy.context.scene
+    plats, rot_x, ortoskala = FRONTKAMERA
+    kam = bpy.data.cameras.new("frontkamera")
+    kam.type = "ORTHO"
+    kam.ortho_scale = ortoskala
+    kobj = bpy.data.objects.new("frontkamera", kam)
+    kobj.location = plats
+    kobj.rotation_euler = (rot_x, 0.0, 0.0)
+    scen.collection.objects.link(kobj)
+    scen.camera = kobj
+    scen.render.film_transparent = False
+    scen.render.image_settings.color_mode = "RGB"
+    scen.render.resolution_x, scen.render.resolution_y = 1280, 720
+    bpy.context.view_layer.update()
+    rendera(bild)
+
+
 def exportera(glb: Path, objekt: list) -> int:
     """glTF binär med bara byggnaderna: kameran och solen hör till bilden, inte till modellen."""
     glb.parent.mkdir(parents=True, exist_ok=True)
@@ -697,60 +1068,231 @@ def exportera(glb: Path, objekt: list) -> int:
     return glb.stat().st_size
 
 
-# ------------------------------------------------------------------ närbilden
+# ------------------------------------------------------------------ mätningen av modellen mot bilden
 
 
-def läs_renderad(sökväg: Path, bredd: int, höjd: int) -> np.ndarray:
-    """En renderad PNG tillbaka som byte-värden (samma väg som byn.png lästes: Non-Color)."""
+def läs_renderad(sökväg: Path, bredd: int, höjd: int) -> tuple[np.ndarray, np.ndarray]:
+    """En renderad PNG tillbaka som byte-värden (samma väg som byn.png lästes: Non-Color) OCH alfa.
+
+    Alfa är modellens egen mask: den är EXAKT (en pixel är modell eller himmel), medan en mask byggd
+    på "skiljer sig från himlen" är opålitlig — bildens hus är blågrå och ligger nära himlens egen
+    färg (mätt: 7-11 av 255 i skillnad, alltså under varje rimlig tröskel).
+    """
     img = bpy.data.images.load(str(sökväg), check_existing=False)
     img.colorspace_settings.name = "Non-Color"
     buf = np.empty(bredd * höjd * 4, dtype=np.float32)
     img.pixels.foreach_get(buf)
-    return (buf.reshape(höjd, bredd, 4)[::-1, :, :3] * 255.0 + 0.5).astype(np.int32)
+    arr = buf.reshape(höjd, bredd, 4)[::-1]
+    return ((arr[:, :, :3] * 255.0 + 0.5).astype(np.int32),
+            (arr[:, :, 3] * 255.0 + 0.5).astype(np.int32))
 
 
-def närbild(p: dict, mått: dict, bild: Bild, hus_obj: "bpy.types.Object", sökväg: Path) -> tuple:
-    """Närbilden: huset renderat rakt framifrån BREDVID sin egen bildyta, i samma pixelmått.
+def _srgb8(lin: np.ndarray) -> np.ndarray:
+    """Linjärt ljus tillbaka till 8-bitars sRGB (samma kurva som linjär(), baklänges)."""
+    v = np.clip(lin, 0.0, 1.0)
+    ut = np.where(v <= 0.0031308, v * 12.92, 1.055 * np.power(v, 1.0 / 2.4) - 0.055)
+    return ut * 255.0
 
-    Vänster halva = modellen (ortografiskt, en bildpixel = en enhet), höger halva = husets EGEN
-    ruta ur byn.png. Sedan läses den färdiga bilden tillbaka och den högra halvan jämförs pixel för
-    pixel med byn.png — är den inte identisk faller skriptet.
+
+def hus_framifrån(mått: dict, hus_obj: "bpy.types.Object", sökväg: Path) -> tuple[np.ndarray, np.ndarray]:
+    """(modell, mask) för huset rakt framifrån, ORTOGRAFISKT, i husets EGNA pixelmått.
+
+    1 renderingpixel = 1 bildpixel: RUTANS höjd styr skalan (inte silhuettens), så modellen och
+    husets bildyta hamnar i exakt samma pixelmått och kan jämföras kant mot kant. Förr styrde
+    silhuettens höjd, så för varje hus där den inte råkade vara rutans höjd mättes modellen i en
+    annan skala än bilden (väveriet: 11 % fel). Renderingen görs med film_transparent så att
+    alfastrålen ÄR modellens silhuett (se läs_renderad).
     """
-    x0, x1 = mått["x0_px"], mått["x1_px"]
-    y0, y1 = mått["y0_px"], mått["gata_px"]
-    b_px, h_px = x1 - x0, y1 - y0
     scen = bpy.context.scene
-    hus_rend = sökväg.parent / "_hus.png"
-
-    # --- 1) huset rakt framifrån, ortografiskt, i rutans eget pixelmått
     for obj in bpy.data.objects:
         if obj.type == "MESH":
             obj.hide_render = obj is not hus_obj
-    ort = bpy.data.cameras.new("närkamera")
+    b_px = mått["bredd_px"]
+    h_px = mått["gata_px"] - mått["y0_px"]
+    rutt = h_px * mått["skala"]
+    ort = bpy.data.cameras.new("mätkamera")
     ort.type = "ORTHO"
-    # ORTOGRAFISKT och i husets EGEN skala: höjden i världen är husets höjd i bilden gånger skalan,
-    # och bildrutan har samma proportioner som husets ruta — då hamnar modellen och bildytan i
-    # EXAKT samma pixelmått och kan jämföras kant mot kant.
-    hus_höjd = mått["höjd_px"] * mått["skala"]
-    ort.ortho_scale = hus_höjd              # höjden är den större dimensionen (sensor-fit AUTO)
-    kobj = bpy.data.objects.new("närkamera", ort)
+    ort.ortho_scale = rutt                 # höjden är den större dimensionen (sensor-fit AUTO)
+    kobj = bpy.data.objects.new("mätkamera", ort)
     xs = [v.co.x for v in hus_obj.data.vertices]
-    kobj.location = ((min(xs) + max(xs)) / 2.0, -60.0, hus_höjd / 2.0)
+    kobj.location = ((min(xs) + max(xs)) / 2.0, -60.0, rutt / 2.0)
     kobj.rotation_euler = (math.radians(90.0), 0.0, 0.0)
     scen.collection.objects.link(kobj)
     scen.camera = kobj
     bpy.context.view_layer.update()
     scen.render.resolution_x, scen.render.resolution_y = b_px, h_px
-    scen.render.filepath = str(hus_rend)
+    scen.render.film_transparent = True
+    scen.render.image_settings.color_mode = "RGBA"
+    scen.render.filepath = str(sökväg)
     scen.render.image_settings.file_format = "PNG"
     bpy.ops.render.render(write_still=True)
+    return läs_renderad(sökväg, b_px, h_px)
 
-    # --- 2) de två halvorna sida vid sida: modellen till vänster, husets EGEN ruta till höger.
-    # Bilden läggs ihop av BYTE-värden (Bild.px) i stället för att renderas som två texturerade
-    # plan: en textur som samplar en bild i en rendervy prickar fel texel vid hårda kanter (mätt:
-    # 0,8 % av pixlarna avvek mer än 20 av 255 även med exakt träffpunkt). Byte mot byte kan inte
-    # hamna snett.
-    modell = läs_renderad(hus_rend, b_px, h_px)
+
+def _toppmönster(mask: np.ndarray, min_solid: int) -> np.ndarray:
+    """Överkant per kolumn i en mask: första raden i en sammanhängande massa (min_solid rader).
+
+    Modellens rendering och bilden mäts med SAMMA regel — annars jämförs modellens tak med molnkanter
+    (se Bild.topprader). Kolumner utan massa får maskens höjd (räknas inte).
+    """
+    löp = np.zeros(mask.shape, dtype=np.int32)
+    nästa = np.zeros(mask.shape[1], dtype=np.int32)
+    for rad_i in range(mask.shape[0] - 1, -1, -1):
+        nästa = (nästa + 1) * mask[rad_i]
+        löp[rad_i] = nästa
+    klar = löp >= min_solid
+    har = klar.any(axis=0)
+    ut = np.full(mask.shape[1], mask.shape[0], dtype=np.int32)
+    ut[har] = klar.argmax(axis=0)[har]
+    return ut
+
+
+def mät_likhet(modell: np.ndarray, mask: np.ndarray, mått: dict, bild: Bild) -> dict:
+    """Modellens silhuett mot husets egen i bilden — samma pixelmått, så skillnaden är i bildpixlar.
+
+    Jämförelsen är mot SAMMA kontur som modellen byggdes ur (mått["topp_px"]: bildens massa, median-
+    filtrerad), så talet mäter kvantiseringen och sammanslagningen — inte filtret. `*_rå` mäts mot
+    bildens råa kontur (där också dis och molnkanter räknas som hus). Båda sidorna mäts med samma
+    regel (överkant = första raden i en sammanhängande massa), och modellens mask är renderingens
+    egen alfa — en tröskel mot himlens färg går inte (husen är blågrå, se läs_renderad).
+    """
+    h_px = modell.shape[0]
+    v_tak = _toppmönster(mask, MIN_SOLID)
+    y0, x0 = mått["y0_px"], mått["x0_px"]
+    hmask = ~bild.bakgrund[y0:mått["gata_px"], x0:mått["x1_px"]]
+    h_rå = _toppmönster(hmask, 1)
+    h_ren = np.array(mått["topp_px"], dtype=np.int32) - y0
+    båda = (v_tak < h_px) & (h_ren < h_px)
+    skillnad = v_tak.astype(float) - h_ren.astype(float)     # positiv = modellen ligger LÄGRE
+    d = np.abs(skillnad[båda])
+    drå = np.abs(v_tak[båda] - h_rå[båda]).astype(float)
+    return {
+        "medel": float(d.mean()), "max": int(d.max()),
+        "andel": float((d <= max(1.0, mått["steg_px"])).mean()),
+        "medel_rå": float(drå.mean()), "max_rå": int(drå.max()),
+        # Riktningarna var för sig: UNDER = tak som saknas (allvarligt), ÖVER = utsmyckning.
+        "under": float(np.maximum(0.0, skillnad[båda]).max()),
+        "över": float(np.maximum(0.0, -skillnad[båda]).max()),
+        "v_tak": v_tak, "h_ren": h_ren, "h_rå": h_rå, "båda": båda,
+    }
+
+
+def _syns(modell: np.ndarray, utan: np.ndarray, ruta: tuple) -> float:
+    """Hur stor del av en detaljs ruta som SKILJER sig från samma hus UTAN den detaljen.
+
+    Provet renderar huset två gånger — med och utan dörren (respektive skylten) — i samma kamera och
+    med samma utsmyckning. Skillnaden ÄR detaljen: en dörr som inte byggdes, eller som är instoppad
+    i ett block, ger noll skillnad och provet faller.
+    """
+    ra, rb, a, b = ruta
+    if rb - ra < 3 or b - a < 3:
+        return 0.0
+    bit, bit_u = modell[ra:rb, a:b], utan[ra:rb, a:b]
+    if bit.size == 0 or bit_u.size == 0:
+        return 0.0
+    return float((np.abs(bit.astype(int) - bit_u.astype(int)).max(axis=2) > 8).mean())
+
+
+def kontrollera_hus(p: dict, mått: dict, mät: dict, modell: np.ndarray, utan_dörr: np.ndarray,
+                    utan_skylt: np.ndarray, mask: np.ndarray, palett: list) -> list[str]:
+    """Proven på ETT hus: silhuett, dörr, skorsten och skylt. Returnerar felen som texter.
+
+    Dörren ska finnas, sitta där bilden visar den och SYNAS (renderingen med huset mot renderingen
+    med bara kroppen). Skorstenen ska nå minst två höjdsteg ÖVER nocken där bilden visar en skorsten,
+    med toppen inom ett steg från bildens. Skylten ska sitta inom ett steg från bildens höjd (förr:
+    78 %, vid taket). Taket får inte ligga mer än KONTUR_PX under bildens kontur.
+    """
+    fel: list[str] = []
+    h_px, b_px = modell.shape[0], modell.shape[1]
+    steg = mått["steg_px"]
+    if SAKER.get(p["id"], {}).get("sak") == "stolpe":
+        # EXIT är ingen huskropp: en skyltstolpe, med flit olik bildens ruta (den är dörren ut ur
+        # spelet). Silhuetten kan därför inte mätas mot huset i bilden — men den ska finnas där.
+        if int(mask.sum()) < 200:
+            fel.append("%s: skyltstolpen syns inte i renderingen (%d px)" % (p["id"], int(mask.sum())))
+        return fel
+    rutt_px = mått["gata_px"] - mått["y0_px"]
+    if mät["under"] > KONTUR_PX:
+        fel.append("%s: taket ligger %.0f px UNDER bildens kontur (tillåtet %.0f px)"
+                   % (p["id"], mät["under"], KONTUR_PX))
+    tak = max(2.0 * steg, UTSMYCKNING * rutt_px)
+    if mät["över"] > tak:
+        fel.append("%s: modellen sticker %.0f px ÖVER bildens kontur (en utsmyckning får %.0f px)"
+                   % (p["id"], mät["över"], tak))
+    # DÖRREN: mätt läge och höjd ur bilden, byggd på samma höjd och synlig på fasaden.
+    if not mått["dörr"]:
+        fel.append("%s: ingen dörr funnen i bildens nederkant" % p["id"])
+    else:
+        topp = mått["dörr"][2]
+        byggd = mått.get("dörr_byggd")
+        if byggd is None:
+            fel.append("%s: ingen dörr byggdes" % p["id"])
+        else:
+            ka, kb, byggd_topp = byggd
+            if abs(float(byggd_topp) - topp) > steg:
+                fel.append("%s: dörren byggdes %.0f px hög men bilden visar %d px"
+                           % (p["id"], byggd_topp, topp))
+            ra, rb = max(0, h_px - int(byggd_topp) + 2), h_px - 2
+            mått["syns_dörr"] = _syns(modell, utan_dörr, (ra, rb, ka + 2, kb - 1))
+            # Tröskeln är MÄTT, inte gissad: dörrarna ligger på 39-100 % (smedjan 81 %, juveleraren
+            # 100 %), och en dörr som inte byggs ger 0 %. Utsmyckningen framför (tyg, tunnor, ässja)
+            # skymmer en del av dörren i den här vyn — därför krävs synlig massa, inte full täckning.
+            if mått["syns_dörr"] < 0.30:
+                fel.append("%s: dörren syns inte på fasaden (%.0f %% av rutans ytor skiljer sig från "
+                           "huset utan dörr)" % (p["id"], 100 * mått["syns_dörr"]))
+    # SKORSTENEN: över nocken, och i bildens höjd.
+    if mått["skorsten"]:
+        sa, sb, skorstens_topp, nock_px = mått["skorsten"]
+        runtom = np.concatenate([mät["v_tak"][max(0, sa - int(0.2 * b_px)):sa],
+                                 mät["v_tak"][sb:min(b_px, sb + int(0.2 * b_px))]])
+        modell_topp = h_px - int(mät["v_tak"][sa:sb].min())
+        nock = h_px - float(np.median(runtom)) if runtom.size else float(nock_px)
+        if modell_topp - nock < 2.0 * steg:
+            fel.append("%s: skorstenen når bara %.0f px över taket runtomkring (två steg är %.0f)"
+                       % (p["id"], modell_topp - nock, 2.0 * steg))
+        if abs(modell_topp - skorstens_topp) > steg:
+            fel.append("%s: skorstenens topp ligger %d px från bildens (%d mot %d)"
+                       % (p["id"], abs(modell_topp - skorstens_topp), modell_topp, skorstens_topp))
+    # SKYLTEN: ett höjdsteg fel är tillåtet, två är ett fel — och den ska synas på väggen.
+    if not mått["skylt"]:
+        fel.append("%s: ingen skylt funnen i bilden" % p["id"])
+    else:
+        sho = mått["skylt"][2]
+        byggd = mått.get("skylt_byggd")
+        if byggd is None or abs(byggd[2] - mått["skylt_bild"]) > steg:
+            fel.append("%s: skylten byggdes på %.0f px men bilden visar %d px"
+                       % (p["id"], byggd[2] if byggd else -1.0, mått["skylt_bild"]))
+        if byggd:
+            ka, kb, höjd = byggd
+            band = max(8, int(SKYLT_HÖJD * mått["höjd_px"]))
+            ra, rb = max(0, h_px - int(höjd) - band // 3), max(1, h_px - int(höjd) + band // 3)
+            mått["syns_skylt"] = _syns(modell, utan_skylt, (ra, rb, ka + 2, kb - 1))
+            if mått["syns_skylt"] < 0.30:
+                fel.append("%s: skylten syns inte på fasaden (%.0f %% av rutans ytor skiljer sig "
+                           "från huset utan skylt)" % (p["id"], 100 * mått["syns_skylt"]))
+    return fel
+
+
+def närbild(p: dict, mått: dict, bild: Bild, hus_obj: "bpy.types.Object", sökväg: Path,
+            palett: list) -> tuple:
+    """Närbilden: huset renderat rakt framifrån BREDVID sin egen bildyta, i samma pixelmått.
+
+    Vänster halva = modellen (samma väg som provet mäter: hus_framifrån), höger halva = husets EGEN
+    ruta ur byn.png. Sedan läses den färdiga bilden tillbaka och den högra halvan jämförs pixel för
+    pixel med byn.png — är den inte identisk faller skriptet. Bilden läggs ihop av BYTE-värden
+    (Bild.px) i stället för att renderas som två texturerade plan: en textur som samplar en bild i en
+    rendervy prickar fel texel vid hårda kanter (mätt: 0,8 % av pixlarna avvek mer än 20 av 255 även
+    med exakt träffpunkt). Byte mot byte kan inte hamna snett.
+    """
+    x0, x1 = mått["x0_px"], mått["x1_px"]
+    y0, y1 = mått["y0_px"], mått["gata_px"]
+    b_px, h_px = x1 - x0, y1 - y0
+    modell, alfa = hus_framifrån(mått, hus_obj, sökväg.parent / "_hus.png")
+    # Modellen läggs på himlen igen (renderingen har genomskinlig film för maskens skull). Himlens
+    # färg i en rendering är palettens himmel gånger världens styrka, i linjärt ljus — mätt: (81,124,143).
+    himmel8 = _srgb8(np.array(linjär(färg(palett, FÄRG_HIMMEL))) * 0.6)
+    a = (alfa.astype(np.float64) / 255.0)[:, :, None]
+    modell = (modell * a + himmel8[None, None, :] * (1.0 - a)).astype(np.int32)
     ruta = bild.px[y0:y1, x0:x1]
     ihop = np.concatenate([modell, ruta], axis=1)
     höjd, bredd = ihop.shape[:2]
@@ -763,13 +1305,11 @@ def närbild(p: dict, mått: dict, bild: Bild, hus_obj: "bpy.types.Object", sök
     img.filepath_raw = str(sökväg)
     img.save()
 
-    # --- 3) KONTROLLEN: högra halvan ska vara husets EGEN ruta ur byn.png, pixel för pixel — och
-    # vänstra halvan ska visa modellen (inte en tom himmel).
-    ut = läs_renderad(sökväg, bredd, höjd)
+    # KONTROLLEN: högra halvan ska vara husets EGEN ruta ur byn.png, pixel för pixel — och vänstra
+    # halvan ska visa modellen (inte en tom himmel). Masken kommer ur renderingen själv (alfan).
+    ut, _ = läs_renderad(sökväg, bredd, höjd)
     avvikelse = int(np.abs(ut[:, b_px:, :] - ruta).max())
-    # Vänstra halvan: modellens andel av rutans yta, mätt mot renderingens EGEN himmel (hörnpixeln).
-    himmel = ut[0, 0, :]
-    modell_andel = float((np.abs(ut[:, :b_px, :] - himmel).max(axis=2) > 12).mean())
+    modell_andel = float((alfa > 128).mean())
     print("  närbildens högra halva mot byn.png: största avvikelse %d av 255 %s"
           % (avvikelse, "(identisk)" if avvikelse == 0 else "(AVVIKER)"))
     print("  närbildens vänstra halva: modellen täcker %.0f %% av rutan" % (100 * modell_andel))
@@ -778,26 +1318,11 @@ def närbild(p: dict, mått: dict, bild: Bild, hus_obj: "bpy.types.Object", sök
     if not 0.10 < modell_andel < 0.95:
         raise SystemExit("FEL: närbildens vänstra halva ser fel ut (%.1f %% modell)" % (100 * modell_andel))
 
-    # LIKHETEN, mätt: modellens överkant per kolumn mot husets egen överkant i bilden. Samma
-    # pixelmått i de två halvorna, så skillnaden är i bildpixlar. Modellens kontur är bildens
-    # kvantiserad i sex steg, så ett par tiotal px är väntat — ett steg är husets höjd / 6.
-    vänster_mask = np.abs(ut[:, :b_px, :] - ut[0, 0, :]).max(axis=2) > 12
-    höger_mask = ~bild.bakgrund[y0:y1, x0:x1]
-    v_tak = np.full(b_px, h_px)
-    h_tak = np.full(b_px, h_px)
-    for c in range(b_px):
-        kv = np.nonzero(vänster_mask[:, c])[0]
-        kh = np.nonzero(höger_mask[:, c])[0]
-        if kv.size:
-            v_tak[c] = kv[0]
-        if kh.size:
-            h_tak[c] = kh[0]
-    båda = (v_tak < h_px) & (h_tak < h_px)
-    skillnad = np.abs(v_tak[båda] - h_tak[båda])
-    print("  likheten: modellens överkant ligger i medeltal %.0f px från bildens (störst %d, %.0f %% inom 20 px)"
-          " — ett kvantiseringssteg är %d px"
-          % (skillnad.mean(), int(skillnad.max()), 100 * (skillnad <= 20).mean(),
-             int(mått["steg_px"])))
+    # LIKHETEN: modellens överkant per kolumn mot husets egen i bilden, i bildpixlar.
+    m = mät_likhet(modell, alfa > 128, mått, bild)
+    print("  likheten: modellens överkant ligger i medeltal %.0f px från bildens (störst %d, "
+          "%.0f %% inom ett steg) — ett kvantiseringssteg är %.1f px, bildens råa kontur %d px"
+          % (m["medel"], m["max"], 100 * m["andel"], mått["steg_px"], m["max_rå"]))
     return b_px, h_px
 
 
@@ -812,7 +1337,10 @@ def main() -> int:
     ap.add_argument("--ut", default=str(GLB))
     ap.add_argument("--narbild", default=str(NÄRBILD))
     ap.add_argument("--narhus", default="smed", help="huset i närbilden (id ur PLATSER)")
-    ap.add_argument("--kolla", action="store_true", help="räkna och kontrollera, rendera inte")
+    ap.add_argument("--kolla", action="store_true",
+                    help="mät och kontrollera (renderar varje hus framifrån), rendera inte hela byn")
+    ap.add_argument("--bryt", default="", choices=["", "tak", "dörr", "skylt", "skorsten"],
+                    help="NEGATIVTEST: bryt med flit mot en regel och visa att --kolla faller")
     args = ap.parse_args(argv)
 
     t0 = time.time()
@@ -834,7 +1362,11 @@ def main() -> int:
              int(round(bild.höjd * gata_procent / 100))))
 
     # MÄT alla hus först: bredden i världen kommer ur den bredaste rutan.
-    mått = [mät_hus(p, bild, palett_np, hus_topp, gata_procent) for p in platser]
+    mått = [mät_hus(p, bild, palett_np, hus_topp, gata_procent,
+                    8 if args.bryt == "tak" else 0) for p in platser]
+    if args.bryt:
+        bryt_provet(mått, args.bryt)
+        print("  NEGATIVTEST: bryter med flit mot '%s' — provet ska falla" % args.bryt)
     bredaste = max(m["bredd_px"] for m in mått)
     skala = BREDASTE_HUS / bredaste
     for m in mått:
@@ -844,13 +1376,13 @@ def main() -> int:
              BREDASTE_HUS, skala))
 
     print("\n  %-11s %-13s %7s %7s %7s %7s %7s %s" % (
-        "plats", "ruta px", "bredd", "höjd", "höjd/b", "taktopp", "stenar", "vanligaste färger"))
+        "plats", "ruta px", "bredd", "höjd", "höjd/b", "taktopp", "block", "vanligaste färger"))
     for p, m in zip(platser, mått):
         b = m["bredd_px"] * skala
         h = m["höjd_px"] * skala
         print("  %-11s %4d-%-4d %7.2f %7.2f %7.2f %6.1f%% %5d %s" % (
             p["id"], m["x0_px"], m["x1_px"], b, h, h / b, 100 * (m["gata_px"] - m["höjd_px"]) / bild.höjd,
-            len(m["remsor"]), " ".join("%d:%d%%" % f for f in m["färger"][:4])))
+            len(m["rutor"]), " ".join("%d:%d%%" % f for f in m["färger"][:4])))
 
     intervall = dela_ut(mått, skala)
     x0, x1 = min(a for a, _ in intervall), max(b for _, b in intervall)
@@ -879,6 +1411,7 @@ def main() -> int:
     hus_objekt = []
     for p, m, (a, _b) in zip(platser, mått, intervall):
         bygge = bygg_hus(p, m, palett, skala, (a + _b) / 2.0, 0.0)
+        m["x_mitt"] = (a + _b) / 2.0
         # Huset får aldrig gå UTANFÖR sin egen tomt (annars skär två hus' x-intervall varandra), och
         # ska fylla merparten av den — EXIT är en skyltstolpe och får därför vara smalare.
         if bygge.x_min < a - 0.01 or bygge.x_max > _b + 0.01:
@@ -911,7 +1444,49 @@ def main() -> int:
     print("  byggtid: %.2f s" % (time.time() - t0))
 
     if args.kolla:
-        print("  KONTROLL: ok (%d objekt, %d ytor, 6 ytor/rätblock, %d par utan skärning)"
+        # PROVEN: varje hus renderas framifrån (ortografiskt, 1 pixel = 1 bildpixel) och modellens
+        # tak, dörr, skorsten och skylt mäts mot husets EGEN ruta i byn.png.
+        sätt_scen(palett)
+        temp = Path(args.bild).parent / "_kolla.png"
+        print("\n  %-11s %5s %6s %7s %7s %8s %7s %7s   %s" % (
+            "plats", "steg", "block", "medel", "max", "max (rå)", "under", "över",
+            "dörr / skylt / skorsten"))
+        alla_fel: list[str] = []
+        for i, (pl, m) in enumerate(zip(platser, mått)):
+            modell, alfa = hus_framifrån(m, hus_objekt[i], temp)
+            mask = alfa > 128
+            mät = mät_likhet(modell, mask, m, bild)
+            # Provet renderar huset TRE gånger: med allt, utan dörr och utan skylt. Skillnaden mellan
+            # två renderingar AV SAMMA HUS är detaljen — syns den inte där den byggdes, faller provet.
+            utan_dörr = _utan_detalj(pl, m, palett, skala, "hoppa_dörr", samling, temp)
+            utan_skylt = _utan_detalj(pl, m, palett, skala, "hoppa_skylt", samling, temp)
+            alla_fel += kontrollera_hus(pl, m, mät, modell, utan_dörr, utan_skylt, mask, palett)
+            d, sk, ko = m["dörr"], m["skylt"], m["skorsten"]
+            stolpe = SAKER.get(pl["id"], {}).get("sak") == "stolpe"
+            print("  %-11s %5.1f %6d %7s %7s %8s %7s %7s   %s" % (
+                pl["id"], m["steg_px"], len(m["rutor"]),
+                "—" if stolpe else "%.1f" % mät["medel"], "—" if stolpe else "%d" % mät["max"],
+                "%d" % mät["max_rå"], "—" if stolpe else "%.0f" % mät["under"],
+                "—" if stolpe else "%.0f" % mät["över"],
+                "stolpe (ingen huskropp i bildens ruta) — silhuetten mäts inte" if stolpe else
+                " · ".join([
+                    ("dörr x %d-%d, %d px hög, palett %d, syns %.0f %%"
+                     % (d[0], d[1], d[2], m["dörrfärg"], 100 * m.get("syns_dörr", 0.0)))
+                    if d else "DÖRR SAKNAS",
+                    ("skylt x %d-%d på %d px, palett %d, syns %.0f %%"
+                     % (sk[0], sk[1], sk[2], m["skyltfärg"], 100 * m.get("syns_skylt", 0.0)))
+                    if sk else "SKYLT SAKNAS",
+                    ("skorsten x %d-%d: %d px, nock %d px" % ko) if ko else "ingen skorsten i bilden"])))
+        if alla_fel:
+            if args.bryt:
+                print("  NEGATIVTEST: provet föll som det skulle (%d fel):\n    %s"
+                      % (len(alla_fel), "\n    ".join(alla_fel)))
+                return 0
+            raise SystemExit("FEL: " + " · ".join(alla_fel))
+        if args.bryt:
+            raise SystemExit("FEL: negativtestet '%s' fällde INTE provet — provet biter inte" % args.bryt)
+        print("  KONTROLL: ok (%d objekt, %d ytor, 6 ytor/rätblock, %d par utan skärning, "
+              "tak/dörr/skylt/skorsten mot bilden)"
               % (len(objekt), räkning["ytor"], par))
         return 0
 
@@ -925,7 +1500,7 @@ def main() -> int:
     rendera(Path(args.bild))
     # KONTROLL: bilden är inte tom. Referensen är bildens VANLIGASTE färg (himlen, som täcker mest),
     # inte palettens 26 rakt av — världens ljusstyrka gör renderingens himmel mörkare än palettfärgen.
-    vy = läs_renderad(Path(args.bild), 1280, 720)
+    vy, _ = läs_renderad(Path(args.bild), 1280, 720)
     färger, antal = np.unique(vy.reshape(-1, 3), axis=0, return_counts=True)
     himmel = färger[int(antal.argmax())]
     by_andel = float((np.abs(vy - himmel).max(axis=2) > 12).mean())
@@ -933,6 +1508,17 @@ def main() -> int:
           % (100 * by_andel, tuple(int(v) for v in himmel)))
     if by_andel < 0.20:
         raise SystemExit("FEL: den renderade bilden är nästan bara himmel (%.0f %%)" % (100 * by_andel))
+    # HELHETEN FRÅN SPElets EGEN VINKEL (ortografiskt rakt framifrån, se FRONTKAMERA).
+    rendera_front(FRONTBILD)
+    fram, _ = läs_renderad(FRONTBILD, 1280, 720)
+    toppfärger, toppantal = np.unique(fram[:72, :, :].reshape(-1, 3), axis=0, return_counts=True)
+    himmel_f = toppfärger[int(toppantal.argmax())]
+    tomt = float((np.abs(fram[612:, :, :] - himmel_f).max(axis=2) <= 12).mean())
+    print("  frontbild (spelets egen vinkel): %s (%d byte) — %.0f %% av nederkanten är mark, "
+          "inte himmel" % (FRONTBILD, FRONTBILD.stat().st_size, 100 * (1 - tomt)))
+    if tomt > 0.20:
+        raise SystemExit("FEL: frontbilden visar tom himmel under marken (%.0f %% av nederkanten)"
+                         % (100 * tomt))
     storlek = exportera(Path(args.ut), objekt)
     print("  bild: %s (%d byte, %dx%d)"
           % (args.bild, Path(args.bild).stat().st_size, 1280, 720))
@@ -941,7 +1527,7 @@ def main() -> int:
     valt = [i for i, p in enumerate(platser) if p["id"] == args.narhus]
     if valt:
         i = valt[0]
-        w, h = närbild(platser[i], mått[i], bild, hus_objekt[i], Path(args.narbild))
+        w, h = närbild(platser[i], mått[i], bild, hus_objekt[i], Path(args.narbild), palett)
         print("  närbild: %s (%dx%d — modellen till vänster, husets egen ruta %dx%d till höger)"
               % (args.narbild, 2 * w, h, w, h))
     print("  hel tid: %.2f s" % (time.time() - t0))
