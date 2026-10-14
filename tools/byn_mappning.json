@@ -40,53 +40,28 @@
   "Wood_Oak": "Wood"
  },
  "objects_per_material": {
-  "Bulb_Glow": 41,
-  "Cloth_Blue": 12,
-  "Cloth_Cyan": 5,
-  "Cloth_Green": 3,
-  "Cloth_Purple": 2,
-  "Cloth_Red": 6,
-  "Cobble_1": 115,
-  "Cobble_2": 91,
-  "Cobble_3": 89,
-  "Dirt_Cliff": 1,
-  "Fire_Core": 9,
-  "Fire_Orange": 1,
-  "Gem_Cyan": 1,
-  "Gem_Green": 1,
-  "Gem_Pink": 1,
-  "Gold": 5,
-  "Grass_Dark": 1,
-  "Grass_Light": 28,
-  "Grass_Mid": 1,
-  "Horse_Brown": 3,
-  "Iron": 44,
-  "Leaf_Dark": 30,
-  "Leaf_Light": 22,
-  "Leaf_Mid": 41,
-  "Mountain_Rock": 5,
-  "Pine_Green": 44,
-  "Plaster_Cream": 28,
-  "Plaster_Warm": 43,
-  "Road_Base": 2,
-  "Roof_Purple_1": 50,
-  "Roof_Purple_2": 48,
-  "Roof_Red_1": 140,
-  "Roof_Red_2": 140,
-  "Roof_Slate_1": 142,
-  "Roof_Slate_2": 138,
-  "Roof_Thatch": 42,
-  "Sheep_Wool": 14,
-  "Skin": 10,
-  "Stone_Dark": 43,
-  "Stone_Light": 201,
-  "Stone_Wall": 30,
-  "Window_Bright": 2,
-  "Window_Warm": 7,
-  "Wood_Beam": 69,
-  "Wood_Dark": 103,
-  "Wood_Light": 3,
-  "Wood_Oak": 84
+  "PX_Bark": 22,
+  "PX_Barr": 44,
+  "PX_Cobblestone Brown": 91,
+  "PX_Cobblestone Grey": 115,
+  "PX_Cobblestone Mossy": 89,
+  "PX_Dark Stone": 6,
+  "PX_Dirt Stony": 2,
+  "PX_Grass": 30,
+  "PX_Hedge": 38,
+  "PX_Iron Riveted": 44,
+  "PX_Ljus Varm": 2,
+  "PX_L\u00f6vverk": 55,
+  "PX_M\u00f6rk Zon": 1,
+  "PX_Purple Roof": 98,
+  "PX_Ram": 33,
+  "PX_Skylt": 8,
+  "PX_Slate Roof": 280,
+  "PX_Stone": 378,
+  "PX_Stone Mossy": 5,
+  "PX_Terracotta Roof": 322,
+  "PX_Tudor Plaster": 71,
+  "PX_Wood": 207
  },
  "plate_file": {
   "Bark": "bark.png",
@@ -189,66 +164,5 @@
   "Cloud_R_3": "Cloud_White",
   "Cloud_R_4": "Cloud_White"
  },
- "unmapped": {
-  "Bulb_Glow": {
-   "fallback": "Stone",
-   "objects": 41
-  },
-  "Cloth_Blue": {
-   "fallback": "Stone",
-   "objects": 12
-  },
-  "Cloth_Cyan": {
-   "fallback": "Stone",
-   "objects": 5
-  },
-  "Cloth_Green": {
-   "fallback": "Stone",
-   "objects": 3
-  },
-  "Cloth_Purple": {
-   "fallback": "Stone",
-   "objects": 2
-  },
-  "Cloth_Red": {
-   "fallback": "Stone",
-   "objects": 6
-  },
-  "Fire_Core": {
-   "fallback": "Stone",
-   "objects": 9
-  },
-  "Fire_Orange": {
-   "fallback": "Stone",
-   "objects": 1
-  },
-  "Gem_Cyan": {
-   "fallback": "Stone",
-   "objects": 1
-  },
-  "Gem_Green": {
-   "fallback": "Stone",
-   "objects": 1
-  },
-  "Gem_Pink": {
-   "fallback": "Stone",
-   "objects": 1
-  },
-  "Gold": {
-   "fallback": "Stone",
-   "objects": 5
-  },
-  "Horse_Brown": {
-   "fallback": "Stone",
-   "objects": 3
-  },
-  "Sheep_Wool": {
-   "fallback": "Stone",
-   "objects": 14
-  },
-  "Skin": {
-   "fallback": "Stone",
-   "objects": 10
-  }
- }
+ "unmapped": {}
 }

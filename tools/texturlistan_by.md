@@ -77,76 +77,29 @@ Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roo
 
 | Originalmaterial | Platta | Plattfil | Objekt |
 |---|---|---|---:|
-| `Cobble_2` | Cobblestone Brown | `atlas/cobblestone_brown.png` | 91 |
-| **1 material** | | | **91** |
-| `Cobble_1` | Cobblestone Grey | `atlas/cobblestone_grey.png` | 115 |
-| **1 material** | | | **115** |
-| `Cobble_3` | Cobblestone Mossy | `atlas/cobblestone_mossy.png` | 89 |
-| **1 material** | | | **89** |
-| `Road_Base` | Dirt Stony | `atlas/dirt_stony.png` | 2 |
-| **1 material** | | | **2** |
-| `Grass_Light` | Grass | `gras.png` | 28 |
-| `Grass_Dark` | Grass | `gras.png` | 1 |
-| `Grass_Mid` | Grass | `gras.png` | 1 |
-| **3 material** | | | **30** |
-| `Pine_Green` | Hedge | `hedge.png` | 44 |
-| `Leaf_Mid` | Hedge | `hedge.png` | 41 |
-| `Leaf_Dark` | Hedge | `hedge.png` | 30 |
-| `Leaf_Light` | Hedge | `hedge.png` | 22 |
-| **4 material** | | | **137** |
-| `Iron` | Iron Riveted | `atlas/metal_riveted.png` | 44 |
-| **1 material** | | | **44** |
-| `Window_Bright` | Ljus Varm | `ljus_varm.png` | 2 |
-| **1 material** | | | **2** |
-| `Dirt_Cliff` | Mörk Zon | `mork_zon.png` | 1 |
-| **1 material** | | | **1** |
-| `Roof_Purple_1` | Purple Roof | `tak_lila.png` | 50 |
-| `Roof_Purple_2` | Purple Roof | `tak_lila.png` | 48 |
-| **2 material** | | | **98** |
-| `Window_Warm` | Ram | `ram.png` | 7 |
-| **1 material** | | | **7** |
-| `Roof_Slate_1` | Slate Roof | `tak_skiffer.png` | 142 |
-| `Roof_Slate_2` | Slate Roof | `tak_skiffer.png` | 138 |
-| **2 material** | | | **280** |
-| `Stone_Light` | Stone | `mursten.png` | 201 |
-| `Stone_Dark` | Stone | `mursten.png` | 43 |
-| `Stone_Wall` | Stone | `mursten.png` | 30 |
-| **3 material** | | | **274** |
-| `Mountain_Rock` | Stone Mossy | `atlas/stone_wall_mossy_small.png` | 5 |
-| **1 material** | | | **5** |
-| `Roof_Red_1` | Terracotta Roof | `tak_tegel.png` | 140 |
-| `Roof_Red_2` | Terracotta Roof | `tak_tegel.png` | 140 |
-| `Roof_Thatch` | Terracotta Roof | `tak_tegel.png` | 42 |
-| **3 material** | | | **322** |
-| `Plaster_Warm` | Tudor Plaster | `puts.png` | 43 |
-| `Plaster_Cream` | Tudor Plaster | `puts.png` | 28 |
-| **2 material** | | | **71** |
-| `Wood_Dark` | Wood | `virke.png` | 103 |
-| `Wood_Oak` | Wood | `virke.png` | 84 |
-| `Wood_Beam` | Wood | `virke.png` | 69 |
-| `Wood_Light` | Wood | `virke.png` | 3 |
-| **4 material** | | | **259** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
+| **0 material** | | | **0** |
 
 ### Material utan platta i paketet — underlaget för vilka plattor Alex behöver
 
 | Originalmaterial | Objekt | Nödlösning (namnregeln) |
 |---|---:|---|
-| `Bulb_Glow` | 41 | Stone |
-| `Sheep_Wool` | 14 | Stone |
-| `Cloth_Blue` | 12 | Stone |
-| `Skin` | 10 | Stone |
-| `Fire_Core` | 9 | Stone |
-| `Cloth_Red` | 6 | Stone |
-| `Cloth_Cyan` | 5 | Stone |
-| `Gold` | 5 | Stone |
-| `Cloth_Green` | 3 | Stone |
-| `Horse_Brown` | 3 | Stone |
-| `Cloth_Purple` | 2 | Stone |
-| `Fire_Orange` | 1 | Stone |
-| `Gem_Cyan` | 1 | Stone |
-| `Gem_Green` | 1 | Stone |
-| `Gem_Pink` | 1 | Stone |
-| **15 material** | **114** | |
+| **0 material** | **0** | |
 
 ### Rök och moln — tas ur exporten, ersätts av en smoke emitter i Godot
 
@@ -199,32 +152,7 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 
 | Material | Plattfil | Objekt | Ytor | Area m² |
 |---|---|---:|---:|---:|
-| `Bulb_Glow` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Cloth_Blue` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Cloth_Cyan` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Cloth_Green` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Cloth_Purple` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Cloth_Red` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Cloud_White` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Cobble_1` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Cobble_2` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Cobble_3` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Dirt_Cliff` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Fire_Core` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Fire_Orange` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Gem_Cyan` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Gem_Green` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Gem_Pink` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Gold` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Grass_Dark` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Grass_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Grass_Mid` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Horse_Brown` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Iron` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Leaf_Dark` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Leaf_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Leaf_Mid` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Mountain_Rock` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `PX_Bark` | `bark.png` | 22 | 198 | 128.8 |
 | `PX_Barr` | `barr.png` | 44 | 616 | 692.2 |
 | `PX_Cobblestone Brown` | `cobblestone_brown.png` | 91 | 546 | 22.9 |
@@ -233,15 +161,15 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Cobblestone Mossy` | `cobblestone_mossy.png` | 89 | 534 | 23.5 |
 | `PX_Dark Stone` | `dark_stone.png` | 6 | 36 | 3.7 |
 | `PX_Dirt` | `dirt.png` | 0 | 0 | 0.0 |
-| `PX_Dirt Stony` | `dirt_stony.png` | 2 | 12 | 445.0 |
-| `PX_Grass` | `gras.png` | 30 | 2178 | 2056.1 |
+| `PX_Dirt Stony` | `dirt_stony.png` | 2 | 12 | 280.0 |
+| `PX_Grass` | `gras.png` | 30 | 2178 | 2079.4 |
 | `PX_Grass Flowers` | `grass.png` | 0 | 0 | 0.0 |
 | `PX_Hedge` | `hedge.png` | 38 | 3040 | 177.4 |
 | `PX_Iron Riveted` | `metal_riveted.png` | 44 | 1532 | 11.5 |
 | `PX_Ljus Varm` | `ljus_varm.png` | 2 | 12 | 5.2 |
 | `PX_Lövverk` | `lov.png` | 55 | 4400 | 705.8 |
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
-| `PX_Mörk Zon` | `mork_zon.png` | 1 | 6 | 449.1 |
+| `PX_Mörk Zon` | `mork_zon.png` | 1 | 6 | 742.2 |
 | `PX_Purple Roof` | `tak_lila.png` | 98 | 588 | 43.3 |
 | `PX_Ram` | `ram.png` | 33 | 198 | 54.7 |
 | `PX_Sand Path` | `sand_path.png` | 0 | 0 | 0.0 |
@@ -254,28 +182,6 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Window Bright` | `window_narrow.png` | 0 | 0 | 0.0 |
 | `PX_Window Warm` | `window_four_pane.png` | 0 | 0 | 0.0 |
 | `PX_Wood` | `virke.png` | 207 | 1322 | 669.7 |
-| `Pine_Green` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Plaster_Cream` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Plaster_Warm` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Road_Base` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Roof_Purple_1` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Roof_Purple_2` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Roof_Red_1` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Roof_Red_2` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Roof_Slate_1` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Roof_Slate_2` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Roof_Thatch` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Sheep_Wool` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Sign_Text` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Skin` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Stone_Dark` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Stone_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Stone_Wall` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Window_Bright` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Window_Warm` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Wood_Beam` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Wood_Dark` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Wood_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Wood_Oak` | `**ingen bild**` | 0 | 0 | 0.0 |
 
-Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 78 material i filen står med.
+Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 31 material i filen står med.
