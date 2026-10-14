@@ -93,7 +93,6 @@ Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roo
 | **0 material** | | | **0** |
 | **0 material** | | | **0** |
 | **0 material** | | | **0** |
-| **0 material** | | | **0** |
 
 ### Material utan platta i paketet — underlaget för vilka plattor Alex behöver
 
@@ -156,12 +155,12 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Bark` | `bark.png` | 22 | 198 | 128.8 |
 | `PX_Barr` | `barr.png` | 44 | 616 | 692.2 |
 | `PX_Cobblestone Brown` | `cobblestone_brown.png` | 91 | 546 | 22.9 |
-| `PX_Cobblestone Grey` | `cobblestone_grey.png` | 115 | 690 | 29.5 |
+| `PX_Cobblestone Grey` | `cobblestone_grey.png` | 117 | 702 | 309.5 |
 | `PX_Cobblestone Ground` | `cobblestone_ground.png` | 0 | 0 | 0.0 |
 | `PX_Cobblestone Mossy` | `cobblestone_mossy.png` | 89 | 534 | 23.5 |
 | `PX_Dark Stone` | `dark_stone.png` | 6 | 36 | 3.7 |
 | `PX_Dirt` | `dirt.png` | 0 | 0 | 0.0 |
-| `PX_Dirt Stony` | `dirt_stony.png` | 2 | 12 | 280.0 |
+| `PX_Dirt Stony` | `dirt_stony.png` | 0 | 0 | 0.0 |
 | `PX_Grass` | `gras.png` | 30 | 2178 | 2079.4 |
 | `PX_Grass Flowers` | `grass.png` | 0 | 0 | 0.0 |
 | `PX_Hedge` | `hedge.png` | 38 | 3040 | 177.4 |

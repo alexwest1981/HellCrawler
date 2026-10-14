@@ -165,7 +165,14 @@ MATERIAL_TO_PLATE = {
     "Cobble_1": "Cobblestone Grey",
     "Cobble_2": "Cobblestone Brown",
     "Cobble_3": "Cobblestone Mossy",
-    "Road_Base": "Dirt Stony",          # grusväg: packad jord med grus
+    "Road_Base": "Cobblestone Grey",     # GATAN (Alex 2026-10-14: "Gatan framför husen är av gräs
+                                         # just nu, den behöver vara kullersten"). MÄTT med strålar
+                                         # ned över gatans remsa: den översta ytan var 29,1 %
+                                         # Road_Bed med grusplattan och bara ~9 % kullersten — och
+                                         # kullerstenarna ÄR rätt mappade (Cobble_1/2/3 -> Grey/
+                                         # Brown/Mossy), de ligger bara glest ovanpå bädden, så
+                                         # gruset syns emellan. Bäddens yta får därför samma
+                                         # kullersten: gatan läses som sten utan att geometrin rörs.
     ## JORDBRANTEN LÄNGST FRAM. Den fick Sand Path, men bildens nedersta band — där branten ligger —
     ## är den MÖRKA zonen (MÄTT radvis: (40,47,50) mot gatans (109,88,80) och gräsets (75,84,62)).
     "Dirt_Cliff": "Mörk Zon",
@@ -301,12 +308,28 @@ def trädplatta(obj):
             return platta
     return None
 
+## ÖVERSTYRDA OBJEKT, efter namn. Kedjan körs på Alex' redan texturerade fil, där materialet bär
+## plattans EGNA namn ("PX_Dirt Stony") — mappningstabellen är då frusen och en ändrad mappning når
+## inte fram (mätt: Road_Base -> kullersten hade ingen verkan alls förrän källan byttes). Namnet är
+## det enda handtag som finns kvar. Alex 2026-10-14: "Gatan framför husen är av gräs just nu, den
+## behöver vara kullersten." MÄTT med strålar ned över gatans remsa (y -1,0..1,6): den översta ytan
+## var 29,1 % Road_Bed med grusplattan och 4,7 % Gate_Plaza_Bed, mot bara ~9 % kullersten.
+## De två är gatans och platsens BÄDDAR; kullerstenarna ligger glest ovanpå och gruset syntes emellan.
+## Körningen på REN källa (finaliserad_alex_ren.blend) ger dem samma platta ur tabellen — det här är
+## samma svar, men utan att röra de ~50 objekt vars frusna plattor skiljer sig från tabellen.
+OVERRIDE = {
+    "Road_Bed": "Cobblestone Grey",
+    "Gate_Plaza_Bed": "Cobblestone Grey",
+}
+
 def classify_object(obj):
     """(platta, källa) för ett objekt: trädens delar först, materialets platta, namnreglerna sist.
 
     MÅSTE läsas INNAN assign_material tömmer materiallistan — annars finns inget material kvar att
     klassificera på.
     """
+    if obj.name in OVERRIDE:
+        return OVERRIDE[obj.name], "override (namn)"
     träd = trädplatta(obj)
     if träd:
         return träd, "namn (träd)"
