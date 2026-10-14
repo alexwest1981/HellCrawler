@@ -48,14 +48,31 @@ var rök: GPUParticles3D = null   ## röken — provet i tests/test_by_rok.gd m�
 var kamera: Camera3D = null
 var miljö: WorldEnvironment = null
 
+## LJUSEN I FILEN ÄR BLENDERS, INTE GODOTS. byn.glb bär Alex' eget ljus med som punkter
+## (KHR_lights_punctual): Main_Sun 2186, Front_Fill 512, Tavern_Warm_Glow 11 957,
+## Forge_PointLight 8696 och fyra facklor på 4076. Godot läser talet rakt av, och Blenders enheter
+## (lux / candela) är tusen gånger Godots energi — MÄTT i den här vyn: med ljusen som de kom blev
+## 52 % av bilden REN VIT (255,255,255), medelljushet 203 av 255 och fyra färger i hela rutan. Taken
+## och gatan klipptes till vitt och byn syntes inte. Delade med tusen blir det Alex' egen bild:
+## medelljushet 150,0 mot Blenders rendering av samma fil 146,2, och 115 färger mot 130.
+const LJUS_DELARE := 1000.0
+
 func _ready() -> void:
 	if rök == null:
 		bygg()
+
+## Skala om ljusen i den instansierade scenen. Uniformt — hela ljusriggen delas med samma tal, så
+## förhållandet mellan solen, facklorna och skyltglöden är det Alex satte i Blender.
+func _dämpa_ljus(rot: Node) -> void:
+	for n in rot.find_children("*", "Light3D", true, false):
+		var l := n as Light3D
+		l.light_energy = l.light_energy / LJUS_DELARE
 
 func bygg() -> void:
 	by = load(GLB).instantiate()
 	by.name = "byn"
 	add_child(by)
+	_dämpa_ljus(by)
 
 	kamera = Camera3D.new()
 	kamera.name = "kamera"

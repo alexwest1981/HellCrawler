@@ -12,8 +12,11 @@
 ##      stiger uppåt.
 ##   3. STILEN: små, axelräta fyrkanter (QuadMesh, ingen rotation), oskuggat material, NEAREST-filtrering
 ##      och ingen glöd i scenens miljö — "ingen utsmetning" på varje ledd.
-##   4. I BY-SCENEN, INTE I SPELLOOPEN: byn.glb har ingen konsument i main.tscn, och provet fäller om
-##      en By3D-instans dyker upp där.
+##   4. KONSUMENTEN (M125): byn.glb låg förut ingenstans i spelet — provet fällde om en By3D dök upp i
+##      spelmotorns scen (main.tscn). Nu bygger BY-VYN (ui/village_view.gd) sin egen By3D när den
+##      visas, och det är hela inkopplingen: main.tscn bär fortfarande ingen egen By3D, men vyn gör
+##      det. Här mäts båda, plus ljusen i filen — de kom med Blenders enheter (lux/candela) och
+##      Godot läser talet rakt av, så utan dämpningen blev 52 % av bilden ren vit (MÄTT).
 ##
 ## BILDEN: `bildprovet` ritar två rutor av samma vy — en med röken tänd och en med den släkt — och
 ## räknar pixlarna som skiljer. Det är antalet rökpixlar i bilden. Headless finns ingen renderare, så
@@ -28,6 +31,14 @@ var checks := 0
 
 const RÖK_PLATS := Vector3(-10.65, 7.03, -1.85)
 const PNG := "/home/alex/.hermes/cache/scratch/omd/byn_rok.png"
+const TEST_META := "user://test_by_rok_meta.json"
+
+## Städa provets egen metafil (samma väg som de andra by-proven): annars ligger den kvar i user://
+## och nästa provkörning läser den.
+func _clean() -> void:
+	for p in [TEST_META, TEST_META + ".tmp"]:
+		if FileAccess.file_exists(p):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
 
 func check(ok: bool, what: String, detail: String = "") -> void:
 	checks += 1
@@ -162,7 +173,8 @@ func _initialize() -> void:
 		"partiklarna har ett FAST frö (samma rök varje körning)",
 		"frö %d" % rök.seed)
 
-	# -- 4. I BY-SCENEN, INTE I SPELLOOPEN
+	# -- 4. KONSUMENTEN: spelmotorns scen bär ingen egen By3D, by-vyn bygger sin egen
+	_clean()
 	var main: Node = load("res://main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
@@ -170,8 +182,38 @@ func _initialize() -> void:
 	for n in _alla(main):
 		if n is By3D:
 			i_spel += 1
-	check(i_spel == 0, "by-scenen ligger INTE i spelmotorn (main.tscn)", "%d By3D-instanser" % i_spel)
+	check(i_spel == 0, "spelmotorns scen (main.tscn) bär ingen EGEN By3D — menyn är uppe",
+		"%d By3D-instanser" % i_spel)
 	main.queue_free()
+	await process_frame
+	# MEN KONSUMENTEN FINNS, och det är hela inkopplingen (M125): by-vyn bygger 3D-byn när den visas.
+	var byvy := VillageView.new()
+	byvy.size = Vector2(480, 270)
+	root.add_child(byvy)
+	byvy.visa(Meta.load_or_new(TEST_META), 1)
+	var nod: By3D = byvy.by3d()
+	check(nod != null, "by-vyn bygger 3D-byn (By3D) när den visas", "ui/village_view.gd -> ui/by_3d.gd")
+	check(nod != null and nod.by != null and nod.by.get_child_count() > 0,
+		"och byn.glb ligger i den", "%d noder" % (nod.by.get_child_count() if nod != null and nod.by != null else 0))
+	# LJUSEN. Blenders ljus (KHR_lights_punctual) står i filen med Blenders enheter och Godot läser
+	# talet rakt av: Main_Sun 2186, Tavern_Warm_Glow 11 957 ... MÄTT med dem orörda blev 52 % av
+	# bilden ren vit (255,255,255) — taken och gatan klipptes, alltså ingen by. Provet fäller om
+	# något ljus står kvar i den storleken.
+	var antal_ljus := 0
+	var starkast := 0.0
+	var namn := ""
+	if nod != null and nod.by != null:
+		for l in nod.by.find_children("*", "Light3D", true, false):
+			var lg := l as Light3D
+			antal_ljus += 1
+			if lg.light_energy > starkast:
+				starkast = lg.light_energy
+				namn = str(lg.name)
+	check(antal_ljus >= 8 and starkast <= 20.0,
+		"och ljusen i filen är dämpade till Godots enheter (annars blir hela bilden vit)",
+		"%d ljus, starkaste %s %.2f" % [antal_ljus, namn, starkast])
+	byvy.free()
+	_clean()
 	await process_frame
 
 	# -- 5. BILDEN

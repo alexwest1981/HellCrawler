@@ -140,6 +140,15 @@ var _tex: Texture2D = null           ## byns bild, läst en gång
 ## BYN I 2D (M123): bakgrund och hus på var sitt lager med egna parallaxfaktorer, och en kamera som
 ## rör sig en liten bit. Husen är EGNA texturer, klippta ur `byn.png` (se `tools/gen_by_hus.py`), och
 ## står på gatulinjen — gatan är marken de står på.
+## BYN SOM 3D (M125): Alex' egen texturerade scen `byn.glb` ritas i vyn i stället för den platta
+## bakgrundsbilden. `ui/by_3d.gd` bygger glb:n, ställer den ortografiska kameran på texturens
+## frontvy och lägger röken som partiklar; scenen ligger i sin EGEN SubViewport (samma väg som
+## 2D-lagren ritades i) och är sin EGEN 3D-värld — annars hade byns himmelsblå
+## `WorldEnvironment` lagt sig över kryptans ljus, eftersom vyn ligger kvar i trädet under en
+## körning. `_draw` ritar 3D-texturen när den finns: den gamla bakgrundsbilden (byn.png/bak.png)
+## ritas då inte alls, varken över eller under byn.
+var _by3d_vp: SubViewport = null
+var _by3d: By3D = null
 var _scen3d: ByScen = null
 var _gata_px := 0.0                   ## gatans rad i KONSTENS px (scenen mäter därifrån)
 var _bak_tex: Texture2D = null        ## bilden med husen borttagna, läst en gång
@@ -234,9 +243,47 @@ func byscen() -> Texture2D:
 		_tex = load(BILD)
 	return _tex
 
+## BYGG 3D-BYN. Byggs bara när vyns ruta har ändrats — samma regel som 2D-scenen: 1919 meshar och
+## en partikelemitter ska inte byggas om i varje bildruta (`visa` anropas varje gång skalet ritar).
+##
+## RITAS BARA NÄR VYN SYNS (`UPDATE_WHEN_VISIBLE`): byn ligger kvar i trädet under en körning, och en
+## SubViewport i UPDATE_ALWAYS hade ritat 1919 meshar per bildruta i fängelsehålan också — samma
+## kostnad som `_process`-spärren i den här filen finns för att undvika.
+func _bygg_by3d(vy: Vector2) -> void:
+	if (_by3d_vp != null and is_instance_valid(_by3d_vp)
+			and _by3d_vp.size == Vector2i(int(vy.x), int(vy.y))):
+		return
+	if not ResourceLoader.exists(By3D.GLB):
+		return
+	if _by3d_vp != null and is_instance_valid(_by3d_vp):
+		_by3d_vp.queue_free()
+	_by3d_vp = SubViewport.new()
+	_by3d_vp.size = Vector2i(int(vy.x), int(vy.y))
+	# EGEN VÄRLD. By3D bär sitt eget WorldEnvironment (himmelsblå bakgrund, omgivningsljus), och en
+	# WorldEnvironment lägger sig i den värld den står i: delade vyn värld med spelvyn hade byns
+	# himmel och glöd lagt sig över kryptan.
+	_by3d_vp.own_world_3d = true
+	_by3d_vp.transparent_bg = false
+	_by3d_vp.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	_by3d_vp.msaa_2d = Viewport.MSAA_DISABLED
+	add_child(_by3d_vp)
+	_by3d = By3D.new()
+	_by3d_vp.add_child(_by3d)
+
+## 3D-byns bild — textur i vyns mått. Null när scenen inte är byggd (glb:n saknas), och i en
+## huvudlös körning finns ingen rityta: `_draw` faller då tillbaka på 2D-vyn, precis som förut.
+func by3d_textur() -> Texture2D:
+	if _by3d_vp == null or not is_instance_valid(_by3d_vp):
+		return null
+	return _by3d_vp.get_texture()
+
 ## 2D-SCENEN (M123). Null när konsten saknas — då ritar vyn sin platta som förr.
 func scen3d() -> ByScen:
 	return _scen3d
+
+## 3D-byn (M125): glb-noden, för den som vill mäta den (provet i tests/test_by_rok.gd bygger sin egen).
+func by3d() -> By3D:
+	return _by3d
 
 ## Husets ruta i KONSTENS px: samma tal som klickytan räknar ur (`x0`/`x1`, `HUS_TOPP`, `BILDENS_GATA`)
 ## och SAMMA avrundning som `tools/gen_by_hus.py` — en halv pixel här hade lagt huset snett över sitt
@@ -278,6 +325,8 @@ func _hus_textur(i: int) -> Texture2D:
 ## (`x0`/`x1`) och höjden går från `HUS_TOPP` ned till gatulinjen — huset man ser är det som reses.
 ## Byggs om bara när vyns storlek har ändrats: i en kedja av bildrutor räcker det.
 func _bygg_scen() -> void:
+	# 3D-BYN först (M125): den är det som ritas, och den byggs ur SAMMA ruta som 2D-scenen.
+	_bygg_by3d(_vy())
 	var konst := byscen()
 	if konst == null or konst.get_height() <= 0:
 		_scen3d = null
@@ -606,7 +655,13 @@ func _gui_input(event: InputEvent) -> void:
 # --- ritningen ---------------------------------------------------------------
 func _draw() -> void:
 	var vp := _vy()
-	if _scen3d != null and _scen3d.klar():
+	# 3D-BYN (M125) ritas när den finns: Alex' texturerade scen ur sin egen ruta, kant i kant i vyn.
+	# Den gamla bakgrundsbilden ritas då INTE — varken över eller under byn (grenen nedan är
+	# reservvägen för en körning utan rityta eller ett projekt utan byn.glb).
+	var by3d_tex := by3d_textur()
+	if by3d_tex != null:
+		draw_texture_rect(by3d_tex, Rect2(Vector2.ZERO, vp), false)
+	elif _scen3d != null and _scen3d.klar():
 		# 3D-SCENEN (M122): bakgrund och hus ritas i den inre vyn, på var sitt djup, och den ritas
 		# 1:1 här — en pixel i den inre vyn är en pixel i vyn, som skalas till skärmen med heltalet.
 		draw_texture_rect(_scen3d.textur(), Rect2(Vector2.ZERO, vp), false)
