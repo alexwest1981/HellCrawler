@@ -96,30 +96,31 @@ Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roo
 | **4 material** | | | **137** |
 | `Iron` | Iron Riveted | `atlas/metal_riveted.png` | 44 |
 | **1 material** | | | **44** |
+| `Window_Bright` | Ljus Varm | `ljus_varm.png` | 2 |
+| **1 material** | | | **2** |
 | `Dirt_Cliff` | Mörk Zon | `mork_zon.png` | 1 |
 | **1 material** | | | **1** |
-| `Roof_Slate_1` | Slate Roof | `roof_slate.png` | 142 |
-| `Roof_Slate_2` | Slate Roof | `roof_slate.png` | 138 |
-| `Roof_Purple_1` | Slate Roof | `roof_slate.png` | 50 |
-| `Roof_Purple_2` | Slate Roof | `roof_slate.png` | 48 |
-| **4 material** | | | **378** |
+| `Roof_Purple_1` | Purple Roof | `tak_lila.png` | 50 |
+| `Roof_Purple_2` | Purple Roof | `tak_lila.png` | 48 |
+| **2 material** | | | **98** |
+| `Window_Warm` | Ram | `ram.png` | 7 |
+| **1 material** | | | **7** |
+| `Roof_Slate_1` | Slate Roof | `tak_skiffer.png` | 142 |
+| `Roof_Slate_2` | Slate Roof | `tak_skiffer.png` | 138 |
+| **2 material** | | | **280** |
 | `Stone_Light` | Stone | `mursten.png` | 201 |
 | `Stone_Dark` | Stone | `mursten.png` | 43 |
 | `Stone_Wall` | Stone | `mursten.png` | 30 |
 | **3 material** | | | **274** |
 | `Mountain_Rock` | Stone Mossy | `atlas/stone_wall_mossy_small.png` | 5 |
 | **1 material** | | | **5** |
-| `Roof_Red_1` | Terracotta Roof | `roof_terracotta.png` | 140 |
-| `Roof_Red_2` | Terracotta Roof | `roof_terracotta.png` | 140 |
-| `Roof_Thatch` | Terracotta Roof | `roof_terracotta.png` | 42 |
+| `Roof_Red_1` | Terracotta Roof | `tak_tegel.png` | 140 |
+| `Roof_Red_2` | Terracotta Roof | `tak_tegel.png` | 140 |
+| `Roof_Thatch` | Terracotta Roof | `tak_tegel.png` | 42 |
 | **3 material** | | | **322** |
 | `Plaster_Warm` | Tudor Plaster | `tudor_wall.png` | 43 |
 | `Plaster_Cream` | Tudor Plaster | `tudor_wall.png` | 28 |
 | **2 material** | | | **71** |
-| `Window_Bright` | Window Bright | `atlas/window_narrow.png` | 2 |
-| **1 material** | | | **2** |
-| `Window_Warm` | Window Warm | `atlas/window_four_pane.png` | 7 |
-| **1 material** | | | **7** |
 | `Wood_Dark` | Wood | `virke.png` | 103 |
 | `Wood_Oak` | Wood | `virke.png` | 84 |
 | `Wood_Beam` | Wood | `virke.png` | 69 |
@@ -237,18 +238,22 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Grass Flowers` | `grass.png` | 0 | 0 | 0.0 |
 | `PX_Hedge` | `hedge.png` | 38 | 3040 | 177.4 |
 | `PX_Iron Riveted` | `metal_riveted.png` | 44 | 1532 | 11.5 |
+| `PX_Ljus Varm` | `ljus_varm.png` | 2 | 12 | 5.2 |
 | `PX_Lövverk` | `lov.png` | 55 | 4400 | 705.8 |
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
 | `PX_Mörk Zon` | `mork_zon.png` | 1 | 6 | 449.1 |
+| `PX_Purple Roof` | `tak_lila.png` | 98 | 588 | 43.3 |
+| `PX_Ram` | `ram.png` | 33 | 198 | 54.7 |
 | `PX_Sand Path` | `sand_path.png` | 0 | 0 | 0.0 |
-| `PX_Slate Roof` | `roof_slate.png` | 378 | 2268 | 147.7 |
-| `PX_Stone` | `mursten.png` | 379 | 5660 | 1286.6 |
+| `PX_Skylt` | `skylt.png` | 8 | 48 | 15.1 |
+| `PX_Slate Roof` | `tak_skiffer.png` | 280 | 1680 | 104.5 |
+| `PX_Stone` | `mursten.png` | 378 | 5654 | 1282.8 |
 | `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
-| `PX_Terracotta Roof` | `roof_terracotta.png` | 322 | 1932 | 131.9 |
+| `PX_Terracotta Roof` | `tak_tegel.png` | 322 | 1932 | 131.9 |
 | `PX_Tudor Plaster` | `tudor_wall.png` | 71 | 426 | 862.9 |
-| `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
-| `PX_Window Warm` | `window_four_pane.png` | 7 | 42 | 18.4 |
-| `PX_Wood` | `virke.png` | 240 | 1520 | 717.3 |
+| `PX_Window Bright` | `window_narrow.png` | 0 | 0 | 0.0 |
+| `PX_Window Warm` | `window_four_pane.png` | 0 | 0 | 0.0 |
+| `PX_Wood` | `virke.png` | 207 | 1322 | 669.7 |
 | `Pine_Green` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Plaster_Cream` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Plaster_Warm` | `**ingen bild**` | 0 | 0 | 0.0 |
@@ -273,4 +278,4 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `Wood_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Wood_Oak` | `**ingen bild**` | 0 | 0 | 0.0 |
 
-Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 74 material i filen står med.
+Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 78 material i filen står med.

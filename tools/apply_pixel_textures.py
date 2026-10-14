@@ -51,8 +51,9 @@ TEXTURES = {
     "Stone": "mursten.png",
     "Mossy Stone": "mossy_stone.png",
     "Dark Stone": "dark_stone.png",
-    "Terracotta Roof": "roof_terracotta.png",
-    "Slate Roof": "roof_slate.png",
+    "Terracotta Roof": "tak_tegel.png",
+    "Slate Roof": "tak_skiffer.png",
+    "Purple Roof": "tak_lila.png",
     "Wood": "virke.png",
     "Tudor Plaster": "tudor_wall.png",
     "Grass": "gras.png",
@@ -80,7 +81,15 @@ TEXTURES = {
     "Stone Mossy": "atlas/stone_wall_mossy_small.png",           # mossig mursten, fog 12,80
     "Iron Riveted": "atlas/metal_riveted.png",                   # nitslagen metall, hamrad
     "Window Warm": "atlas/window_four_pane.png",                 # fyrdelat fönster, varmt ljus, fog 7,24
-    "Window Bright": "atlas/window_narrow.png",                  # smalt tvådelat fönster, fog 9,97
+    "Window Bright": "atlas/window_narrow.png",                   # smalt tvådelat fönster, fog 9,97
+    ## SKYLT OCH FÖNSTER. Skyltarnas bräda och kanter låg på "Wood" — samma platta som bjälkarna —
+    ## och fönstren på atlasens bruna rutor (97,54,29) / (115,69,32), brunare än väggen. Allt flöt
+    ## ihop (Alex 2026-10-14). Bildens uppmätta värden: skyltbräda (115,91,72), ram/skugga
+    ## (39,29,37), lysande bokstäver och lyst glas (235,181,119). Plattorna räknas ur virkets
+    ## planka av tools/gen_trad_plattor.py — motivet är trä, bara tonen är bildens.
+    "Skylt": "skylt.png",
+    "Ram": "ram.png",
+    "Ljus Varm": "ljus_varm.png",
 }
 
 def load_texture(filename):
@@ -142,8 +151,8 @@ MATERIAL_TO_PLATE = {
     # tak
     "Roof_Slate_1": "Slate Roof",
     "Roof_Slate_2": "Slate Roof",
-    "Roof_Purple_1": "Slate Roof",
-    "Roof_Purple_2": "Slate Roof",
+    "Roof_Purple_1": "Purple Roof",
+    "Roof_Purple_2": "Purple Roof",
     "Roof_Red_1": "Terracotta Roof",
     "Roof_Red_2": "Terracotta Roof",
     ## VASSTAKET. Alex' paket har ingen vassplatta (roof_thatch.png finns inte i tex/), så materialet
@@ -184,8 +193,10 @@ MATERIAL_TO_PLATE = {
     "Pine_Green": "Hedge",
     # järn och fönsterglas: hade ingen platta i paketet, atlasen har båda
     "Iron": "Iron Riveted",
-    "Window_Warm": "Window Warm",
-    "Window_Bright": "Window Bright",
+    ## Fönstren (Alex 2026-10-14): atlasens rutor är brunare än väggen. Bilden har MÖRKA öppningar
+    ## (39,29,37) och ett VARMT ljus (235,181,119) i de tända.
+    "Window_Warm": "Ram",
+    "Window_Bright": "Ljus Varm",
 }
 
 ## RÖKEN. Alex: "Röken som kommer upp ur ena huset är texturerad med sten — ta bort bollarna av rök
@@ -225,7 +236,7 @@ def namnregler(obj):
 
     # wood / furniture / doors / barrels
     if any(k in n for k in ("wood", "timber", "beam", "plank", "barrel", "door", "gate_door",
-                            "bench", "table", "chair", "sign", "frame", "rafter", "shutter",
+                            "bench", "table", "chair", "rafter",
                             "fence", "cart", "wheel", "crate", "ladder")):
         return "Wood"
 
@@ -299,6 +310,23 @@ def classify_object(obj):
     träd = trädplatta(obj)
     if träd:
         return träd, "namn (träd)"
+    ## SKYLT OCH FÖNSTER FÖRE MATERIALET. Brädan, kanterna och bokstäverna heter Sign_* men delar
+    ## MATERIAL med bjälkarna (Wood_Beam/Wood_Dark), och fönsterramarna heter *_Frame med samma
+    ## virkesmaterial — materialvägen nedan kan inte skilja dem, så de hamnade på väggens platta och
+    ## försvann i den (Alex 2026-10-14: "skyltarna ... fönstren ... nu flyter allt ihop"). Samma väg
+    ## som trädens delar: NAMNET först. MÄTT i bilden: bräda (115,91,72), ram (39,29,37),
+    ## bokstäver och lyst glas (235,181,119).
+    n = obj.name.lower()
+    if n.endswith("_txt"):
+        return "Ljus Varm", "namn (skylttext)"
+    ## SKYLTENS KANT ÄR RAMEN: i bilden är ramen mörk (39,29,37) och brädan ljusare (115,91,72) — med
+    ## samma platta på båda blir skylten ett enda brunt fält utan ram.
+    if "sign" in n and "border" in n:
+        return "Ram", "namn (skyltkant)"
+    if "sign" in n and "glow" not in n:
+        return "Skylt", "namn (skylt)"
+    if "frame" in n or "shutter" in n:
+        return "Ram", "namn (ram)"
     namn = första_materialet(obj)
     if namn in MATERIAL_TO_PLATE:
         platta = MATERIAL_TO_PLATE[namn]
@@ -370,7 +398,9 @@ def assign_material(obj, mat):
             return
     obj.data.materials.append(mat)
     # Assign the one material to every polygon.
-    for poly in obj.data.polygons:
+    ## FONT/KURVA har inga polygoner — skyltbokstäverna är TextCurve-objekt och föll förut här
+    ## (`AttributeError: 'TextCurve' object has no attribute 'polygons'`).
+    for poly in getattr(obj.data, "polygons", ()):
         poly.material_index = 0
 
 def main():
@@ -416,7 +446,7 @@ def main():
             if källa == "namn":
                 rad = omappade.setdefault(ursprung, [category, 0])
                 rad[1] += 1
-            if ursprung and ursprung.startswith("Roof_") and category not in ("Terracotta Roof", "Slate Roof"):
+            if ursprung and ursprung.startswith("Roof_") and category not in ("Terracotta Roof", "Slate Roof", "Purple Roof"):
                 tak_pa_mur.append((obj.name, ursprung, category))
             if "bg" in obj.name.lower():
                 bg["antal"] += 1
@@ -433,6 +463,17 @@ def main():
                 print(f"Pixel texturing: {i}/{len(meshes)} objects...")
         except Exception as e:
             print(f"[WARN] Skipped {obj.name}: {e}")
+
+    ## SKYLTBOKSTÄVERNA. De är FONT-objekt, inte meshar, och loopen ovan går bara över `meshes` — så
+    ## bokstäverna stod helt utan platta (mätt via bryggan på den texturerade filen: Sign_*_Txt ->
+    ## None, sex skyltar, medan brädan runtom fick PX_Wood). De får skyltens guldplatta här.
+    texter = [o for o in bpy.context.scene.objects
+              if o.type in ("FONT", "CURVE") and o.name.lower().endswith("_txt")]
+    for o in texter:
+        assign_material(o, MATERIALS["Ljus Varm"])
+    if texter:
+        counts["Ljus Varm (skylttext)"] = len(texter)
+        print("Sign lettering: %d FONT objects -> %s" % (len(texter), TEXTURES["Ljus Varm"]))
 
     print("=== Pixel-art texturing finished ===")
     print(f"Processed {len(meshes)} mesh objects.")
