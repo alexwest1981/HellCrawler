@@ -33,8 +33,14 @@
 ## Ingen cirkel ritas någonstans i den här vyn (provet läser filen och kräver noll `draw_circle`).
 ## I stället märks platsen SJÄLV, ur husets EGEN ruta i bilden (`byggnad_rect`):
 ##
-##   * den VALDA platsen: guldram runt hela byggnaden + en platta på gatan,
-##   * den man HOVRAR över: en varm ljusvägg som tonar nedåt huset, och husets namn ovanför.
+##   * den VALDA platsen: EN PIL ovanför sin post i listen längst ned, och plattan på gatan,
+##   * den man HOVRAR över: en svag glöd runt husets silhuett, och husets namn ovanför.
+##
+## RAMEN RUNT DET VALDA HUSET ÄR BORTA (M124). Alex: *"Det är idag någon weird ram runt det som är
+## markerat, och det har jag tyckt väldigt illa om. Jag vill bara ha en pil ovanför det man valt i
+## listen under."* Först var ramen en gul ruta, sedan en glöd runt husets silhuett — båda ritade runt
+## HELA huset (MÄTT i 941x1018: markeringens ruta var 522x795 px, från fönstrets överkant ned till
+## gatan). Nu ritar vyn ingen markering kring huset alls: `pil_rect` i listen bär valet.
 ##
 ## Klickytan är samma ruta — man klickar på huset man ser, inte på en prick bredvid det. `hus_rect`
 ## (den kompakta rutan kring platsens punkt) finns kvar som INVARIANT för provet: två platsers punkter
@@ -101,6 +107,10 @@ const MARKLINJE := 168.0             ## gatan i designmåttet (270 px hög vy)
 const GATA := 172.0
 const BAR := 196.0                   ## etikettlistens överkant i designmåttet
 const GUPP := [0, 1, 2, 1]           ## markörens gupp i fyra bildrutor: pixelkonst hackar, den glider inte
+## PILEN (M124): den valda platsens post i listen märks med EN pil OVANFÖR sig, som pekar ned på den.
+## Raderna är pilens bredd uppifrån och ned — skaft och spets, hårda kanter, ingen rundad form.
+const PIL_BREDD := [3, 3, 7, 5, 3, 1]
+const PIL_H := 6.0                   ## pilens höjd i vyns px
 ## Hur fort panoreringen stannar: 1 - exp(-fart * delta). Låg fart = lång, mjuk förflyttning.
 const PAN_FART := 8.0
 ## Var i bildens HÖJD gatan ligger, i procent: märkena ställs på gatans linje, och bilden skjuts i
@@ -289,13 +299,14 @@ func _bygg_scen() -> void:
 	_scen3d.bygg(self, vy, bak, hus, _gata_px, bild_storlek().y / art.y)
 	_scen3d.sätt_pan(_pan)
 	_scen3d.sätt_kamera(_kamerapan.x, _kamerapan.y)
-	_scen3d.sätt_markering(_vald, _hover)
+	_om_markering()
 
-## Markeringen: den valda byggnaden och den man hovrar över får en glöd runt sin egen silhuett.
-## Anropas när valet eller hovringen ändras — markeringen bor i scenen, där husets textur finns.
+## Markeringen. Glöden runt ett hus hör nu bara till HOVRINGEN — den valda platsen märks i LISTEN
+## (`pil_rect`), inte runt huset (M124). Anropas när valet eller hovringen ändras, och det är den ENDA
+## vägen till scenens markering: två anrop hade kunnat säga olika saker om vad som är valt.
 func _om_markering() -> void:
 	if _scen3d != null:
-		_scen3d.sätt_markering(_vald, _hover)
+		_scen3d.sätt_markering(-1, _hover)
 
 ## Kameran i sidled/höjdled. Pekaren styr den (en liten rörelse ger djupkänsla), och `kamerapan=x,y`
 ## låser den så en provbild kan mäta paralaxen i SAMMA scen.
@@ -608,6 +619,7 @@ func _draw() -> void:
 	for k in 8:
 		draw_rect(Rect2(0.0, bar_topp() - 8.0 + float(k), vp.x, 1.0), _a(Palett.c(0), 0.10 * float(k)))
 	_bar(vp)
+	_pil()
 	# Plattan den valda platsen står på, SIST av scenen. Markeringen själv (glöden runt husets
 	# silhuett) ritas i scenen — ingen gul ruta kring huset finns kvar (M123).
 	for i in PLATSER.size():
@@ -672,6 +684,32 @@ func _a(c: Color, alfa: float) -> Color:
 func markör_ram() -> Rect2:
 	var vp := _vy()
 	return byggnad_rect(_vald).intersection(Rect2(2.0, 2.0, vp.x - 4.0, vp.y - 4.0))
+
+## PILENS ruta i VYNS px: EN pil, centrerad över den VALDA postens cell i listen, med spetsen nedåt
+## och två px ovanför listen. Den läses ur `_vald` — samma källa som listens guldruta och plattan på
+## gatan — så pilen, posten och markören kan inte säga olika saker om vad som är valt.
+##
+## Mitten läggs på en HALV vyn-pixel och bredderna är udda: då ligger varje rads båda kanter på
+## pixelgriden och radbredderna blir exakt 3, 3, 7, 5, 3, 1. MÄTT på provbilden i 941x1018 (där en
+## vyn-pixel är tre skärmpixlar) med mitten på ett heltal: raderna hamnade en pixel snett mot varandra
+## och 4 px-breda rader blev 18 eller 21 px. Priset för gridläget är att pilen ligger högst en halv
+## vyn-pixel från cellens mitt — cellen är 52 px bred, så det syns inte.
+func pil_rect() -> Rect2:
+	var cell := _vy().x / float(PLATSER.size())
+	var bredd: float = float(PIL_BREDD.max())
+	var mitten := floorf((float(_vald) + 0.5) * cell) + 0.5
+	return Rect2(mitten - bredd * 0.5, bar_topp() - PIL_H - 2.0, bredd, PIL_H)
+
+## Pilen ritas rad för rad: hård pixelkonst i Palett.c(14) med en mörk kant i Palett.c(1) — samma
+## färgpar som den valda postens guldtext och som plattan på gatan använder.
+func _pil() -> void:
+	var r := pil_rect()
+	var mitt := r.get_center().x
+	for rad in PIL_BREDD.size():
+		var b := float(PIL_BREDD[rad])
+		var y := r.position.y + float(rad)
+		draw_rect(Rect2(mitt - b * 0.5 - 1.0, y, b + 2.0, 1.0), Palett.c(1))
+		draw_rect(Rect2(mitt - b * 0.5, y, b, 1.0), Palett.c(14))
 
 ## HUSET MÄRKS (M123). Glöden runt byggnadens EGEN silhuett ritas i SCENEN (`ByScen.sätt_markering`),
 ## där husets textur finns: den gula rutan kring byggnaden och den mörka ljusväggen över den är BORTA

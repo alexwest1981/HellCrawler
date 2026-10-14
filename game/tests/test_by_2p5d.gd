@@ -14,6 +14,8 @@
 ##   3. GÅNGAREN: EN komponent, som går till den valda platsen och först DÅ öppnar den — och samma
 ##      komponent på världskartan. Provet mäter vägen, tiden och att rätt plats öppnas.
 ##   4. PARALLAXEN: byn är 2D-lager; kameran pannas N px och lager A flyttar a px, lager B b px, a≠b.
+##   5. VALET (M124): ingen ram runt det valda huset, och EN pil över den valda posten i listen som
+##      flyttar sig med valet. Alex: *"Jag vill bara ha en pil ovanför det man valt i listen under."*
 ##
 ## M123: själva utklippningen av husen, gatulinjen och nolläget mäts i `test_by_utklippt.gd`. Här står
 ## den del som hörde hit: lagren, klickytan, skärpan och gångaren.
@@ -60,6 +62,27 @@ func _cirkel_antal(sökväg: String) -> int:
 	if text.is_empty():
 		return -1
 	return text.count("draw_circle(")
+
+## Markeringens ruta i FÖNSTERpixlar: summan av de glödar i scenen som SYNS (en plats för den valda
+## och en för den hovrade — de kan vara olika hus). Tom när ingen ritas, alltså noll pixlar markering.
+## Rutan räknas ur nodens EGET läge, skal och textur, inte ur en formel: provet mäter det som RITAS.
+func _markering_ruta(vy) -> Rect2:
+	var scen: ByScen = vy.scen3d()
+	var rutor := []
+	if scen != null:
+		for g in scen._glodar:
+			var s := g as Sprite2D
+			if s == null or not s.visible or s.texture == null:
+				continue
+			var m := s.scale * Vector2(s.texture.get_size())
+			rutor.append(Rect2(s.position - m * 0.5, m))
+	if rutor.is_empty():
+		return Rect2()
+	var r: Rect2 = rutor[0]
+	for i in range(1, rutor.size()):
+		r = r.merge(rutor[i])
+	var k: float = vy.fönsterskala()
+	return Rect2(r.position * k, r.size * k)
 
 
 ## Kör gångaren fram till målet i fasta steg, och säg hur många steg (och hur lång tid) det tog.
@@ -370,6 +393,55 @@ func _initialize() -> void:
 		"husets kantkontrast %.1f mot den mjuka bakgrundens %.1f" % [hus_kk, mjuk_kk])
 	# och SKÄRPAN i den här vyn är kvar: 1:1-vägen gäller fortfarande efter 2D-ombyggnaden
 	check(by3.fönsterskala() == 3.0, "vyn ritarläget är oförändrat skarpt (skala 3)", "%.0f" % by3.fönsterskala())
+
+	# ---------------------------------------------------------------- 5. PILEN (M124)
+	print("")
+	print("— 5. valet märks i listen: pilen, inte en ram runt huset —")
+	# RAMEN OCH LJUSVÄGGEN RUNT DET VALDA HUSET. Alex: *"Det är idag någon weird ram runt det som är
+	# markerat, och det har jag tyckt väldigt illa om. Jag vill bara ha en pil ovanför det man valt i
+	# listen under."* Markeringen har varit en gul ruta och sedan en glöd som följde husets silhuett;
+	# båda ritade kring HELA huset (MÄTT på provbilden i 941x1018: 522x795 px, från fönstrets överkant
+	# ned till gatan). Ingen av dem får finnas kvar — för NÅGON plats, inte bara den första.
+	#
+	# PILEN: en pil, ovanför den valda postens cell i listen, med spetsen nedåt. Rutorna mäts i
+	# FÖNSTERpixlar (vyn ritas i heltalsskala 3 här, precis som i spelet), och den ska FLYTTA sig med
+	# valet — ett fast läge hade pekat på samma post hela gatan igenom.
+	var poster: int = VillageView.PLATSER.size()
+	var cell: float = by3._vy().x / float(poster) * by3.fönsterskala()
+	var ramar := []
+	var fel_mitt := []
+	var pil_rutor := []
+	var pil_mitt := []
+	for i in poster:
+		while by3.valt_index() != i:
+			if not by3.flytta(Vector2i(1, 0)):
+				break
+		by3.pan_klart()
+		var mr := _markering_ruta(by3)
+		if mr != Rect2():
+			ramar.append("%s %s" % [str(VillageView.PLATSER[i]["id"]), str(mr)])
+		var pr := by3.pil_rect()
+		pil_rutor.append(Rect2(pr.position * by3.fönsterskala(), pr.size * by3.fönsterskala()))
+		pil_mitt.append(pr.get_center().x * by3.fönsterskala())
+		if absf(pil_mitt[i] - (float(i) + 0.5) * cell) > 1.0 * by3.fönsterskala():
+			fel_mitt.append("%s %.1f mot %.1f" % [str(VillageView.PLATSER[i]["id"]),
+				pil_mitt[i], (float(i) + 0.5) * cell])
+	check(ramar.is_empty(), "ingen ram och ingen ljusvägg ritas runt det valda huset",
+		"markeringens ruta är tom för varje plats (0 px)" if ramar.is_empty() else ", ".join(ramar))
+	check(fel_mitt.is_empty(), "pilen sitter centrerad över den valda posten",
+		"postmitt i fönsterpixlar: %s" % str(pil_mitt))
+	# FLYTTEN: i sidled med valet (en cell per steg), i SAMMA höjd — en pil som vandrar i höjdled pekar
+	# inte längre på en post.
+	var flytt: float = absf(pil_mitt[poster - 1] - pil_mitt[0])
+	var väntad_flytt: float = float(poster - 1) * cell
+	check(absf(flytt - väntad_flytt) <= 1.0 * by3.fönsterskala()
+			and absf(pil_rutor[poster - 1].position.y - pil_rutor[0].position.y) < 0.01,
+		"och den flyttar sig med valet — en cell i sidled per steg, i samma höjd",
+		"%.0f px mellan första och sista posten (%.0f väntat), y %.0f" % [flytt, väntad_flytt, pil_rutor[0].position.y])
+	# OVANFÖR LISTEN, med spetsen nedåt: pilen ska peka PÅ posten, inte ligga inne i den.
+	check(pil_rutor[0].end.y <= by3.bar_topp() * by3.fönsterskala() + 0.01,
+		"pilen ligger ovanför listen och pekar ned på posten",
+		"pilens underkant %.0f, listens överkant %.0f" % [pil_rutor[0].end.y, by3.bar_topp() * by3.fönsterskala()])
 	by3.free()
 	korg4.queue_free()
 
