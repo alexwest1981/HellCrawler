@@ -80,18 +80,26 @@ LJUS_DELARE = 2000.0
 
 
 def dämpa_ljus(delare: float = LJUS_DELARE) -> list:
-    """Delar varje ljus i scenen med `delare`. Returnerar [(namn, energi)] efter omräkningen.
+    """Delar varje ljus i scenen med `delare`. Returnerar [(ljus, ursprunglig energi)] .
 
     Anropas av `exportera` — den ENDA vägen till en .glb härifrån — så att ingen export kan hoppa över
-    omräkningen och skicka ut Blenders enheter till Godot igen.
+    omräkningen och skicka ut Blenders enheter till Godot igen. Anroparen MÅSTE lägga tillbaka
+    energierna efter exporten (`återställ_ljus`), annars ritar bevisrenderingarna byn i Godots enheter
+    och blir nästan svarta.
     """
     ut = []
     for o in bpy.context.scene.objects:
         if o.type != "LIGHT":
             continue
+        ut.append((o, o.data.energy))
         o.data.energy /= delare
-        ut.append((o.name, o.data.energy))
     return ut
+
+
+def återställ_ljus(sparade: list) -> None:
+    """Lägger tillbaka Alex' egna ljusenergier efter exporten (se `dämpa_ljus`)."""
+    for o, energi in sparade:
+        o.data.energy = energi
 
 UV_NAMN = "UVMap"
 ## Rutans kant i px. MÄTT: projektets egna plattor är 256x256 (super-rutorna 512), och
@@ -269,9 +277,12 @@ def exportera(glb: Path):
     # har någon kopplat ur omräkningen.
     ljus = dämpa_ljus()
     print("LJUS: %d ljus delade med %.0f (Blender -> Godot): %s" %
-          (len(ljus), LJUS_DELARE, ", ".join("%s %.4f" % (n, e) for n, e in sorted(ljus))))
+          (len(ljus), LJUS_DELARE, ", ".join("%s %.4f" % (o.name, o.data.energy) for o, _ in sorted(ljus, key=lambda p: p[0].name))))
     bpy.ops.export_scene.gltf(filepath=str(glb), export_format="GLB", export_yup=True,
                               export_apply=True, export_extras=True, export_lights=True)
+    # TILLBAKA: allt som ritas EFTER exporten (bevisbilderna i tools/byn_tex_prov.py) ska visa byn med
+    # ALEX' ljus, inte med Godots enheter. Utan raden blir de renderingarna nästan svarta.
+    återställ_ljus(ljus)
 
 
 def schackruta(px: int = 128):
