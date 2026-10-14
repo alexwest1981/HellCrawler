@@ -1,0 +1,258 @@
+{
+ "background": {
+  "antal": 365,
+  "sten": 0,
+  "tak": 305
+ },
+ "material_to_plate": {
+  "Cobble_1": "Cobblestone Grey",
+  "Cobble_2": "Cobblestone Brown",
+  "Cobble_3": "Cobblestone Mossy",
+  "Dirt_Cliff": "Sand Path",
+  "Grass_Dark": "Grass Flowers",
+  "Grass_Light": "Grass Flowers",
+  "Grass_Mid": "Grass Flowers",
+  "Iron": "Iron Riveted",
+  "Leaf_Dark": "Hedge",
+  "Leaf_Light": "Hedge",
+  "Leaf_Mid": "Hedge",
+  "Mountain_Rock": "Stone Mossy",
+  "Pine_Green": "Hedge",
+  "Plaster_Cream": "Tudor Plaster",
+  "Plaster_Warm": "Tudor Plaster",
+  "Road_Base": "Dirt Stony",
+  "Roof_Purple_1": "Slate Roof",
+  "Roof_Purple_2": "Slate Roof",
+  "Roof_Red_1": "Terracotta Roof",
+  "Roof_Red_2": "Terracotta Roof",
+  "Roof_Slate_1": "Slate Roof",
+  "Roof_Slate_2": "Slate Roof",
+  "Stone_Dark": "Stone",
+  "Stone_Light": "Stone",
+  "Stone_Wall": "Stone",
+  "Window_Bright": "Window Bright",
+  "Window_Warm": "Window Warm",
+  "Wood_Beam": "Wood",
+  "Wood_Dark": "Wood",
+  "Wood_Light": "Wood",
+  "Wood_Oak": "Wood"
+ },
+ "objects_per_material": {
+  "Bulb_Glow": 41,
+  "Cloth_Blue": 12,
+  "Cloth_Cyan": 5,
+  "Cloth_Green": 3,
+  "Cloth_Purple": 2,
+  "Cloth_Red": 6,
+  "Cobble_1": 115,
+  "Cobble_2": 91,
+  "Cobble_3": 89,
+  "Dirt_Cliff": 1,
+  "Fire_Core": 9,
+  "Fire_Orange": 1,
+  "Gem_Cyan": 1,
+  "Gem_Green": 1,
+  "Gem_Pink": 1,
+  "Gold": 5,
+  "Grass_Dark": 1,
+  "Grass_Light": 28,
+  "Grass_Mid": 1,
+  "Horse_Brown": 3,
+  "Iron": 44,
+  "Leaf_Dark": 28,
+  "Leaf_Light": 18,
+  "Leaf_Mid": 37,
+  "Mountain_Rock": 5,
+  "Pine_Green": 32,
+  "Plaster_Cream": 28,
+  "Plaster_Warm": 43,
+  "Road_Base": 2,
+  "Roof_Purple_1": 50,
+  "Roof_Purple_2": 48,
+  "Roof_Red_1": 140,
+  "Roof_Red_2": 140,
+  "Roof_Slate_1": 142,
+  "Roof_Slate_2": 138,
+  "Roof_Thatch": 42,
+  "Sheep_Wool": 14,
+  "Skin": 10,
+  "Stone_Dark": 43,
+  "Stone_Light": 201,
+  "Stone_Wall": 30,
+  "Window_Bright": 2,
+  "Window_Warm": 7,
+  "Wood_Beam": 67,
+  "Wood_Dark": 99,
+  "Wood_Light": 3,
+  "Wood_Oak": 82
+ },
+ "plate_file": {
+  "Cobblestone Brown": "atlas/cobblestone_brown.png",
+  "Cobblestone Grey": "atlas/cobblestone_grey.png",
+  "Cobblestone Ground": "cobblestone_ground.png",
+  "Cobblestone Mossy": "atlas/cobblestone_mossy.png",
+  "Dark Stone": "dark_stone.png",
+  "Dirt": "dirt.png",
+  "Dirt Stony": "atlas/dirt_stony.png",
+  "Grass": "grass.png",
+  "Grass Flowers": "atlas/grass.png",
+  "Hedge": "hedge.png",
+  "Iron Riveted": "atlas/metal_riveted.png",
+  "Mossy Stone": "mossy_stone.png",
+  "Sand Path": "atlas/sand_path.png",
+  "Slate Roof": "roof_slate.png",
+  "Stone": "stone_wall.png",
+  "Stone Mossy": "atlas/stone_wall_mossy_small.png",
+  "Terracotta Roof": "roof_terracotta.png",
+  "Tudor Plaster": "tudor_wall.png",
+  "Window Bright": "atlas/window_narrow.png",
+  "Window Warm": "atlas/window_four_pane.png",
+  "Wood": "wood_planks.png"
+ },
+ "plates_used": [
+  "Cobblestone Brown",
+  "Cobblestone Grey",
+  "Cobblestone Mossy",
+  "Dark Stone",
+  "Dirt Stony",
+  "Grass Flowers",
+  "Hedge",
+  "Iron Riveted",
+  "Sand Path",
+  "Slate Roof",
+  "Stone",
+  "Stone Mossy",
+  "Terracotta Roof",
+  "Tudor Plaster",
+  "Window Bright",
+  "Window Warm",
+  "Wood"
+ ],
+ "smoke_center_gltf": [
+  -10.65,
+  7.03,
+  -1.85
+ ],
+ "smoke_clusters": {
+  "Chimney_Smoke": {
+   "gltf": [
+    -10.65,
+    7.03,
+    -1.85
+   ],
+   "objects": 5
+  },
+  "Cloud_L": {
+   "gltf": [
+    -0.275,
+    9.13,
+    -18.0
+   ],
+   "objects": 5
+  },
+  "Cloud_Main": {
+   "gltf": [
+    1.1,
+    9.38,
+    -18.0
+   ],
+   "objects": 5
+  },
+  "Cloud_R": {
+   "gltf": [
+    2.475,
+    9.193,
+    -18.0
+   ],
+   "objects": 5
+  }
+ },
+ "smoke_skipped": {
+  "Chimney_Smoke_0": "Smoke_Grey",
+  "Chimney_Smoke_1": "Smoke_Grey",
+  "Chimney_Smoke_2": "Smoke_Grey",
+  "Chimney_Smoke_3": "Smoke_Grey",
+  "Chimney_Smoke_4": "Smoke_Grey",
+  "Cloud_L_0": "Cloud_White",
+  "Cloud_L_1": "Cloud_White",
+  "Cloud_L_2": "Cloud_White",
+  "Cloud_L_3": "Cloud_White",
+  "Cloud_L_4": "Cloud_White",
+  "Cloud_Main_0": "Cloud_White",
+  "Cloud_Main_1": "Cloud_White",
+  "Cloud_Main_2": "Cloud_White",
+  "Cloud_Main_3": "Cloud_White",
+  "Cloud_Main_4": "Cloud_White",
+  "Cloud_R_0": "Cloud_White",
+  "Cloud_R_1": "Cloud_White",
+  "Cloud_R_2": "Cloud_White",
+  "Cloud_R_3": "Cloud_White",
+  "Cloud_R_4": "Cloud_White"
+ },
+ "unmapped": {
+  "Bulb_Glow": {
+   "fallback": "Stone",
+   "objects": 41
+  },
+  "Cloth_Blue": {
+   "fallback": "Stone",
+   "objects": 12
+  },
+  "Cloth_Cyan": {
+   "fallback": "Stone",
+   "objects": 5
+  },
+  "Cloth_Green": {
+   "fallback": "Stone",
+   "objects": 3
+  },
+  "Cloth_Purple": {
+   "fallback": "Stone",
+   "objects": 2
+  },
+  "Cloth_Red": {
+   "fallback": "Stone",
+   "objects": 6
+  },
+  "Fire_Core": {
+   "fallback": "Stone",
+   "objects": 9
+  },
+  "Fire_Orange": {
+   "fallback": "Stone",
+   "objects": 1
+  },
+  "Gem_Cyan": {
+   "fallback": "Stone",
+   "objects": 1
+  },
+  "Gem_Green": {
+   "fallback": "Stone",
+   "objects": 1
+  },
+  "Gem_Pink": {
+   "fallback": "Stone",
+   "objects": 1
+  },
+  "Gold": {
+   "fallback": "Stone",
+   "objects": 5
+  },
+  "Horse_Brown": {
+   "fallback": "Stone",
+   "objects": 3
+  },
+  "Roof_Thatch": {
+   "fallback": "Terracotta Roof",
+   "objects": 42
+  },
+  "Sheep_Wool": {
+   "fallback": "Stone",
+   "objects": 14
+  },
+  "Skin": {
+   "fallback": "Stone",
+   "objects": 10
+  }
+ }
+}

@@ -69,7 +69,129 @@ En platta = **0,5 m**. UV-lagret ligger redan på alla 1931 mesh-objekt (`tools/
 
 ## Skriptets klassning: material -> platta
 
-Alex' `tools/apply_pixel_textures.py` klassar varje objekt på NAMN och ger det en av elva plattor ur paketet (`game/assets/by/tex/`). Det här är vad klassningen blev i scenen, räknat ur materialen, inte ur skriptets avsikt.
+Alex' `tools/apply_pixel_textures.py` klassar varje objekt på dess **FÖRSTA material** (`obj.data.materials[0].name`) och ger det en av tjugoen plattor (elva ur Alex' paket i `game/assets/by/tex/` och tio ur atlasen i `game/assets/by/tex/atlas/`). Objektnamns-reglerna finns kvar, men bara som **fallback** för material som ännu inte har en platta. Siffrorna är mätta i scenen, inte skriptets avsikt.
+
+Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roof, 0 Slate Roof och 324 stenhus utan nyckelordsträff — namnen skiljer helt enkelt inte materialen.
+
+### Objektets första material -> platta
+
+| Originalmaterial | Platta | Plattfil | Objekt |
+|---|---|---|---:|
+| `Cobble_2` | Cobblestone Brown | `atlas/cobblestone_brown.png` | 91 |
+| **1 material** | | | **91** |
+| `Cobble_1` | Cobblestone Grey | `atlas/cobblestone_grey.png` | 115 |
+| **1 material** | | | **115** |
+| `Cobble_3` | Cobblestone Mossy | `atlas/cobblestone_mossy.png` | 89 |
+| **1 material** | | | **89** |
+| `Road_Base` | Dirt Stony | `atlas/dirt_stony.png` | 2 |
+| **1 material** | | | **2** |
+| `Grass_Light` | Grass Flowers | `atlas/grass.png` | 28 |
+| `Grass_Dark` | Grass Flowers | `atlas/grass.png` | 1 |
+| `Grass_Mid` | Grass Flowers | `atlas/grass.png` | 1 |
+| **3 material** | | | **30** |
+| `Leaf_Mid` | Hedge | `hedge.png` | 37 |
+| `Pine_Green` | Hedge | `hedge.png` | 32 |
+| `Leaf_Dark` | Hedge | `hedge.png` | 28 |
+| `Leaf_Light` | Hedge | `hedge.png` | 18 |
+| **4 material** | | | **115** |
+| `Iron` | Iron Riveted | `atlas/metal_riveted.png` | 44 |
+| **1 material** | | | **44** |
+| `Dirt_Cliff` | Sand Path | `atlas/sand_path.png` | 1 |
+| **1 material** | | | **1** |
+| `Roof_Slate_1` | Slate Roof | `roof_slate.png` | 142 |
+| `Roof_Slate_2` | Slate Roof | `roof_slate.png` | 138 |
+| `Roof_Purple_1` | Slate Roof | `roof_slate.png` | 50 |
+| `Roof_Purple_2` | Slate Roof | `roof_slate.png` | 48 |
+| **4 material** | | | **378** |
+| `Stone_Light` | Stone | `stone_wall.png` | 201 |
+| `Stone_Dark` | Stone | `stone_wall.png` | 43 |
+| `Stone_Wall` | Stone | `stone_wall.png` | 30 |
+| **3 material** | | | **274** |
+| `Mountain_Rock` | Stone Mossy | `atlas/stone_wall_mossy_small.png` | 5 |
+| **1 material** | | | **5** |
+| `Roof_Red_1` | Terracotta Roof | `roof_terracotta.png` | 140 |
+| `Roof_Red_2` | Terracotta Roof | `roof_terracotta.png` | 140 |
+| **2 material** | | | **280** |
+| `Plaster_Warm` | Tudor Plaster | `tudor_wall.png` | 43 |
+| `Plaster_Cream` | Tudor Plaster | `tudor_wall.png` | 28 |
+| **2 material** | | | **71** |
+| `Window_Bright` | Window Bright | `atlas/window_narrow.png` | 2 |
+| **1 material** | | | **2** |
+| `Window_Warm` | Window Warm | `atlas/window_four_pane.png` | 7 |
+| **1 material** | | | **7** |
+| `Wood_Dark` | Wood | `wood_planks.png` | 99 |
+| `Wood_Oak` | Wood | `wood_planks.png` | 82 |
+| `Wood_Beam` | Wood | `wood_planks.png` | 67 |
+| `Wood_Light` | Wood | `wood_planks.png` | 3 |
+| **4 material** | | | **251** |
+
+### Material utan platta i paketet — underlaget för vilka plattor Alex behöver
+
+| Originalmaterial | Objekt | Nödlösning (namnregeln) |
+|---|---:|---|
+| `Roof_Thatch` | 42 | Terracotta Roof |
+| `Bulb_Glow` | 41 | Stone |
+| `Sheep_Wool` | 14 | Stone |
+| `Cloth_Blue` | 12 | Stone |
+| `Skin` | 10 | Stone |
+| `Fire_Core` | 9 | Stone |
+| `Cloth_Red` | 6 | Stone |
+| `Cloth_Cyan` | 5 | Stone |
+| `Gold` | 5 | Stone |
+| `Cloth_Green` | 3 | Stone |
+| `Horse_Brown` | 3 | Stone |
+| `Cloth_Purple` | 2 | Stone |
+| `Fire_Orange` | 1 | Stone |
+| `Gem_Cyan` | 1 | Stone |
+| `Gem_Green` | 1 | Stone |
+| `Gem_Pink` | 1 | Stone |
+| **16 material** | **156** | |
+
+### Rök och moln — tas ur exporten, ersätts av en smoke emitter i Godot
+
+Alex' .blend rörs inte; exportskriptet kopplar loss objekten ur samlingen och lägger en `GPUParticles3D` på rökens uppmätta mitt i stället (`game/ui/by_3d.gd`). glTF bär inga partikelsystem, så en Blender-emitter hade inte överlevt exporten.
+
+| Objekt | Originalmaterial |
+|---|---|
+| `Chimney_Smoke_0` | `Smoke_Grey` |
+| `Chimney_Smoke_1` | `Smoke_Grey` |
+| `Chimney_Smoke_2` | `Smoke_Grey` |
+| `Chimney_Smoke_3` | `Smoke_Grey` |
+| `Chimney_Smoke_4` | `Smoke_Grey` |
+| `Cloud_L_0` | `Cloud_White` |
+| `Cloud_L_1` | `Cloud_White` |
+| `Cloud_L_2` | `Cloud_White` |
+| `Cloud_L_3` | `Cloud_White` |
+| `Cloud_L_4` | `Cloud_White` |
+| `Cloud_Main_0` | `Cloud_White` |
+| `Cloud_Main_1` | `Cloud_White` |
+| `Cloud_Main_2` | `Cloud_White` |
+| `Cloud_Main_3` | `Cloud_White` |
+| `Cloud_Main_4` | `Cloud_White` |
+| `Cloud_R_0` | `Cloud_White` |
+| `Cloud_R_1` | `Cloud_White` |
+| `Cloud_R_2` | `Cloud_White` |
+| `Cloud_R_3` | `Cloud_White` |
+| `Cloud_R_4` | `Cloud_White` |
+
+| Rökkluster | Objekt | Mitt, glTF (x, y, z) |
+|---|---:|---|
+| Chimney_Smoke | 5 | -10.65, 7.03, -1.85 |
+| Cloud_L | 5 | -0.28, 9.13, -18.00 |
+| Cloud_Main | 5 | 1.10, 9.38, -18.00 |
+| Cloud_R | 5 | 2.48, 9.19, -18.00 |
+
+### Bakgrunden (namn med `bg`) — tak, inte sten
+
+`BG_House_*` är små hus i bakgrunden; taken (`*_TileL`/`*_TileR`) och de krenelerade murarna får takplatta i stället för sten.
+
+| Bakgrundsobjekt | Antal |
+|---|---:|
+| på en takplatta (`roof_terracotta` / `roof_slate`) | 305 |
+| kvar på stenplattan | 0 |
+| totalt | 365 |
+
+### Vad klassningen blev i scenen (materialet i den exporterade filen)
 
 | Material | Plattfil | Objekt | Ytor | Area m² |
 |---|---|---:|---:|---:|
@@ -99,17 +221,27 @@ Alex' `tools/apply_pixel_textures.py` klassar varje objekt på NAMN och ger det 
 | `Leaf_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Leaf_Mid` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Mountain_Rock` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `PX_Cobblestone Ground` | `cobblestone_ground.png` | 397 | 2382 | 300.6 |
-| `PX_Dark Stone` | `dark_stone.png` | 62 | 420 | 545.9 |
+| `PX_Cobblestone Brown` | `cobblestone_brown.png` | 91 | 546 | 22.9 |
+| `PX_Cobblestone Grey` | `cobblestone_grey.png` | 115 | 690 | 29.5 |
+| `PX_Cobblestone Ground` | `cobblestone_ground.png` | 0 | 0 | 0.0 |
+| `PX_Cobblestone Mossy` | `cobblestone_mossy.png` | 89 | 534 | 23.5 |
+| `PX_Dark Stone` | `dark_stone.png` | 6 | 36 | 3.7 |
 | `PX_Dirt` | `dirt.png` | 0 | 0 | 0.0 |
-| `PX_Grass` | `grass.png` | 2 | 12 | 1794.7 |
-| `PX_Hedge` | `hedge.png` | 159 | 9402 | 1057.3 |
-| `PX_Mossy Stone` | `mossy_stone.png` | 34 | 204 | 37.1 |
-| `PX_Slate Roof` | `roof_slate.png` | 0 | 0 | 0.0 |
-| `PX_Stone` | `stone_wall.png` | 357 | 6986 | 3420.8 |
-| `PX_Terracotta Roof` | `roof_terracotta.png` | 808 | 4848 | 1006.8 |
-| `PX_Tudor Plaster` | `tudor_wall.png` | 1 | 6 | 76.9 |
-| `PX_Wood` | `wood_planks.png` | 111 | 1998 | 130.2 |
+| `PX_Dirt Stony` | `dirt_stony.png` | 2 | 12 | 199.1 |
+| `PX_Grass` | `grass.png` | 0 | 0 | 0.0 |
+| `PX_Grass Flowers` | `grass.png` | 30 | 2178 | 2056.1 |
+| `PX_Hedge` | `hedge.png` | 115 | 7088 | 889.2 |
+| `PX_Iron Riveted` | `metal_riveted.png` | 44 | 1532 | 11.5 |
+| `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
+| `PX_Sand Path` | `sand_path.png` | 1 | 6 | 450.0 |
+| `PX_Slate Roof` | `roof_slate.png` | 382 | 2340 | 353.3 |
+| `PX_Stone` | `stone_wall.png` | 340 | 5378 | 737.4 |
+| `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
+| `PX_Terracotta Roof` | `roof_terracotta.png` | 357 | 2142 | 475.6 |
+| `PX_Tudor Plaster` | `tudor_wall.png` | 71 | 426 | 862.9 |
+| `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
+| `PX_Window Warm` | `window_four_pane.png` | 7 | 42 | 18.4 |
+| `PX_Wood` | `wood_planks.png` | 254 | 1656 | 778.1 |
 | `Pine_Green` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Plaster_Cream` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Plaster_Warm` | `**ingen bild**` | 0 | 0 | 0.0 |
@@ -135,4 +267,56 @@ Alex' `tools/apply_pixel_textures.py` klassar varje objekt på NAMN och ger det 
 | `Wood_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Wood_Oak` | `**ingen bild**` | 0 | 0 | 0.0 |
 
-Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 61 material i filen står med.
+Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 71 material i filen står med.
+
+## Plattornas palettavstånd
+
+Medelavståndet från varje pixel till närmaste palettfärg, delat med 441,67. Tröskeln är **0.18**; alla plattor ligger långt under den.
+
+| Platta | Fil | Palettavstånd | I bruk |
+|---|---|---:|---|
+| paketet | `cobblestone_ground.png` | 0.0444 |  |
+| paketet | `dark_stone.png` | 0.0399 |  |
+| paketet | `dirt.png` | 0.0426 |  |
+| paketet | `grass.png` | 0.0875 |  |
+| paketet | `hedge.png` | 0.0895 |  |
+| paketet | `mossy_stone.png` | 0.0412 |  |
+| paketet | `roof_slate.png` | 0.0365 |  |
+| paketet | `roof_terracotta.png` | 0.0581 |  |
+| paketet | `stone_wall.png` | 0.0385 |  |
+| paketet | `tudor_wall.png` | 0.0626 |  |
+| paketet | `wood_planks.png` | 0.0460 |  |
+| atlasen | `atlas/castle_merlons.png` | 0.0370 |  |
+| atlasen | `atlas/clay_red.png` | 0.0335 |  |
+| atlasen | `atlas/cobblestone_brown.png` | 0.0515 |  |
+| atlasen | `atlas/cobblestone_grey.png` | 0.0367 |  |
+| atlasen | `atlas/cobblestone_mossy.png` | 0.0476 |  |
+| atlasen | `atlas/dirt.png` | 0.0435 |  |
+| atlasen | `atlas/dirt_stony.png` | 0.0391 |  |
+| atlasen | `atlas/door_wood_iron.png` | 0.0302 |  |
+| atlasen | `atlas/forge_stone_glow.png` | 0.0287 |  |
+| atlasen | `atlas/grass.png` | 0.0933 |  |
+| atlasen | `atlas/ivy.png` | 0.0762 |  |
+| atlasen | `atlas/metal_riveted.png` | 0.0257 |  |
+| atlasen | `atlas/roof_slate.png` | 0.0351 |  |
+| atlasen | `atlas/roof_tiles_red.png` | 0.0467 |  |
+| atlasen | `atlas/sand_path.png` | 0.0509 |  |
+| atlasen | `atlas/stone_arch.png` | 0.0304 |  |
+| atlasen | `atlas/stone_mossy.png` | 0.0654 |  |
+| atlasen | `atlas/stone_wall_dark.png` | 0.0334 |  |
+| atlasen | `atlas/stone_wall_dark_small.png` | 0.0319 |  |
+| atlasen | `atlas/stone_wall_light.png` | 0.0386 |  |
+| atlasen | `atlas/stone_wall_light_small.png` | 0.0391 |  |
+| atlasen | `atlas/stone_wall_mossy_small.png` | 0.0517 |  |
+| atlasen | `atlas/timber_frame.png` | 0.0502 |  |
+| atlasen | `atlas/timber_frame_small.png` | 0.0509 |  |
+| atlasen | `atlas/window_arched_stone.png` | 0.0491 |  |
+| atlasen | `atlas/window_diamond_lattice.png` | 0.0524 |  |
+| atlasen | `atlas/window_four_pane.png` | 0.0507 |  |
+| atlasen | `atlas/window_narrow.png` | 0.0458 |  |
+| atlasen | `atlas/window_round_stone.png` | 0.0458 |  |
+| atlasen | `atlas/window_tall_panes.png` | 0.0516 |  |
+| atlasen | `atlas/wood_planks.png` | 0.0397 |  |
+| atlasen | `atlas/wood_planks_small.png` | 0.0381 |  |
+
+43 plattor mätta, 43 under tröskeln, 0 över: inga
