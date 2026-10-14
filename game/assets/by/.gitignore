@@ -1,0 +1,3 @@
+# Texturer som Godot bryter ut ur byn.glb vid import — derivat, inte tillgangar.
+# Kallorna ligger packade inuti byn.glb och originalet i by/tex/.
+byn_*.png
