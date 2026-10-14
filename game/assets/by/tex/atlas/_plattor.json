@@ -1,0 +1,706 @@
+[
+ {
+  "fil": "cobblestone_grey.png",
+  "sort": "kullersten, grå, i jord",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   52,
+   52,
+   899,
+   1007
+  ],
+  "källa_px": [
+   848,
+   956
+  ],
+  "fog_sid": 5.78,
+  "fog_höjd": 45.11,
+  "kvot_sid": 0.53,
+  "kvot_höjd": 3.45,
+  "sömlös_sid": true,
+  "palett": 16.191
+ },
+ {
+  "fil": "cobblestone_brown.png",
+  "sort": "kullersten, brunorange, i jord",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   956,
+   52,
+   1811,
+   1007
+  ],
+  "källa_px": [
+   856,
+   956
+  ],
+  "fog_sid": 9.84,
+  "fog_höjd": 46.85,
+  "kvot_sid": 1.09,
+  "kvot_höjd": 4.41,
+  "sömlös_sid": true,
+  "palett": 22.747
+ },
+ {
+  "fil": "cobblestone_mossy.png",
+  "sort": "kullersten med mossa i fogarna",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   1868,
+   52,
+   2707,
+   1007
+  ],
+  "källa_px": [
+   840,
+   956
+  ],
+  "fog_sid": 5.93,
+  "fog_höjd": 22.37,
+  "kvot_sid": 0.64,
+  "kvot_höjd": 2.15,
+  "sömlös_sid": true,
+  "palett": 21.032
+ },
+ {
+  "fil": "stone_wall_light.png",
+  "sort": "mursten, ljust hugg",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   2764,
+   52,
+   3583,
+   1007
+  ],
+  "källa_px": [
+   820,
+   956
+  ],
+  "fog_sid": 8.91,
+  "fog_höjd": 36.72,
+  "kvot_sid": 0.89,
+  "kvot_höjd": 2.98,
+  "sömlös_sid": true,
+  "palett": 17.028
+ },
+ {
+  "fil": "stone_wall_dark.png",
+  "sort": "mursten, mörkt hugg",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   3636,
+   52,
+   4307,
+   1007
+  ],
+  "källa_px": [
+   672,
+   956
+  ],
+  "fog_sid": 6.83,
+  "fog_höjd": 26.98,
+  "kvot_sid": 0.81,
+  "kvot_höjd": 2.51,
+  "sömlös_sid": true,
+  "palett": 14.749
+ },
+ {
+  "fil": "castle_merlons.png",
+  "sort": "krenelerad borgmur med tinnar",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   4368,
+   56,
+   5367,
+   1007
+  ],
+  "källa_px": [
+   1000,
+   952
+  ],
+  "fog_sid": 8.25,
+  "fog_höjd": 93.03,
+  "kvot_sid": 0.72,
+  "kvot_höjd": 8.42,
+  "sömlös_sid": true,
+  "palett": 16.331
+ },
+ {
+  "fil": "stone_arch.png",
+  "sort": "stenvalv med slutsten",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   5420,
+   52,
+   6095,
+   1007
+  ],
+  "källa_px": [
+   676,
+   956
+  ],
+  "fog_sid": 5.54,
+  "fog_höjd": 38.54,
+  "kvot_sid": 0.7,
+  "kvot_höjd": 3.76,
+  "sömlös_sid": true,
+  "palett": 13.412
+ },
+ {
+  "fil": "wood_planks.png",
+  "sort": "träplankor med spik, hyvlade ränder",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   60,
+   1068,
+   895,
+   2003
+  ],
+  "källa_px": [
+   836,
+   936
+  ],
+  "fog_sid": 41.79,
+  "fog_höjd": 41.87,
+  "kvot_sid": 12.41,
+  "kvot_höjd": 4.73,
+  "sömlös_sid": false,
+  "palett": 17.553
+ },
+ {
+  "fil": "timber_frame.png",
+  "sort": "korsvirke med puts mellan bjälkarna",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   956,
+   1068,
+   1807,
+   2003
+  ],
+  "källa_px": [
+   852,
+   936
+  ],
+  "fog_sid": 3.97,
+  "fog_höjd": 28.89,
+  "kvot_sid": 0.43,
+  "kvot_höjd": 3.92,
+  "sömlös_sid": true,
+  "palett": 22.182
+ },
+ {
+  "fil": "roof_tiles_red.png",
+  "sort": "röda takpannor i förband",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   1868,
+   1068,
+   2699,
+   2003
+  ],
+  "källa_px": [
+   832,
+   936
+  ],
+  "fog_sid": 38.8,
+  "fog_höjd": 14.17,
+  "kvot_sid": 5.04,
+  "kvot_höjd": 2.76,
+  "sömlös_sid": false,
+  "palett": 20.614
+ },
+ {
+  "fil": "roof_slate.png",
+  "sort": "skiffertak, skivor i förband",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   2764,
+   1068,
+   3583,
+   2003
+  ],
+  "källa_px": [
+   820,
+   936
+  ],
+  "fog_sid": 5.27,
+  "fog_höjd": 30.42,
+  "kvot_sid": 0.68,
+  "kvot_höjd": 4.01,
+  "sömlös_sid": true,
+  "palett": 15.482
+ },
+ {
+  "fil": "door_wood_iron.png",
+  "sort": "trädörr med järnband och ring",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   3640,
+   1068,
+   4439,
+   2003
+  ],
+  "källa_px": [
+   800,
+   936
+  ],
+  "fog_sid": 33.02,
+  "fog_höjd": 7.8,
+  "kvot_sid": 4.9,
+  "kvot_höjd": 1.71,
+  "sömlös_sid": false,
+  "palett": 13.357
+ },
+ {
+  "fil": "metal_riveted.png",
+  "sort": "nitslagen metall, hamrad",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   4512,
+   1068,
+   5359,
+   2003
+  ],
+  "källa_px": [
+   848,
+   936
+  ],
+  "fog_sid": 61.47,
+  "fog_höjd": 24.75,
+  "kvot_sid": 9.29,
+  "kvot_höjd": 3.7,
+  "sömlös_sid": false,
+  "palett": 11.363
+ },
+ {
+  "fil": "forge_stone_glow.png",
+  "sort": "glödande smidessten, ugnens öppning",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   5424,
+   1068,
+   6091,
+   2003
+  ],
+  "källa_px": [
+   668,
+   936
+  ],
+  "fog_sid": 4.88,
+  "fog_höjd": 26.45,
+  "kvot_sid": 0.83,
+  "kvot_höjd": 3.65,
+  "sömlös_sid": true,
+  "palett": 12.689
+ },
+ {
+  "fil": "grass.png",
+  "sort": "gräs med små blommor",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   56,
+   2068,
+   895,
+   3235
+  ],
+  "källa_px": [
+   840,
+   1168
+  ],
+  "fog_sid": 3.08,
+  "fog_höjd": 16.86,
+  "kvot_sid": 0.34,
+  "kvot_höjd": 1.87,
+  "sömlös_sid": true,
+  "palett": 41.196
+ },
+ {
+  "fil": "stone_mossy.png",
+  "sort": "mossiga stenar",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   960,
+   2068,
+   1807,
+   3235
+  ],
+  "källa_px": [
+   848,
+   1168
+  ],
+  "fog_sid": 36.03,
+  "fog_höjd": 26.41,
+  "kvot_sid": 4.02,
+  "kvot_höjd": 2.45,
+  "sömlös_sid": false,
+  "palett": 28.872
+ },
+ {
+  "fil": "ivy.png",
+  "sort": "murgröna över sten",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   1868,
+   2068,
+   2703,
+   3235
+  ],
+  "källa_px": [
+   836,
+   1168
+  ],
+  "fog_sid": 5.35,
+  "fog_höjd": 28.75,
+  "kvot_sid": 0.6,
+  "kvot_höjd": 3.07,
+  "sömlös_sid": true,
+  "palett": 33.655
+ },
+ {
+  "fil": "dirt.png",
+  "sort": "jord och lera",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   2768,
+   2068,
+   3575,
+   3231
+  ],
+  "källa_px": [
+   808,
+   1164
+  ],
+  "fog_sid": 41.58,
+  "fog_höjd": 17.97,
+  "kvot_sid": 6.1,
+  "kvot_höjd": 1.91,
+  "sömlös_sid": false,
+  "palett": 19.224
+ },
+ {
+  "fil": "dirt_stony.png",
+  "sort": "stenig jord",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   3640,
+   2068,
+   4443,
+   3235
+  ],
+  "källa_px": [
+   804,
+   1168
+  ],
+  "fog_sid": 7.23,
+  "fog_höjd": 30.51,
+  "kvot_sid": 0.87,
+  "kvot_höjd": 2.73,
+  "sömlös_sid": true,
+  "palett": 17.288
+ },
+ {
+  "fil": "clay_red.png",
+  "sort": "rödbrun lera",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   4504,
+   2068,
+   5263,
+   3231
+  ],
+  "källa_px": [
+   760,
+   1164
+  ],
+  "fog_sid": 9.02,
+  "fog_höjd": 16.57,
+  "kvot_sid": 1.38,
+  "kvot_höjd": 1.79,
+  "sömlös_sid": true,
+  "palett": 14.798
+ },
+ {
+  "fil": "sand_path.png",
+  "sort": "sandig stig",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   5328,
+   2068,
+   6087,
+   3231
+  ],
+  "källa_px": [
+   760,
+   1164
+  ],
+  "fog_sid": 5.04,
+  "fog_höjd": 27.63,
+  "kvot_sid": 0.66,
+  "kvot_höjd": 2.59,
+  "sömlös_sid": true,
+  "palett": 22.474
+ },
+ {
+  "fil": "window_four_pane.png",
+  "sort": "fyrdelat fönster med kraftig träram, varmt ljus",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   68,
+   3312,
+   603,
+   3919
+  ],
+  "källa_px": [
+   536,
+   608
+  ],
+  "fog_sid": 7.24,
+  "fog_höjd": 4.19,
+  "kvot_sid": 1.25,
+  "kvot_höjd": 0.86,
+  "sömlös_sid": true,
+  "palett": 22.407
+ },
+ {
+  "fil": "window_arched_stone.png",
+  "sort": "valvformat fönster i stenmur, varmt ljus",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   688,
+   3312,
+   1179,
+   3927
+  ],
+  "källa_px": [
+   492,
+   616
+  ],
+  "fog_sid": 16.82,
+  "fog_höjd": 16.46,
+  "kvot_sid": 2.84,
+  "kvot_höjd": 3.13,
+  "sömlös_sid": true,
+  "palett": 21.671
+ },
+ {
+  "fil": "window_round_stone.png",
+  "sort": "runt fönster med kors, stenram",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   1256,
+   3312,
+   1795,
+   3927
+  ],
+  "källa_px": [
+   540,
+   616
+  ],
+  "fog_sid": 8.83,
+  "fog_höjd": 15.76,
+  "kvot_sid": 1.3,
+  "kvot_höjd": 2.12,
+  "sömlös_sid": true,
+  "palett": 20.235
+ },
+ {
+  "fil": "window_tall_panes.png",
+  "sort": "högt sexdelat fönster med träram",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   1880,
+   3312,
+   2319,
+   3927
+  ],
+  "källa_px": [
+   440,
+   616
+  ],
+  "fog_sid": 38.02,
+  "fog_höjd": 5.52,
+  "kvot_sid": 7.25,
+  "kvot_höjd": 1.18,
+  "sömlös_sid": false,
+  "palett": 22.786
+ },
+ {
+  "fil": "window_diamond_lattice.png",
+  "sort": "fönster med diamantgaller",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   2404,
+   3312,
+   2871,
+   3927
+  ],
+  "källa_px": [
+   468,
+   616
+  ],
+  "fog_sid": 42.24,
+  "fog_höjd": 16.49,
+  "kvot_sid": 6.51,
+  "kvot_höjd": 2.7,
+  "sömlös_sid": false,
+  "palett": 23.127
+ },
+ {
+  "fil": "window_narrow.png",
+  "sort": "smalt tvådelat fönster",
+  "slag": "dekor",
+  "px": 256,
+  "källa": [
+   2952,
+   3312,
+   3287,
+   3927
+  ],
+  "källa_px": [
+   336,
+   616
+  ],
+  "fog_sid": 9.97,
+  "fog_höjd": 19.75,
+  "kvot_sid": 1.99,
+  "kvot_höjd": 6.2,
+  "sömlös_sid": true,
+  "palett": 20.214
+ },
+ {
+  "fil": "timber_frame_small.png",
+  "sort": "korsvirke, mindre platta",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   3368,
+   3312,
+   3903,
+   3927
+  ],
+  "källa_px": [
+   536,
+   616
+  ],
+  "fog_sid": 6.52,
+  "fog_höjd": 29.6,
+  "kvot_sid": 0.89,
+  "kvot_höjd": 7.0,
+  "sömlös_sid": true,
+  "palett": 22.485
+ },
+ {
+  "fil": "wood_planks_small.png",
+  "sort": "plankor, mindre platta",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   3948,
+   3312,
+   4223,
+   3927
+  ],
+  "källa_px": [
+   276,
+   616
+  ],
+  "fog_sid": 12.86,
+  "fog_höjd": 11.89,
+  "kvot_sid": 3.58,
+  "kvot_höjd": 6.47,
+  "sömlös_sid": false,
+  "palett": 16.833
+ },
+ {
+  "fil": "stone_wall_light_small.png",
+  "sort": "ljus mursten, mindre platta",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   4300,
+   3312,
+   4835,
+   3927
+  ],
+  "källa_px": [
+   536,
+   616
+  ],
+  "fog_sid": 4.85,
+  "fog_höjd": 29.97,
+  "kvot_sid": 0.67,
+  "kvot_höjd": 3.7,
+  "sömlös_sid": true,
+  "palett": 17.257
+ },
+ {
+  "fil": "stone_wall_dark_small.png",
+  "sort": "mörk mursten, mindre platta",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   4908,
+   3312,
+   5475,
+   3927
+  ],
+  "källa_px": [
+   568,
+   616
+  ],
+  "fog_sid": 43.29,
+  "fog_höjd": 28.87,
+  "kvot_sid": 8.16,
+  "kvot_höjd": 5.08,
+  "sömlös_sid": false,
+  "palett": 14.08
+ },
+ {
+  "fil": "stone_wall_mossy_small.png",
+  "sort": "mossig mursten, mindre platta",
+  "slag": "platta",
+  "px": 256,
+  "källa": [
+   5552,
+   3312,
+   6087,
+   3927
+  ],
+  "källa_px": [
+   536,
+   616
+  ],
+  "fog_sid": 12.8,
+  "fog_höjd": 24.14,
+  "kvot_sid": 1.88,
+  "kvot_höjd": 3.26,
+  "sömlös_sid": true,
+  "palett": 22.835
+ }
+]
