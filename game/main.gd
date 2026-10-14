@@ -740,6 +740,7 @@ var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), gran
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
 var _kamerapan_prov := Vector2.ZERO ## `kamerapan=N`: byns kamera pannad N px (granskningsflagga, M122)
 var _byplats_prov := -1            ## `byplats=N`: byns plats N vald innan provbilden (granskningsflagga, M123)
+var _byhov_prov := -1              ## `byhov=N`: byns hovring på plats N — fotograferar hovringsglöden (M126)
 var _vägar_av := false             ## `vag=0`: vägarna mellan platserna på kartan av — samma skäl
 var _kartprov := ""                ## `kartprov=<nod>,<dx>,<dy>`: provbilder av kart-editorns dragning
 var _prov_fönster := Vector2i.ZERO ## `fönster=941x1018`: mät HUD:en i en annan fönsterstorlek
@@ -883,6 +884,11 @@ func _ready() -> void:
 			# fotografera — resten av gatan ligger utanför utsnittet — och då går varken
 			# EXIT-skylten eller husen längre till höger att döma i bild.
 			_byplats_prov = maxi(0, int(f.substr(8)))
+		elif f.begins_with("byhov="):
+			# Granskningsflagga (M126): `byhov=N` sätter hovringen på plats N. Hovringsglöden ritas
+			# bara när pekaren står över ett hus, och en provbild har ingen pekare — utan flaggan
+			# går glöden inte att fotografera alls.
+			_byhov_prov = maxi(0, int(f.substr(6)))
 		elif f.begins_with("crt="):
 			# Granskningsflagga: `crt=0` slår av CRT-lagret, `crt=0.5` halverar styrkan (skanlinjer,
 			# vinjett, välvd kant). Behövs för att kunna MÄTA hur mycket av bildens kontrast lagret
@@ -3350,6 +3356,9 @@ func _refresh_shell() -> void:
 			by_view.pan_klart()
 		if _kamerapan_prov != Vector2.ZERO:
 			by_view.kamera_lås(_kamerapan_prov)
+		if _byhov_prov >= 0:
+			# Hovringsglöden på ett bestämt hus (M126). Efter `visa`, som nollar hovringen.
+			by_view.hovra(_byhov_prov)
 	elif shell == "smed" and _smed_läge == "sharpen":
 		# Trädet bor inte här (M95). Alex: *"Smeden har inget att göra med Skill Tree — Smeden skall
 		# skärpa de vapen man samlat in på kort."* Tills verkstaden finns står det rakt ut här i

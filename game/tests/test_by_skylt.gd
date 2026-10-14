@@ -1,26 +1,28 @@
-## EXIT-SKYLTEN I BYN (M123): den ligger i konsten långt till höger om det vyn visar, och den ska
-## SYNAS när man går till platsen — som sin EGEN byggnad i hus-lagret, klippt ur samma bild, och
-## panoreringen ska flytta den precis som de andra husen.
+## EXIT-SKYLTEN I BYN (M123, omskrivet i M126): den ligger i konsten långt till höger om det som
+## panoramabilden visade i nolläget, och den ska SYNAS och gå att KLICKA på.
 ##
-## VARFÖR PROVET FINNS. Vyn och BILDEN kunde glida isär: `pan_klart()` satte vyns panorering utan att
-## säga det till scenen, så bilden stod kvar på sin gamla plats medan vyn (och markörens ruta) redan
+## VARFÖR PROVET FANNS. Vyn och BILDEN kunde glida isär: `pan_klart()` satte vyns panorering utan att
+## säga det till 2D-scenen, så bilden stod kvar på sin gamla plats medan vyn (och markörens ruta) redan
 ## hade flyttat sig. MÄTT vid sista platsen: `_pan` stod på 976 vyn-px medan bakgrunden ritades vid
 ## 0 — utsnittet var kvar på konstens x 0..1278, och EXIT-skylten (som ligger på konstens x
-## 2424..2780) fanns inte i bilden fast vyns EGEN ruta för platsen låg mitt i vyn. Det är den
-## fällan som gör att "skylten syns inte" kan vara sant i bild och falskt i vyns egna tal.
+## 2424..2780) fanns inte i bilden fast vyns EGEN ruta för platsen låg mitt i vyn.
+##
+## VARFÖR DET SER ANNORLUNDA UT (M126). Det som ritas är nu `byn.glb`, inte panoramabilden, och 3D-byn
+## står STILL. Hela byn ryms i vyn (den synliga bredden är kamerans 34 enheter), så skylten behöver
+## inte panoreras in — den SYNS. Det som kan gå fel är i stället att klickrutan inte ligger på huset,
+## och det är vad det här provet mäter: skyltens ruta är husets EGET läge i byn, projicerad med
+## kamerans EGEN projektion, och ett klick i mitten öppnar EXIT.
 ##
 ##   godot --headless --script res://tests/test_by_skylt.gd
 ##
 ## Provet mäter i SPELETS EGEN SKALA — en `SubViewportContainer` med heltalsskalan 2 och en
 ## `SubViewport` i den, alltså samma 2:1-väg som `main.gd` bygger för 1280x720 (se `_korg` i
 ## `ui/village_view.gd`). Utan korgen räknar `bild_storlek()` om konsten till vyns HÖJD, och då är
-## både utsnittet och panoreringens räckvidd något helt annat än spelarens — mätningen hade svarat på
-## en by ingen ser (mätt: panoreringen når konstens x 899 i stället för 1952).
+## både utsnittet och panoreringens räckvidd något helt annat än spelarens.
 ##
 ##   1. SKYLTEN ÄR KONSTENS EGNA PIXLAR: hus_avsluta.png mot byn.png, rutan räknad ur `PLATSER`.
-##   2. DEN SYNS NÄR PLATSEN VÄLJS: vyns ruta för den ligger i vyn, OCH scenen ritar den på SAMMA px
-##      (vyns tal och bilden är samma sak — det var felet).
-##   3. DEN FÖLJER PANORERINGEN som de andra husen, och nolläget (första platsen) rör inte bilden.
+##   2. DEN SYNS OCH GÅR ATT KLICKA PÅ I 3D-BYN: rutan ligger i vyn, den är husets egen position
+##      projicerad (samma px som kameran ger), och ett klick i mitten öppnar EXIT — inte grannen.
 extends SceneTree
 
 var fails := 0
@@ -78,6 +80,21 @@ func _exit_plats() -> int:
 		if str(VillageView.PLATSER[i]["skepp"]) == "avsluta":
 			return i
 	return -1
+
+## Ett klick in i vyns EGEN ingång (`_gui_input`) — samma väg som spelets mus tar.
+func _klick(by: VillageView, p: Vector2) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = true
+	e.position = p
+	by._gui_input(e)
+
+## Kör gångaren fram till målet i fasta steg: platsen öppnas först när figuren är framme.
+func _gå_klart(g: Gångare, dt: float = 0.05) -> void:
+	var antal := 0
+	while g.går() and antal < 100000:
+		g.steg(dt)
+		antal += 1
 
 ## Konstens ruta för en plats, i konstens px — SAMMA formel som `village_view._konst_ruta` och
 ## `tools/gen_by_hus.py` använder, räknad ur `PLATSER` och bildens EGNA mått.
@@ -163,69 +180,62 @@ func _init() -> void:
 			"%d himmel, %d hus av %d px" % [int(m[2]), int(m[1]), int(m[1]) + int(m[2])])
 
 	print("")
-	print("— 2. skylten SYNS när platsen väljs: vyn och bilden pekar på samma px —")
-	# Nolläget först: panoreringen 0, alltså konstens egen vänsterkant i vyns vänsterkant.
+	print("— 2. skylten SYNS och går att klicka på i 3D-byn —")
+	# NOLLÄGET först: den valda platsen är den första, och 3D-byn står still — hela byn ryms i vyn
+	# (den synliga bredden är kamerans 34 enheter). Motsatsen var felet i M123: då låg skylten
+	# utanför utsnittet i nolläget och måste panoreras in.
 	by.gå_till(0)
 	by.pan_klart()
 	check(absf(by.pan()) < 0.01, "första platsen står i nolläget (panoreringen 0)", "%.2f" % by.pan())
-	check(by.scen3d() != null and by.scen3d().klar(), "2D-scenen är byggd")
-	var noll := by.scen3d().bak_skärmpunkt(0.0, 0.0) if by.scen3d() != null else Vector2(-1.0, -1.0)
-	check(absf(noll.x) < 1.0, "och bildens vänsterkant står på vyns vänsterkant (utsnittet är konstens eget)",
-		"%.2f px" % noll.x)
 	var r0 := by.byggnad_rect(i_exit)
-	check(r0.size.x <= 0.0 or r0.position.x >= VY.x,
-		"skylten syns alltså inte i nolläget — den ligger utanför utsnittet", str(r0))
-	# GÅ TILL SKYLTEN. Panorereringen ska flytta BILDEN med, inte bara vyns egen ruta.
-	by.gå_till(i_exit)
-	by.pan_klart()
-	var r_exit := by.byggnad_rect(i_exit)
-	check(r_exit.size.x > 0.0 and r_exit.size.y > 0.0,
-		"platsen för EXIT-skylten hamnar i vyn när den väljs (rutan har en yta)", str(r_exit))
-	check(r_exit.position.x >= 0.0 and r_exit.end.x <= VY.x,
-		"och hela är innanför vyns kanter", "x %.0f..%.0f av %.0f" % [r_exit.position.x, r_exit.end.x, VY.x])
-	# DET HÄR ÄR FELET SOM MÄTTES: vyns ruta och scenens egen canvas-transform måste säga SAMMA px.
-	# Jämförelsen görs på husets FOT (konstens gatulinje): den ligger mitt i vyn, så varken rutan eller
-	# scenen klipper den — toppen av huset ligger ovanför vyns överkant och klipps av rutan.
-	var scen := by.scen3d()
-	var scen_fot := scen.hus_skärmpunkt(i_exit, r.position.x, r.end.y)
-	var ruta_fot := Vector2(r_exit.position.x, r_exit.end.y)
-	check(scen_fot.distance_to(ruta_fot) < 1.5,
-		"scenen ritar skylten där vyns ruta säger (vyn och bilden är samma sak)",
-		"scen %.1f,%.1f mot ruta %.1f,%.1f" % [scen_fot.x, scen_fot.y, ruta_fot.x, ruta_fot.y])
-	# Och huset ska stå på BAKGRUNDENS egen konst-x: bakgrunden och hus-lagret ritas i samma scen, så
-	# samma konstpunkt hamnar på samma skärm-x (kameran står still här).
-	var topp_bild := scen.bak_skärmpunkt(r.position.x, r.end.y)
-	check(absf(scen_fot.x - topp_bild.x) < 1.0,
-		"och skyltens vänsterkant står på samma konst-x som bakgrunden under den",
-		"hus %.1f mot bakgrund %.1f" % [scen_fot.x, topp_bild.x])
+	check(r0.size.x > 0.0 and r0.size.y > 0.0,
+		"skylten har alltså en klickruta REDAN i nolläget — den ligger i vyn", str(r0))
+	check(r0.position.x >= 0.0 and r0.end.x <= VY.x and r0.position.y >= 0.0 and r0.end.y <= VY.y,
+		"och hela rutan ligger innanför vyns kanter",
+		"x %.0f..%.0f, y %.0f..%.0f av %.0f x %.0f" % [r0.position.x, r0.end.x, r0.position.y, r0.end.y, VY.x, VY.y])
+	# RUTAN ÄR HUSETS EGET LÄGE I BYN, projicerat. Provet räknar fram samma ruta med kamerans EGEN
+	# `unproject_position` — en ANNAN väg än vyns `projicera` — så en ruta som satt bredvid huset (som
+	# 2D-rutan gjorde, mätt 114,5 px fel för just EXIT) faller här.
+	var b3: By3D = by.by3d()
+	check(b3 != null and b3.by != null, "3D-byn är byggd ur byn.glb", "By3D")
+	if b3 == null:
+		_clean()
+		(byggt["korg"] as SubViewportContainer).free()
+		print("\n%d kontroller, %d fel" % [checks, fails])
+		quit(1)
+		return
+	var aabb := b3.hus_aabb("Exit")
+	check(aabb.size != Vector3.ZERO, "och platsen finns som ett eget hus i modellen", str(aabb))
+	var fel := 0.0
+	for hörn in [aabb.position, aabb.position + aabb.size]:
+		fel = maxf(fel, b3.kamera.unproject_position(hörn).distance_to(b3.projicera(hörn)))
+	check(fel < 0.5, "klickrutan är husets position projicerad med kamerans EGEN projektion",
+		"största avvikelse %.3f px" % fel)
+	# KLICKET. Mitten av rutan — det hus man SER — ska öppna EXIT och ingenting annat.
+	var mål := []
+	by.vald.connect(func(skepp: String): mål.append(skepp))
+	_klick(by, by.byggnad_rect(i_exit).get_center())
+	_gå_klart(by.gångaren())
+	check(mål == ["avsluta"], "klick i mitten av skyltens ruta öppnar EXIT", str(mål))
 
 	print("")
-	print("— 3. skylten följer panoreringen som de andra husen —")
-	# Två platser: skillnaden i panorering ska vara EXAKT skillnaden i scenens px för VARJE hus, alltså
-	# också för skylten. Flyttade hus-lagret inte med skulle avståndet hus/bakgrund byta värde här.
-	by.gå_till(0)
-	by.pan_klart()
-	var pan0 := by.pan()
-	var start := []
+	print("— 3. grannarna är kvar där de ska, och ingen ruta ligger ovanpå en annan mitt —")
+	# Hela gatan går att klicka på: mitten av VARJE plats' ruta öppnar just den platsen.
+	var bom := []
 	for i in VillageView.PLATSER.size():
-		start.append(scen.hus_skärmpunkt(i, 0.0, 0.0).x)
-	by.gå_till(i_exit)
-	by.pan_klart()
-	var pan1 := by.pan()
-	var slut := []
+		mål.clear()
+		_klick(by, by.byggnad_rect(i).get_center())
+		_gå_klart(by.gångaren())
+		if mål != [str(VillageView.PLATSER[i]["skepp"])]:
+			bom.append("%s -> %s" % [str(VillageView.PLATSER[i]["id"]), str(mål)])
+	check(bom.is_empty(), "klick i mitten av varje hus öppnar just den platsen", ", ".join(bom))
+	# Skylten ligger till HÖGER om alla andra hus: ordningen på gatan är husens x i modellen.
+	var höger_om := true
 	for i in VillageView.PLATSER.size():
-		slut.append(scen.hus_skärmpunkt(i, 0.0, 0.0).x)
-	var dpan := pan0 - pan1
-	var fel := []
-	for i in VillageView.PLATSER.size():
-		var d: float = float(slut[i]) - float(start[i])
-		if absf(d - dpan) > 1.0:
-			fel.append("%s %.1f mot panoreringen %.1f" % [str(VillageView.PLATSER[i]["id"]), d, dpan])
-	check(fel.is_empty(), "varje hus flyttar sig exakt med panoreringen, skylten inräknad",
-		"%.0f px, %d hus: %s" % [dpan, slut.size(), ", ".join(fel)])
-	check(absf(float(slut[i_exit]) - float(start[i_exit])) > 1.0,
-		"och skylten flyttade sig (den hänger inte kvar på skärmen)",
-		"%.1f px" % (float(slut[i_exit]) - float(start[i_exit])))
+		if i != i_exit and by.byggnad_rect(i).get_center().x > by.byggnad_rect(i_exit).get_center().x:
+			höger_om = false
+	check(höger_om, "och skylten står längst till höger, som sist i PLATSER",
+		"mitten %.0f av vyns %.0f px" % [by.byggnad_rect(i_exit).get_center().x, VY.x])
 
 	_clean()
 	(byggt["korg"] as SubViewportContainer).free()

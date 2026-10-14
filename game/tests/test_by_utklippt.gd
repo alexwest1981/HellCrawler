@@ -284,25 +284,22 @@ func _initialize() -> void:
 	check(absf(absf(a2.x - a0.x) - n * faktorer.x) < 0.5, "kameran stannar vid SVEP",
 		"begärt %.0f px, flyttade %.1f" % [4.0 * n, absf(a2.x - a0.x)])
 	scen.sätt_kamera(0.0, 0.0)
-	# GÅNGAREN står på HUSENS lager: hon följer husen, inte tavlan bakom.
+	# GÅNGAREN står på det hus man SER (M126): hennes punkt är 3D-husets EGET mitt i vyn, med fötterna
+	# på gatulinjen. 2D-scenens huslager ritar ingenting längre — hon bars av en textur som inte ritas
+	# — så hon kan inte längre mätas på det lagret. Att hon följer husen är nu samma sak som att hon
+	# står på husets projicerade ruta.
 	var g: Gångare = by3.gångaren()
 	by3.gå_till(3)
 	_gå_klart(g)
 	await process_frame
 	var punkt: Vector2 = by3.gångpunkt(3)
-	var husfaktor := scen.hus_skärmpunkt(3, punkt.x, 0.0)
-	var bakfaktor := scen.bak_skärmpunkt(punkt.x, 0.0)
-	# och hon står på RÄTT hus: hennes punkt är platsens x i konstens px.
-	var r3: Rect2 = rutor[3]
-	check(punkt.x > r3.position.x and punkt.x < r3.end.x,
-		"gångpunkten ligger i husets egen ruta (hon går till rätt byggnad)",
-		"x %.0f i rutan %.0f-%.0f" % [punkt.x, r3.position.x, r3.end.x])
-	scen.sätt_kamera(n, 0.0)
-	await process_frame
-	var husflytt: float = absf(scen.hus_skärmpunkt(3, punkt.x, 0.0).x - husfaktor.x)
-	var bakflytt: float = absf(scen.bak_skärmpunkt(punkt.x, 0.0).x - bakfaktor.x)
-	check(absf(husflytt - bakflytt) > 1.0, "och står på husens lager — hon går med husen, inte med tavlan",
-		"med husen %.1f px, med bakgrunden hade varit %.1f px" % [husflytt, bakflytt])
+	var hus3: Rect2 = by3.byggnad_rect(3)
+	check(punkt.x > hus3.position.x and punkt.x < hus3.end.x,
+		"gångpunkten ligger i husets eget mitt (hon går till rätt byggnad)",
+		"x %.0f i rutan %.0f-%.0f" % [punkt.x, hus3.position.x, hus3.end.x])
+	check(absf(punkt.y - by3.gata_y()) < 0.01,
+		"och står på gatulinjen — husens fot i 3D-byn",
+		"y %.2f mot gatulinjen %.2f" % [punkt.y, by3.gata_y()])
 	scen.sätt_kamera(0.0, 0.0)
 
 	# ---------------------------------------------------------------- 4. BAKERSTA LAGRET

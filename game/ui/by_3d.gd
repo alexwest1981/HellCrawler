@@ -47,6 +47,9 @@ var by: Node3D = null            ## byn.glb, instansierad
 var rök: GPUParticles3D = null   ## röken — provet i tests/test_by_rok.gd mäter den
 var kamera: Camera3D = null
 var miljö: WorldEnvironment = null
+## VYN som byn ritas i, i px. Projektionen (`projicera`) räknar ur den, och `village_view._bygg_by3d`
+## sätter den till samma ruta som SubViewporten fick. Utan den kunde rutan och husens px glida isär.
+var vy := Vector2(480.0, 270.0)
 
 ## LJUSEN I FILEN ÄR BLENDERS, INTE GODOTS. byn.glb bär Alex' eget ljus med som punkter
 ## (KHR_lights_punctual): Main_Sun 2186, Front_Fill 512, Tavern_Warm_Glow 11 957,
@@ -154,3 +157,75 @@ func bygg() -> void:
 	ruta.material = m
 	rök.draw_pass_1 = ruta
 	add_child(rök)
+
+# --- var husen står (M126) ---------------------------------------------------
+#
+# VARFÖR DET HÄR FINNS: klickytorna låg kvar i den gamla 2D-scenen och räknades ur platsernas procent
+# av panoramabilden, medan det som RITAS är byn.glb. Rutan flyttade sig med panoreringen, 3D-byn står
+# still, och klicket hamnade därför 34-115 px (medel 79 px i en 313 px-vy) från det hus man ser.
+#
+# Nodnamnen i Alex' scen grupperar objekten per plats (`Weaver_*`, `Smith_*`, `Tavern_*`, `Gate_*`,
+# `Jeweler_*`, `Exit_*`). Prefixet står på PLATSER-posten som `3d` och läses därifrån — en plats byter
+# hus i DATAN, inte här.
+
+func sätt_vy(v: Vector2) -> void:
+	vy = v
+
+## Nodens transform upp till byn (`by`). INTE `global_transform`: den svarar bara för en nod som står
+## i ett träd, och ett prov bygger byn direkt i en SubViewport som inte behöver vara i ett.
+func _kedja(m: Node3D) -> Transform3D:
+	var t := m.transform
+	var p := m.get_parent()
+	while p != null and p != by:
+		var n3 := p as Node3D
+		if n3 == null:
+			break
+		t = n3.transform * t
+		p = p.get_parent()
+	return t
+
+## Världens ruta kring en plats' hus: föreningen av mesharnas AABB vars nodnamn börjar med `prefix`.
+## Tom ruta när ingen nod matchar — då finns ingen 3D-klickruta och vyn faller tillbaka på 2D-scenen.
+func hus_aabb(prefix: String) -> AABB:
+	if prefix.is_empty():
+		return AABB()
+	if by == null:
+		bygg()                      # `_ready` har inte körts: vyn kan vara byggd utanför ett träd
+	if by == null:
+		return AABB()
+	var mn := Vector3(INF, INF, INF)
+	var mx := Vector3(-INF, -INF, -INF)
+	var n := 0
+	for c in by.find_children("%s*" % prefix, "MeshInstance3D", true, false):
+		var m := c as MeshInstance3D
+		var a := m.get_aabb()
+		var t := _kedja(m)
+		for i in 8:
+			var w: Vector3 = t * a.get_endpoint(i)
+			mn = Vector3(minf(mn.x, w.x), minf(mn.y, w.y), minf(mn.z, w.z))
+			mx = Vector3(maxf(mx.x, w.x), maxf(mx.y, w.y), maxf(mx.z, w.z))
+		n += 1
+	return AABB(mn, mx - mn) if n > 0 else AABB()
+
+## ORTOGRAFISK PROJEKTION: vyns px för en världspunkt. Kameran står still (`KAMERA_PLATS`) och ser
+## rakt fram (-Z) med KEEP_WIDTH, så den SYNLIGA BREDDEN är alltid `KAMERA_ORTHO` och höjden följer
+## vyns form. MÄTT: formeln och kamerans EGEN `unproject_position` ger samma px (0,01 px fel), och
+## provet jämför dem — annars kunde kameran flyttas utan att rutan följde med.
+func projicera(p: Vector3) -> Vector2:
+	var per_enhet := vy.x / KAMERA_ORTHO
+	return Vector2(vy.x * 0.5 + (p.x - KAMERA_PLATS.x) * per_enhet,
+		vy.y * 0.5 - (p.y - KAMERA_PLATS.y) * per_enhet)
+
+## Platsens hus som ruta i vyns px. Tom ruta = platsen finns inte i byn.
+func hus_rect(prefix: String) -> Rect2:
+	var a := hus_aabb(prefix)
+	if a.size.x <= 0.0 and a.size.y <= 0.0:
+		return Rect2()
+	var p0 := projicera(a.position)
+	var p1 := projicera(a.position + a.size)
+	return Rect2(Vector2(minf(p0.x, p1.x), minf(p0.y, p1.y)),
+		Vector2(absf(p1.x - p0.x), absf(p1.y - p0.y)))
+
+## GATULINJEN i vyns px: världens y = 0, där husen står. Gångaren går på den.
+func marklinje_px() -> float:
+	return projicera(Vector3(KAMERA_PLATS.x, 0.0, 0.0)).y

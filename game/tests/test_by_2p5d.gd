@@ -128,8 +128,18 @@ func _initialize() -> void:
 	# ---------------------------------------------------------------- 1. KLOTEN BORTA
 	print("")
 	print("— 1. kloten borta: huset är knappen —")
+	# VYN MÅSTE STÅ I ETT TRÄD (M126): klickrutan räknas ur husets position i byn.glb, och provet
+	# mäter den vägen med kamerans EGEN `unproject_position` — den svarar bara för en kamera som står
+	# i en rytas vy. Utan korgen (en bar SubViewport) är `fönsterskala()` fortfarande 1, så 2D-vägens
+	# reservruta mäts som förut.
+	var vp1 := SubViewport.new()
+	vp1.size = Vector2i(VY)
+	root.add_child(vp1)
+	await process_frame
 	var by := VillageView.new()
 	by.size = VY
+	vp1.add_child(by)
+	await process_frame
 	by.visa(meta, order.size())
 	var antal: int = VillageView.PLATSER.size()
 	check(_cirkel_antal("res://ui/village_view.gd") == 0,
@@ -158,6 +168,41 @@ func _initialize() -> void:
 			bom.append("%s -> %s" % [VillageView.PLATSER[i]["id"], str(mål)])
 	check(för_små.is_empty(), "varje hus har en klickruta i vyn", ", ".join(för_små))
 	check(bom.is_empty(), "klick på varje hus öppnar just den platsen (när figuren gått dit)", ", ".join(bom))
+	# DET NYA BETTET (M126): klickytan ska vara husets EGEN position i byn.glb, och det bevisas med en
+	# ANNAN väg än vyns egen formel. Provet räknar fram husets ruta ur modellens meshar med kamerans
+	# `unproject_position` och klickar i MITTEN av DEN rutan. Låg klickytan vid sidan av huset — som
+	# 2D-rutan gjorde, MÄTT 34-115 px fel, medel 79 px i en 313 px-vy — öppnade klicket en annan plats
+	# eller ingen alls, och det här provet föll.
+	var bmod: By3D = by.by3d()
+	check(bmod != null and bmod.by != null, "3D-byn är byggd ur byn.glb — det är den som ritas", "byn.glb")
+	if bmod != null and bmod.by != null:
+		var fel_ruta := []
+		var bom3 := []
+		var utan_hus := []
+		for i in antal:
+			var pre := str(VillageView.PLATSER[i].get("3d", ""))
+			var a := bmod.hus_aabb(pre)
+			if a.size == Vector3.ZERO:
+				utan_hus.append("%s (%s)" % [str(VillageView.PLATSER[i]["id"]), pre])
+				continue
+			var p0 := bmod.kamera.unproject_position(a.position)
+			var p1 := bmod.kamera.unproject_position(a.position + a.size)
+			var r3 := Rect2(Vector2(minf(p0.x, p1.x), minf(p0.y, p1.y)),
+				Vector2(absf(p1.x - p0.x), absf(p1.y - p0.y)))
+			var rv := by.byggnad_rect(i)
+			var avvik: float = rv.get_center().distance_to(r3.get_center())
+			if avvik > 1.0:
+				fel_ruta.append("%s %.1f px" % [str(VillageView.PLATSER[i]["id"]), avvik])
+			mål.clear()
+			_klick(by, r3.get_center())          # klicket kommer ur MODELLEN, inte ur vyns ruta
+			_gå_klart(by.gångaren())
+			if mål != [str(VillageView.PLATSER[i]["skepp"])]:
+				bom3.append("%s -> %s" % [str(VillageView.PLATSER[i]["id"]), str(mål)])
+		check(utan_hus.is_empty(), "varje plats har ett eget hus i byn.glb (prefixet i PLATSER)", ", ".join(utan_hus))
+		check(fel_ruta.is_empty(),
+			"vyns klickruta är husets EGEN ruta ur modellen — kamerans projektion, inte en 2D-ruta",
+			", ".join(fel_ruta))
+		check(bom3.is_empty(), "klick i MITTEN av 3D-huset öppnar just den platsen", ", ".join(bom3))
 	# HUSET ÄR KNAPPEN, inte en prick bredvid: ett klick högt upp på huset (långt ifrån platsens
 	# punkt på gatan) ska träffa samma plats. Det var det som var fel förut — man siktade på en boll.
 	by.flytta(Vector2i(-1, 0))
@@ -186,9 +231,22 @@ func _initialize() -> void:
 	check(hovring.size() == 1, "hovringen visar husets namn", ", ".join(hovring))
 	check(not hovring.is_empty() and hovring[0] == Tr.t("ui.by.plats.vardshus", "THE TAVERN"),
 		"och det är RÄTT namn", ", ".join(hovring))
+	# HOVRINGSGLÖDEN sitter PÅ huset (M126): banden ritas utanför husets EGEN ruta, så glödens yttre ruta
+	# är den inre utvidgad med alla bandens bredd — en glöd som ritades kring en annan ruta (t.ex.
+	# 2D-rutans) hade glidit ifrån huset. MÄTT på provbilden i 941x1018: de pixlar som skiljer sig från
+	# samma bild UTAN hovring ligger i exakt husets ruta ± 6 vyn-px, på alla fyra sidor.
+	var gr := by.glod_rect()
+	var hr := by.byggnad_rect(2)
+	check(gr.encloses(hr) and absf(gr.size.x - (hr.size.x + 12.0)) < 0.01
+			and absf(gr.size.y - (hr.size.y + 12.0)) < 0.01
+			and gr.get_center().distance_to(hr.get_center()) < 0.01,
+		"hovringsglöden ligger runt husets EGEN ruta — 6 vyn-px utanför på varje sida, samma mitt",
+		"glöd %s mot huset %s" % [str(gr), str(hr)])
 	by.släpp_hovring()
 	check(by.hovrad() == -1, "och hovringen släpps när pekaren lämnar")
+	check(by.glod_rect() == Rect2(), "och då ritas ingen glöd alls", str(by.glod_rect()))
 	by.free()
+	vp1.queue_free()
 
 	# ---------------------------------------------------------------- 2. SKÄRPAN
 	print("")

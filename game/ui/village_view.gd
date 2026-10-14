@@ -42,9 +42,17 @@
 ## HELA huset (MÄTT i 941x1018: markeringens ruta var 522x795 px, från fönstrets överkant ned till
 ## gatan). Nu ritar vyn ingen markering kring huset alls: `pil_rect` i listen bär valet.
 ##
-## Klickytan är samma ruta — man klickar på huset man ser, inte på en prick bredvid det. `hus_rect`
-## (den kompakta rutan kring platsens punkt) finns kvar som INVARIANT för provet: två platsers punkter
-## får inte krocka. Den är också träffyta i reserv, för ett hus vars kropp ligger utanför vyn.
+## KLICKYTAN KOMMER UR 3D-BYN (M126). Alex: byn ritas ur `byn.glb` (se `ui/by_3d.gd`), men klickytorna
+## låg kvar i den här filen och räknades ur platsernas procent av panoramabilden. 3D-byn står STILL
+## medan 2D-rutan flyttade sig med panoreringen, så klicket hamnade 34-115 px (medel 79 px i en 313 px
+## vy) från huset — man klickade på fel hus. Nu räknas platsens ruta ur husets EGNA position i byn.glb
+## (`By3D.hus_rect`, prefixet i `3d` på varje plats) och projiceras till vyn; klicket, hovringen,
+## glöden och gångaren pekar därför på SAMMA hus som ritas. Utan byn.glb (ett prov utan 3D) gäller
+## 2D-rutan i `_byggnad_rect_2d` som förut — en by utan modell ska fortfarande gå att välja i.
+##
+## `hus_rect` (den kompakta rutan kring platsens punkt) finns kvar som INVARIANT för provet: två
+## platsers punkter får inte krocka. Den är också träffyta i reserv, för ett hus vars kropp ligger
+## utanför vyn.
 class_name VillageView
 extends Control
 
@@ -60,8 +68,10 @@ const FIGUR := "res://assets/ui/markor.png"
 const FIGUR_SKALA := 2.0
 
 ## Platserna i gatuordning (vänster → höger, som bilden visar dem): `x` är platsens mitt på BILDEN i
-## procent av bredden, `x0`/`x1` är HUSETS KROPP i procent av bildens bredd (klickytan och det som
-## märks, M122) och `färg` är platsens ton ur paletten.
+## procent av bredden, `x0`/`x1` är HUSETS KROPP i procent av bildens bredd (2D-reservrutan, se
+## `_byggnad_rect_2d`) och `färg` är platsens ton ur paletten. `3d` är husets nodnamns-prefix i
+## `byn.glb` — det som gör att klickytan, hovringen, glöden och gångaren hamnar på det hus man SER
+## (M126). Prefixet är en MÄTNING av Alex' scen (`Weaver_*`/`Smith_*`/…), inte en gissning.
 ##
 ## NAMNEN ÄR ENGELSKA EFTERSOM SKYLTARNA I BILDEN ÄR DET. Alex: *"Döp det till Thread of Destiny, Sen
 ## kommer Blacksmith, Sen The Tavern, sen The Gate, sen Jeweler, och sist Exit."* Bilden bär redan
@@ -82,17 +92,20 @@ const FIGUR_SKALA := 2.0
 ## den, så platsen är borta härifrån — skärmen finns kvar i skalet (och nås av skalsvepet). Ska
 ## kortköpet ha en egen dörr får han säga vilket hus den ska bo i.
 const PLATSER := [
-	{"id": "tradet", "namn": "THREAD OF DESTINY", "skepp": "trad", "x": 8.5, "x0": 2.0, "x1": 15.0, "färg": 1},
-	{"id": "smed", "namn": "BLACKSMITH", "skepp": "smed", "x": 22.5, "x0": 14.0, "x1": 31.0, "färg": 12},
-	{"id": "vardshus", "namn": "THE TAVERN", "skepp": "vardshus", "x": 40.0, "x0": 32.0, "x1": 48.0, "färg": 13},
-	{"id": "karta", "namn": "THE GATE", "skepp": "karta", "x": 53.5, "x0": 45.0, "x1": 62.0, "färg": 25},
-	{"id": "juvelerare", "namn": "JEWELER", "skepp": "juvelerare", "x": 69.0, "x0": 63.0, "x1": 75.0, "färg": 30},
+	{"id": "tradet", "namn": "THREAD OF DESTINY", "skepp": "trad", "x": 8.5, "3d": "Weaver", "x0": 2.0, "x1": 15.0, "färg": 1},
+	{"id": "smed", "namn": "BLACKSMITH", "skepp": "smed", "x": 22.5, "3d": "Smith", "x0": 14.0, "x1": 31.0, "färg": 12},
+	{"id": "vardshus", "namn": "THE TAVERN", "skepp": "vardshus", "x": 40.0, "3d": "Tavern", "x0": 32.0, "x1": 48.0, "färg": 13},
+	{"id": "karta", "namn": "THE GATE", "skepp": "karta", "x": 53.5, "3d": "Gate", "x0": 45.0, "x1": 62.0, "färg": 25},
+	{"id": "juvelerare", "namn": "JEWELER", "skepp": "juvelerare", "x": 69.0, "3d": "Jeweler", "x0": 63.0, "x1": 75.0, "färg": 30},
 	# EXIT-skylten i bilden (längst till höger) stänger spelet. Alex: "Exit på bilden behöver vara
 	# till att avsluta spelet." Den är ingen skärm i skalet — `_på_plats` i main.gd känner igen
 	# "avsluta" och avslutar, och provet mot SKAL_LÄGEN hoppar över just den här platsen.
-	{"id": "avsluta", "namn": "EXIT", "skepp": "avsluta", "x": 80.5, "x0": 75.0, "x1": 86.0, "färg": 14},
+	{"id": "avsluta", "namn": "EXIT", "skepp": "avsluta", "x": 80.5, "3d": "Exit", "x0": 75.0, "x1": 86.0, "färg": 14},
 ]
 const MÄRKE := Vector2(20.0, 26.0)   ## platsens PUNKT-ruta: invarianten provet mäter (och klick i reserv)
+## Hovringsglödens bandbredd i vyns px (M126). Tre band ritas utanför husets EGEN ruta — glöden är alltså
+## husets ruta utvidgad med 3 × GLOD_BREDD, och det är den rutan provet mäter.
+const GLOD_BREDD := 2.0
 const DJUP := 6.0                    ## platsens skugga i sidled (provet räknar in den i krockmåttet)
 ## Husets ÖVERKANT i procent av bildens höjd. Taken i Alex' bild ligger på 7–11 % av höjden (MÄTT:
 ## den första raden som avviker från himlens färg i varje hus' spann), och ramen och ljusväggen ska
@@ -191,11 +204,24 @@ func gångaren() -> Gångare:
 		_gångare.framme.connect(_framme)
 	return _gångare
 
-## VAR FIGUREN GÅR: på gatan, framför huset. `x` är i KONSTENS px (samma ruta som husen och gatan
-## mäts i — en konstpixel är en skärmpixel) — panoreringen flyttar husen, och figuren ska stå kvar på
-## samma ställe på gatan medan bilden glider. `y` är 0 = gatulinjen.
+## VAR FIGUREN GÅR (M126): på gatulinjen, framför huset — i VYNS px, vid husets EGET mitt. SAMMA ruta
+## som klicket använder, så figuren står på det hus man ser och inte på en panorering som inte ritar
+## något. `y` är gatulinjen (`gata_y`).
 func gångpunkt(i: int) -> Vector2:
-	return Vector2(_plats_konst_x(i), 0.0)
+	if i < 0 or i >= PLATSER.size():
+		return Vector2.ZERO
+	var r := byggnad_rect(i)
+	if r.size.x >= 2.0:
+		return Vector2(r.get_center().x, gata_y())
+	return Vector2(_plats_x(i) - _pan, marklinje())
+
+## GATULINJEN I VYN. Med 3D-byn är den världens y = 0 projicerad — husens fot. Den gamla 2D-scenen
+## lade gatan på 78 % av vyns höjd, vilket är en ANNAN linje än husens fot (M126); figuren och
+## plattan ska stå på den linje husen faktiskt står på.
+func gata_y() -> float:
+	if _by3d != null and is_instance_valid(_by3d) and _by3d.by != null:
+		return _by3d.marklinje_px()
+	return marklinje()
 
 ## Platsens x i KONSTENS px. Farten i `Gångare` (90 px/s) är då 90 SKÄRM-pixlar per sekund i varje
 ## fönsterstorlek, eftersom konsten ritas 1:1 — samma tempo som förr, men nu på rätt plats.
@@ -252,6 +278,8 @@ func byscen() -> Texture2D:
 func _bygg_by3d(vy: Vector2) -> void:
 	if (_by3d_vp != null and is_instance_valid(_by3d_vp)
 			and _by3d_vp.size == Vector2i(int(vy.x), int(vy.y))):
+		if _by3d != null and is_instance_valid(_by3d):
+			_by3d.sätt_vy(vy)        # samma ruta: projektionen ska räkna i vyns px varje gång
 		return
 	if not ResourceLoader.exists(By3D.GLB):
 		return
@@ -269,6 +297,7 @@ func _bygg_by3d(vy: Vector2) -> void:
 	add_child(_by3d_vp)
 	_by3d = By3D.new()
 	_by3d_vp.add_child(_by3d)
+	_by3d.sätt_vy(vy)            # husens rutor räknas i SAMMA px som vyn ritar (M126)
 
 ## 3D-byns bild — textur i vyns mått. Null när scenen inte är byggd (glb:n saknas), och i en
 ## huvudlös körning finns ingen rityta: `_draw` faller då tillbaka på 2D-vyn, precis som förut.
@@ -350,12 +379,12 @@ func _bygg_scen() -> void:
 	_scen3d.sätt_kamera(_kamerapan.x, _kamerapan.y)
 	_om_markering()
 
-## Markeringen. Glöden runt ett hus hör nu bara till HOVRINGEN — den valda platsen märks i LISTEN
-## (`pil_rect`), inte runt huset (M124). Anropas när valet eller hovringen ändras, och det är den ENDA
-## vägen till scenens markering: två anrop hade kunnat säga olika saker om vad som är valt.
+## Markeringen. Med 3D-byn ritas hovringsglöden i VYN kring husets projicerade ruta (`_glod`) — 2D-scenens
+## glöd låg på husets EGEN textur, och den texturen ritas inte längre. Anropas när valet eller hovringen
+## ändras, och det är den ENDA vägen till markeringen: två anrop hade kunnat säga olika saker om vad
+## som är valt.
 func _om_markering() -> void:
-	if _scen3d != null:
-		_scen3d.sätt_markering(-1, _hover)
+	queue_redraw()
 
 ## Kameran i sidled/höjdled. Pekaren styr den (en liten rörelse ger djupkänsla), och `kamerapan=x,y`
 ## låser den så en provbild kan mäta paralaxen i SAMMA scen.
@@ -435,6 +464,14 @@ func hovrad() -> int:
 func släpp_hovring() -> void:
 	_släpp_hovring()
 
+## Sätt hovringen till en plats. Samma väg som musen tar i `_gui_input`, men utan en mus: proven
+## använder den, och granskningsflaggan `byhov=N` fotograferar glöden på ett bestämt hus.
+func hovra(i: int) -> void:
+	var ny := i if i >= 0 and i < PLATSER.size() else -1
+	if ny != _hover:
+		_hover = ny
+		_om_markering()
+
 ## Statusraden under en plats namn. Egen funktion (i stället för `_status` direkt) för att provet ska
 ## kunna mäta att varje plats har en rad — en plats utan status ritar en tom rad, och en tom rad
 ## under ett namn ser ut som ett fel.
@@ -491,12 +528,29 @@ func _pixel_låst(v: float) -> float:
 func _plats_x(i: int) -> float:
 	return bild_storlek().x * float(PLATSER[i]["x"]) / 100.0
 
-## Husets ruta i VYNS px (M122): den målade byggnadens kropp ur `x0`/`x1`, klippt mot vyn. Klickytan,
-## ramen och ljusväggen räknas ur SAMMA ruta — två rutor hade glidit isär, och då klickar man på ett
-## hus och märker ett annat. En tom ruta betyder att huset ligger utanför vyn.
+## Husets ruta i VYNS px — KLICKYTAN (M126). Med 3D-byn är den husets EGEN position i byn.glb
+## (`By3D.hus_rect`), projicerad till vyn, klippt mot vyns kanter. Man klickar alltså på det hus man
+## SER. Utan byn.glb gäller 2D-rutan (`_byggnad_rect_2d`), så en by utan modell går att välja i.
 func byggnad_rect(i: int) -> Rect2:
 	if i < 0 or i >= PLATSER.size():
 		return Rect2()
+	var r := _hus_3d_rect(i)
+	if r.size.x > 0.0 and r.size.y > 0.0:
+		return r.intersection(Rect2(Vector2.ZERO, _vy()))
+	return _byggnad_rect_2d(i)
+
+## Platsens hus ur 3D-byn, i vyns px. Tom ruta när scenen inte är byggd eller platsen saknar ett
+## `3d`-prefix — då finns ingen 3D-ruta att klicka i och 2D-rutan tar över.
+func _hus_3d_rect(i: int) -> Rect2:
+	if _by3d == null or not is_instance_valid(_by3d):
+		return Rect2()
+	return _by3d.hus_rect(str(PLATSER[i].get("3d", "")))
+
+## 2D-RESERVRUTAN (M122, reserv sedan M126): husets kropp ur `x0`/`x1` i panoramabilden, klippt mot
+## vyn, flyttad med panoreringen. Den flyttade sig medan bilden gjorde det — vilket var hela felet när
+## 3D-byn står still — så den används bara när byn.glb inte finns. En tom ruta betyder att huset ligger
+## utanför vyn.
+func _byggnad_rect_2d(i: int) -> Rect2:
 	var b := bild_storlek()
 	var p: Dictionary = PLATSER[i]
 	var x0 := b.x * float(p["x0"]) / 100.0 - _pan
@@ -669,31 +723,90 @@ func _draw() -> void:
 		_bilden(vp, byscen())
 	else:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
+	# HOVRINGSGLÖDEN ligger ÖVER husen (den markerar huset man pekar på) och UNDER listen.
+	_glod()
 	# En mörk ton nedtill, tonad i åtta steg: etiketterna ska läsas mot en lugn yta, inte mot
 	# kullerstenen — och en rak kant mellan bilden och listen läses som en skarv.
 	for k in 8:
 		draw_rect(Rect2(0.0, bar_topp() - 8.0 + float(k), vp.x, 1.0), _a(Palett.c(0), 0.10 * float(k)))
 	_bar(vp)
 	_pil()
-	# Plattan den valda platsen står på, SIST av scenen. Markeringen själv (glöden runt husets
-	# silhuett) ritas i scenen — ingen gul ruta kring huset finns kvar (M123).
+	# Plattan den valda platsen står på, SIST av scenen.
 	for i in PLATSER.size():
 		_hus(i)
+	# GÅNGAREN sist: hon går på gatan framför husen, alltså närmast betraktaren.
+	_gångare_ritning()
 
-## Gångaren: hon står i 3D-SCENEN, på husens djup, med fötterna på gatulinjen. Att hon ligger hos
-## husen och inte hos bakgrunden är det som gör att hon står kvar på gatan när kameran pannar — hon
-## följer scenens närmaste lager, inte tavlan bakom.
-func _sätt_figur() -> void:
-	if _scen3d == null or not _scen3d.klar() or _gata_px <= 0.0:
+## HOVRINGSGLÖDEN (M126): en glöd runt huset muspekaren står över, i tre band UTANFÖR husets ruta.
+## Glöden låg förut på 2D-scenens hus-textur (uppskalad, bara silhuettens kant syns) — den texturen
+## ritas inte längre, och i 3D finns ingen silhuetttextur att skala upp. Banden följer SAMMA ruta som
+## klicket (`byggnad_rect`), så glöden kan inte glida ifrån huset den märker.
+func _glod() -> void:
+	if _hover < 0:
 		return
+	var r := byggnad_rect(_hover)
+	if r.size.x < 2.0 or r.size.y < 2.0:
+		return
+	var band := [Color(1.0, 0.86, 0.45, 0.42), Color(1.0, 0.86, 0.45, 0.24), Color(1.0, 0.86, 0.45, 0.12)]
+	for k in band.size():
+		var v: float = float(k + 1) * GLOD_BREDD
+		# Fyra kanter: en Rect2 har ingen kontur, och en fylld ruta hade målat ÖVER huset man pekar på.
+		draw_rect(Rect2(r.position.x - v, r.position.y - v, r.size.x + 2.0 * v, GLOD_BREDD), band[k])
+		draw_rect(Rect2(r.position.x - v, r.end.y + v - GLOD_BREDD, r.size.x + 2.0 * v, GLOD_BREDD), band[k])
+		draw_rect(Rect2(r.position.x - v, r.position.y - v, GLOD_BREDD, r.size.y + 2.0 * v), band[k])
+		draw_rect(Rect2(r.end.x + v - GLOD_BREDD, r.position.y - v, GLOD_BREDD, r.size.y + 2.0 * v), band[k])
+
+## Glödens yttre ruta: husets ruta utvidgad med alla bandens bredd. Egen funktion så provet kan mäta
+## att glöden sitter PÅ huset. MÄTT på provbilden i 941x1018 (`shot skarm=by byhov=2`): de pixlar som
+## skiljer sig från samma bild utan hovring ligger i EXAKT husets ruta ± 6 vyn-px (256..450, 432..626
+## fönster-px), alltså kanten 6 vyn-px utanför rutan på alla fyra sidor.
+func glod_rect() -> Rect2:
+	var r := byggnad_rect(_hover)
+	if _hover < 0 or r.size.x < 2.0 or r.size.y < 2.0:
+		return Rect2()
+	return r.grow(GLOD_BREDD * 3.0)
+
+## Figurbilden: figurens egen ruta i vyn, centrerad i sidled på `pos()` och med fötterna på den.
+func figur_rect() -> Rect2:
+	var p := gångaren().pos()
+	var m: Vector2 = Vector2(_figur.get_size()) * FIGUR_SKALA if _figur != null else Vector2.ZERO
+	return Rect2(p.x + gångaren().vick_sida() - m.x * 0.5,
+		p.y - m.y - gångaren().vick_gupp(), m.x, m.y)
+
+## HUSET MÄRKS (M123). Glöden runt byggnadens silhuett ligger i `_glod`; kvar här är plattan på gatan:
+## den valda platsen STÅR på den, och det är den som säger "gatan är marken de står på".
+func _hus(i: int) -> void:
+	if i != _vald:
+		return
+	var r := markör_ram()
+	if r.size.x < 2.0 or r.size.y < 2.0:
+		return
+	# Plattan på gatan: fyra px guld med en mörk kant runt om, lika bred som huset. Den ligger på
+	# husets EGEN projicerade ruta (M126) — 2D-scenens kameraförskjutning hörde till en scen som inte
+	# ritas, och lade plattan vid sidan av huset.
+	var platta := Rect2(r.position.x, gata_y() + 2.0, r.size.x, 4.0)
+	draw_rect(platta.grow(1.0), Palett.c(1))
+	draw_rect(platta, Palett.c(14))
+	draw_rect(Rect2(platta.position + Vector2(2.0, 1.0), Vector2(maxf(0.0, platta.size.x - 4.0), 1.0)), Palett.c(13))
+	# Guppet: ett litet märke i plattans mitt som andas, så markeringen syns röra sig även när bilden
+	# står still (det gamla guppet satt i pilen ovanför märket).
+	var mitt := platta.get_center().x
+	var b: float = 6.0 + float(GUPP[_ram]) * 2.0
+	draw_rect(Rect2(mitt - b / 2.0, platta.end.y + 1.0, b, 2.0), Palett.c(1))
+	draw_rect(Rect2(mitt - b / 2.0 + 1.0, platta.end.y + 1.0, b - 2.0, 1.0), Palett.c(14))
+
+## Figuren (M126). Hon ritas i VYN (`_gångare_ritning`) — 2D-scenen som bar henne förut ritas inte
+## längre, och en figur ingen ser är ingen gångare. Här laddas bara texturen, en gång.
+func _sätt_figur() -> void:
 	if _figur == null and ResourceLoader.exists(FIGUR):
 		_figur = load(FIGUR)
+
+## GÅNGAREN: figuren står på gatulinjen framför huset och ritas i HUSENS px (samma ruta som klicket och
+## glöden), centrerad i sidled på sin punkt med fötterna på den. Vickningen följer med.
+func _gångare_ritning() -> void:
 	if _figur == null:
 		return
-	var p := gångaren().pos()
-	var m: Vector2 = _figur.get_size() * FIGUR_SKALA
-	_scen3d.sätt_figur(_figur, p.x + gångaren().vick_sida(),
-		_gata_px - m.y - gångaren().vick_gupp(), m, true)
+	draw_texture_rect(_figur, figur_rect(), false)
 
 ## Bilden: EN ruta, flyttad i sidled och skjuten i höjdled så att gatulinjen hamnar på MARKLINJE.
 ## Ingen remsa, ingen avbildning, ingen faktor — det finns ingenting kvar som kan dra i pixlarna, och
@@ -765,32 +878,6 @@ func _pil() -> void:
 		var y := r.position.y + float(rad)
 		draw_rect(Rect2(mitt - b * 0.5 - 1.0, y, b + 2.0, 1.0), Palett.c(1))
 		draw_rect(Rect2(mitt - b * 0.5, y, b, 1.0), Palett.c(14))
-
-## HUSET MÄRKS (M123). Glöden runt byggnadens EGEN silhuett ritas i SCENEN (`ByScen.sätt_markering`),
-## där husets textur finns: den gula rutan kring byggnaden och den mörka ljusväggen över den är BORTA
-## — de var två av Alex' klagomål (*"en gul rektangel runt värdshuset"*, *"en stor mörk genomskinlig
-## rektangel mitt över värdshuset"*). Kvar här är plattan på gatan: den valda platsen STÅR på den, och
-## det är den som säger "gatan är marken de står på".
-func _hus(i: int) -> void:
-	if i != _vald:
-		return
-	var r := markör_ram()
-	if r.size.x < 2.0 or r.size.y < 2.0:
-		return
-	# Plattan på gatan: fyra px guld med en mörk kant runt om, lika bred som huset — den gamla plattan
-	# var 20 px bred och hörde till det lilla märket. Plattan hör till HUSET och följer därför husets
-	# extra kamera-rörelse, annars glider huset av sin egen platta när man panorerar.
-	var hus_x: float = _scen3d.hus_forskjutning().x if _scen3d != null else 0.0
-	var platta := Rect2(r.position.x + hus_x, marklinje() + 2.0, r.size.x, 4.0)
-	draw_rect(platta.grow(1.0), Palett.c(1))
-	draw_rect(platta, Palett.c(14))
-	draw_rect(Rect2(platta.position + Vector2(2.0, 1.0), Vector2(maxf(0.0, platta.size.x - 4.0), 1.0)), Palett.c(13))
-	# Guppet: ett litet märke i plattans mitt som andas, så markeringen syns röra sig även när bilden
-	# står still (det gamla guppet satt i pilen ovanför märket).
-	var mitt := platta.get_center().x
-	var b: float = 6.0 + float(GUPP[_ram]) * 2.0
-	draw_rect(Rect2(mitt - b / 2.0, platta.end.y + 1.0, b, 2.0), Palett.c(1))
-	draw_rect(Rect2(mitt - b / 2.0 + 1.0, platta.end.y + 1.0, b - 2.0, 1.0), Palett.c(14))
 
 ## Etikettlisten längst ned: en mörk list med en guldkant och en ruta per plats. Texten står I
 ## listen — över en bild med hus och gata drunknar den i kullerstenen (granskningen av den gamla
