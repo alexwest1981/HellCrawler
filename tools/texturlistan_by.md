@@ -85,33 +85,34 @@ Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roo
 | **1 material** | | | **89** |
 | `Road_Base` | Dirt Stony | `atlas/dirt_stony.png` | 2 |
 | **1 material** | | | **2** |
-| `Grass_Light` | Grass Flowers | `atlas/grass.png` | 28 |
-| `Grass_Dark` | Grass Flowers | `atlas/grass.png` | 1 |
-| `Grass_Mid` | Grass Flowers | `atlas/grass.png` | 1 |
+| `Grass_Light` | Grass | `gras.png` | 28 |
+| `Grass_Dark` | Grass | `gras.png` | 1 |
+| `Grass_Mid` | Grass | `gras.png` | 1 |
 | **3 material** | | | **30** |
-| `Leaf_Mid` | Hedge | `hedge.png` | 37 |
-| `Pine_Green` | Hedge | `hedge.png` | 32 |
-| `Leaf_Dark` | Hedge | `hedge.png` | 28 |
-| `Leaf_Light` | Hedge | `hedge.png` | 18 |
-| **4 material** | | | **115** |
+| `Pine_Green` | Hedge | `hedge.png` | 44 |
+| `Leaf_Mid` | Hedge | `hedge.png` | 41 |
+| `Leaf_Dark` | Hedge | `hedge.png` | 30 |
+| `Leaf_Light` | Hedge | `hedge.png` | 22 |
+| **4 material** | | | **137** |
 | `Iron` | Iron Riveted | `atlas/metal_riveted.png` | 44 |
 | **1 material** | | | **44** |
-| `Dirt_Cliff` | Sand Path | `atlas/sand_path.png` | 1 |
+| `Dirt_Cliff` | Mörk Zon | `mork_zon.png` | 1 |
 | **1 material** | | | **1** |
 | `Roof_Slate_1` | Slate Roof | `roof_slate.png` | 142 |
 | `Roof_Slate_2` | Slate Roof | `roof_slate.png` | 138 |
 | `Roof_Purple_1` | Slate Roof | `roof_slate.png` | 50 |
 | `Roof_Purple_2` | Slate Roof | `roof_slate.png` | 48 |
 | **4 material** | | | **378** |
-| `Stone_Light` | Stone | `stone_wall.png` | 201 |
-| `Stone_Dark` | Stone | `stone_wall.png` | 43 |
-| `Stone_Wall` | Stone | `stone_wall.png` | 30 |
+| `Stone_Light` | Stone | `mursten.png` | 201 |
+| `Stone_Dark` | Stone | `mursten.png` | 43 |
+| `Stone_Wall` | Stone | `mursten.png` | 30 |
 | **3 material** | | | **274** |
 | `Mountain_Rock` | Stone Mossy | `atlas/stone_wall_mossy_small.png` | 5 |
 | **1 material** | | | **5** |
 | `Roof_Red_1` | Terracotta Roof | `roof_terracotta.png` | 140 |
 | `Roof_Red_2` | Terracotta Roof | `roof_terracotta.png` | 140 |
-| **2 material** | | | **280** |
+| `Roof_Thatch` | Terracotta Roof | `roof_terracotta.png` | 42 |
+| **3 material** | | | **322** |
 | `Plaster_Warm` | Tudor Plaster | `tudor_wall.png` | 43 |
 | `Plaster_Cream` | Tudor Plaster | `tudor_wall.png` | 28 |
 | **2 material** | | | **71** |
@@ -119,17 +120,16 @@ Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roo
 | **1 material** | | | **2** |
 | `Window_Warm` | Window Warm | `atlas/window_four_pane.png` | 7 |
 | **1 material** | | | **7** |
-| `Wood_Dark` | Wood | `wood_planks.png` | 99 |
-| `Wood_Oak` | Wood | `wood_planks.png` | 82 |
-| `Wood_Beam` | Wood | `wood_planks.png` | 67 |
-| `Wood_Light` | Wood | `wood_planks.png` | 3 |
-| **4 material** | | | **251** |
+| `Wood_Dark` | Wood | `virke.png` | 103 |
+| `Wood_Oak` | Wood | `virke.png` | 84 |
+| `Wood_Beam` | Wood | `virke.png` | 69 |
+| `Wood_Light` | Wood | `virke.png` | 3 |
+| **4 material** | | | **259** |
 
 ### Material utan platta i paketet — underlaget för vilka plattor Alex behöver
 
 | Originalmaterial | Objekt | Nödlösning (namnregeln) |
 |---|---:|---|
-| `Roof_Thatch` | 42 | Terracotta Roof |
 | `Bulb_Glow` | 41 | Stone |
 | `Sheep_Wool` | 14 | Stone |
 | `Cloth_Blue` | 12 | Stone |
@@ -145,7 +145,7 @@ Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roo
 | `Gem_Cyan` | 1 | Stone |
 | `Gem_Green` | 1 | Stone |
 | `Gem_Pink` | 1 | Stone |
-| **16 material** | **156** | |
+| **15 material** | **114** | |
 
 ### Rök och moln — tas ur exporten, ersätts av en smoke emitter i Godot
 
@@ -153,11 +153,6 @@ Alex' .blend rörs inte; exportskriptet kopplar loss objekten ur samlingen och l
 
 | Objekt | Originalmaterial |
 |---|---|
-| `Chimney_Smoke_0` | `Smoke_Grey` |
-| `Chimney_Smoke_1` | `Smoke_Grey` |
-| `Chimney_Smoke_2` | `Smoke_Grey` |
-| `Chimney_Smoke_3` | `Smoke_Grey` |
-| `Chimney_Smoke_4` | `Smoke_Grey` |
 | `Cloud_L_0` | `Cloud_White` |
 | `Cloud_L_1` | `Cloud_White` |
 | `Cloud_L_2` | `Cloud_White` |
@@ -176,10 +171,9 @@ Alex' .blend rörs inte; exportskriptet kopplar loss objekten ur samlingen och l
 
 | Rökkluster | Objekt | Mitt, glTF (x, y, z) |
 |---|---:|---|
-| Chimney_Smoke | 5 | -10.65, 7.03, -1.85 |
 | Cloud_L | 5 | -0.28, 9.13, -18.00 |
-| Cloud_Main | 5 | 1.10, 9.38, -18.00 |
-| Cloud_R | 5 | 2.48, 9.19, -18.00 |
+| Cloud_Main | 5 | 1.10, 9.39, -18.00 |
+| Cloud_R | 5 | 2.48, 9.21, -18.00 |
 
 ### Bakgrunden (namn med `bg`) — bara det TAKFORMADE får en takplatta
 
@@ -196,17 +190,9 @@ Alex' .blend rörs inte; exportskriptet kopplar loss objekten ur samlingen och l
 
 Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av `tools/byn_form.py`:
 
-* **En takplatta på en mur.** Namntabellen visar `wall` 35, `crenel` 34, `castle` 1, `tower` 26 och
-  `merlon` 37 — alla på `PX_Stone`, noll på en takplatta. Skillnaden mot den COMMITTADE filen är
-  exakt de 39 objekt Alex såg: 35 `PX_Terracotta Roof` → `PX_Stone` (34 kreneleringar på
-  `BG_Wall_Crenel` + `BG_Castle_Wall`) och 4 `PX_Slate Roof` → `PX_Stone` (`BG_Tower_0/1`,
-  `BG_Tower_Rim_0/1`). Fixen låg i den obekräftade arbetskopian och är nu committad.
-* **En murplatta på ett tak** (baklänges): räknaren `tak_pa_mur` i `tools/apply_pixel_textures.py`
-  mäter objekt med ett TAKMATERIAL som inte hamnade på en takplatta. Senaste körningen: 0.
-  Väverskans tegelliknande tak är inte det felet — MÄTT: de 42 objekten (`Weaver_TileL_*` /
-  `Weaver_TileR_*`) bär trämaterialen `Wood_*` och ska ha träplattan.
-* Vasstaket står numera i `MATERIAL_TO_PLATE` (`Roof_Thatch` → `Terracotta Roof`, 42 objekt), så
-  valet hänger inte längre på att objektnamnet råkar innehålla "tile".
+* **En takplatta på en mur.** Namntabellen visar `wall` 35, `crenel` 34, `castle` 1, `tower` 26 och `merlon` 37 — alla på `PX_Stone`, noll på en takplatta. Skillnaden mot den COMMITTADE filen är exakt de 39 objekt Alex såg: 35 `PX_Terracotta Roof` → `PX_Stone` (34 kreneleringar på `BG_Wall_Crenel` + `BG_Castle_Wall`) och 4 `PX_Slate Roof` → `PX_Stone` (`BG_Tower_0/1`, `BG_Tower_Rim_0/1`).
+* **En murplatta på ett tak** (baklänges): räknaren `tak_pa_mur` i `tools/apply_pixel_textures.py` mäter objekt med ett TAKMATERIAL som inte hamnade på en takplatta. Senaste körningen: 0. Väverskans tegelliknande tak är inte det felet — MÄTT: de 42 objekten (`Weaver_TileL_*` / `Weaver_TileR_*`) bär trämaterialen `Wood_*` och ska ha träplattan.
+* Vasstaket står numera i `MATERIAL_TO_PLATE` (`Roof_Thatch` → `Terracotta Roof`, 42 objekt), så valet hänger inte längre på att objektnamnet råkar innehålla "tile".
 
 ### Vad klassningen blev i scenen (materialet i den exporterade filen)
 
@@ -238,27 +224,31 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `Leaf_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Leaf_Mid` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Mountain_Rock` | `**ingen bild**` | 0 | 0 | 0.0 |
+| `PX_Bark` | `bark.png` | 22 | 198 | 128.8 |
+| `PX_Barr` | `barr.png` | 44 | 616 | 692.2 |
 | `PX_Cobblestone Brown` | `cobblestone_brown.png` | 91 | 546 | 22.9 |
 | `PX_Cobblestone Grey` | `cobblestone_grey.png` | 115 | 690 | 29.5 |
 | `PX_Cobblestone Ground` | `cobblestone_ground.png` | 0 | 0 | 0.0 |
 | `PX_Cobblestone Mossy` | `cobblestone_mossy.png` | 89 | 534 | 23.5 |
 | `PX_Dark Stone` | `dark_stone.png` | 6 | 36 | 3.7 |
 | `PX_Dirt` | `dirt.png` | 0 | 0 | 0.0 |
-| `PX_Dirt Stony` | `dirt_stony.png` | 2 | 12 | 199.1 |
-| `PX_Grass` | `grass.png` | 0 | 0 | 0.0 |
-| `PX_Grass Flowers` | `grass.png` | 30 | 2178 | 2056.1 |
-| `PX_Hedge` | `hedge.png` | 115 | 7088 | 889.2 |
+| `PX_Dirt Stony` | `dirt_stony.png` | 2 | 12 | 445.0 |
+| `PX_Grass` | `gras.png` | 30 | 2178 | 2056.1 |
+| `PX_Grass Flowers` | `grass.png` | 0 | 0 | 0.0 |
+| `PX_Hedge` | `hedge.png` | 38 | 3040 | 177.4 |
 | `PX_Iron Riveted` | `metal_riveted.png` | 44 | 1532 | 11.5 |
+| `PX_Lövverk` | `lov.png` | 55 | 4400 | 705.8 |
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
-| `PX_Sand Path` | `sand_path.png` | 1 | 6 | 450.0 |
+| `PX_Mörk Zon` | `mork_zon.png` | 1 | 6 | 449.1 |
+| `PX_Sand Path` | `sand_path.png` | 0 | 0 | 0.0 |
 | `PX_Slate Roof` | `roof_slate.png` | 378 | 2268 | 147.7 |
-| `PX_Stone` | `stone_wall.png` | 379 | 5660 | 1286.6 |
+| `PX_Stone` | `mursten.png` | 379 | 5660 | 1286.6 |
 | `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
 | `PX_Terracotta Roof` | `roof_terracotta.png` | 322 | 1932 | 131.9 |
 | `PX_Tudor Plaster` | `tudor_wall.png` | 71 | 426 | 862.9 |
 | `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
 | `PX_Window Warm` | `window_four_pane.png` | 7 | 42 | 18.4 |
-| `PX_Wood` | `wood_planks.png` | 254 | 1656 | 778.1 |
+| `PX_Wood` | `virke.png` | 240 | 1520 | 717.3 |
 | `Pine_Green` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Plaster_Cream` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Plaster_Warm` | `**ingen bild**` | 0 | 0 | 0.0 |
@@ -273,7 +263,6 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `Sheep_Wool` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Sign_Text` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Skin` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `Smoke_Grey` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Stone_Dark` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Stone_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Stone_Wall` | `**ingen bild**` | 0 | 0 | 0.0 |
@@ -284,4 +273,4 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `Wood_Light` | `**ingen bild**` | 0 | 0 | 0.0 |
 | `Wood_Oak` | `**ingen bild**` | 0 | 0 | 0.0 |
 
-Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 71 material i filen står med.
+Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 74 material i filen står med.

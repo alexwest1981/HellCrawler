@@ -45,16 +45,17 @@ except NameError:  # Blenders textredigerare har inget __file__
     ROT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(TEXTURE_DIR))))
 RAPPORT = os.path.join(ROT, "tools", "byn_mappning.json")
 
-## Plattor ur Alex' EGNA paket (512 px, game/assets/by/tex/).
+## Plattor ur Alex' EGNA paket (512 px, game/assets/by/tex/) — de sex sista (mursten, virke, gras,
+## bark, lövverk, barr) är räknade ur hans nedladdade texturpaket av tools/gen_trad_plattor.py.
 TEXTURES = {
-    "Stone": "stone_wall.png",
+    "Stone": "mursten.png",
     "Mossy Stone": "mossy_stone.png",
     "Dark Stone": "dark_stone.png",
     "Terracotta Roof": "roof_terracotta.png",
     "Slate Roof": "roof_slate.png",
-    "Wood": "wood_planks.png",
+    "Wood": "virke.png",
     "Tudor Plaster": "tudor_wall.png",
-    "Grass": "grass.png",
+    "Grass": "gras.png",
     "Dirt": "dirt.png",
     "Cobblestone Ground": "cobblestone_ground.png",
     "Hedge": "hedge.png",
@@ -64,6 +65,13 @@ TEXTURES = {
     ## medieval_pixel_texture_atlas_4x.png av tools/gen_tex_atlas.py. Varje val är mätt: sömlös kant
     ## mot kant (fog_sid) och palettavstånd mot game/assets/palette.json under tröskeln 0,18.
     "Grass Flowers": "atlas/grass.png",                          # gräs med små blommor, fog 3,08
+    ## TRÄDEN. Alex' paket och atlasen saknar bark, barr och trädkrona (mätt: lästa ruta för ruta,
+    ## ingen har stam eller barr), så träden fick stammarnas planka och tallarnas kronor blomgräs.
+    ## tools/gen_trad_plattor.py bygger de fyra ur en befintlig platta + bildens uppmätta färg.
+    "Bark": "bark.png",                                          # stammen, ur wood_planks vriden
+    "Lövverk": "lov.png",                                        # lövkronan, ur atlas/ivy
+    "Barr": "barr.png",                                          # tallarnas våningar, ur hedge
+    "Mörk Zon": "mork_zon.png",                                  # förgrundszonen längst ned i bilden
     "Cobblestone Grey": "atlas/cobblestone_grey.png",            # kullersten grå, fog 5,78
     "Cobblestone Brown": "atlas/cobblestone_brown.png",          # kullersten brunorange, fog 9,84
     "Cobblestone Mossy": "atlas/cobblestone_mossy.png",          # kullersten med mossa, fog 5,93
@@ -149,10 +157,14 @@ MATERIAL_TO_PLATE = {
     "Cobble_2": "Cobblestone Brown",
     "Cobble_3": "Cobblestone Mossy",
     "Road_Base": "Dirt Stony",          # grusväg: packad jord med grus
-    "Dirt_Cliff": "Sand Path",          # jordbranten: sandig, torr jord
-    "Grass_Light": "Grass Flowers",
-    "Grass_Mid": "Grass Flowers",
-    "Grass_Dark": "Grass Flowers",
+    ## JORDBRANTEN LÄNGST FRAM. Den fick Sand Path, men bildens nedersta band — där branten ligger —
+    ## är den MÖRKA zonen (MÄTT radvis: (40,47,50) mot gatans (109,88,80) och gräsets (75,84,62)).
+    "Dirt_Cliff": "Mörk Zon",
+    ## GRÄSET. Det fick atlasens "Grass Flowers", men bildens gräsband har inga blommor (MÄTT i
+    ## remsan: grönt utan ljusa blomfläckar, medel (75,84,62)). Alex' egen grass.png är vanligt gräs.
+    "Grass_Light": "Grass",
+    "Grass_Mid": "Grass",
+    "Grass_Dark": "Grass",
     "Mountain_Rock": "Stone Mossy",     # mossig sten; berget är 1237 m² och plattan är sömlös
     # vägg
     "Stone_Light": "Stone",
@@ -264,12 +276,29 @@ def bakgrundstak(obj, platta):
         return "Slate Roof"
     return "Terracotta Roof"
 
+## TRÄDENS DELAR. MÅSTE komma FÖRE MATERIAL_TO_PLATE: stammarna har Wood_Beam/Wood_Dark (samma
+## material som bjälkar, sparrar och plank) och tallarnas våningar Grass_Light (samma som gräset).
+## Materialtabellen gav därför 17 stammar plank och 8 tallar blomgräs (MÄTT i byn.glb). Namnet är
+## det som skiljer dem från virket och marken.
+TRÄD_ORD = (("trunk", "Bark"), ("tier", "Barr"), ("canopy", "Lövverk"))
+
+def trädplatta(obj):
+    """Plattan för en trädstam/krona/våning, eller None om objektet inte är en del av ett träd."""
+    n = obj.name.lower()
+    for ord_, platta in TRÄD_ORD:
+        if ord_ in n:
+            return platta
+    return None
+
 def classify_object(obj):
-    """(platta, källa) för ett objekt: materialets platta först, namnreglerna som fallback.
+    """(platta, källa) för ett objekt: trädens delar först, materialets platta, namnreglerna sist.
 
     MÅSTE läsas INNAN assign_material tömmer materiallistan — annars finns inget material kvar att
     klassificera på.
     """
+    träd = trädplatta(obj)
+    if träd:
+        return träd, "namn (träd)"
     namn = första_materialet(obj)
     if namn in MATERIAL_TO_PLATE:
         platta = MATERIAL_TO_PLATE[namn]

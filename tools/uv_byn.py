@@ -441,6 +441,9 @@ def närkamera(meshar, ordning=("Plaster_", "Wood_", "Stone_")):
 ## Färgen: materialets basfärg MULTIPLICERAS med plattan. Därför pekar flera material på SAMMA platta
 ## (Stone_Light/Stone_Wall/Stone_Dark är samma mursten i tre toner, Grass_* samma gräs, Roof_*_1 och
 ## _2 samma pannor) — materialets egen ton gör jobbet, precis som i scenen i dag.
+## DEN GAMLA VÄGEN. Mappningen som gäller i dag ligger i `tools/apply_pixel_textures.py`
+## (`MATERIAL_TO_PLATE` + `trädplatta` + `TEXTURES`); den här tabellen används bara av det här
+## skriptets egen texturering, som är överspelad. Plattfilerna nedan är ändå de som gäller.
 MAPP: dict[str, str] = {
     "Stone_Light":  "stone_wall_light.png",     # ljus huggsten, 320 m²
     "Stone_Wall":   "stone_wall_dark.png",      # muren, 895 m² — mörkare, basfärgen tonar

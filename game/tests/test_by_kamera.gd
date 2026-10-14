@@ -34,7 +34,7 @@ const MARK_BAK := -5.6
 ## texturer ligger kvar inne i filen — `res://assets/by/byn.glb::ImageTexture_...` — och bara några
 ## bröts ut som byn_*.png. Namnet är det som gäller för alla).
 const MARK_PLATTOR := ["PX_Cobblestone Grey", "PX_Cobblestone Brown", "PX_Cobblestone Mossy",
-	"PX_Grass Flowers", "PX_Dirt Stony", "PX_Sand Path"]
+	"PX_Grass", "PX_Dirt Stony", "PX_Mörk Zon"]
 ## Stenhuset: PORTEN (Gate) är murad av sten (PX_Stone) — där mäts utbrändheten.
 const STEN_PLATTA := "PX_Stone"
 const MARK_PNG := "/home/alex/.hermes/cache/scratch/omd/byn_kamera.png"
