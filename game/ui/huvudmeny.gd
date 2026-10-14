@@ -14,7 +14,7 @@ extends Control
 
 signal valt(index: int)          ## spelaren bekräftade ett val (index i anroparens rubriklista)
 
-const VAL := ["nytt", "spara", "ladda", "alternativ", "avsluta"]   ## ui.meny.<namn> i i18n
+const VAL := ["nytt", "spara", "ladda", "alternativ", "credits", "avsluta"]   ## ui.meny.<namn> i i18n
 const TEXT_PX := 26
 const RAD_AVSTÅND := 40.0        ## px mellan raderna
 const TOPP := 352.0              ## första radens y i 720 px högt fönster (mätt mot referensen)

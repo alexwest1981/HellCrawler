@@ -71,7 +71,7 @@ func _initialize() -> void:
 	var texter := []
 	for r in main.meny.rader:
 		texter.append(r.text)
-	check(texter == ["NYTT SPEL", "SPARA SPEL", "LADDA SPEL", "ALTERNATIV", "AVSLUTA",
+	check(texter == ["NYTT SPEL", "SPARA SPEL", "LADDA SPEL", "ALTERNATIV", "TACK TILL", "AVSLUTA",
 			"BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)",
 			"VÄRLDSKARTEDITOR (tillfällig)"],
 		"valen står i referensens ordning", str(texter))

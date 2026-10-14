@@ -40,3 +40,28 @@ game/assets/ui/_bar_sten_narbild.png
 # avbruten skrivning, och just därför ska den inte kunna råka bli en committad fil.
 game/data/karta.json.bak
 *.tmp
+
+# 32rogues (Seth Boyles) ANVÄNDS i spelet och tackas i krediteringen (CREDITS.md + TACK TILL i
+# startmenyn), men paketets licens säger uttryckligen "You may not redistribute or resell it."
+# Repot är publikt, så att lägga filerna här vore vidaredistribution — användning i spelet är tillåtet,
+# vidaredistribution är det inte, och det är två olika saker. Mappen står här så att paketet inte kan
+# committas av misstag om någon lägger det lokalt under assets för att arbeta med det.
+game/assets/tredjepart/32rogues/
+
+# Ljuden utan licensfil (Alex 14/10). De två paketen kom utan license.txt/README — bara en KÄLLA.txt
+# som säger att de är hämtade från itch.io under en free-licens. Den muntliga uppgiften räcker för att
+# ANVÄNDA ljuden i spelet, men den är inget bevis för att FÅ PUBLICERA dem: repot är publikt, så att
+# lägga filerna här vore vidaredistribution utan belagd rätt. Spelet använder dem, filerna ligger kvar
+# lokalt på disk, och mapparna står här så att de inte kan committas av misstag — samma skäl och samma
+# form som 32rogues-regeln ovan (CREDITS.md förklarar varje paket).
+game/assets/tredjepart/ljud_horror/
+game/assets/tredjepart/ljud_400/
+
+# Effektpaketet unTied: `PNG/` är exakt samma animationer som `spritesheet/`, men utlagda som enskilda
+# rambilder. Paketets egen README säger att man väljer den ena ELLER den andra formen, och Godot
+# använder arken + spritesheet.txt (den bär rutan för varje ram) — 408 ark är 5,5 MB mot 45 MB
+# ramdumpar. Dubletten står därför utanför git; både arken och ramarna ligger kvar på disk.
+game/assets/tredjepart/untied_super_pixel_effects/PNG/
+
+# 1244 item-ikoner (16x16): ingen licensfil, bara KALLA.txt — anvands i spelet, publiceras inte.
+game/assets/tredjepart/ikoner_1244/

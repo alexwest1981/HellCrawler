@@ -100,6 +100,12 @@ var alt_panel: PanelContainer      ## ALTERNATIV: språk, CRT och musik
 var alt_label: Label
 var alt_rader: Array[Label] = []   ## raderna i alternativen (klickbara, som menyraderna)
 var alt_index := 0
+var credits_panel: PanelContainer  ## TACK TILL: paketen vi fått använda, ur data/credits.json
+var credits_rubrik: Label
+var credits_tack: Label
+var credits_hint: Label
+var credits_rader: Array[Label] = []   ## en rad per paket
+var _credits_data: Array = []          ## paketen, lästa en gång i _ready
 ## HUD:ens tre rutor (M40, Alex' GUI-referens): statusblocket uppe till vänster (porträtt, staplar,
 ## nivå) och loggen nere till vänster. De ersätter statusraden och kärlen:
 ## samma tre storheter (hälsa, mana, rustning), men som staplar med siffrorna på sig.
@@ -350,6 +356,10 @@ const SKAL_LÄGEN := ["hem", "butik", "vardshus", "smed", "karta", "album", "juv
 ## Raderna i ALTERNATIV-panelen: språk, CRT, musik och spår (M54). Byggs på ett ställe och fylls
 ## på ett ställe — antalet får inte stå som ett tal på två ställen.
 const ALT_RADER := 4
+## Krediteringen (TACK TILL): paketlistan läses ur data/credits.json, och bredden är den samma för varje
+## rad så att panelen får EN bredd att centrera (en rad som fick sin egen bredd gav en trappstegskant).
+const CREDITS_PATH := "res://data/credits.json"
+const CREDITS_BREDD := 470.0
 var _stage_order: Array = []    ## ban-id i svårighetsordning — det är ordningen de låses upp i
 var _unlocked_now := ""         ## bana som låstes upp när förra körningen tog slut (visas på slutskärmen)
 ## Vyn över byn och vyn över kartan. De äger sin egen markering och ritning; main.gd skickar in
@@ -3586,11 +3596,14 @@ func _kortvägg_prov() -> void:
 ## ligger i tools/meny_i18n.py).
 func _meny_rubriker() -> Array:
 	# SPARA SPEL står före LADDA SPEL: de två hör ihop, och den som just spelat letar efter spara.
+	# TACK TILL ligger före AVSLUTA: krediteringen är ett uppslag man läser, och AVSLUTA ska fortsätta
+	# vara sista raden (samma ordning som referensens meny).
 	var rader := [Tr.t("ui.meny.nytt", "NYTT SPEL"), Tr.t("ui.meny.spara", "SPARA SPEL"),
 		Tr.t("ui.meny.ladda", "LADDA SPEL"),
-		Tr.t("ui.meny.alternativ", "ALTERNATIV"), Tr.t("ui.meny.avsluta", "AVSLUTA")]
+		Tr.t("ui.meny.alternativ", "ALTERNATIV"), Tr.t("ui.meny.credits", "TACK TILL"),
+		Tr.t("ui.meny.avsluta", "AVSLUTA")]
 	# Redigerarna är utvecklarverktyg och otversatta med flit: raderna finns bara i debug-bygget, och
-	# deras filer filtreras bort ur exporten (export_presets.cfg). En köpare får fem menyrader.
+	# deras filer filtreras bort ur exporten (export_presets.cfg). En köpare får sex menyrader.
 	if OS.is_debug_build():
 		rader.append_array(["BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)",
 			"VÄRLDSKARTEDITOR (tillfällig)"])
@@ -3628,6 +3641,7 @@ func _visa_meny() -> void:
 func _dölj_meny() -> void:
 	meny.visible = false
 	alt_panel.visible = false
+	credits_panel.visible = false
 	_meny_meddelande = ""
 	# Musiken STOPPAS INTE här (M54). Förut tystnade spelet när körningen började; nu är spellistan
 	# meningen att höras i byn och i banorna, så menyn lämnar över till samma spelare.
@@ -3670,18 +3684,22 @@ func _meny_val(i: int) -> void:
 		3:
 			_visa_alternativ()
 		4:
-			get_tree().quit()
+			# TACK TILL (Alex 14/10): krediteringen till de andra utvecklarna. Panelen läggs ovanpå
+			# menyn, och ESC lämnar tillbaka hit — samma väg som ALTERNATIV tar.
+			_visa_credits()
 		5:
+			get_tree().quit()
+		6:
 			# Editorn läser sina argument ur kommandoraden och har samma standard som tools/editor.sh
 			# (stage_01, våning 1), så en tom argumentlista startar rätt våning.
 			get_tree().change_scene_to_file("res://editor/editor.tscn")
-		6:
+		7:
 			# Fiendeeditorn har samma standard som tools/fiendeeditor.sh: första fienden i listan.
 			get_tree().change_scene_to_file("res://editor/fiendeeditor.tscn")
-		7:
+		8:
 			# Trädeditorn: plattan med noderna i, och S sparar data/trad_sockets.json.
 			get_tree().change_scene_to_file("res://editor/trad_editor.tscn")
-		8:
+		9:
 			# VÄRLDSKARTEDITORN (M121). Alex: *"Kan vi skapa en world map editor istället, så jag kan
 			# flytta noderna själv?"* Kartan ÄR sin egen skärm, och editorn ett LÄGE i den (som
 			# byggläget F1 i en bana) — raden går in i kartan med läget på, så man slipper hitta E.
@@ -3853,6 +3871,69 @@ func _alt_klick(event: InputEvent, i: int) -> void:
 			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 		alt_index = i
 		_alt_byt(i)
+
+## --- TACK TILL: krediteringen (Alex 14/10) ------------------------------------------------------
+##
+## Alex: *"Jag vill ha en Credits-avdelning i spelet med, där vi öppet är tacksamma för allt som
+## kunnat användas från andra utvecklare."* Panelen är byggd som ALTERNATIV — samma stil, samma väg
+## tillbaka (ESC) — och raderna kommer ur data/credits.json, så ett nytt paket är en DATARAD och inte en
+## kodändring. Rubriken, tackraden och hänvisningen är översatta; paketens egna rader är EGENNAMEN och
+## står på engelska i alla tretton språk.
+
+## Paketen ur data/credits.json. Innehåller `namn`, `av` och `licens`, plus `kredit` där licensen kräver
+## en ORDAGRANN rad. En tom eller trasig fil ger en tom lista och en varning — aldrig en tyst tom skärm.
+func _läs_credits() -> Array:
+	var text := FileAccess.get_file_as_string(CREDITS_PATH)
+	if text.is_empty():
+		push_warning("kunde inte läsa %s — krediteringen blir tom" % CREDITS_PATH)
+		return []
+	var parsed = JSON.parse_string(text)
+	if parsed is Dictionary and parsed.get("paket") is Array:
+		return parsed["paket"]
+	push_warning("%s saknar listan \"paket\" — krediteringen blir tom" % CREDITS_PATH)
+	return []
+
+## Paketets rad: "namn — upphovsman — licens". Några licenser kräver dessutom en ORDAGRANN kreditrad;
+## den LÄGGS TILL efter raden i stället för att ersätta namn och upphovsman, så att paketet fortfarande
+## heter sitt namn på skärmen (mätt: när den ersatte namn-delen försvann "Super Pixel Effects Gigapack"
+## ur rutan, och ett paket som tackas utan att nämnas är halva krediteringen).
+func _credits_rad(p: Dictionary) -> String:
+	var vem := "%s — %s" % [str(p.get("namn", "?")), str(p.get("av", "?"))]
+	var lic := str(p.get("licens", "")).strip_edges()
+	var rad := vem if lic.is_empty() else "%s — %s" % [vem, lic]
+	var krav := str(p.get("kredit", "")).strip_edges()
+	return rad if krav.is_empty() else "%s · %s" % [rad, krav]
+
+func _rita_credits() -> void:
+	credits_rubrik.text = Tr.t("ui.credits.titel", "TACK TILL")
+	credits_tack.text = Tr.t("ui.credits.tack", "Tack till alla som gjort konst och ljud vi fått använda.")
+	credits_hint.text = Tr.t("ui.credits.hint", "Esc = tillbaka")
+	for i in credits_rader.size():
+		credits_rader[i].text = _credits_rad(_credits_data[i])
+	_placera_credits()
+
+func _visa_credits() -> void:
+	credits_panel.visible = true
+	_rita_credits()
+
+## ESC stänger krediteringen och lämnar tillbaka till menyn med samma val markerat som förut — samma
+## tangent och samma väg som ALTERNATIV tar (ingen egen sort).
+func _credits_tangent(key: int) -> void:
+	if key == KEY_ESCAPE:
+		credits_panel.visible = false
+		_visa_meny()
+
+## Panelen centreras i FÖNSTRET, som `_placera_alt`: den är ett barn till `_runt` och mäts därför i
+## fönsterpx, inte i vyns 480x270. Är panelen högre än fönstret läggs den mot överkanten (20 px) i
+## stället för att skjuta ut upptill.
+func _placera_credits() -> void:
+	if credits_panel == null or not is_instance_valid(credits_panel):
+		return
+	var s := credits_panel.get_combined_minimum_size()
+	credits_panel.size = s
+	var ruta := get_viewport().get_visible_rect().size
+	credits_panel.position = Vector2(roundf((ruta.x - s.x) * 0.5),
+		roundf(maxf(20.0, (ruta.y - s.y) * 0.5)))
 
 ## Provet för menyn (M39): fotograferar den, mäter raderna och märket, flyttar valet med tangentbordet,
 ## KLICKAR på en rad med musen (samma väg som spelaren: ett riktigt musklick in i fönstret) och
@@ -8973,6 +9054,42 @@ func _bygg_runt() -> void:
 		alt_rader.append(rad)
 	_runt.add_child(alt_panel)
 
+	# TACK TILL (Alex 14/10): krediteringen. Byggd som ALTERNATIV — samma täta stil (ingen splash lyser
+	# igenom texten), samma väg tillbaka med ESC — och radantalet läses ur data/credits.json, så en ny
+	# rad kräver ingen ändring här. Rubriken, tackraden och hänvisningen översätts i `_rita_credits`;
+	# paketens rader är egennamn och står på engelska i alla språk.
+	credits_panel = PanelContainer.new()
+	credits_panel.name = "credits"
+	var cstil := _panel_style()
+	cstil.bg_color = Color(0.04, 0.04, 0.06)
+	cstil.set_border_width_all(2)
+	credits_panel.add_theme_stylebox_override("panel", cstil)
+	credits_panel.visible = false
+	var cbox := VBoxContainer.new()
+	cbox.add_theme_constant_override("separation", 2)
+	credits_panel.add_child(cbox)
+	credits_rubrik = Label.new()
+	credits_rubrik.add_theme_font_size_override("font_size", 18)
+	cbox.add_child(credits_rubrik)
+	credits_tack = Label.new()
+	credits_tack.add_theme_font_size_override("font_size", 13)
+	credits_tack.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	credits_tack.custom_minimum_size = Vector2(CREDITS_BREDD, 0.0)
+	cbox.add_child(credits_tack)
+	_credits_data = _läs_credits()
+	for i in _credits_data.size():
+		var krad := Label.new()
+		krad.name = "kredit_%d" % i
+		krad.add_theme_font_size_override("font_size", 12)
+		krad.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		krad.custom_minimum_size = Vector2(CREDITS_BREDD, 0.0)
+		cbox.add_child(krad)
+		credits_rader.append(krad)
+	credits_hint = Label.new()
+	credits_hint.add_theme_font_size_override("font_size", 13)
+	cbox.add_child(credits_hint)
+	_runt.add_child(credits_panel)
+
 	# MUSIKEN (M54). En spellista, inte ett stycke: jukeboxen läser assets/music och spelar låtarna i
 	# tur och ordning. Menyns gamla stycke är ett spår bland de andra och spelas först, så menyn låter
 	# som förut. Musiken fortsätter in i byn och banorna — förut tystnade den när körningen började.
@@ -10316,7 +10433,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var key := (event as InputEventKey).keycode
 	# MENYN OCH ALTERNATIVEN LIGGER ÖVERST (M39) och delar inte tangentbord med spelet bakom sig: är
-	# någon av dem framme går tangenten dit och ingen annanstans.
+	# någon av dem framme går tangenten dit och ingen annanstans. Krediteringen ligger över menyn och
+	# prövas först av samma skäl.
+	if credits_panel != null and credits_panel.visible:
+		_credits_tangent(key)
+		return
 	if alt_panel != null and alt_panel.visible:
 		_alternativ_tangent(key)
 		return

@@ -575,3 +575,43 @@ HUD_RADER: dict[str, dict[str, str]] = {
         "zh-Hans": "未解锁 — 请先通关区域 %d 的一个关卡",
         "zh-Hant": "未解鎖 — 請先通關區域 %d 的一個關卡"},
 }
+
+
+## KREDITERINGEN (Alex 14/10: *"Jag vill ha en Credits-avdelning i spelet med, där vi öppet är
+## tacksamma för allt som kunnat användas från andra utvecklare."*). Egen tabell, som HUD_RADER och av
+## samma skäl: en ny rad kostar tretton rader på ETT ställe i stället för tretton ställen att leta i, och
+## ett språk som tappas fälls av `python3 tools/gen_i18n.py --check`.
+##
+## RUBRIKEN, TACKRADEN och HÄNVISNINGEN är språktext och översätts. SJÄLVA KREDITRADERNA — paketnamn,
+## upphovsmän, licenser — är EGENNAMEN: de står i game/data/credits.json på engelska och går genom alla
+## tretton språk orörda, samma sak som spelets skyltar gör. Ordagranna kreditrader som en licens kräver
+## (effektpaketets) står där, inte här, så att de inte kan översättas sönder.
+CREDITS: dict[str, dict[str, str]] = {
+    "ui.meny.credits": {
+        "sv": "TACK TILL", "en": "CREDITS", "de": "DANKSAGUNG", "fr": "CRÉDITS", "es": "CRÉDITOS",
+        "it": "CREDITI", "pl": "PODZIĘKOWANIA", "pt-BR": "CRÉDITOS", "ru": "БЛАГОДАРНОСТИ",
+        "ja": "クレジット", "ko": "크레딧", "zh-Hans": "鸣谢", "zh-Hant": "鳴謝"},
+    "ui.credits.titel": {
+        "sv": "TACK TILL", "en": "CREDITS", "de": "DANKSAGUNG", "fr": "CRÉDITS", "es": "CRÉDITOS",
+        "it": "CREDITI", "pl": "PODZIĘKOWANIA", "pt-BR": "CRÉDITOS", "ru": "БЛАГОДАРНОСТИ",
+        "ja": "クレジット", "ko": "크레딧", "zh-Hans": "鸣谢", "zh-Hant": "鳴謝"},
+    "ui.credits.tack": {
+        "sv": "Tack till alla som gjort konst och ljud som vi fått använda. Licenserna står i CREDITS.md i repot.",
+        "en": "Thanks to everyone whose art and sound we were allowed to use. The licences are listed in CREDITS.md in the repository.",
+        "de": "Danke an alle, deren Kunst und Klänge wir verwenden durften. Die Lizenzen stehen in CREDITS.md im Repository.",
+        "fr": "Merci à toutes celles et ceux dont nous avons pu utiliser l'art et le son. Les licences figurent dans CREDITS.md, dans le dépôt.",
+        "es": "Gracias a todos los que nos permitieron usar su arte y su sonido. Las licencias están en CREDITS.md, en el repositorio.",
+        "it": "Grazie a tutti coloro di cui abbiamo potuto usare arte e suoni. Le licenze sono in CREDITS.md, nel repository.",
+        "pl": "Dziękujemy wszystkim, których sztukę i dźwięki mogliśmy wykorzystać. Licencje są w CREDITS.md w repozytorium.",
+        "pt-BR": "Agradecemos a todos cuja arte e som pudemos usar. As licenças estão em CREDITS.md, no repositório.",
+        "ru": "Спасибо всем, чьё искусство и звук мы смогли использовать. Лицензии указаны в CREDITS.md в репозитории.",
+        "ja": "アートと音を使用させてくれたすべての方々に感謝します。ライセンスはリポジトリの CREDITS.md に記載しています。",
+        "ko": "아트와 사운드를 사용할 수 있게 해주신 모든 분께 감사드립니다. 라이선스는 리포지터리의 CREDITS.md에 있습니다.",
+        "zh-Hans": "感谢所有让我们得以使用其美术与音效的创作者。许可证见仓库中的 CREDITS.md。",
+        "zh-Hant": "感謝所有讓我們得以使用其美術與音效的創作者。授權條款見儲存庫中的 CREDITS.md。"},
+    "ui.credits.hint": {
+        "sv": "Esc = tillbaka", "en": "Esc = back", "de": "Esc = zurück", "fr": "Échap = retour",
+        "es": "Esc = volver", "it": "Esc = indietro", "pl": "Esc = wstecz", "pt-BR": "Esc = voltar",
+        "ru": "Esc = назад", "ja": "Esc = 戻る", "ko": "Esc = 뒤로",
+        "zh-Hans": "Esc = 返回", "zh-Hant": "Esc = 返回"},
+}

@@ -1820,7 +1820,7 @@ TREE_FMT: dict[str, dict[str, str]] = {
 # varje språk, som svenskan och engelskan gör. Tabellen ligger i en egen fil (en nyckel per språk och
 # nyckel) i stället för inbäddad här, och nycklarna skrivs alltid — det är samma nyckeluppsättning i
 # alla 13 filer som provet i tests/test_i18n.gd mäter.
-from meny_i18n import HUD_RADER, MENY   # menyns och HUD:ens texter (M39/M40): se tools/meny_i18n.py
+from meny_i18n import CREDITS, HUD_RADER, MENY   # menyns, HUD:ens och krediteringens texter: se tools/meny_i18n.py
 
 CONTENT_FILE = Path(__file__).resolve().parent / "i18n_content.json"
 CONTENT: dict[str, dict[str, str]] = json.loads(CONTENT_FILE.read_text(encoding="utf-8"))
@@ -2126,6 +2126,11 @@ def build(code: str) -> dict:
     ut.update(MENY.get(code, {}))
     # HUD:ens rader (M40): samma sorts text, men skriven nyckel för nyckel (se tools/meny_i18n.py).
     for nyckel, per_språk in HUD_RADER.items():
+        if code in per_språk:
+            ut[nyckel] = per_språk[code]
+    # Krediteringens rubrik, tackrad och hänvisning: samma sorts text som menyns och HUD:ens, så den
+    # läggs i samma tabell. Tr.is_complete kräver ett eget värde för var och en på varje språk.
+    for nyckel, per_språk in CREDITS.items():
         if code in per_språk:
             ut[nyckel] = per_språk[code]
     data = data_keys()

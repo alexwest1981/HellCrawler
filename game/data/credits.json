@@ -1,0 +1,24 @@
+{
+  "_läs_den_här": "Krediteringen bakas inte in i koden: ett nytt paket är en rad här. Rutan visar 'namn — av — licens', och `kredit` läggs TILL efter den raden när en licens kräver en ORDAGRANN kreditrad — den ersätter aldrig namn och upphovsman, för ett paket som tackas utan att nämnas är halva krediteringen. `namn`, `av` och `licens` är EGENNAMEN och översätts inte: de står på engelska i alla tretton språk, precis som spelets skyltar. Ordningen här är ordningen på skärmen. Licensfilerna och de citerade raderna står i CREDITS.md i repots rot.",
+  "paket": [
+    {"namn": "Medieval Village MegaKit", "av": "Quaternius", "licens": "CC0 1.0 (public domain)"},
+    {"namn": "Fantasy Props MegaKit", "av": "Quaternius", "licens": "CC0 1.0 (public domain)"},
+    {"namn": "KayKit Dungeon Pack", "av": "Kay Lousberg", "licens": "CC0 1.0 (public domain)"},
+    {"namn": "KayKit RPG Tools Bits", "av": "Kay Lousberg", "licens": "CC0 1.0 (public domain)"},
+    {"namn": "KayKit Fantasy Weapons Bits", "av": "Kay Lousberg", "licens": "CC0 1.0 (public domain)"},
+    {"namn": "SBS Tiny Texture Pack 1", "av": "Screaming Brain Studios", "licens": "CC0 1.0 (public domain)"},
+    {"namn": "SBS Tiny Texture Pack 2", "av": "Screaming Brain Studios", "licens": "CC0 1.0 (public domain)"},
+    {"namn": "SBS Horror Texture Pack", "av": "Screaming Brain Studios", "licens": "CC0 1.0 (public domain)"},
+    {"namn": "Super Pixel Effects Gigapack", "av": "Will Tice / unTied Games",
+      "kredit": "Pixel Art Assets - Will Tice / unTied Games",
+      "licens": "attribution required"},
+    {"namn": "32rogues", "av": "Seth Boyles",
+      "licens": "used in the game (files not distributed)"},
+    {"namn": "400 Sounds Pack", "av": "unknown artist",
+      "licens": "free licence (itch.io), no licence file"},
+    {"namn": "Horror SFX Free", "av": "unknown artist",
+      "licens": "free licence (itch.io), no licence file"},
+    {"namn": "Item icons (1244, 16x16)", "av": "unknown artist",
+      "licens": "free licence (itch.io), no licence file"}
+  ]
+}
