@@ -185,10 +185,18 @@ func _initialize() -> void:
 			if a.size == Vector3.ZERO:
 				utan_hus.append("%s (%s)" % [str(VillageView.PLATSER[i]["id"]), pre])
 				continue
-			var p0 := bmod.kamera.unproject_position(a.position)
-			var p1 := bmod.kamera.unproject_position(a.position + a.size)
-			var r3 := Rect2(Vector2(minf(p0.x, p1.x), minf(p0.y, p1.y)),
-				Vector2(absf(p1.x - p0.x), absf(p1.y - p0.y)))
+			# RUTAN KLIPPS MOT VYN, precis som vyns egen klickruta (`byggnad_rect` klipper mot
+			# vyns ruta): med den tippade kameran står husets FOT under vyns nederkant i en
+			# 480x270-vy, och en ruta där bara överdelen syns är kortare än modellens egen ruta.
+			# Jämförde provet sin OKLIPPTA ruta med vyns klippta mätte det bara kanten (MÄTT:
+			# 4,3 px för trädet, 9,1 px för porten) — rutan själv låg rätt hela tiden.
+			var mn := Vector2(INF, INF)
+			var mx := Vector2(-INF, -INF)
+			for k in 8:
+				var pk := bmod.kamera.unproject_position(a.get_endpoint(k))
+				mn = Vector2(minf(mn.x, pk.x), minf(mn.y, pk.y))
+				mx = Vector2(maxf(mx.x, pk.x), maxf(mx.y, pk.y))
+			var r3 := Rect2(mn, mx - mn).intersection(Rect2(Vector2.ZERO, VY))
 			var rv := by.byggnad_rect(i)
 			var avvik: float = rv.get_center().distance_to(r3.get_center())
 			if avvik > 1.0:
@@ -212,7 +220,13 @@ func _initialize() -> void:
 	by.pan_klart()
 	var r0 := by.byggnad_rect(0)
 	var högt := Vector2(r0.get_center().x, r0.position.y + 6.0)
-	var punkt := by.plats_px(0)
+	# "Platsens punkt på gatan" är den punkt koden SJÄLV ställer platsen på i 3D-vyn —
+	# `gångpunkt`: husets projicerade mitt i sidled, på modellens gatulinje `gata_y` (samma väg som
+	# klickrutan och gångaren). Den gamla `plats_px` är 2D-scenens ankare (bildens procent minus
+	# panoreringen, marklinjen på 78 % av vyns höjd): panoreringen flyttar inget i 3D-byn, och MÄTT
+	# låg den 14 px fel i sidled och 90 px fel i höjd mot husets egen fot — provet mätte alltså
+	# avståndet till ett ankare som inte längre finns i vyn, inte till huset.
+	var punkt := by.gångpunkt(0)
 	var avstånd := högt.distance_to(punkt)
 	mål.clear()
 	_klick(by, högt)

@@ -272,6 +272,11 @@ func byscen() -> Texture2D:
 ## BYGG 3D-BYN. Byggs bara när vyns ruta har ändrats — samma regel som 2D-scenen: 1919 meshar och
 ## en partikelemitter ska inte byggas om i varje bildruta (`visa` anropas varje gång skalet ritar).
 ##
+## SCENEN ÄR EN FIL (M127): kameran, ljusen, miljön och röken står i `res://scenes/by.tscn` (se
+## ui/by_3d.gd). Den här raden instansierar den — samma scen Alex öppnar i editorn — i stället för att
+## bygga nodträdet i kod. SubViewporten är kvar som en TUNN VÄGG runt scenen: 3D:n ritas till en textur
+## som vyn ritar i sin egen upplösning, och `own_world_3d` håller byns himmel borta från kryptan.
+##
 ## RITAS BARA NÄR VYN SYNS (`UPDATE_WHEN_VISIBLE`): byn ligger kvar i trädet under en körning, och en
 ## SubViewport i UPDATE_ALWAYS hade ritat 1919 meshar per bildruta i fängelsehålan också — samma
 ## kostnad som `_process`-spärren i den här filen finns för att undvika.
@@ -281,21 +286,23 @@ func _bygg_by3d(vy: Vector2) -> void:
 		if _by3d != null and is_instance_valid(_by3d):
 			_by3d.sätt_vy(vy)        # samma ruta: projektionen ska räkna i vyns px varje gång
 		return
-	if not ResourceLoader.exists(By3D.GLB):
+	if not ResourceLoader.exists(By3D.SCEN) or not ResourceLoader.exists(By3D.GLB):
 		return
 	if _by3d_vp != null and is_instance_valid(_by3d_vp):
 		_by3d_vp.queue_free()
 	_by3d_vp = SubViewport.new()
 	_by3d_vp.size = Vector2i(int(vy.x), int(vy.y))
-	# EGEN VÄRLD. By3D bär sitt eget WorldEnvironment (himmelsblå bakgrund, omgivningsljus), och en
+	# EGEN VÄRLD. Scenen bär sitt eget WorldEnvironment (skymningshimmel, omgivningsljus), och en
 	# WorldEnvironment lägger sig i den värld den står i: delade vyn värld med spelvyn hade byns
-	# himmel och glöd lagt sig över kryptan.
+	# himmel och ljus lagt sig över kryptan.
 	_by3d_vp.own_world_3d = true
 	_by3d_vp.transparent_bg = false
 	_by3d_vp.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 	_by3d_vp.msaa_2d = Viewport.MSAA_DISABLED
 	add_child(_by3d_vp)
-	_by3d = By3D.new()
+	_by3d = load(By3D.SCEN).instantiate() as By3D
+	if _by3d == null:
+		return
 	_by3d_vp.add_child(_by3d)
 	_by3d.sätt_vy(vy)            # husens rutor räknas i SAMMA px som vyn ritar (M126)
 

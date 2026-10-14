@@ -187,13 +187,40 @@ def skriv_mappning(ut) -> None:
         rader.append("| %s | %d | %.2f, %.2f, %.2f |" % (n, d["objects"], c[0], c[1], c[2]))
 
     bg = mapp["background"]
-    rader += ["", "### Bakgrunden (namn med `bg`) — tak, inte sten", "",
-              "`BG_House_*` är små hus i bakgrunden; taken (`*_TileL`/`*_TileR`) och de krenelerade "
-              "murarna får takplatta i stället för sten.", "",
+    rader += ["", "### Bakgrunden (namn med `bg`) — bara det TAKFORMADE får en takplatta", "",
+              "`BG_House_*` är små hus i bakgrunden och deras tak (`*_TileL`/`*_TileR`) kommer ur "
+              "materialet, som alla andra tak. För bakgrundsobjekt med STENmaterial gäller namnet: "
+              "ett takformat namn (tile/roof/gable/pyramid/spire) får en takplatta efter sin familj, "
+              "och en MUR eller ett TORN behåller sin sten — den förra raden gav takplatta åt alla "
+              "39, och då låg teglet på kreneleringen (34) och borgmuren (1) samt skiffern på "
+              "tornkroppen (4). MÄTT i den exporterade filen: `BG_Wall_Crenel` 34 och "
+              "`BG_Castle_Wall` 1 gick från `PX_Terracotta Roof` till `PX_Stone`, `BG_Tower` 2 och "
+              "`BG_Tower_Rim` 2 från `PX_Slate Roof` till `PX_Stone`.", "",
               "| Bakgrundsobjekt | Antal |", "|---|---:|",
               "| på en takplatta (`roof_terracotta` / `roof_slate`) | %d |" % bg["tak"],
-              "| kvar på stenplattan | %d |" % bg["sten"],
+              "| på stenplattan (murar och torn) | %d |" % bg["sten"],
+              "| varav MUR/TORN på en takplatta (ska vara 0) | %d |" % bg.get("mur_pa_tak", 0),
               "| totalt | %d |" % bg["antal"]]
+
+    # GRANSKNINGEN AV BÅDA RIKTNINGARNA. Räknaren tak_pa_mur skrevs efter att felet gick åt båda
+    # håll (se kommentaren vid MATERIAL_TO_PLATE), och tabellen nedan är räkningens underlag.
+    takmur = mapp.get("roof_material_on_wall_plate", [])
+    rader += ["", "### Granskningen av hela mappningen (båda riktningarna)", "",
+              "Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av "
+              "`tools/byn_form.py`:", "",
+              "* **En takplatta på en mur.** Namntabellen visar `wall` 35, `crenel` 34, `castle` 1, "
+              "`tower` 26 och `merlon` 37 — alla på `PX_Stone`, noll på en takplatta. Skillnaden mot "
+              "den COMMITTADE filen är exakt de 39 objekt Alex såg: 35 `PX_Terracotta Roof` → "
+              "`PX_Stone` (34 kreneleringar på `BG_Wall_Crenel` + `BG_Castle_Wall`) och 4 "
+              "`PX_Slate Roof` → `PX_Stone` (`BG_Tower_0/1`, `BG_Tower_Rim_0/1`).",
+              "* **En murplatta på ett tak** (baklänges): räknaren `tak_pa_mur` i "
+              "`tools/apply_pixel_textures.py` mäter objekt med ett TAKMATERIAL som inte hamnade på "
+              "en takplatta. Senaste körningen: %d. Väverskans tegelliknande tak är inte det felet "
+              "— MÄTT: de 42 objekten (`Weaver_TileL_*` / `Weaver_TileR_*`) bär trämaterialen "
+              "`Wood_*` och ska ha träplattan." % len(takmur),
+              "* Vasstaket står numera i `MATERIAL_TO_PLATE` (`Roof_Thatch` → `Terracotta Roof`, "
+              "%d objekt), så valet hänger inte längre på att objektnamnet råkar innehålla \"tile\"." %
+              mapp.get("objects_per_material", {}).get("Roof_Thatch", 42)]
 
     rader += ["", "### Vad klassningen blev i scenen (materialet i den exporterade filen)", "",
               "| Material | Plattfil | Objekt | Ytor | Area m² |", "|---|---|---:|---:|---:|"]

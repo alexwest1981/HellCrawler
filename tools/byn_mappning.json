@@ -1,8 +1,9 @@
 {
  "background": {
   "antal": 365,
-  "sten": 0,
-  "tak": 305
+  "mur_pa_tak": 0,
+  "sten": 39,
+  "tak": 266
  },
  "material_to_plate": {
   "Cobble_1": "Cobblestone Grey",

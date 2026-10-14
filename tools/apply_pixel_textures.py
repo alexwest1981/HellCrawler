@@ -138,6 +138,11 @@ MATERIAL_TO_PLATE = {
     "Roof_Purple_2": "Slate Roof",
     "Roof_Red_1": "Terracotta Roof",
     "Roof_Red_2": "Terracotta Roof",
+    ## VASSTAKET. Alex' paket har ingen vassplatta (roof_thatch.png finns inte i tex/), så materialet
+    ## stod inte i tabellen och 42 objekt föll vidare till namnreglerna, som gav samma platta
+    ## (MÄTT i tools/byn_mappning.json: Roof_Thatch -> Terracotta Roof, 42 objekt). Raden gör valet
+    ## uttalat i stället för beroende av att objektnamnet råkar innehålla "tile".
+    "Roof_Thatch": "Terracotta Roof",
     # mark — atlasen, för de ytor som var monotona med en enda platta (kullerstenen låg på SAMMA
     # platta för alla 295 objekten och gräset på en enda för 30)
     "Cobble_1": "Cobblestone Grey",
@@ -239,16 +244,22 @@ def är_rök(obj):
     n = obj.name.lower()
     return any(k in n for k in ROK_ORD)
 
-def bakgrundstak(obj):
-    """Takplattan för ett BAKGRUNDSOBJEKT som annars hamnar på sten.
+def bakgrundstak(obj, platta):
+    """Plattan för ett BAKGRUNDSOBJEKT vars material är sten.
 
     Alex: "de pyramidliknande varianterna borde ha tak-textur ... de ska ha tak, alltså
-    roof_terracotta eller roof_slate efter sin originalmaterialfamilj — inte stone." De 39
-    bakgrundsobjekten med stenmaterial är torn och krenelerade murar (BG_Tower, BG_Tower_Rim,
-    BG_Wall_Crenel, BG_Castle_Wall) och har ingen takegen familj — de följer därför NAMNET: torn och
-    skifferpurpur blir skiffer, resten tegel.
+    roof_terracotta eller roof_slate efter sin originalmaterialfamilj — inte stone." Det gäller
+    TAKFORMADE objekt — takpannor, sadeltak, spiror.
+
+    FÖRRA RADEN GAV TAKPLATTA ÅT ALLA bakgrundsobjekt med stenmaterial, och då hamnade teglet på
+    MURAR: MÄTT i byn.glb, 39 bakgrundsobjekt på en takplatta varav 35 är krenelering/borgmur
+    (BG_Wall_Crenel 34, BG_Castle_Wall 1) och 4 är torn (BG_Tower 2, BG_Tower_Rim 2 — en tornkropp
+    är ingen takyta). Alex: "muren bakom till höger är fel texturer på". Namnet avgör därför bara
+    för de takformade; muren och tornet behåller sin EGEN stenplatta (`platta`, ur materialet).
     """
     n = obj.name.lower()
+    if not any(k in n for k in ("tile", "roof", "gable", "pyramid", "spire")):
+        return platta
     if any(k in n for k in ("slate", "purple", "tower")):
         return "Slate Roof"
     return "Terracotta Roof"
@@ -262,9 +273,9 @@ def classify_object(obj):
     namn = första_materialet(obj)
     if namn in MATERIAL_TO_PLATE:
         platta = MATERIAL_TO_PLATE[namn]
-        # BAKGRUNDEN: ett bakgrundsobjekt får aldrig stenplattan (se bakgrundstak).
+        # BAKGRUNDEN: ett bakgrundsobjekt får takplatta bara om det är TAKFORMAT (se bakgrundstak).
         if platta == "Stone" and "bg" in obj.name.lower():
-            return bakgrundstak(obj), "material"
+            return bakgrundstak(obj, platta), "material"
         return platta, "material"
     return namnregler(obj), "namn"
 
@@ -354,7 +365,11 @@ def main():
     omappade = {}          # ursprungligt material -> [fallbackplatta, antal objekt]
     rök = []               # moln- och rökobjekt: textureras inte, hoppas över i exporten
     rök_hoppade = {}
-    bg = {"tak": 0, "sten": 0, "antal": 0}
+    bg = {"tak": 0, "sten": 0, "antal": 0, "mur_pa_tak": 0}
+    MUR_ORD = ("wall", "crenel", "castle", "tower", "merlon")
+    ## BAKLÄNGES: ett TAKMATERIAL som inte fick en takplatta. Det var den här vägen felet gick
+    ## (Väverskans vasstak -> träplatta), och den hade ingen räknare.
+    tak_pa_mur = []
     for i, obj in enumerate(meshes, 1):
         try:
             # LÄSES FÖRE assign_material: den tömmer materiallistan, och då finns inget kvar att
@@ -372,12 +387,19 @@ def main():
             if källa == "namn":
                 rad = omappade.setdefault(ursprung, [category, 0])
                 rad[1] += 1
+            if ursprung and ursprung.startswith("Roof_") and category not in ("Terracotta Roof", "Slate Roof"):
+                tak_pa_mur.append((obj.name, ursprung, category))
             if "bg" in obj.name.lower():
                 bg["antal"] += 1
                 if category == "Stone":
                     bg["sten"] += 1
                 elif category in ("Terracotta Roof", "Slate Roof"):
                     bg["tak"] += 1
+                    # EN MUR SKA INTE HA EN TAKPLATTA. Räknaren är grinden som saknades: felet
+                    # (BG_Wall_Crenel/BG_Castle_Wall på tegel) hade fallit här i stället för att
+                    # upptäckas på en bild.
+                    if any(k in obj.name.lower() for k in MUR_ORD):
+                        bg["mur_pa_tak"] += 1
             if i % 25 == 0:
                 print(f"Pixel texturing: {i}/{len(meshes)} objects...")
         except Exception as e:
@@ -434,10 +456,18 @@ def main():
             rök_mitt = [round(c.x, 3), round(c.z, 3), round(-c.y, 3)]
 
     print("\n=== BACKGROUND (name contains 'bg') ===")
-    print("objects %d, on a roof plate %d, on the stone plate %d" %
-          (bg["antal"], bg["tak"], bg["sten"]))
-    if bg["sten"]:
-        print("FEL: %d background objects still on a stone plate" % bg["sten"])
+    print("objects %d, on a roof plate %d, on the stone plate %d, WALL/TOWER on a roof plate %d" %
+          (bg["antal"], bg["tak"], bg["sten"], bg["mur_pa_tak"]))
+    if bg["mur_pa_tak"]:
+        print("FEL: %d background WALL/TOWER objects sit on a roof plate (a roof tile on a wall)" %
+              bg["mur_pa_tak"])
+    print("\n=== ROOF MATERIAL ON A WALL PLATE (the other direction) ===")
+    print("roof-material objects NOT on a roof plate: %d" % len(tak_pa_mur))
+    for namn_, ursprung_, kategori_ in tak_pa_mur[:20]:
+        print("   %-30s %-14s -> %s" % (namn_, ursprung_, kategori_))
+    if tak_pa_mur:
+        print("FEL: %d objects with a ROOF material sit on a wall plate (a wall plate on a roof)" %
+              len(tak_pa_mur))
 
     with open(RAPPORT, "w") as f:
         json.dump({
@@ -454,6 +484,7 @@ def main():
                                for n, d in rök_kluster.items()},
             "smoke_center_gltf": rök_mitt,
             "background": bg,
+            "roof_material_on_wall_plate": [t[0] for t in tak_pa_mur],
         }, f, indent=1, sort_keys=True)
     print("wrote %s" % RAPPORT)
     print("Save the .blend, then export to glTF (.glb) for Godot.")

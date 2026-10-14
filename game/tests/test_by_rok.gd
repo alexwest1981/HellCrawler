@@ -22,16 +22,42 @@
 ## räknar pixlarna som skiljer. Det är antalet rökpixlar i bilden. Headless finns ingen renderare, så
 ## där hoppas just det provet över (en rad utan ok/FEL, alltså inte räknad i någon summa):
 ##
-##   tools/prov.sh -- --script res://tests/test_by_rok.gd       # med Xvfb, skriver PNG:n
-##   godot --headless --script res://tests/test_by_rok.gd       # sviten
+##   tools/ett_prov.sh tests/test_by_rok.gd                                   # sviten (huvudlös)
+##   DISPLAY=:99 godot --audio-driver Dummy --path . --script res://tests/test_by_rok.gd   # med bild
+##
+## RÖKEN BOR I SCENEN (M127). Emittern är en GPUParticles3D-NOD i `res://scenes/by.tscn`, inte ett
+## nodträd byggt i kod (Alex: *"Hade du gjort detta som en scen, så kunde jag editera själv"*). Provet
+## läser därför fröet ur SCENFILEN — en konstant i `ui/by_3d.gd` finns inte längre, och ett prov som
+## letade efter den kraschade på en parse-fel i stället för att mäta något.
 extends SceneTree
 
 var fails := 0
 var checks := 0
 
-const RÖK_PLATS := Vector3(-10.65, 7.03, -1.85)
+## Rökens mitt är By3D.RÖK_MITT: modellens egen koordinat, och provet jämför NODEN i scenen med den.
 const PNG := "/home/alex/.hermes/cache/scratch/omd/byn_rok.png"
 const TEST_META := "user://test_by_rok_meta.json"
+
+## RÖKENS RAD I SCENFILEN. Fröet är ingen konstant i koden längre — det står på `rök`-noden i
+## `res://scenes/by.tscn`, där Alex kan ändra det i editorn. Provet läser raden och jämför med noden
+## i trädet: samma tal på båda ställena bevisar att trädet kommer ur scenen och inte ur kod.
+func _rök_ur_scenfilen() -> Dictionary:
+	var text := FileAccess.get_file_as_string(By3D.SCEN)
+	var i := text.find("[node name=\"rök\"")
+	if i < 0:
+		return {}
+	var rest := text.substr(i)
+	var nästa := rest.find("[node ", 1)
+	if nästa >= 0:
+		rest = rest.substr(0, nästa)
+	var ut := {}
+	for rad in rest.split("\n"):
+		var r := rad.strip_edges()
+		if r.begins_with("seed ="):
+			ut["frö"] = int(r.split("=")[1].strip_edges())
+		elif r.begins_with("use_fixed_seed ="):
+			ut["fast"] = r.split("=")[1].strip_edges() == "true"
+	return ut
 
 ## Städa provets egen metafil (samma väg som de andra by-proven): annars ligger den kvar i user://
 ## och nästa provkörning läser den.
@@ -138,12 +164,21 @@ func _initialize() -> void:
 		if n is GPUParticles3D:
 			rök = n
 	check(rök != null, "en GPUParticles3D finns i by-scenen")
+	# RÖKEN ÄR EN NOD I SCENFILEN (M127), inte ett träd byggt i kod: en färsk instans av scenen ska
+	# bära emittern som sitt EGET barn, annars kan Alex inte flytta den i editorn — och det var hela
+	# hans begäran. Noden i trädet ovan kommer ur samma fil (`By3D._knyt`).
+	var rå_scen: Node = load(By3D.SCEN).instantiate()
+	var rå_rök := rå_scen.get_node_or_null("rök") as GPUParticles3D
+	check(rå_rök != null and rå_rök.get_parent() == rå_scen,
+		"röken är en GPUParticles3D-NOD i scenen (Alex kan flytta den i editorn)",
+		"%s -> %s" % [By3D.SCEN, str(rå_rök)])
+	rå_scen.free()
 	if rök == null:
 		print("=== TOTALT (rök): %d kontroller, %d fel ===" % [checks, fails])
 		quit(1)
 		return
-	var avst := rök.position.distance_to(RÖK_PLATS)
-	check(avst < 0.01, "emittern står på rökens uppmätta mitt", "%.2f m fel, %s" %
+	var avst := rök.position.distance_to(By3D.RÖK_MITT)
+	check(avst < 0.01, "emittern står på rökens uppmätta mitt (By3D.RÖK_MITT)", "%.2f m fel, %s" %
 		[avst, str(rök.position)])
 	check(rök.emitting, "emittern är TÄND")
 	check(rök.amount > 0 and rök.lifetime > 0.0, "emittersystemet är byggt",
@@ -169,9 +204,17 @@ func _initialize() -> void:
 		"axelräta fyrkanter (ingen rotation)")
 	check(vy.miljö != null and vy.miljö.environment.glow_enabled == false,
 		"ingen glöd i scenens miljö")
-	check(rök.use_fixed_seed and rök.seed == By3D.RÖK_FRÖ,
-		"partiklarna har ett FAST frö (samma rök varje körning)",
-		"frö %d" % rök.seed)
+	# FRÖET LÄSES UR SCENEN (M127). Det gamla provet jämförde med `By3D.RÖK_FRÖ` — en konstant som
+	# flyttat in i `rök`-noden i by.tscn, och raden blev en parse-fel-krasch i stället för en mätning.
+	# Kontrollen är kvar (fast frö, nollskilt, samma varje körning) men talet kommer ur scenfilen: det
+	# är den fil Alex redigerar, och noden i trädet ska bära EXAKT samma frö.
+	var fil: Dictionary = _rök_ur_scenfilen()
+	check(not fil.is_empty() and bool(fil.get("fast", false)),
+		"röken har ett FAST frö i scenen — use_fixed_seed står i scenfilen",
+		"%s: %s" % [By3D.SCEN, str(fil)])
+	check(rök.use_fixed_seed and rök.seed > 0 and rök.seed == int(fil.get("frö", -1)),
+		"och noden bär samma frö som scenen (samma rök varje körning)",
+		"noden %d, scenfilen %d" % [rök.seed, int(fil.get("frö", -1))])
 
 	# -- 4. KONSUMENTEN: spelmotorns scen bär ingen egen By3D, by-vyn bygger sin egen
 	_clean()
@@ -218,7 +261,7 @@ func _initialize() -> void:
 
 	# -- 5. BILDEN
 	if not bild:
-		print("  (bildprovet hoppas över: headless renderar inget — kör tools/prov.sh --script res://tests/test_by_rok.gd)")
+		print("  (bildprovet hoppas över: headless renderar inget — kör med DISPLAY=:99 och --path .)")
 	else:
 		# Alex: "mät gärna rökens andel av bilden med och utan fast frö." Båda mäts och skrivs ut.
 		# Pixel-exakthet MELLAN två restarts går inte att mäta här: bildrutan avgör hur långt röken

@@ -181,15 +181,32 @@ Alex' .blend rörs inte; exportskriptet kopplar loss objekten ur samlingen och l
 | Cloud_Main | 5 | 1.10, 9.38, -18.00 |
 | Cloud_R | 5 | 2.48, 9.19, -18.00 |
 
-### Bakgrunden (namn med `bg`) — tak, inte sten
+### Bakgrunden (namn med `bg`) — bara det TAKFORMADE får en takplatta
 
-`BG_House_*` är små hus i bakgrunden; taken (`*_TileL`/`*_TileR`) och de krenelerade murarna får takplatta i stället för sten.
+`BG_House_*` är små hus i bakgrunden och deras tak (`*_TileL`/`*_TileR`) kommer ur materialet, som alla andra tak. För bakgrundsobjekt med STENmaterial gäller namnet: ett takformat namn (tile/roof/gable/pyramid/spire) får en takplatta efter sin familj, och en MUR eller ett TORN behåller sin sten — den förra raden gav takplatta åt alla 39, och då låg teglet på kreneleringen (34) och borgmuren (1) samt skiffern på tornkroppen (4). MÄTT i den exporterade filen: `BG_Wall_Crenel` 34 och `BG_Castle_Wall` 1 gick från `PX_Terracotta Roof` till `PX_Stone`, `BG_Tower` 2 och `BG_Tower_Rim` 2 från `PX_Slate Roof` till `PX_Stone`.
 
 | Bakgrundsobjekt | Antal |
 |---|---:|
-| på en takplatta (`roof_terracotta` / `roof_slate`) | 305 |
-| kvar på stenplattan | 0 |
+| på en takplatta (`roof_terracotta` / `roof_slate`) | 266 |
+| på stenplattan (murar och torn) | 39 |
+| varav MUR/TORN på en takplatta (ska vara 0) | 0 |
 | totalt | 365 |
+
+### Granskningen av hela mappningen (båda riktningarna)
+
+Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av `tools/byn_form.py`:
+
+* **En takplatta på en mur.** Namntabellen visar `wall` 35, `crenel` 34, `castle` 1, `tower` 26 och
+  `merlon` 37 — alla på `PX_Stone`, noll på en takplatta. Skillnaden mot den COMMITTADE filen är
+  exakt de 39 objekt Alex såg: 35 `PX_Terracotta Roof` → `PX_Stone` (34 kreneleringar på
+  `BG_Wall_Crenel` + `BG_Castle_Wall`) och 4 `PX_Slate Roof` → `PX_Stone` (`BG_Tower_0/1`,
+  `BG_Tower_Rim_0/1`). Fixen låg i den obekräftade arbetskopian och är nu committad.
+* **En murplatta på ett tak** (baklänges): räknaren `tak_pa_mur` i `tools/apply_pixel_textures.py`
+  mäter objekt med ett TAKMATERIAL som inte hamnade på en takplatta. Senaste körningen: 0.
+  Väverskans tegelliknande tak är inte det felet — MÄTT: de 42 objekten (`Weaver_TileL_*` /
+  `Weaver_TileR_*`) bär trämaterialen `Wood_*` och ska ha träplattan.
+* Vasstaket står numera i `MATERIAL_TO_PLATE` (`Roof_Thatch` → `Terracotta Roof`, 42 objekt), så
+  valet hänger inte längre på att objektnamnet råkar innehålla "tile".
 
 ### Vad klassningen blev i scenen (materialet i den exporterade filen)
 
@@ -234,10 +251,10 @@ Alex' .blend rörs inte; exportskriptet kopplar loss objekten ur samlingen och l
 | `PX_Iron Riveted` | `metal_riveted.png` | 44 | 1532 | 11.5 |
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
 | `PX_Sand Path` | `sand_path.png` | 1 | 6 | 450.0 |
-| `PX_Slate Roof` | `roof_slate.png` | 382 | 2340 | 353.3 |
-| `PX_Stone` | `stone_wall.png` | 340 | 5378 | 737.4 |
+| `PX_Slate Roof` | `roof_slate.png` | 378 | 2268 | 147.7 |
+| `PX_Stone` | `stone_wall.png` | 379 | 5660 | 1286.6 |
 | `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
-| `PX_Terracotta Roof` | `roof_terracotta.png` | 357 | 2142 | 475.6 |
+| `PX_Terracotta Roof` | `roof_terracotta.png` | 322 | 1932 | 131.9 |
 | `PX_Tudor Plaster` | `tudor_wall.png` | 71 | 426 | 862.9 |
 | `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
 | `PX_Window Warm` | `window_four_pane.png` | 7 | 42 | 18.4 |
@@ -268,55 +285,3 @@ Alex' .blend rörs inte; exportskriptet kopplar loss objekten ur samlingen och l
 | `Wood_Oak` | `**ingen bild**` | 0 | 0 | 0.0 |
 
 Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 71 material i filen står med.
-
-## Plattornas palettavstånd
-
-Medelavståndet från varje pixel till närmaste palettfärg, delat med 441,67. Tröskeln är **0.18**; alla plattor ligger långt under den.
-
-| Platta | Fil | Palettavstånd | I bruk |
-|---|---|---:|---|
-| paketet | `cobblestone_ground.png` | 0.0444 |  |
-| paketet | `dark_stone.png` | 0.0399 |  |
-| paketet | `dirt.png` | 0.0426 |  |
-| paketet | `grass.png` | 0.0875 |  |
-| paketet | `hedge.png` | 0.0895 |  |
-| paketet | `mossy_stone.png` | 0.0412 |  |
-| paketet | `roof_slate.png` | 0.0365 |  |
-| paketet | `roof_terracotta.png` | 0.0581 |  |
-| paketet | `stone_wall.png` | 0.0385 |  |
-| paketet | `tudor_wall.png` | 0.0626 |  |
-| paketet | `wood_planks.png` | 0.0460 |  |
-| atlasen | `atlas/castle_merlons.png` | 0.0370 |  |
-| atlasen | `atlas/clay_red.png` | 0.0335 |  |
-| atlasen | `atlas/cobblestone_brown.png` | 0.0515 |  |
-| atlasen | `atlas/cobblestone_grey.png` | 0.0367 |  |
-| atlasen | `atlas/cobblestone_mossy.png` | 0.0476 |  |
-| atlasen | `atlas/dirt.png` | 0.0435 |  |
-| atlasen | `atlas/dirt_stony.png` | 0.0391 |  |
-| atlasen | `atlas/door_wood_iron.png` | 0.0302 |  |
-| atlasen | `atlas/forge_stone_glow.png` | 0.0287 |  |
-| atlasen | `atlas/grass.png` | 0.0933 |  |
-| atlasen | `atlas/ivy.png` | 0.0762 |  |
-| atlasen | `atlas/metal_riveted.png` | 0.0257 |  |
-| atlasen | `atlas/roof_slate.png` | 0.0351 |  |
-| atlasen | `atlas/roof_tiles_red.png` | 0.0467 |  |
-| atlasen | `atlas/sand_path.png` | 0.0509 |  |
-| atlasen | `atlas/stone_arch.png` | 0.0304 |  |
-| atlasen | `atlas/stone_mossy.png` | 0.0654 |  |
-| atlasen | `atlas/stone_wall_dark.png` | 0.0334 |  |
-| atlasen | `atlas/stone_wall_dark_small.png` | 0.0319 |  |
-| atlasen | `atlas/stone_wall_light.png` | 0.0386 |  |
-| atlasen | `atlas/stone_wall_light_small.png` | 0.0391 |  |
-| atlasen | `atlas/stone_wall_mossy_small.png` | 0.0517 |  |
-| atlasen | `atlas/timber_frame.png` | 0.0502 |  |
-| atlasen | `atlas/timber_frame_small.png` | 0.0509 |  |
-| atlasen | `atlas/window_arched_stone.png` | 0.0491 |  |
-| atlasen | `atlas/window_diamond_lattice.png` | 0.0524 |  |
-| atlasen | `atlas/window_four_pane.png` | 0.0507 |  |
-| atlasen | `atlas/window_narrow.png` | 0.0458 |  |
-| atlasen | `atlas/window_round_stone.png` | 0.0458 |  |
-| atlasen | `atlas/window_tall_panes.png` | 0.0516 |  |
-| atlasen | `atlas/wood_planks.png` | 0.0397 |  |
-| atlasen | `atlas/wood_planks_small.png` | 0.0381 |  |
-
-43 plattor mätta, 43 under tröskeln, 0 över: inga
