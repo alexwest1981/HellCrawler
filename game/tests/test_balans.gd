@@ -14,14 +14,19 @@
 ##   cd game && ../tools/ett_prov.sh tests/test_balans.gd -- --rattprov    # tabellen som valde ratten
 extends SceneTree
 
+## Grindarna går åt BÅDA hållen med flit:
+##   * slumpen får inte vara en STRATEGI. Alex' anmälan var att den alltid klarade sig (mätt: 38 av 60,
+##     63 %); gränsen står på var tionde körning — en lott, inte en väg. Noll är inte rätt krav: provet
+##     spelar utan meta och utan träd, och en enstaka tursammansättning avgör en körning.
+##   * den bästa policyn ska klara banorna (golv), och klara dem KLART oftare än slumpen (förhållande).
+##     Golvet fångar en VÄGG: föll båda policies lika hårt vore ändringen ingen balans.
+##   * och kartan ska gå att AGERA på: rutten (som går förbi de hårdaste rummen) ska slå att slåss med allt.
 const ANTAL := 20                     ## körningar per bana och policy, med startleken
 const ANTAL_SLUMP3 := 10              ## den hårdare tolkningen ("tre slumpkort") är dyrare per körning
 const STAGE_IDS := ["stage_01", "stage_02", "stage_03"]
-const SLUMP_GRANS := 2                ## så många klarade körningar får slumpen ha av 60 — undantag, inte regel
-## Autospelaren är en grov heuristik (ingen riktning av skadan, ingen försvarsprioritering, inga
-## Destroy-kort), alltså en GOLV för mänskligt spel — inte ett tak. Grinden finns för att fånga en
-## VÄGG: föll båda policies lika hårt vore ändringen ingen balans. Både en andel och ett förhållande
-## mot slumpen krävs, för det som var trasigt var att skicklighet inte gav något alls (1,0×).
+const SLUMP_GRANS := 6                ## så många klarade körningar får slumpen ha av 60 (var tionde)
+## Autospelaren och rutten är grova heuristiker (ingen riktning av skadan, ingen försvarsprioritering,
+## inga Destroy-kort), alltså en GOLV för mänskligt spel — inte ett tak.
 const AUTO_ANDEL := 0.20
 const AUTO_OVER_SLUMP := 3.0
 
@@ -61,8 +66,8 @@ func _initialize() -> void:
 	print("            | fiender/möte %d–%d | fiende-tier 1: HP %s"
 		% [referens.enemies_per_encounter[0], referens.enemies_per_encounter[1], _tier1(bestiary)])
 
-	print("\nbana | lek | policy | n | klarade | dog | medelvåning | förlorade strider | skada tagen")
-	var summa := {"slump": 0, "auto": 0}
+	print("\nbana | lek | policy | n | klarade | dog | medelvåning | förlorade strider | skada tagen | nivå (kort) | vunna strider")
+	var summa := {"slump": 0, "auto": 0, "rutt": 0}
 	var mojligt := ANTAL * STAGE_IDS.size()
 	if rattprov:
 		_rattprov(stages["stage_01"], bestiary, db, ids)
@@ -72,25 +77,28 @@ func _initialize() -> void:
 	for stage_id in STAGE_IDS:
 		var stage: Stages.StageDef = stages[stage_id]
 		for lek in ["startlek", "slump3"]:
-			for policy in ["slump", "auto"]:
+			for policy in ["slump", "auto", "rutt"]:
 				var n := ANTAL if lek == "startlek" else ANTAL_SLUMP3
 				var total := _serie(stage, bestiary, db, ids, lek, policy, n)
-				print("%s | %s | %s | %d | %.0f%% | %.0f%% | %.2f | %.2f | %.1f" % [
+				print("%s | %s | %s | %d | %.0f%% | %.0f%% | %.2f | %.2f | %.1f | %.1f | %.1f" % [
 					stage_id, lek, policy, n, 100.0 * total.clear / n, 100.0 * total.dead / n,
-					total.floor / n, float(total.lost) / n, total.damage / n])
-				if lek == "startlek" and policy == "slump":
-					summa["slump"] += total.clear
-				elif lek == "startlek":
-					summa["auto"] += total.clear
+					total.floor / n, float(total.lost) / n, total.damage / n,
+					total.niva / n, total.strider / n])
+				if lek == "startlek":
+					summa[policy] += total.clear
 
+	var basta: int = maxi(summa["auto"], summa["rutt"])
 	check(summa["slump"] <= SLUMP_GRANS, "slumpen klarar inte de tre banorna",
 		"klarade %d av %d (högst %d får klara)" % [summa["slump"], mojligt, SLUMP_GRANS])
-	var auto_andel := float(summa["auto"]) / mojligt
-	var over_slump := auto_andel / maxf(0.01, float(summa["slump"]) / mojligt)
-	check(auto_andel >= AUTO_ANDEL and over_slump >= AUTO_OVER_SLUMP,
-		"att spela bättre går bättre: autospelaren klarar fler än slumpen",
-		"auto %d av %d (%.0f %%, minst %.0f %%) = %.1f gånger slumpen (minst %.1f)"
-			% [summa["auto"], mojligt, auto_andel * 100.0, AUTO_ANDEL * 100.0, over_slump, AUTO_OVER_SLUMP])
+	var basta_andel := float(basta) / mojligt
+	var over_slump := basta_andel / maxf(0.01, float(summa["slump"]) / mojligt)
+	check(basta_andel >= AUTO_ANDEL and over_slump >= AUTO_OVER_SLUMP,
+		"att spela bättre går bättre: bästa policyn klarar fler än slumpen",
+		"auto %d, rutt %d av %d (bästa %.0f %%, minst %.0f %%) = %.1f gånger slumpen (minst %.1f)"
+			% [summa["auto"], summa["rutt"], mojligt, basta_andel * 100.0,
+				AUTO_ANDEL * 100.0, over_slump, AUTO_OVER_SLUMP])
+	check(summa["rutt"] >= summa["auto"], "kartan går att agera på: rutten slår att slåss med allt",
+		"rutt %d mot auto %d av %d" % [summa["rutt"], summa["auto"], mojligt])
 	if rattprov:
 		_rattprov(stages["stage_01"], bestiary, db, ids)
 	print("kontroller: %d, fel: %d" % [checks, fails])
@@ -111,7 +119,8 @@ func _tier1(bestiary: Dictionary) -> String:
 ## En serie körningar: samma frö ger samma lek, samma val och samma utfall.
 func _serie(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids: Array,
 		lek: String, policy: String, n: int) -> Dictionary:
-	var total := {"clear": 0, "dead": 0, "reaped": 0, "floor": 0.0, "lost": 0, "damage": 0.0}
+	var total := {"clear": 0, "dead": 0, "reaped": 0, "floor": 0.0, "lost": 0, "damage": 0.0,
+		"niva": 0.0, "strider": 0.0}   ## nivå = antal kort körningen tagit (ett val per nivå), strider = vunna
 	for i in n:
 		var seed_value := 810000 + i * 13 + STAGE_IDS.find(stage.id) * 10000
 		var val := RandomNumberGenerator.new()
@@ -127,13 +136,15 @@ func _serie(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids: A
 		policy_rng = RandomNumberGenerator.new()
 		policy_rng.seed = seed_value * 7919 + 53
 		policy_damage = 0.0
-		_play_nodes(run, policy == "auto")
+		_play_nodes(run, policy)
 		total.clear += int(run.outcome == "cleared" or run.outcome == "reaped")
 		total.dead += int(run.outcome == "dead")
 		total.reaped += int(run.outcome == "reaped")
 		total.floor += run.floor_index + 1
 		total.lost += run.fights_lost
 		total.damage += policy_damage
+		total.niva += run.level
+		total.strider += run.fights_won
 	return total
 
 ## Slumppolicyn: välj likformigt bland de spelbara korten, avsluta turen när inget går att spela.
@@ -176,27 +187,40 @@ func _auto_fighter(combat: Combat) -> void:
 ## rörelsen är blockerad så länge ett val väntar). Svarar mätaren inte på dem mäter den en spelare som
 ## aldrig tar ett kort — och det är en annan, mycket svagare spelare än den Alex beskriver. Policyn
 ## svarar som sin motsvarighet: slumpen drar ett likformigt val, autospelaren tar det starkaste kortet.
-func _play_nodes(run: Run, kompetent: bool) -> void:
+##
+## RUTTPOLICYN (A i docs/balans.md §8) hoppar över de HÅRDA rummen när HP:t är lågt. Kartans svårighet
+## är ingen svårighet förrän den går att agera på — i en blobber går man förbi rummet med tre varelser
+## och tar det lätta först. Utan en policy som får välja bort rum mäter provet bara att kurvan finns,
+## inte att den är värd något.
+func _play_nodes(run: Run, policy: String) -> void:
 	while not run.finished:
 		var floor_nodes: Array = run.explore.floor_ref.nodes
 		for kind in ["encounter", "chest"]:
 			for node in floor_nodes:
-				if not run.finished and node.kind == kind and not node.cleared:
-					run._resolve(node)
-					_svara_pa_kortval(run, kompetent)
+				if run.finished or node.cleared or node.kind != kind:
+					continue
+				if policy == "rutt" and kind == "encounter" and _hoppa_over(run, node):
+					continue
+				run._resolve(node)
+				_svara_pa_kortval(run, policy != "slump")
 		if run.hp < run.max_hp * 0.5:
 			for node in floor_nodes:
 				if node.kind == "torch" and not node.cleared:
 					run._resolve(node)
-					_svara_pa_kortval(run, kompetent)
+					_svara_pa_kortval(run, policy != "slump")
 		for node in floor_nodes:
 			if not run.finished and node.kind == "boss" and not node.cleared:
 				run._resolve(node)
-				_svara_pa_kortval(run, kompetent)
+				_svara_pa_kortval(run, policy != "slump")
 		for node in floor_nodes:
 			if not run.finished and node.kind == "shovel" and not node.cleared:
 				run._resolve(node)
-				_svara_pa_kortval(run, kompetent)
+				_svara_pa_kortval(run, policy != "slump")
+
+## Rutten: ett rum i de två hårdaste graderna tas bara när kroppen tål det. Tröskeln är satt efter vad
+## rummets grad betyder (se `Dungeon.rum_svarighet`): grad 3 och 4 är fulla packet.
+func _hoppa_over(run: Run, node: Dungeon.FloorNode) -> bool:
+	return run.rum_svarighet(node) >= Dungeon.RUM_SPANN + 1 and run.hp < run.max_hp * 0.7
 
 ## Svara på varje väntande kortval. Ett val som inte går att göra (uppgraderingens delar är borta)
 ## stryks av `pick_card` — därför prövar vi nästa, och bryter först när ingen har gått igenom.
@@ -244,23 +268,22 @@ func _styrka(kort) -> float:
 ## slumpmässigt och samtidigt möjligt för den som spelar". Tabellen är den som valde åtgärden.
 func _rattprov(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids: Array) -> void:
 	var rattar := {
-		"bas": {},
-		"fiende-HP x1,5": {"hp_faktor": 1.5},
-		"HP x1,5 + dpf 0,12": {"hp_faktor": 1.5, "damage_per_floor": 0.12},
-		"HP x1,5 + dpf 0,12 + mana 2": {"hp_faktor": 1.5, "damage_per_floor": 0.12, "base_mana": 2},
-		"HP x1,5 + mana 2": {"hp_faktor": 1.5, "base_mana": 2},
-		"HP x2 + dpf 0,08": {"hp_faktor": 2.0, "damage_per_floor": 0.08},
-		"HP x2 + mana 2": {"hp_faktor": 2.0, "base_mana": 2},
-		"HP x2 + dpf 0,12": {"hp_faktor": 2.0, "damage_per_floor": 0.12},
-		"HP x2 + hand 3": {"hp_faktor": 2.0, "base_hand": 3},
-		"HP x2 + dpf 0,12 + hand 3": {"hp_faktor": 2.0, "damage_per_floor": 0.12, "base_hand": 3},
+		"bas (våning 0,15/0,12 + rum, xp 1)": {},
+		"xp_per_extra=0,75": {"xp_per_extra": 0.75},
+		"xp_per_extra=0,5": {"xp_per_extra": 0.5},
+		"xp_per_extra=0,25": {"xp_per_extra": 0.25},
+		"fiender=3 (inverteringen)": {"enemies_per_encounter": [3, 3]},
+		"fiender=3, xp_per_extra=0,5": {"enemies_per_encounter": [3, 3], "xp_per_extra": 0.5},
+		"rum av (levererad press)": {"hp_per_room": 0.0, "damage_per_room": 0.0},
 	}
 	print("\nRattprov stage_01, startlek, n=%d per rad och policy" % ANTAL)
-	print("variant | slump | auto")
+	print("variant | slump | auto | nivå (kort) slump/auto")
 	for namn in rattar:
 		var rad := []
+		var niva := []
 		for policy in ["slump", "auto"]:
 			var sum := 0
+			var niva_sum := 0.0
 			for i in ANTAL:
 				var seed_value := 810000 + i
 				var best = _skalad_bestiary(bestiary, rattar[namn].get("hp_faktor", 1.0),
@@ -273,10 +296,12 @@ func _rattprov(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids
 				policy_rng = RandomNumberGenerator.new()
 				policy_rng.seed = seed_value * 7919 + 53
 				policy_damage = 0.0
-				_play_nodes(run, policy == "auto")
+				_play_nodes(run, policy)
 				sum += int(run.outcome == "cleared" or run.outcome == "reaped")
+				niva_sum += run.level
 			rad.append("%d/%d (%.0f%%)" % [sum, ANTAL, 100.0 * sum / ANTAL])
-		print("%s | %s | %s" % [namn, rad[0], rad[1]])
+			niva.append("%.1f" % (niva_sum / ANTAL))
+		print("%s | %s | %s | %s / %s" % [namn, rad[0], rad[1], niva[0], niva[1]])
 
 ## En kopia av bestiariet med fiende-HP och/eller fiende-skada skalad. Kopiorna byggs per variant, så
 ## en skalad fiende inte läcker in i nästa rad (samma EnemyDef-objekt delas annars av alla körningar).

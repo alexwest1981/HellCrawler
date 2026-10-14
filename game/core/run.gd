@@ -15,12 +15,33 @@ const MAX_TURNS_PER_FIGHT := 60
 
 # --- rattar (kalibreras mot referensens dumpar senare) --------------------------------------
 var hp_per_difficulty := 0.10      ## fiende-HP: +10 % per svårighetsgrad
-var hp_per_floor := 0.15           ## ...och +15 % per våning nedåt
+## VÅNING OCH RUM DELAR PÅ DJUPET (M118): rummets egen svårighetsgrad (nedan) läggs OVANPÅ våningens
+## trappa, så djupet varierar RUM FÖR RUM i stället för att vara en platt trappa. Mätt (stage_01, samma
+## frön, 20 körningar per policy): rummen kostar autospelaren 5 procentenheter (40 % → 35 %) och rör inte
+## slumppolicyn (5 % båda). Bossen står utanför kurvan, se `rum_svarighet`.
+var hp_per_floor := 0.14
 var damage_per_difficulty := 0.06
 ## Fiende-SKADAN hade ingen våningsterm: en fiende på våning 5 slog lika hårt som en på våning 1,
 ## medan dess HP växte 60 %. Att djupet bara gjorde fienderna segare (och aldrig farligare) var en
 ## del av att en körning gick att spela utan att titta på skärmen. Ratt, inte lag: 0 stänger av den.
-var damage_per_floor := 0.12
+var damage_per_floor := 0.11
+## RUMMETS EGEN SVÅRIGHETSGRAD (M118, ratt A i docs/balans.md §8): referensen lägger svårigheten på
+## KARTAN — ett rum är hårdare än ett annat, inte bara våning 3 hårdare än våning 1. Rummets grad
+## (1..RUM_SPANN+2, se `Dungeon.rum_svarighet`) slår på både HP och skada. 0 stänger av ratten.
+##
+## RATTEN ÄR LITEN MED FLIT: rummets synliga svårighet är PACKET (1-3 fiender, se `enemy_count_for`),
+## och rumstermen lägger bara en skugga över den. Första försöket (0,12/0,08 med fem grader) staplades
+## på våningstermen och gjorde hela stage_01 till en vägg: mätt slump 0/20, autospelaren 0/20.
+var hp_per_room := 0.06
+var damage_per_room := 0.04
+## XP FÖR FIENDE 2, 3 … I SAMMA MÖTE (ratt C, M118). 1,0 = som förut: mötet ger XP per fiende.
+##
+## MÄTT: inversionen ("fler fiender = lättare", `fiender=3` gav slumppolicyn +20 procentenheter) är BORTA
+## — men det var RUMSPACKET som tog bort den, inte den här ratten. Med 0,25 försvann den också, men då
+## försvann GRADIENTEN med: slumppolicyn gick från 20 % till 10 % och autospelaren från 40 % till 15 %
+## (stage_01, samma frön). Kortens snöboll är den mekanism som förstärker skicklighet mest — den ska inte
+## strypas förrän ratt B (kedjan som belöning) ger spelaren något annat att vara bra på.
+var xp_per_extra := 1.0
 var recovery := 3.0                ## helas så här mycket efter varje strid
 var enemies_per_encounter := [1, 3]
 ## LEDET (M100): hur en strid ställer upp sig. EN källa för striden (raderna i `begin_fight`) och vyn
@@ -418,10 +439,27 @@ func leave_node(node: Dungeon.FloorNode, combat: Combat) -> void:
 
 ## Antal fiender i en nod. EN källa för vyn och för striden: vyn ritar samma antal figurer som
 ## begin_fight sedan spawnar, annars visar rummet tre varelser där det blir två.
+##
+## PACKET FÖLJER RUMMET (M118): rummets grad ÄR antalet fiender (klämt mot banans spann) — ett lätt rum
+## har `enemies_per_encounter[0]`, ett hårdaste har `[1]`. Det är den synliga delen av kartans
+## svårighetskurva: spelaren ser att rummet är farligt innan hen går in, utan en enda ny bild.
 func enemy_count_for(node: Dungeon.FloorNode, is_boss: bool = false) -> int:
 	if is_boss:
 		return 1
-	return enemies_per_encounter[0] + (seed_value + node.pos.x + node.pos.y) % (enemies_per_encounter[1] - enemies_per_encounter[0] + 1)
+	return clampi(rum_svarighet(node, false), enemies_per_encounter[0], enemies_per_encounter[1])
+
+## Rummets svårighetsgrad, härledd ur kartan (se `Dungeon.rum_svarighet`).
+##
+## BOSSEN STÅR UTANFÖR KURVAN (M118): den har sin egen svårighet i sitt HP (10 gånger en vanlig fiende)
+## och är våningens mål, inte ännu ett rum. Först fick den våningens HÅRDASTE grad — +18 % HP och +12 %
+## skada på varje bana — och mätt kostade det autospelaren 20 procentenheter (stage_01: 40 % → 20 %) utan
+## att slumpen rörde sig. Rumstermen är för de vanliga rummen.
+func rum_svarighet(node: Dungeon.FloorNode, is_boss: bool = false) -> int:
+	if is_boss:
+		return 1
+	if explore == null:
+		return 1
+	return Dungeon.rum_svarighet(explore.floor_ref, node.pos, seed_value)
 
 ## Bygg striden för en nod — men spela den inte. UI och tester äger speltiden.
 func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
@@ -429,9 +467,11 @@ func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
 	if def == null:
 		events.append({"type": "missing_enemy", "id": node.enemy_id})
 		return null
-	var scale_hp := (1.0 + hp_per_difficulty * (stage.difficulty - 1) + hp_per_floor * floor_index) \
-		* curse_scale()
-	var scale_dmg := (1.0 + damage_per_difficulty * (stage.difficulty - 1) + damage_per_floor * floor_index)
+	var rum := rum_svarighet(node, is_boss)
+	var scale_hp := (1.0 + hp_per_difficulty * (stage.difficulty - 1) + hp_per_floor * floor_index
+		+ hp_per_room * (rum - 1)) * curse_scale()
+	var scale_dmg := (1.0 + damage_per_difficulty * (stage.difficulty - 1) + damage_per_floor * floor_index
+		+ damage_per_room * (rum - 1))
 	var count := enemy_count_for(node, is_boss)
 	var foes := []
 	for i in count:
@@ -498,7 +538,10 @@ func finish_fight(node: Dungeon.FloorNode, combat: Combat) -> void:
 		# rikare på xp, trots att filerna påstod motsatsen.
 		var antal := maxi(1, combat.enemies.size())
 		kills += antal
-		xp += int(round(float(def.xp * antal) * (1.0 + stage.xp_bonus)))
+		# MÖTET ÄR BELÖNINGENS ENHET (M118): fiende 2 och 3 i samma möte ger `xp_per_extra` av den
+		# förstas XP, inte tre gånger så mycket. Med 1,0 blev fler fiender LÄTTARE — tre gånger XP:et
+		# är tre gånger så många kort (mätt: `fiender=3` gav slumppolicyn +20 procentenheter).
+		xp += int(round(float(def.xp) * (1.0 + float(antal - 1) * xp_per_extra) * (1.0 + stage.xp_bonus)))
 		# Märg i såret (recovery) läker per STRID; benskäraren (heal_kill) läker per DRÄPT fiende.
 		hp = min(max_hp, hp + recovery + float(stat_int("heal_kill") * antal))
 		# BOSSEN FÖRST (M45): *"När bossen dör skall ett minigame ge en 3 kort att välja mellan"* —

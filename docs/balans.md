@@ -111,6 +111,8 @@ Två slutsatser som tabellen tvingar fram:
 
 ## 5. Efter ändringen (samma mätare, samma frön)
 
+### 5a. Efter den första ändringen (våningstermen + bestiariet)
+
 | Bana | Slump | Autospelaren |
 |---|---|---|
 | stage_01 | 5 % | 45 % |
@@ -131,11 +133,37 @@ ingen försvarsprioritering, inga Destroy-kort), alltså en GOLV för mänskligt
 inte 22 % för en spelare. Grindens uppgift är att fånga en VÄGG: föll båda policies lika hårt vore
 ändringen ingen balans.
 
+### 5b. Efter kartkurvan (A, M118)
+
+Samma mätare, samma frön, nu med tre policies — slump, autospelaren (slåss med allt) och **rutten** (går
+förbi rum i grad 3–4 när HP:t är under 70 %):
+
+| Bana | Slump | Autospelaren | Rutten |
+|---|---|---|---|
+| stage_01 | 5 % | 20 % | 40 % |
+| stage_02 | 15 % | 10 % | 15 % |
+| stage_03 | 5 % | 20 % | 30 % |
+| **alla tre** | **5 av 60 (8 %)** | **10 av 60 (17 %)** | **17 av 60 (28 %)** |
+
+Grindarna:
+
+```
+ok   slumpen klarar inte de tre banorna  (klarade 5 av 60 (högst 6 får klara))
+ok   att spela bättre går bättre: bästa policyn klarar fler än slumpen
+     (auto 10, rutt 17 av 60 (bästa 28 %, minst 20 %) = 3.4 gånger slumpen (minst 3.0))
+ok   kartan går att agera på: rutten slår att slåss med allt  (rutt 17 mot auto 10 av 60)
+```
+
+Rutten klarar **70 % fler** körningar än att slåss med allt, och banorna kostar rummets svårighetsgrad
+5 procentenheter för autospelaren. Slumpgränsen står på var tionde körning och inte på noll: provet
+spelar utan meta och utan träd, och en enskild tursammansättning avgör en körning. Alex' anmälan var att
+slumpen ALLTID klarade sig (38 av 60, 63 %) — 5 av 60 är en lott, inte en väg.
+
 Samma mätare med **tre slumpkort i stället för startleken** (Alex' ordagranna bild; ingen spelare kan ha en
-sådan lek, så det är ett stresstest): slump 40 / 40 / 50 %, autospelaren 20 / 60 / 80 %. Den tunna leken
-klarar sig BÄTTRE än startleken i slumpspel, och förklaringen är värd att känna till: med 3 kort och 4 på
-handen drar turen hela leken, varje tur — då är stigande kostnad alltid möjlig, och kedjan blir gratis.
-**Kedjan är bara en färdighet när leken är tjockare än handen.**
+sådan lek, så det är ett stresstest): slump 50 / 50 / 60 %, autospelaren 30 / 60 / 80 %, rutten
+40 / 60 / 80 %. Den tunna leken klarar sig BÄTTRE än startleken i slumpspel, och förklaringen är värd att
+känna till: med 3 kort och 4 på handen drar turen hela leken, varje tur — då är stigande kostnad alltid
+möjlig, och kedjan blir gratis. **Kedjan är bara en färdighet när leken är tjockare än handen.**
 
 ## 6. Vad mätaren inte säger
 
@@ -160,3 +188,59 @@ handen drar turen hela leken, varje tur — då är stigande kostnad alltid möj
 - **En hög blandas i `Combat.begin` med stridens eget frö.** Att blanda den innan `Run.new` är verkningslöst
   och lägger bara in en icke-seedad slump i mätningen.
 - **Mät två policies, inte en.** En ensam siffra ("svårare nu") kan inte skilja balans från en vägg.
+- **En svårighetskurva måste mätas med en policy som får AGERA på den.** Rutten (går förbi de hårdaste
+  rummen när HP:t är lågt) klarar 17 av 60 mot autospelarens 10. Utan den policyn ser kartans svårighet
+  bara ut som brus — och varians gynnar den som behöver tur, alltså underdogen: första mätningen på A
+  visade att slumpen gick från 1 till 5 klarade, medan autospelaren tappade 3.
+- **Bossen är grindvakten.** Körningarna tar slut där (förlorade strider ≈ 1 per körning), och tier-3-HP:t
+  flyttade båda policies enormt: ×1,5 gav slump 5/60 och auto 10/60, ×1,0 gav 23/60 och 30/60. Ratta
+  bossen först när du rattar svårighet — och mät, för det är inte där man tror att svårigheten sitter.
+- **Skala kurvan mot HELA spannet.** Första försöket skalade graden mot fel ände och gav ingen grad 4 alls
+  (grad 1: 21 rum, grad 4: 0) — kurvan var en klump i den lätta ändan. `tests/test_kartkurva.gd` grindar
+  formen: graden stiger med avståndet, den hårdaste graden finns, medelpacken ligger kvar kring 2.
+- **20 körningar per rad ger ±10 procentenheter.** Det räcker för att se riktningen på en ratt, inte för
+  att avgöra en grind: två "olika" inställningar visade sig vara samma sak när de mättes med 60.
+
+## 8. Vägen till referensens känsla
+
+Fem skillnader mot referensens modell avgör om spelet *känns* som deras. Statuskolumnen uppdateras när de
+byggs.
+
+| # | Referensen | Vi (mätt) | Ändringen | Grinden som bevisar den | Status |
+|---|---|---|---|---|---|
+| A | Svårigheten bor **på kartan**: varje ruta får en svårighetsgrad ur en kurva (`CalculatePathDifficulties`), och mötet väljer fiender i ett spann kring den (`EncounterTemplate.EnemySelectionRule[,]` med `Min/MaxEnemyVariance`) | Per bana + per våning — varje rum i en våning hade samma form | En svårighetsgrad per rum, härledd ur avståndet från starten med spridning ur våningens frö; den styr antal fiender, HP och skada | Spridningen i tagen skada ökar *inom* en bana; slumpens andel faller utan att autospelarens gör det | **byggd** |
+| B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | planerad |
+| C | **Belöningarna är strypta**: `RewardProbability` per kort, `CardLimit` per kortgrupp, Reroll/Skip/Banish | Fler fiender = fler kort = **lättare**. Mätt: `fiender=3` gav slumpen **+20 pp** | Kortvalet på sannolikhet (under 1) och/eller trögare XP-kurva | Ny grindrad: "fler fiender får inte göra banan lättare" | **prövad, nedlagd** (se nedan) |
+| D | **Gratis är inte gratis**: 0-kostnadskort är Crawlers med Duration, eller wilds som förstörs | 18 kort på kostnad 0 ligger kvar; startleken har 4×`lash` (12 skada utan villkor) och **6 mana-positiva** kort (`ember_tome` 1→+2, `hourglass` 3→+5) | Duration/Destroy på gratiskorten (nyckelorden finns redan i 7 kort), eller mananeutrala tomtar | Gratiskortens andel av spelade kort faller; manan slutar gå plus | planerad |
+| E | Fienden **telegraferar**, spelaren väljer mål | Ingen målväljning i maskinen. Mätt: att styra skadan mot främre raden gjorde det *sämre* (överkill — gissning, inte mätt) | Intents och överspill, eller uttalat målval i vyn | En policy som väljer mål bra ska slå en som väljer dåligt | planerad |
+
+### A, byggd och mätt (M118)
+
+- **Kurvan:** `Dungeon.rum_svarighet` ger varje ruta grad 1–4 ur avståndet från starten, med ett stegs
+  spridning ur våningens frö. HÄRLETT, INTE SPARAT — båda generatorerna (`dungeon._fyll` och
+  `mapio._fill_enemies`) och en handritad karta får samma svar utan att en enda fil ändras.
+  `tests/test_kartkurva.gd` grindar formen: graden stiger med avståndet (1,74 nära starten mot 3,07
+  längre in), den hårdaste graden finns, och medelpacken ligger kvar kring 2 — rummet flyttar
+  SPRIDNINGEN, inte pressen.
+- **Det synliga:** rummets grad ÄR antalet fiender (1–3, klämt mot banans spann), så spelaren ser att
+  rummet är farligt innan hen går in. Ingen ny bild behövdes.
+- **Det osynliga:** HP +6 %/grad och skada +4 %/grad (rattar i `run.gd`), och bossen står UTANFÖR kurvan —
+  den har sin egen svårighet i sitt HP. Första försöket gav bossen den hårdaste graden (+18 % HP per bana)
+  och mätt kostade det autospelaren 20 procentenheter utan att röra slumpen.
+- **Provet fick en tredje policy: rutten.** Den går förbi rum i grad 3–4 när HP:t är under 70 %. Utan
+  den mäter provet bara att kurvan FINNS, inte att den är värd något. Mätt: **rutten klarar 17 av 60 mot
+  autospelarens 10** — kartans svårighet går att agera på, och det är hela poängen med att lägga den där.
+
+### C, prövad och nedlagd (M118)
+
+Ratten `xp_per_extra` (XP för fiende 2, 3 … i samma möte) sattes först till 0,25 för att mötet — inte
+fienden — skulle vara belöningens enhet, som referensens `RewardProbability`. Mätt: inversionen försvann,
+men GRADIENTEN försvann med den (slump 20 % → 10 %, autospelaren 40 % → 15 %, stage_01, samma frön).
+Kortens snöboll är den mekanism som förstärker skicklighet mest; den ska inte strypas förrän B ger
+spelaren något annat att vara bra på. Ratten står kvar på 1,0 med mätningen i kommentaren, och
+inversionen är borta ändå — det var RUMMETS PACKET som tog bort den (`fiender=3` straffar nu i stället
+för att belöna).
+
+Ordningen de tas i är inte tabellordningen: **C** prövades först och lades ned, **A** är byggd, sedan **B**
+(störst känsloförändring, rör regler, kort och vy), sedan **D** (kortdata är Alex' konst) och sist **E**
+(ny mekanik i striden).

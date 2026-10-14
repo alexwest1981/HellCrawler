@@ -63,6 +63,32 @@ const FACKLOR_MIN := 3
 const FACKLOR_ANDEL := 0.33
 const FACKLOR_TAK := 12
 
+## RUMMETS SVÅRIGHETSGRAD (M118). Referensen lägger svårigheten PÅ KARTAN: varje ruta får en
+## svårighetsgrad ur en kurva (`CalculatePathDifficulties`), och mötet väljer fiender i ett spann kring
+## den (`EncounterTemplate.EnemySelectionRule[,]` med `Min/MaxEnemyVariance`). Här är kurvan AVSTÅNDET
+## från starten — ju längre in i våningen, desto hårdare rum — med ett stegs spridning ur våningens eget
+## frö, så två rum lika långt in inte är identiska.
+##
+## HÄRLETT, INTE SPARAT: båda generatorerna (`_fyll` här och `mapio._fill_enemies`) och en handritad
+## karta får samma svar utan att en enda fil ändras, och inget gammalt sparspel blir inaktuellt.
+const RUM_SPANN := 2              ## hur många steg svårighetsgraden rör sig över en våning (grad 1..4)
+static func rum_svarighet(f: Floor, pos: Vector2i, seed_value: int) -> int:
+	if f == null:
+		return 1
+	var start := f.start
+	var längst := 1
+	for n in f.nodes:
+		längst = maxi(längst, absi(n.pos.x - start.x) + absi(n.pos.y - start.y))
+	var d := absi(pos.x - start.x) + absi(pos.y - start.y)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%s:%d:%d:%d:%d" % [f.stage_id, f.index, pos.x, pos.y, seed_value])
+	# Skalan spänns över HELA intervallet 1..RUM_SPANN+2: starten får 1, längsta hörnet RUM_SPANN+2.
+	# Första försöket skalade mot RUM_SPANN i stället (+1), och då nådde inget rum över grad 3 — mätt
+	# med `tests/test_kartkurva.gd`: grad 1: 21, grad 2: 13, grad 3: 7, grad 4: 0 rum per våning. Kurvan
+	# var alltså en klump i den lätta ändan, och packen blev 1-2 fiender i stället för 1-3.
+	return clampi(1 + int(round(float(d) / float(längst) * float(RUM_SPANN + 1))) + rng.randi_range(-1, 1),
+		1, RUM_SPANN + 2)
+
 class FloorNode extends RefCounted:
 	var kind: String            ## encounter | chest | torch | boss | shovel | start
 	var pos: Vector2i

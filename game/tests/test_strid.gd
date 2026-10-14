@@ -34,18 +34,27 @@ func check(ok: bool, what: String, detail: String = "") -> void:
 		print("  FEL  %s%s" % [what, "" if detail.is_empty() else "  (%s)" % detail])
 
 
-## Står punkten i bild? Kamerans närplan, riktning och bildruta, i SAMMA räkning som spelet använder när
-## det ritar en siffra över en fiende (`is_position_behind` + `unproject_position` i `_slag_kvitto`).
-## Frustum-planen duger inte: Godots `get_frustum` ger fjärrplanet med normalen utåt, så ett avstånd
-## till en punkt 1,2 m framför kameran blev −3993 (mätt — provet fällde friska fiender).
+## Står punkten i bild i SPELETS vy? Vinkeln mot kamerans framåtaxel jämförs med vyens halva bildvinkel —
+## inte med fönstrets pixelmått. MÄTT (M118): i headless är fönstret 64x64 och `_placera_vy` ger då en vy
+## på 160x270. I den ryms inte tre fiender i led (±0,62 m på 1,3 m håll) — men det gör de i spelets egen
+## vy: VY 480x270 ger ±1,4 m, och 1280x720-fönstret ger 640x270, alltså ±1,9 m. Provet ska svara på om
+## spelaren SER fienden, inte på hur stort fönstret råkade vara när det kördes. (Kameran behåller
+## KEEP_HEIGHT, så halva HÖJDvinkeln är fov/2 hur bred vyn än blir; sidvinkeln följer vyens form.)
 func _i_bild(cam: Camera3D, p: Vector3) -> bool:
 	if cam.is_position_behind(p):
 		return false
 	if cam.global_position.distance_to(p) <= cam.near:
 		return false
-	var s := cam.unproject_position(p)
-	var ruta: Vector2 = cam.get_viewport().get_visible_rect().size
-	return s.x >= 0.0 and s.x <= ruta.x and s.y >= 0.0 and s.y <= ruta.y
+	var v := (p - cam.global_position).normalized()
+	var fram := -cam.global_transform.basis.z
+	var upp := cam.global_transform.basis.y
+	var sida := cam.global_transform.basis.x
+	var vy_vinkel := asin(clampf(v.dot(upp), -1.0, 1.0))
+	var sid_vinkel := asin(clampf(v.dot(sida), -1.0, 1.0))
+	var halv_h := deg_to_rad(cam.fov) * 0.5
+	var ruta: Vector2i = load("res://main.gd").VY
+	var halv_b := atan(tan(halv_h) * float(ruta.x) / float(ruta.y))
+	return absf(sid_vinkel) <= halv_b and absf(vy_vinkel) <= halv_h and v.dot(fram) > 0.0
 
 
 func _initialize() -> void:
