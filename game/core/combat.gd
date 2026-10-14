@@ -252,11 +252,17 @@ func enemy_hp_percent() -> float:
 # --- smart autospel ------------------------------------------------------------------------
 ## Referensens "Play All" är en blind trigger: den spelar höger-till-vänster och fortsätter även
 ## när kort spricker. Den här versionen är en solver med uttalade regler:
-##   1. spela bara kort som FORTSÄTTER kedjan (stigande kostnad) — annars stanna
+##   1. spela först kort som FORTSÄTTER kedjan (stigande kostnad) — de bär multiplikatorn
 ##   2. inom samma steg: manakort före utility före companion före attack
-##   3. wild kort används bara som bro när inget annat kort kan spelas
-##   4. spela aldrig Destroy-kort automatiskt (de är engångsresurser spelaren vill behålla)
-##   5. spela aldrig ett kort som saknar manakostnad kvar att betala
+##   3. när ingen fortsättning finns: BÖRJA EN NY KEDJA av det starkaste spelbara kortet
+##   4. wild kort används bara som bro när inget annat kort kan spelas
+##   5. spela aldrig Destroy-kort automatiskt (de är engångsresurser spelaren vill behålla)
+##   6. spela aldrig ett kort som saknar manakostnad kvar att betala
+##
+## REGEL 3 ÄR MÄTT IN (14/10): förut STANNADE autospelaren vid första glappet och lämnade både mana och
+## kort ospelade. I en mätning klarade slumppolicyn 8 % av körningarna och solvern 2 % — den var alltså
+## SÄMRE än att klicka på måfå. En solver som är sämre än slumpen är inte en solver. Talen, ratten och
+## hela balansmätningen: `docs/balans.md`.
 ## Returnerar loggen över vad som spelades, i ordning.
 func auto_play(max_cards: int = 99, allow_wilds: bool = true) -> Array:
 	var log := []
@@ -272,6 +278,23 @@ func auto_play(max_cards: int = 99, allow_wilds: bool = true) -> Array:
 
 ## Bästa spelbara kortet just nu, eller -1. Reglerna står i auto_play().
 func _best_index(allow_wilds: bool) -> int:
+	var best := _basta_kort(true)        # 1. fortsätt kedjan
+	if best >= 0:
+		return best
+	best = _basta_kort(false)            # 3. börja en ny kedja
+	if best >= 0:
+		return best
+	# Ingen ny kedja heller. En wild kan öppna en — men bara då, och bara om den finns.
+	if allow_wilds:
+		for i in hand.size():
+			if hand[i].is_wild():
+				return i
+	return -1
+
+## Starkaste spelbara kortet, med eller utan kravet att det fortsätter kedjan.
+## Sorteringsnyckeln är (kostnad, roll, namn): billigast först, och därför blir en ny kedja en
+## stigande trappa så länge handen räcker.
+func _basta_kort(maste_fortsatta: bool) -> int:
 	var best := -1
 	var best_key := []
 	for i in hand.size():
@@ -282,20 +305,15 @@ func _best_index(allow_wilds: bool) -> int:
 			continue                     # wilds hanteras efteråt, som bro
 		if card.cost > mana:
 			continue
-		if card.cost <= last_cost:
-			continue                     # skulle bryta kedjan — stanna hellre
+		if maste_fortsatta and card.cost <= last_cost:
+			continue
+		if not maste_fortsatta and card.cost == last_cost and last_cost != Rules.NO_CARD_YET:
+			continue                     # samma steg bryter kedjan utan att höja den
 		var key := [card.cost, HandView.role(card), card.name]
 		if best < 0 or _less(key, best_key):
 			best = i
 			best_key = key
-	if best >= 0:
-		return best
-	# Ingen fortsättning finns. En wild kan öppna en — men bara då, och bara om den finns.
-	if allow_wilds:
-		for i in hand.size():
-			if hand[i].is_wild():
-				return i
-	return -1
+	return best
 
 static func _less(a: Array, b: Array) -> bool:
 	for i in min(a.size(), b.size()):

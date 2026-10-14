@@ -17,6 +17,10 @@ const MAX_TURNS_PER_FIGHT := 60
 var hp_per_difficulty := 0.10      ## fiende-HP: +10 % per svårighetsgrad
 var hp_per_floor := 0.15           ## ...och +15 % per våning nedåt
 var damage_per_difficulty := 0.06
+## Fiende-SKADAN hade ingen våningsterm: en fiende på våning 5 slog lika hårt som en på våning 1,
+## medan dess HP växte 60 %. Att djupet bara gjorde fienderna segare (och aldrig farligare) var en
+## del av att en körning gick att spela utan att titta på skärmen. Ratt, inte lag: 0 stänger av den.
+var damage_per_floor := 0.12
 var recovery := 3.0                ## helas så här mycket efter varje strid
 var enemies_per_encounter := [1, 3]
 ## LEDET (M100): hur en strid ställer upp sig. EN källa för striden (raderna i `begin_fight`) och vyn
@@ -427,7 +431,7 @@ func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
 		return null
 	var scale_hp := (1.0 + hp_per_difficulty * (stage.difficulty - 1) + hp_per_floor * floor_index) \
 		* curse_scale()
-	var scale_dmg := 1.0 + damage_per_difficulty * (stage.difficulty - 1)
+	var scale_dmg := (1.0 + damage_per_difficulty * (stage.difficulty - 1) + damage_per_floor * floor_index)
 	var count := enemy_count_for(node, is_boss)
 	var foes := []
 	for i in count:
