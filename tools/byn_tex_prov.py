@@ -275,6 +275,67 @@ def jämför_bilder(a: Path, b: Path, tröskel: int = 8) -> None:
           % (a.name, b.name, float(d.mean()), 100.0 * float((d.max(axis=1) > tröskel).mean()), tröskel))
 
 
+def balkprov(meshar):
+    """BALKPROVET: plattans ådring ligger i V, så för varje balk ska V löpa LÄNGS balkens längd.
+
+    Alex 2026-10-14: *"texturen sitter på fel ledd längs skyltar och balkar."* Felet: kubprojektionen
+    ger varje yta världsaxlar, och då blir V alltid "upp" — en vågrät balk fick ådringen tvärs över.
+    Provet mäter per YTA: gå ett steg i ytans plan längs fibern (den längsta leden, projicerad i
+    ytan) och kräv att V ändras mer än U där. Ändytor (normalen längs fibern) hoppas över — där
+    ligger fibern inte i ytan. Utan det här provet gick felet igenom två hela körningar.
+    """
+    from mathutils import Vector
+
+    balkar, ytor, fel = 0, 0, []
+    for obj in meshar:
+        if obj.type != "MESH" or not obj.data.uv_layers or not obj.data.polygons:
+            continue
+        M = obj.matrix_world
+        hörn = [M @ Vector(c) for c in obj.bound_box]
+        led = sorted((max(p[i] for p in hörn) - min(p[i] for p in hörn), i) for i in range(3))
+        if not (led[2][0] >= 3.0 * led[1][0] and led[1][0] <= 1.0):
+            continue
+        fiber = Vector((0.0, 0.0, 0.0))
+        fiber[led[2][1]] = 1.0
+        balkar += 1
+        uv = obj.data.uv_layers[0].data
+        vrld = [M @ v.co for v in obj.data.vertices]
+        normal3 = M.to_3x3().inverted_safe().transposed()
+        dåliga = 0
+        for poly in obj.data.polygons:
+            li = list(poly.loop_indices)
+            if len(li) < 3:
+                continue
+            n = (normal3 @ poly.normal).normalized()
+            if abs(n.dot(fiber)) > 0.9:
+                continue                         # ändyta: fibern ligger inte i ytan
+            p0 = vrld[obj.data.loops[li[0]].vertex_index]
+            p1 = vrld[obj.data.loops[li[1]].vertex_index]
+            p2 = vrld[obj.data.loops[li[2]].vertex_index]
+            e1, e2 = p1 - p0, p2 - p0
+            if abs(e1.dot(e1) * e2.dot(e2) - e1.dot(e2) ** 2) < 1e-12:
+                continue                         # degenererad yta
+            f = fiber - n * fiber.dot(n)         # fibern projicerad i ytans plan
+            A = np.array([[e1.dot(e1), e1.dot(e2)], [e1.dot(e2), e2.dot(e2)]])
+            try:
+                c = np.linalg.solve(A, np.array([f.dot(e1), f.dot(e2)]))
+            except np.linalg.LinAlgError:
+                continue
+            du = [uv[li[1]].uv[0] - uv[li[0]].uv[0], uv[li[2]].uv[0] - uv[li[0]].uv[0]]
+            dv = [uv[li[1]].uv[1] - uv[li[0]].uv[1], uv[li[2]].uv[1] - uv[li[0]].uv[1]]
+            ytor += 1
+            if abs(c[0] * dv[0] + c[1] * dv[1]) < abs(c[0] * du[0] + c[1] * du[1]):
+                dåliga += 1                      # V står still längs fibern = ådringen ligger fel
+        if dåliga:
+            fel.append((obj.name, dåliga))
+    print("balkar: %d, ytor prövade: %d, balkar med fel ledd: %d" % (balkar, ytor, len(fel)))
+    for namn, antal in fel[:12]:
+        print("  FEL  %-32s %d ytor" % (namn, antal))
+    if not fel:
+        print("  alla balkar har ådringen längs längdaxeln")
+    return len(fel)
+
+
 def main() -> int:
     scen = bpy.context.scene
     bort, mapp = ta_bort_röken()
@@ -331,6 +392,9 @@ def main() -> int:
 
     UV.exportera(GLB)
     print("\n=== GLB: %s, %d byte ===" % (GLB.relative_to(ROT), GLB.stat().st_size))
+
+    print("\n=== (c2) BALKPROVET (ådringen längs balken) ===")
+    balkprov(meshar)
 
     print("\n=== (d) RENDERINGAR ===")
     UV.rendera(TEXTURBILD, UV.frontkamera())

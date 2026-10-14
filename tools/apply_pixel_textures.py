@@ -377,6 +377,24 @@ def sätt_uv(obj):
     M = obj.matrix_world
     inv = M.to_3x3().inverted_safe().transposed()
     vrld = [M @ v.co for v in mesh.vertices]
+
+    ## FIBERRIKTNINGEN. Alex 2026-10-14: "texturen sitter på fel ledd längs skyltar och balkar".
+    ## Kubprojektionen ger varje yta världsaxlar, och då blir V alltid "upp" — en VÅGRÄT balk fick
+    ## därför ådringen tvärs över i stället för längs med, medan stående plank blev rätt av sig
+    ## själva. Plattans ådring ligger i V, så för en balk ska V byta plats med balkens längdaxel.
+    ##
+    ## VAD ÄR EN BALK? MÄTT på scenen: en lång vägg (12 x 3 x 0,3) och en skyltbräda (2,3 x 0,6 x
+    ## 0,1) har nästan samma förhållande mellan längsta och näst längsta led (4,0 mot 3,8), så
+    ## förhållandet ensamt skiljer dem inte — och en vägg ska behålla stående plank. En balk är smal
+    ## i BÅDA de andra leden (näst längsta <= 1 m), det är en vägg eller en dörr inte. Mätt på
+    ## scenen: skyltbrädan 0,6 m (balk), tavernaväggen 3,0 m (inte balk).
+    hörn = [M @ Vector(c) for c in obj.bound_box]
+    led = sorted((max(p[i] for p in hörn) - min(p[i] for p in hörn), i) for i in range(3))
+    fiber = led[2][1]
+    fiber_v = Vector((0.0, 0.0, 0.0))
+    fiber_v[fiber] = 1.0
+    balk = led[2][0] >= 3.0 * led[1][0] and led[1][0] <= 1.0
+
     for poly in mesh.polygons:
         n = (inv @ poly.normal).normalized()
         if abs(n.z) >= max(abs(n.x), abs(n.y)):
@@ -385,6 +403,10 @@ def sätt_uv(obj):
             a, b = 1, 2
         else:
             a, b = 0, 2
+        ## V följer fibern när fibern ligger i ytans plan. En ändyta (normalen längs fibern) har
+        ## inget att vrida; ett snedtak har ingen fiber (tak är inte balkar) och rörs inte.
+        if balk and a == fiber:
+            a, b = b, a
         if max(abs(n.x), abs(n.y), abs(n.z)) <= 0.999:
             # Sned yta: basen i ytans eget plan, annars sträcks mönstret.
             axel = min(range(3), key=lambda i: abs(n[i]))
@@ -392,6 +414,14 @@ def sätt_uv(obj):
             e[axel] = 1.0
             u = (e - n * e.dot(n)).normalized()
             v = n.cross(u)
+            ## Samma fiberregel på en sned yta: en avsmalnande stam och ett vridet fackelhandtag har
+            ## bara sneda sidoytor, och där blev V vågrät av sig själv (mätt: 28 balkar kvar efter
+            ## den raka grenen ovan). Fibern projiceras i ytans plan och blir V; U vinkelrät mot den.
+            if balk:
+                f = fiber_v - n * fiber_v.dot(n)
+                if f.length > 1e-6:
+                    v = f.normalized()
+                    u = n.cross(v)
             for li in poly.loop_indices:
                 co = vrld[mesh.loops[li].vertex_index]
                 uv.data[li].uv = (co.dot(u) / TILE_METER, co.dot(v) / TILE_METER)

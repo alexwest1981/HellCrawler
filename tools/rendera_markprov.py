@@ -11,10 +11,38 @@ import bpy
 from mathutils import Vector
 
 UT = sys.argv[sys.argv.index("--") + 1]
+if len(sys.argv) > sys.argv.index("--") + 2:
+    mål_arg = sys.argv[sys.argv.index("--") + 2]
+else:
+    mål_arg = None
 
 ## Kameran: låg och sned mot markkanten, samma i båda körningarna.
 KAMERA = (0.5, -13.0, 1.35)
 MÅL = Vector((0.0, -3.9, -0.06))
+
+## Ett mål som "skylt" letas upp ur scenen i stället för att skrivas in: skyltbrädan är det objekt
+## som Alex pekade på ("texturen sitter på fel ledd längs skyltar och balkar").
+if mål_arg == "skylt":
+    bräda = next((o for o in bpy.data.objects if "Sign_" in o.name and "Board" in o.name), None)
+    if bräda is None:
+        print("FEL: ingen Sign_*_Board hittades")
+        raise SystemExit(1)
+    M0 = bräda.matrix_world
+    hörn = [M0 @ Vector(c) for c in bräda.bound_box]
+    mitten = sum(hörn, Vector((0.0, 0.0, 0.0))) / 8.0
+    LED = (max(p.z for p in hörn) - min(p.z for p in hörn))
+    MÅL = Vector((mitten.x, mitten.y, mitten.z))
+    KAMERA = (mitten.x + 0.6, mitten.y - 4.2, mitten.z + 0.9)
+    print("mål: %s i %s, led %s, skyltens höjd %.2f m" %
+          (bräda.name, tuple(round(v, 2) for v in mitten),
+           tuple(round(abs(max(p[i] for p in hörn) - min(p[i] for p in hörn)), 2) for i in range(3)), LED))
+elif mål_arg:
+    siffror = [float(v) for v in mål_arg.split(",")]
+    if len(siffror) != 3:
+        print("FEL: målet ska vara 'skylt' eller 'x,y,z'")
+        raise SystemExit(1)
+    MÅL = Vector(siffror)
+    KAMERA = (siffror[0] + 0.6, siffror[1] - 4.2, siffror[2] + 0.9)
 
 sc = bpy.context.scene
 cam_data = bpy.data.cameras.new("Markprov_Kamera")
