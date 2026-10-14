@@ -328,6 +328,16 @@ def classify_object(obj):
     if "frame" in n or "shutter" in n:
         return "Ram", "namn (ram)"
     namn = första_materialet(obj)
+    ## IDEMPOTENS (mätt 2026-10-14): en redan texturerad fil har plattans EGNA materialnamn,
+    ## "PX_Mörk Zon". Det finns inte i MATERIAL_TO_PLATE, så objektet föll igenom till namnreglerna
+    ## och vidare till standarden Stone: kört på Alex' texturerade fil blev Cliff_Face PX_Stone
+    ## (mursten, ljus grå) i stället för Mörk Zon (bildens mörka förgrundszon) — samma objekt blev
+    ## Mörk Zon i min egen kedja, där materialet fortfarande hette Dirt_Cliff. Plattans namn ÄR
+    ## kategorin, så räcker det att skala av prefixet: en andra körning ger samma svar som den första.
+    if namn is not None and namn.startswith("PX_"):
+        namn = namn[3:]
+    if namn in TEXTURES:
+        return namn, "material (plattans namn)"
     if namn in MATERIAL_TO_PLATE:
         platta = MATERIAL_TO_PLATE[namn]
         # BAKGRUNDEN: ett bakgrundsobjekt får takplatta bara om det är TAKFORMAT (se bakgrundstak).
