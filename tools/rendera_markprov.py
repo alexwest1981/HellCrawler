@@ -20,21 +20,43 @@ else:
 KAMERA = (0.5, -13.0, 1.35)
 MÅL = Vector((0.0, -3.9, -0.06))
 
-## Ett mål som "skylt" letas upp ur scenen i stället för att skrivas in: skyltbrädan är det objekt
-## som Alex pekade på ("texturen sitter på fel ledd längs skyltar och balkar").
-if mål_arg == "skylt":
-    bräda = next((o for o in bpy.data.objects if "Sign_" in o.name and "Board" in o.name), None)
-    if bräda is None:
-        print("FEL: ingen Sign_*_Board hittades")
+## Ett mål som "skylt" eller "fonster" letas upp ur scenen i stället för att skrivas in: båda är
+## objekt Alex pekat på ("texturen sitter på fel ledd längs skyltar och balkar", "det är fönster över
+## skylten här t.ex").
+def sök_bräda():
+    return next((o for o in bpy.data.objects if "Sign_" in o.name and "Board" in o.name), None)
+
+def sök_fönster(bräda):
+    """Glaset Alex pekade på: det som sitter NÄRMast en skylt av alla glas/skylt-par.
+
+    MÄTT: nio glasobjekt ligger på materialen Window_Warm/Window_Bright. Det högsta är ett bakhushus
+    (z 5,9) och det *första* Sign_*_Board är tavernans, vars närmaste glas ligger 4,2 m bort — men
+    weavery-fönstret sitter 0,3 m över sin skylt, och det är det Alex pekade på ("fönster över skylten").
+    """
+    glas = [o for o in bpy.data.objects if "Win_Glass" in o.name or "Win_Glow" in o.name]
+    if not glas:
+        return None
+    brädor = [o for o in bpy.data.objects if "Sign_" in o.name and "Board" in o.name]
+    if not brädor:
+        return max(glas, key=lambda o: o.matrix_world.translation.z)
+    _, valt, _ = min(((g.matrix_world.translation.xy - b.matrix_world.translation.xy).length, g, b)
+                     for g in glas for b in brädor)
+    return valt
+
+if mål_arg in ("skylt", "fonster"):
+    bräda = sök_bräda()
+    valt = bräda if mål_arg == "skylt" else sök_fönster(bräda)
+    if valt is None:
+        print("FEL: hittade inget %s" % ("Sign_*_Board" if mål_arg == "skylt" else "glasobjekt"))
         raise SystemExit(1)
-    M0 = bräda.matrix_world
-    hörn = [M0 @ Vector(c) for c in bräda.bound_box]
+    M0 = valt.matrix_world
+    hörn = [M0 @ Vector(c) for c in valt.bound_box]
     mitten = sum(hörn, Vector((0.0, 0.0, 0.0))) / 8.0
     LED = (max(p.z for p in hörn) - min(p.z for p in hörn))
     MÅL = Vector((mitten.x, mitten.y, mitten.z))
     KAMERA = (mitten.x + 0.6, mitten.y - 4.2, mitten.z + 0.9)
-    print("mål: %s i %s, led %s, skyltens höjd %.2f m" %
-          (bräda.name, tuple(round(v, 2) for v in mitten),
+    print("mål: %s i %s, led %s, höjd %.2f m" %
+          (valt.name, tuple(round(v, 2) for v in mitten),
            tuple(round(abs(max(p[i] for p in hörn) - min(p[i] for p in hörn)), 2) for i in range(3)), LED))
 elif mål_arg:
     siffror = [float(v) for v in mål_arg.split(",")]

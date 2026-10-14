@@ -336,6 +336,38 @@ def balkprov(meshar):
     return len(fel)
 
 
+## GLASET, MÄTT ur modellens egna material Window_Warm/Window_Bright (nio objekt). De ska bära
+## ATLASENS fönsterplattor. En platt platta här är ett fönster utan spröjs och utan ljus inifrån —
+## MÄTT: ram.png 83,7 % mörkt och 0,0 % varmt, ljus_varm.png 100 % varmt och 0,0 % mörkt.
+FÖNSTER = {
+    "BG_House_Left1_Win_Glass": "Window Warm",
+    "BG_House_Left2_Win_Glass": "Window Warm",
+    "BG_House_Right_Win_Glass": "Window Warm",
+    "Jeweler_Door_Glass_Glass": "Window Warm",
+    "Jeweler_Shop_Win_Glow": "Window Bright",
+    "Jeweler_Top_Win_Glass": "Window Bright",
+    "Tavern_Interior_Recess": "Window Warm",
+    "Tavern_Top_Win_Glass": "Window Warm",
+    "Weaver_Win_Glass": "Window Warm",
+}
+
+def fönsterprov() -> int:
+    """FÖNSTERPROVET: varje glasobjekt ska bära sin fönsterplatta, inte en platt ram eller guld."""
+    fel = 0
+    for namn, väntad in sorted(FÖNSTER.items()):
+        o = bpy.data.objects.get(namn)
+        if o is None:
+            print("  ##FEL## %s finns inte i scenen" % namn)
+            fel += 1
+            continue
+        mat = o.data.materials[0].name if o.data.materials else "(ingen)"
+        ren = mat[3:] if mat.startswith("PX_") else mat
+        if ren != väntad:
+            print("  ##FEL## %s bär %s, väntade %s" % (namn, mat, väntad))
+            fel += 1
+    print("  glasobjekt: %d, med fel platta: %d" % (len(FÖNSTER), fel))
+    return fel
+
 def main() -> int:
     scen = bpy.context.scene
     bort, mapp = ta_bort_röken()
@@ -395,6 +427,9 @@ def main() -> int:
 
     print("\n=== (c2) BALKPROVET (ådringen längs balken) ===")
     balkprov(meshar)
+
+    print("\n=== (c3) FÖNSTERPROVET (glasen bär fönsterplattor) ===")
+    fönsterprov()
 
     print("\n=== (d) RENDERINGAR ===")
     UV.rendera(TEXTURBILD, UV.frontkamera())

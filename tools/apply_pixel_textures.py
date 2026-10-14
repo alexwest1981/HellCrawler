@@ -200,10 +200,16 @@ MATERIAL_TO_PLATE = {
     "Pine_Green": "Hedge",
     # järn och fönsterglas: hade ingen platta i paketet, atlasen har båda
     "Iron": "Iron Riveted",
-    ## Fönstren (Alex 2026-10-14): atlasens rutor är brunare än väggen. Bilden har MÖRKA öppningar
-    ## (39,29,37) och ett VARMT ljus (235,181,119) i de tända.
-    "Window_Warm": "Ram",
-    "Window_Bright": "Ljus Varm",
+    ## Fönstren: ATLASENS riktiga fönsterplattor. Den tidigare mappningen (Ram / Ljus Varm) träffade
+    ## bildens FÄRGER exakt men var PLATT — mätt: ram.png 83,7 % mörkt och 0,0 % varmt, ljus_varm.png
+    ## 100 % varmt och 0,0 % mörkt, alltså en enfärgad ruta utan spröjs och utan ljus inifrån. Atlasen
+    ## har båda: window_four_pane 35,4 % mörkt + 27,4 % varmt (29 529 unika färger), window_narrow
+    ## 40,4 % + 18,4 % (24 932). Alex 2026-10-14: "Det är fönster över skylten här t.ex, kolla så du
+    ## inte hittar fler fönster som behöver texturer." MÄTT: NIO glasobjekt ligger på modellens egna
+    ## Window_Warm/Window_Bright, och alla nio bar en platt platta — sju Ram, två Ljus Varm — däribland
+    ## Weaver_Win_Glass, fönstret precis ovanför skylten (z 2,69 mot skyltens 1,55).
+    "Window_Warm": "Window Warm",
+    "Window_Bright": "Window Bright",
 }
 
 ## RÖKEN. Alex: "Röken som kommer upp ur ena huset är texturerad med sten — ta bort bollarna av rök
@@ -320,6 +326,21 @@ def trädplatta(obj):
 OVERRIDE = {
     "Road_Bed": "Cobblestone Grey",
     "Gate_Plaza_Bed": "Cobblestone Grey",
+    ## GLASET. MÄTT ur modellens EGNA material Window_Warm/Window_Bright: nio objekt, och i en
+    ## texturerad fil bar ALLA nio en platt platta (sju PX_Ram = mörk skyltram, två PX_Ljus Varm = plat
+    ## guld) — fönster utan spröjs och utan ljus. Materialvägen kan inte nå dem (frusen) och NAMNET kan
+    ## inte skilja warm från bright (Weaver_Win_Glass och Jeweler_Top_Win_Glass heter likadant), så
+    ## listan skrivs ut. Alex 2026-10-14: "Det är fönster över skylten här t.ex, kolla så du inte
+    ## hittar fler fönster som behöver texturer." Fönsterprovet i byn_tex_prov.py vaktar listan.
+    "BG_House_Left1_Win_Glass": "Window Warm",
+    "BG_House_Left2_Win_Glass": "Window Warm",
+    "BG_House_Right_Win_Glass": "Window Warm",
+    "Jeweler_Door_Glass_Glass": "Window Warm",
+    "Jeweler_Shop_Win_Glow": "Window Bright",
+    "Jeweler_Top_Win_Glass": "Window Bright",
+    "Tavern_Interior_Recess": "Window Warm",
+    "Tavern_Top_Win_Glass": "Window Warm",
+    "Weaver_Win_Glass": "Window Warm",
 }
 
 def classify_object(obj):
