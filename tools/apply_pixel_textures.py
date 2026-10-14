@@ -55,7 +55,7 @@ TEXTURES = {
     "Slate Roof": "tak_skiffer.png",
     "Purple Roof": "tak_lila.png",
     "Wood": "virke.png",
-    "Tudor Plaster": "tudor_wall.png",
+    "Tudor Plaster": "puts.png",
     "Grass": "gras.png",
     "Dirt": "dirt.png",
     "Cobblestone Ground": "cobblestone_ground.png",

@@ -91,6 +91,12 @@ PLATTOR = {
     "skylt.png": ("virke_wood-planks-1_flat.png", 0, (115, 91, 72)),
     "ram.png": ("virke_wood-planks-1_flat.png", 0, (39, 29, 37)),
     "ljus_varm.png": ("virke_wood-planks-1_flat.png", 0, (235, 181, 119)),
+    ## PUTSEN. tudor_wall.png väger 1 776 byte — en PLATT färg, och den ligger på alla korsvirkeshusens
+    ## puts (71 objekt). Det är de stora enfärgade fälten i Alex' vy. Bildens puts är (190,175,154) med
+    ## spridning 28,8 (fläckig, inte jämn). Paketens ljusa ytor är mest MURVERK (Damaged Wall 3, Stone
+    ## Wall, Sand) — Indoor Walls 2 är den enda som är rappad puts: krämvit, fin kornighet, bara
+    ## hårfina sprickor (avstånd 19,4, spridning 35,4).
+    "puts.png": ("puts_indoor-walls-2_flat.png", 0, (190, 175, 154)),
 }
 
 

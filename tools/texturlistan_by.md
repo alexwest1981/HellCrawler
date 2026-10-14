@@ -118,8 +118,8 @@ Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roo
 | `Roof_Red_2` | Terracotta Roof | `tak_tegel.png` | 140 |
 | `Roof_Thatch` | Terracotta Roof | `tak_tegel.png` | 42 |
 | **3 material** | | | **322** |
-| `Plaster_Warm` | Tudor Plaster | `tudor_wall.png` | 43 |
-| `Plaster_Cream` | Tudor Plaster | `tudor_wall.png` | 28 |
+| `Plaster_Warm` | Tudor Plaster | `puts.png` | 43 |
+| `Plaster_Cream` | Tudor Plaster | `puts.png` | 28 |
 | **2 material** | | | **71** |
 | `Wood_Dark` | Wood | `virke.png` | 103 |
 | `Wood_Oak` | Wood | `virke.png` | 84 |
@@ -250,7 +250,7 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Stone` | `mursten.png` | 378 | 5654 | 1282.8 |
 | `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
 | `PX_Terracotta Roof` | `tak_tegel.png` | 322 | 1932 | 131.9 |
-| `PX_Tudor Plaster` | `tudor_wall.png` | 71 | 426 | 862.9 |
+| `PX_Tudor Plaster` | `puts.png` | 71 | 426 | 862.9 |
 | `PX_Window Bright` | `window_narrow.png` | 0 | 0 | 0.0 |
 | `PX_Window Warm` | `window_four_pane.png` | 0 | 0 | 0.0 |
 | `PX_Wood` | `virke.png` | 207 | 1322 | 669.7 |
