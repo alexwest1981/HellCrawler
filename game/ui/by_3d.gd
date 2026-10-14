@@ -18,8 +18,7 @@
 ##   2. RÄKNAR VYN: husens ruta i vyns px ur modellens meshar och KAMERANS EGEN projektion
 ##      (`projicera`, `hus_rect`). Det är samma ruta som klicket, hovringen, glöden och gångaren
 ##      använder (M126), så klickytan kan inte glida ifrån huset man ser.
-##   3. DÄMPAR de ljus som följer med glb:n (se LJUS_DELARE) och SLÄCKER de två riktningsljus som
-##      scenens egna `sol`/`fyllnad` ersätter.
+##   3. SLÄCKER de två riktningsljus i glb:n som scenens egna `sol`/`fyllnad` ersätter.
 ##
 ## KAMERAN (M127): ortografisk, tippad nedåt så att gatan, taken och marken syns. MÄTT i vyns px:
 ## 480x270 → 313x339 vid Alex' 941x1018 (SubViewportContainer, heltalsskala 3). Läget står i
@@ -32,20 +31,27 @@ extends Node3D
 const SCEN := "res://scenes/by.tscn"
 const GLB := "res://assets/by/byn.glb"
 
-## LJUSEN I FILEN ÄR BLENDERS, INTE GODOTS. byn.glb bär Alex' eget ljus med som punkter
-## (KHR_lights_punctual): Main_Sun 2186, Front_Fill 512, Tavern_Warm_Glow 11 957,
-## Forge_PointLight 8696 och fyra facklor på 4076. Godot läser talet rakt av, och Blenders enheter
-## (lux / candela) är tusen gånger Godots energi — MÄTT: med ljusen som de kom blev 52 % av bilden REN
-## VIT (255,255,255), medelljushet 203 av 255 och fyra färger i hela rutan. Delade med tusen blir det
-## Alex' egen bild: medelljushet 150,0 mot Blenders rendering av samma fil 146,2.
+## LJUSEN I FILEN ÄR GODOTS, INTE BLENDERS. byn.glb bar först Alex' eget ljus med som punkter
+## (KHR_lights_punctual) i BLENDERS enheter (lux/candela): Main_Sun 2186, Tavern_Warm_Glow 11 957,
+## Forge_PointLight 8696, fyra facklor på 4076. Godot läser talet rakt av, och Blenders enheter är
+## tusen gånger Godots energi — MÄTT: med ljusen som de kom blev 52 % av bilden REN VIT (255,255,255),
+## medelljushet 203 av 255 och fyra färger i hela rutan. Den här filen delade därför varje ljus med
+## 2 000 varje gång scenen byggdes ...
+##
+## ... OCH DET VAR FEL STÄLLE. Raden kör bara när SPELET kör. Öppnade Alex `res://scenes/by.tscn` i
+## editorn stod ljusen kvar i Blenders enheter och HELA BYN MÅLADES VIT — han såg texturerna bara i
+## vissa vinklar, vilket är exakt symptomet på överbelysning. Att scenen går att redigera är hela
+## poängen med den, så dämpningen ligger nu i FILEN: `tools/uv_byn.py` delar ljusen när byn.glb
+## exporteras (`exportera`), och den här filen räknar inte om någonting. Spelet, editorn och varje
+## annat program som öppnar filen ser alltså SAMMA by. Talen i filen är: Main_Sun 1,09,
+## Front_Fill 0,26, Tavern_Warm_Glow 5,98, Forge_PointLight 4,35, facklorna 2,04.
 ##
 ## HALVERADE (M127): mätningen i prototypen visade att det var PUNKTLJUSEN och inte solen som brände
 ## ut väggarna — med dem släckta föll pixlarna över 240 från 1,17 % till 0,05 %, och att höja värmen
-## gjorde saken värre (2,03 %). Facklorna står 0,3 m från stenmuren och klippte den till 255. Med
-## halv styrka (2 000 i stället för 1 000) landar nattvarianten på 0,32 % över 240 och den utbrända
-## stenfasadens yta faller 84 %. Fönstervärmen sitter i glb:ns EGNA självlysande glastexturer
-## (PX_Window Warm, Exit_Sign_Glow) och rörs inte av den här raden.
-const LJUS_DELARE := 2000.0
+## gjorde saken värre (2,03 %). Facklorna står 0,3 m från stenmuren och klippte den till 255. Delaren
+## är därför 2 000 och inte 1 000 (den ligger i `tools/uv_byn.py`): nattvarianten landar på 0,32 %
+## över 240 och den utbrända stenfasadens yta faller 84 %. Fönstervärmen sitter i glb:ns EGNA
+## självlysande glastexturer (PX_Window Warm, Exit_Sign_Glow) och rörs inte av den raden.
 
 ## DE TVÅ RIKTNINGSLJUSEN I FILEN, som scenens egna noder `sol` och `fyllnad` ersätter: samma
 ## riktning, färg och styrka, men de går att ställa in i scenen (och `sol` bär skuggorna). Att ha båda
@@ -84,7 +90,6 @@ func _knyt() -> void:
 	miljö = get_node_or_null("miljö") as WorldEnvironment
 	rök = get_node_or_null("rök") as GPUParticles3D
 	if by != null:
-		_dämpa_ljus(by)
 		_släck_dubblar(by)
 
 func _bygg_i_kod() -> void:
@@ -103,13 +108,6 @@ func _bygg_i_kod() -> void:
 func _säkerställ() -> void:
 	if by == null:
 		_knyt()
-
-## Skala om ljusen i den instansierade scenen. Uniformt — hela ljusriggen delas med samma tal, så
-## förhållandet mellan skyltglöden, facklorna och ässjan är det Alex satte i Blender.
-func _dämpa_ljus(rot: Node) -> void:
-	for n in rot.find_children("*", "Light3D", true, false):
-		var l := n as Light3D
-		l.light_energy = l.light_energy / LJUS_DELARE
 
 ## Släck de riktningsljus i glb:n som scenens egna noder ersätter (se GLB_SLÄCKT). Allt annat i filen
 ## — skyltglöden, facklorna, ässjan, värdshusets fönster — är kvar och lyser som förut.

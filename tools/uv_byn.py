@@ -13,7 +13,8 @@ fogmätning läses ur tex/_plattor.json, så listan kan inte säga något annat 
 
 KÖRS OM NÄR NYA TEXTURER KOMMER. Skriptet bakar UV mot scenens NUVARANDE geometri; kommer fler
 hus till kör man det igen och får nya UV för de nya objekten. Det rör bara UV-lagret — material,
-färger, ljus och kameror lämnas ifred.
+färger och kameror lämnas ifred. LJUSEN är undantaget: de delas med LJUS_DELARE innan filen skrivs
+(se kommentaren vid konstanten), eftersom glTF bär dem med och Godot läser Blenders enheter rakt av.
 
 MÄTT I UTGÅNGSLÄGET (2026-10-14): 1950 objekt, 1931 mesh, 37 292 trianglar, 50 material,
 **0 av 1931 mesh-objekt hade ett UV-lager och filen innehöll inga bildtexturer alls**. Allt var
@@ -63,6 +64,34 @@ LISTA = ROT / "tools" / "texturlistan_by.md"
 OMD = Path.home() / ".hermes" / "cache" / "scratch" / "omd"
 BEVISFIL = OMD / "byn_uv_checker.png"
 NÄRFIL = OMD / "byn_uv_checker_nara.png"
+
+## LJUSEN: BLENDERS ENHETER -> GODOTS. Alex' ljus i .blend-filen är lux / candela och ligger tre
+## storleksordningar över Godots `light_energy` (MÄTT: med talen orörda blir 52 % av spelets bild ren
+## vit och byn en vit klump). Omräkningen bakas in HÄR, i själva exporten, och inte i spelets kod:
+## `game/ui/by_3d.gd` delade varje ljus med 2000 varje gång scenen byggdes — men den raden kör bara när
+## SPELET kör. I Godot-editorn (och för varje annan läsare av filen) stod ljusen kvar på Blenders värden
+## och `game/scenes/by.tscn` visades HELT VIT, trots att hela poängen med scenen är att Alex ska kunna
+## redigera den. Filen bär därför Godots enheter; ingen läsare behöver räkna om något.
+##
+## FAKTORN 2000 är exakt den koden använde (`LJUS_DELARE` i by_3d.gd), uniformt på alla ljus — de
+## halverades en gång tidigare (1 000 -> 2 000) efter mätningen som visade att det var PUNKTLJUSEN och
+## inte solen som brände stenfasaderna. Ändra den bara med en ny mätning av spelets egen rendering.
+LJUS_DELARE = 2000.0
+
+
+def dämpa_ljus(delare: float = LJUS_DELARE) -> list:
+    """Delar varje ljus i scenen med `delare`. Returnerar [(namn, energi)] efter omräkningen.
+
+    Anropas av `exportera` — den ENDA vägen till en .glb härifrån — så att ingen export kan hoppa över
+    omräkningen och skicka ut Blenders enheter till Godot igen.
+    """
+    ut = []
+    for o in bpy.context.scene.objects:
+        if o.type != "LIGHT":
+            continue
+        o.data.energy /= delare
+        ut.append((o.name, o.data.energy))
+    return ut
 
 UV_NAMN = "UVMap"
 ## Rutans kant i px. MÄTT: projektets egna plattor är 256x256 (super-rutorna 512), och
@@ -235,6 +264,12 @@ def mät_alla(meshar, platta: float) -> dict:
 
 def exportera(glb: Path):
     glb.parent.mkdir(parents=True, exist_ok=True)
+    # LJUSEN FÖRST (se LJUS_DELARE): filen ska bära Godots enheter, så att spelet, editorn och varje
+    # annat program som öppnar den ser SAMMA by. Utskriften är kontrollen — står Blenders tal kvar här
+    # har någon kopplat ur omräkningen.
+    ljus = dämpa_ljus()
+    print("LJUS: %d ljus delade med %.0f (Blender -> Godot): %s" %
+          (len(ljus), LJUS_DELARE, ", ".join("%s %.4f" % (n, e) for n, e in sorted(ljus))))
     bpy.ops.export_scene.gltf(filepath=str(glb), export_format="GLB", export_yup=True,
                               export_apply=True, export_extras=True, export_lights=True)
 

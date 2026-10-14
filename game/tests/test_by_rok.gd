@@ -238,10 +238,12 @@ func _initialize() -> void:
 	check(nod != null, "by-vyn bygger 3D-byn (By3D) när den visas", "ui/village_view.gd -> ui/by_3d.gd")
 	check(nod != null and nod.by != null and nod.by.get_child_count() > 0,
 		"och byn.glb ligger i den", "%d noder" % (nod.by.get_child_count() if nod != null and nod.by != null else 0))
-	# LJUSEN. Blenders ljus (KHR_lights_punctual) står i filen med Blenders enheter och Godot läser
-	# talet rakt av: Main_Sun 2186, Tavern_Warm_Glow 11 957 ... MÄTT med dem orörda blev 52 % av
-	# bilden ren vit (255,255,255) — taken och gatan klipptes, alltså ingen by. Provet fäller om
-	# något ljus står kvar i den storleken.
+	# LJUSEN. Blenders ljus (KHR_lights_punctual) är i sina EGNA enheter (lux/candela) och Godot läser
+	# talet rakt av: Main_Sun 2186, Tavern_Warm_Glow 11 957 ... MÄTT med dem orörda blev 52 % av bilden
+	# ren vit (255,255,255) — taken och gatan klipptes, alltså ingen by. Omräkningen ligger nu i FILEN
+	# (`tools/uv_byn.py`:s `exportera` delar varje ljus med LJUS_DELARE) och inte i spelets kod, så att
+	# editorn och varje annan läsare av byn.glb ser samma by som spelet. Provet fäller om en export
+	# nån gång skickar ut Blenders enheter igen.
 	var antal_ljus := 0
 	var starkast := 0.0
 	var namn := ""
@@ -252,6 +254,7 @@ func _initialize() -> void:
 			if lg.light_energy > starkast:
 				starkast = lg.light_energy
 				namn = str(lg.name)
+	# Den här raden ser SAMMA tal som filen bär: by_3d.gd räknar inte om något längre.
 	check(antal_ljus >= 8 and starkast <= 20.0,
 		"och ljusen i filen är dämpade till Godots enheter (annars blir hela bilden vit)",
 		"%d ljus, starkaste %s %.2f" % [antal_ljus, namn, starkast])
