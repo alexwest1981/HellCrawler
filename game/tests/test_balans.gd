@@ -34,6 +34,15 @@ var fails := 0
 var checks := 0
 var policy_rng: RandomNumberGenerator
 var policy_damage := 0.0
+## RATT D (M120, "gratis är inte gratis"): vad korten KOSTAR och vad de GER. Referensens 0-kostnads-
+## kort är Crawlers med Duration eller wilds som förstörs; våra ligger kvar för alltid. Siffrorna här
+## är baslinjen för den ändringen — andelen spelade kort som är gratis, och manan netto (vad korten
+## gav minus vad de kostade). Grinden ("gratisandelen faller, manan slutar gå plus") sätts när datan
+## ändras, inte före: en grind för en mekanik som inte finns är bara röd.
+var policy_spelade := 0
+var policy_gratis := 0
+var policy_mana := 0
+var policy_db: Dictionary = {}
 
 func check(ok: bool, what: String, detail: String = "") -> void:
 	checks += 1
@@ -66,7 +75,7 @@ func _initialize() -> void:
 	print("            | fiender/möte %d–%d | fiende-tier 1: HP %s"
 		% [referens.enemies_per_encounter[0], referens.enemies_per_encounter[1], _tier1(bestiary)])
 
-	print("\nbana | lek | policy | n | klarade | dog | medelvåning | förlorade strider | skada tagen | nivå (kort) | vunna strider")
+	print("\nbana | lek | policy | n | klarade | dog | medelvåning | förlorade strider | skada tagen | nivå (kort) | vunna strider | spelade | gratis % | mana netto")
 	var summa := {"slump": 0, "auto": 0, "rutt": 0}
 	var mojligt := ANTAL * STAGE_IDS.size()
 	if rattprov:
@@ -80,10 +89,12 @@ func _initialize() -> void:
 			for policy in ["slump", "auto", "rutt"]:
 				var n := ANTAL if lek == "startlek" else ANTAL_SLUMP3
 				var total := _serie(stage, bestiary, db, ids, lek, policy, n)
-				print("%s | %s | %s | %d | %.0f%% | %.0f%% | %.2f | %.2f | %.1f | %.1f | %.1f" % [
+				print("%s | %s | %s | %d | %.0f%% | %.0f%% | %.2f | %.2f | %.1f | %.1f | %.1f | %.0f | %.0f%% | %+.1f" % [
 					stage_id, lek, policy, n, 100.0 * total.clear / n, 100.0 * total.dead / n,
 					total.floor / n, float(total.lost) / n, total.damage / n,
-					total.niva / n, total.strider / n])
+					total.niva / n, total.strider / n,
+					total.spelade / float(n), 100.0 * total.gratis / maxf(1.0, float(total.spelade)),
+					total.mana / float(n)])
 				if lek == "startlek":
 					summa[policy] += total.clear
 
@@ -120,7 +131,7 @@ func _tier1(bestiary: Dictionary) -> String:
 func _serie(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids: Array,
 		lek: String, policy: String, n: int) -> Dictionary:
 	var total := {"clear": 0, "dead": 0, "reaped": 0, "floor": 0.0, "lost": 0, "damage": 0.0,
-		"niva": 0.0, "strider": 0.0}   ## nivå = antal kort körningen tagit (ett val per nivå), strider = vunna
+		"niva": 0.0, "strider": 0.0, "spelade": 0.0, "gratis": 0.0, "mana": 0.0}
 	for i in n:
 		var seed_value := 810000 + i * 13 + STAGE_IDS.find(stage.id) * 10000
 		var val := RandomNumberGenerator.new()
@@ -136,6 +147,10 @@ func _serie(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids: A
 		policy_rng = RandomNumberGenerator.new()
 		policy_rng.seed = seed_value * 7919 + 53
 		policy_damage = 0.0
+		policy_db = db
+		policy_spelade = 0
+		policy_gratis = 0
+		policy_mana = 0
 		_play_nodes(run, policy)
 		total.clear += int(run.outcome == "cleared" or run.outcome == "reaped")
 		total.dead += int(run.outcome == "dead")
@@ -145,7 +160,23 @@ func _serie(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids: A
 		total.damage += policy_damage
 		total.niva += run.level
 		total.strider += run.fights_won
+		total.spelade += policy_spelade
+		total.gratis += policy_gratis
+		total.mana += policy_mana
 	return total
+
+## Bokför ett spelat kort (ratt D): vad det kostade och vad det gav. `betalat_med_blod` betyder att
+## banans regel tog priset i hälsa i stället för mana, och en wild kort kostar ingen mana alls.
+func _bokför(r: Combat.PlayResult) -> void:
+	if not r.ok:
+		return
+	policy_spelade += 1
+	var kort: Cards.Card = policy_db.get(r.card_id)
+	if kort != null and kort.cost <= 0:
+		policy_gratis += 1
+	policy_mana += r.mana
+	if kort != null and not kort.is_wild() and not r.betalat_med_blod:
+		policy_mana -= kort.cost
 
 ## Slumppolicyn: välj likformigt bland de spelbara korten, avsluta turen när inget går att spela.
 ## Det är "klicka på tre kort" — ingen strategi, ingen kedja, ingen hänsyn till vad som är starkt.
@@ -162,8 +193,10 @@ func _slump_fighter(combat: Combat) -> void:
 					playable.append(i)
 			if playable.is_empty():
 				break
-			if not combat.play(playable[policy_rng.randi_range(0, playable.size() - 1)]).ok:
+			var r := combat.play(playable[policy_rng.randi_range(0, playable.size() - 1)])
+			if not r.ok:
 				break
+			_bokför(r)
 			cards_played += 1
 		if not combat.over():
 			var before := combat.hp
@@ -174,7 +207,8 @@ func _auto_fighter(combat: Combat) -> void:
 	var turns := 0
 	while not combat.over() and turns < Run.MAX_TURNS_PER_FIGHT:
 		turns += 1
-		combat.auto_play()
+		for r in combat.auto_play():
+			_bokför(r)
 		if not combat.over():
 			var before := combat.hp
 			combat.end_turn()
