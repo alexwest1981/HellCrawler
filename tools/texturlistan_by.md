@@ -165,12 +165,12 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Grass Flowers` | `grass.png` | 0 | 0 | 0.0 |
 | `PX_Hedge` | `hedge.png` | 38 | 3040 | 177.4 |
 | `PX_Iron Riveted` | `metal_riveted.png` | 44 | 1532 | 11.5 |
-| `PX_Ljus Varm` | `ljus_varm.png` | 2 | 12 | 5.2 |
+| `PX_Ljus Varm` | `ljus_varm.png` | 0 | 0 | 0.0 |
 | `PX_Lövverk` | `lov.png` | 55 | 4400 | 705.8 |
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
 | `PX_Mörk Zon` | `mork_zon.png` | 1 | 6 | 742.2 |
 | `PX_Purple Roof` | `tak_lila.png` | 98 | 588 | 43.3 |
-| `PX_Ram` | `ram.png` | 33 | 198 | 54.7 |
+| `PX_Ram` | `ram.png` | 26 | 156 | 36.3 |
 | `PX_Sand Path` | `sand_path.png` | 0 | 0 | 0.0 |
 | `PX_Skylt` | `skylt.png` | 8 | 48 | 15.1 |
 | `PX_Slate Roof` | `tak_skiffer.png` | 280 | 1680 | 104.5 |
@@ -178,8 +178,8 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
 | `PX_Terracotta Roof` | `tak_tegel.png` | 322 | 1932 | 131.9 |
 | `PX_Tudor Plaster` | `puts.png` | 71 | 426 | 862.9 |
-| `PX_Window Bright` | `window_narrow.png` | 0 | 0 | 0.0 |
-| `PX_Window Warm` | `window_four_pane.png` | 0 | 0 | 0.0 |
+| `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
+| `PX_Window Warm` | `window_four_pane.png` | 7 | 42 | 18.4 |
 | `PX_Wood` | `virke.png` | 207 | 1322 | 669.7 |
 | `Sign_Text` | `**ingen bild**` | 0 | 0 | 0.0 |
 
