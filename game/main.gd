@@ -164,6 +164,7 @@ var _raddad_sjal := ""
 ## Dagens körning (önskemål 24, punkt 5): satt av _start_dagens och läst när körningen tar slut.
 var _dagens := false
 var _enemies: Array = []        ## [{spr, bas, vick, fas, hp, läge, läge_t}] — figurerna i rummet, animerade i _process
+var _förvarningar: Array[Label3D] = []   ## telegrammets siffror (M121) — se `_förvarning_visa`
 
 # Rutorna i fiendebilden (tools/gen_enemy_art.py), i den ordning de ligger i PNG:n. Siffrorna står
 # här och inte på sex ställen i koden: byter konsten ordning ska det vara en rad att ändra.
@@ -10238,6 +10239,73 @@ func _vapensving(kort: Cards.Card) -> void:
 ## inget HÄNDER (Alex: "det gäller att få till så det är en visuell bekräftelse att man attackerar
 ## med"). Tre saker på samma gång, för de svarar på olika frågor: SIFFRAN säger hur mycket, BLINKET
 ## säger att det tog, och KNUFFEN säger var.
+## Siffrornas PLATS — delad av slaget (`_slag_kvitto`) och telegrammet (`_förvarning_visa`), så två
+## siffror över samma fiende står på samma ställe.
+## Siffran fästs i SKÄRMKOORDINATER, inte i världen. Världsoffset gav olika höjd beroende på hur
+## långt bort fienden stod — vid 1,15 m hamnade talet uppe i stridspanelen (mätt två gånger).
+## Här räknas önskad skärmpunkt om till en världspunkt på fiendens djup: 34 px över bröstet och
+## en bit åt sidan, lika läsbart på alla avstånd.
+func _siffra_plats(spr: Sprite3D, sida: float) -> Vector3:
+	var bröst := spr.global_position + Vector3(0.0, 0.1, 0.0)
+	var djup := cam.global_position.distance_to(bröst)
+	var vy := _vy_mått()           # skärmkoordinaterna är VYNS: kameran ritar i vyns eget mått (M113)
+	var skärm := cam.unproject_position(bröst) + Vector2(sida, -30.0)
+	# Talet hålls inom den LÄSBARA korridoren. Står fienden nära hamnade bröstet högt i bild och
+	# siffran bakom stridspanelen (mätt): kläm in den under panelerna och över korten i stället för
+	# att lita på att världspunkten råkade landa bra.
+	skärm.x = clampf(skärm.x, 26.0, vy.x - 26.0)
+	skärm.y = clampf(skärm.y, vy.y * 0.34, vy.y * 0.76)
+	return cam.project_position(skärm, djup) if not cam.is_position_behind(bröst) \
+		else bröst + Vector3(sida * 0.01, 0.1, 0.0)
+
+
+## TELEGRAMMET (M121, ratt E). Referensen visar fiendens drag INNAN man spelar, så spelaren kan räkna
+## i stället för att bli överraskad; våra siffror kom först när slaget redan fallit. Talet kommer ur
+## `Combat.inkommande()` — samma regel som `enemy_turn` läser sin ur, alltså kan vyn aldrig visa ett
+## annat tal än det som faller. Anropas efter VARJE spelat kort (`_end_or_continue`), så siffrorna
+## följer med när en fiende dör; `_förvarning_töm` städar när slaget fallit.
+func _förvarning_visa() -> void:
+	_förvarning_töm()
+	if active_combat == null or battle_panel == null or not battle_panel.visible:
+		return
+	# `_enemies` byggs ur samma `enemy_count_for` i samma ordning som `active_combat.enemies`, så
+	# indexet pekar på samma fiende i båda (står i bygget av listan).
+	for i in active_combat.enemies.size():
+		if i >= _enemies.size():
+			break
+		var e: Combat.Enemy = active_combat.enemies[i]
+		if not e.alive():
+			continue
+		var slår := false
+		for rad in active_combat.inkommande():
+			if rad["enemy"] == e:
+				slår = true
+				break
+		if not slår:
+			continue
+		var spr: Sprite3D = _enemies[i]["spr"]
+		if not is_instance_valid(spr):
+			continue
+		var lbl := Label3D.new()
+		lbl.text = "−%.0f" % e.damage
+		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		lbl.no_depth_test = true
+		lbl.pixel_size = 0.0032
+		lbl.font_size = 40
+		lbl.outline_size = 6
+		lbl.outline_modulate = Color(0.04, 0.03, 0.03, 0.95)
+		lbl.modulate = Color(1.0, 0.62, 0.35)      # varning, inte blod: det här är ännu inte skada
+		lbl.position = _siffra_plats(spr, 0.0)
+		world.add_child(lbl)
+		_förvarningar.append(lbl)
+
+func _förvarning_töm() -> void:
+	for lbl in _förvarningar:
+		if is_instance_valid(lbl):
+			lbl.queue_free()
+	_förvarningar.clear()
+
+
 func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) -> void:
 	if skada <= 0.0 or not is_instance_valid(spr):
 		return
@@ -10261,15 +10329,7 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 	var sida := 44.0 if randf() < 0.5 else -44.0
 	var bröst := spr.global_position + Vector3(0.0, 0.1, 0.0)
 	var djup := cam.global_position.distance_to(bröst)
-	var vy := _vy_mått()           # skärmkoordinaterna är VYNS: kameran ritar i vyns eget mått (M113)
-	var skärm := cam.unproject_position(bröst) + Vector2(sida, -30.0)
-	# Talet hålls inom den LÄSBARA korridoren. Står fienden nära hamnade bröstet högt i bild och
-	# siffran bakom stridspanelen (mätt): kläm in den under panelerna och över korten i stället för
-	# att lita på att världspunkten råkade landa bra.
-	skärm.x = clampf(skärm.x, 26.0, vy.x - 26.0)
-	skärm.y = clampf(skärm.y, vy.y * 0.34, vy.y * 0.76)
-	lbl.position = cam.project_position(skärm, djup) if not cam.is_position_behind(bröst) \
-		else bröst + Vector3(sida * 0.01, 0.1, 0.0)
+	lbl.position = _siffra_plats(spr, sida)
 	world.add_child(lbl)
 	var t := create_tween().set_parallel(true)
 	t.tween_property(lbl, "position:y", lbl.position.y + djup * 0.35, 0.75) \
@@ -11032,6 +11092,7 @@ func _enter_node_here() -> void:
 			# fienderutan stod kvar med förra stridens värden tills något annat rörde tillståndet —
 			# mätt med guiprovet, där fienderutan var tom ända till dess _refresh kallades för hand.
 			_refresh()
+			_förvarning_visa()    # telegrammet syns från stridens FÖRSTA tur också (M121)
 			return
 	# shovel eller något annat: lös direkt och bygg om våningen
 	run.enter_node(node)
@@ -11404,6 +11465,9 @@ func _on_end_turn() -> void:
 		return
 	var hp_före: float = active_combat.hp
 	active_combat.end_turn()
+	# Slaget har fallit: varningen har gjort sitt och städas, annars står en gammal nia kvar över en
+	# fiende som redan slagit (och nästa turs siffror läggs ovanpå den).
+	_förvarning_töm()
 	if active_combat.hp < hp_före:
 		_blink_röd(hp_före - active_combat.hp)
 		# Loggen: vad fienderna gjorde med dig. Namnen är de levande fiendernas, så raden säger vem.
@@ -11417,6 +11481,7 @@ func _end_or_continue() -> void:
 	if active_combat == null:
 		return
 	if active_combat.over():
+		_förvarning_töm()     # striden är slut: inga varningssiffror får stå kvar (M121)
 		run.leave_node(active_node, active_combat)
 		active_combat = null
 		active_node = null
@@ -11431,7 +11496,11 @@ func _end_or_continue() -> void:
 	# HUD:ENS SIFFROR MÅSTE FÖLJA MED (M119). Här slutade den enda vägen ut ur ett spelat kort, ur
 	# "spela allt" (P) och ur en avslutad tur (E) — stridspanelen och handen ritades om, men HUD:ens
 	# kärl gjorde det inte: `_hud_sätt` anropas BARA från `_refresh`, och ingen av de tre vägarna gick
-	# dit. Alex: *"När man mottagit en armor, så händer inget med armor-orben"* — mätt: klotet stod på
+	# till. Alex: *"När man mottagit en armor, så händer inget med armor-orben"* — mätt: klotet stod på
 	# "0/1" medan rustningen gick 0 → 8. Ett kort som ger rustning, helar eller fyller mana är en
 	# ändring av speltillståndet, och HUD:en ska visa det tillståndet.
 	_refresh()
+	# Och telegrammet ritas om på samma väg (M121): det här är den enda platsen ALLA vägar ut ur ett
+	# spelat kort passerar, så siffrorna över fienderna följer med när en fiende dör — dör den som
+	# skulle slå för 9 försvinner nian ur vyn i samma stund.
+	_förvarning_visa()

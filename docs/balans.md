@@ -212,7 +212,7 @@ byggs.
 | B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | **halvbyggd**: flaggan per kort finns och mäts; relicen som låser upp kedjan är kvar |
 | C | **Belöningarna är strypta**: `RewardProbability` per kort, `CardLimit` per kortgrupp, Reroll/Skip/Banish | Fler fiender = fler kort = **lättare**. Mätt: `fiender=3` gav slumpen **+20 pp** | Kortvalet på sannolikhet (under 1) och/eller trögare XP-kurva | Ny grindrad: "fler fiender får inte göra banan lättare" | **prövad, nedlagd** (se nedan) |
 | D | **Gratis är inte gratis**: 0-kostnadskort är Crawlers med Duration, eller wilds som förstörs | 18 kort på kostnad 0 ligger kvar; startleken har 4×`lash` (12 skada utan villkor) och **6 mana-positiva** kort (`ember_tome` 1→+2, `hourglass` 3→+5) | Duration/Destroy på gratiskorten (nyckelorden finns redan i 7 kort), eller mananeutrala tomtar | Gratiskortens andel av spelade kort faller; manan slutar gå plus | planerad |
-| E | Fienden **telegraferar**, spelaren väljer mål | Ingen målväljning i maskinen. Mätt: att styra skadan mot främre raden gjorde det *sämre* (överkill — gissning, inte mätt) | Intents och överspill, eller uttalat målval i vyn | En policy som väljer mål bra ska slå en som väljer dåligt | planerad |
+| E | Fienden **telegraferar**, spelaren väljer mål | Telegrammet och målvalet finns i maskinen (`inkommande()`, `play(i, mål)`, `_målval`), och målpolicyn är mätt. **Mätt: valet betyder inget än** — 11 mot 11, rad för rad identiskt, för bara främre raden slår | Radregeln: varje fiende telegraferar sitt EGET slag och slår oavsett rad (referensens modell) | Målvalet slår att inte välja mål (i dag enkelriktad: får inte bli sämre) | halvbyggd |
 
 ### A, byggd och mätt (M118)
 
@@ -270,6 +270,43 @@ Kortens snöboll är den mekanism som förstärker skicklighet mest; den ska int
 spelaren något annat att vara bra på. Ratten står kvar på 1,0 med mätningen i kommentaren, och
 inversionen är borta ändå — det var RUMMETS PACKET som tog bort den (`fiender=3` straffar nu i stället
 för att belöna).
+
+### E, halvbyggd och mätt: telegrammet finns, men valet betyder inget än (M121)
+
+Referensen gör två saker som hänger ihop: fienden **telegraferar** sitt drag innan man spelar, och
+spelaren **väljer mål**. Båda är byggda i maskinen:
+
+- `Combat.inkommande()` — vem som slår nästa fiende tur och för hur mycket. Regeln ligger i
+  `_slår_nästa_tur`, som `enemy_turn` OCKSÅ läser, så telegrammet kan inte ljuga om slaget som faller.
+  Frusen fiende, boss med stängda ögon och bakre rader listas inte.
+- `Combat.play(index, mål)` fanns redan; `_hit_plan` kapar redan vid kvarvarande HP, så en fokusering
+  slösar ingen skada på en fiende som ändå dör.
+- `Combat._målval(index)` — målregeln, den spelaren kan LÄSA ur telegrammet: träffa den som slår
+  hårdast härnäst; när ingen slår, den främre raden (alltså samma svar som förut i det läge där svaret
+  inte kan bli bättre). Autospelaren fick flaggan `målval` (avstängd som förval), och mätaren en fjärde
+  policy, `mal`, som är autospelaren med målval och inget annat — samma väg, samma frön.
+- Provet `test_rules.gd` grindar telegrammet och valet: fem fiender där bara två slår (14 skada), och
+  samma `lash` går på valt mål i stället för på den främsta. 144 kontroller, 0 fel.
+
+**MÄTT: valet gör ingen skillnad.** Målpolicyn blev IDENTISK med autospelaren i 60 körningar — 11 mot
+11, samma skada per bana, samma antal spelade kort. Orsaken står i **radregeln**: bara främre raden
+slår, alltså är främre raden alltid rätt mål, och inom en rad är fienden utbytbar mot sin granne.
+
+Försöket att ge valet något att välja mellan föll, och det är mätningen som fällde det: packet
+byggdes som en GRUPP (första fienden = rummets egen, resten ur samma tier med rummets frö, som
+referensens `EncounterTemplate` + `Min/MaxEnemyVariance`) i stället för som kopior av EN fiende.
+Resultat: **slumpen 5 → 8 av 60, autospelaren 11 → 8, bästa policyn 15 → 12, kvoten 3,0× → 1,5×** —
+alla fyra grindar föll, och målvalet blev fortfarande inte bättre (7 mot 8). Blandade pack gav alltså
+TUR, inte SKICKLIGHET: variation utan val är brus. Försöket är rivet; `run.gd` är som förut.
+
+Det är samma läxa som kartkurvan gav, i motsatt riktning: en mekanik är inte värd något förrän någon
+kan AGERA på den — och variation som inte går att agera på gör spelet bara turligare.
+
+**E:s riktiga ratt är därför radregeln**: låt VARJE fiende telegrafera sitt eget slag och slå oavsett
+rad (referensens modell, där intents är per fiende). Då blir "döda den som slår 9 innan den som slår
+5" ett riktigt val, och först då kan den stränga grinden sättas. Det är en kärnregel i striden och
+ändrar spelets identitet — därför ett beslut, inte ett mått. Grinden står så länge enkelriktad
+("målvalet gör det inte sämre").
 
 Ordningen de tas i är inte tabellordningen: **C** prövades först och lades ned, **A** är byggd, **B** är
 halvvägs (flaggan per kort är byggd och mätt, relicen som låser upp kedjan är kvar), sedan **D** (kortdata

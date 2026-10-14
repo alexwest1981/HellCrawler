@@ -198,6 +198,34 @@ func play(index: int, target: Enemy = null) -> PlayResult:
 	r.ok = true
 	return r
 
+## MÅLET FÖR ETT KORT (M121, ratt E). Referensen telegraferar fiendens drag och låter spelaren välja
+## mål; våra kort gick alltid på främre raden. Regeln är den spelaren kan LÄSA ur telegrammet:
+## träffa den som slår hårdast härnäst — då försvinner hela slaget om den faller, och kapningen i
+## `_hit_plan` gör att fokuseringen aldrig slösar skada på en fiende som ändå dör. När ingen slår
+## (frusna, boss med stängda ögon) är svaret den främre raden, alltså samma svar som förut i det
+## läge där svaret inte kan bli bättre. Ett försök med målstyrning UTAN telegrammet föll tidigare
+## (docs/balans.md §7): det var en gissning, och den var sämre än att låta bli.
+func _målval(index: int) -> Enemy:
+	if index < 0 or index >= hand.size():
+		return null
+	var hetast: Enemy = null
+	for rad in inkommande():
+		var e: Enemy = rad["enemy"]
+		if hetast == null or e.damage > hetast.damage:
+			hetast = e
+	if hetast != null:
+		return hetast
+	var framst := 9999
+	for e in enemies:
+		if e.alive():
+			framst = mini(framst, e.row)
+	if framst == 9999:
+		return null
+	for e in enemies:
+		if e.alive() and e.row == framst:
+			return e
+	return null
+
 ## Kompanjonerna i spel reagerar på kortet som just spelades (M119). Effekterna går genom SAMMA väg som
 ## ett spelat kort (`_apply_effects`), men utan kedjemultiplikator: de är redan betalda en gång, och
 ## kedjan hör till korten på handen. Varje reaktion räknas ner, och vid noll lämnar kortet bordet.
@@ -228,6 +256,31 @@ func end_turn() -> Array:
 	start_turn()
 	return log
 
+## VEM som slår nästa fiende tur och för hur mycket — TELEGRAMMET, utan att röra något. Referensen
+## visar fiendens drag innan man spelar; spelarens svar (och provets målpolicy) behöver samma siffra.
+## Regeln bor i `_slår_nästa_tur`, som `enemy_turn` också läser — annars kunde telegrammet ljuga.
+func inkommande() -> Array:
+	var front_row := 9999
+	for e in enemies:
+		if e.alive():
+			front_row = mini(front_row, e.row)
+	var ut := []
+	for e in enemies:
+		if _slår_nästa_tur(e, front_row):
+			ut.append({"enemy": e, "damage": e.damage})
+	return ut
+
+## Slår fienden när turen kommer? Frusen står still, en boss med stängda ögon slår inte, och bara den
+## FRÄMRE raden slår (bakre rader avancerar när raden framför är död).
+func _slår_nästa_tur(e: Enemy, front_row: int) -> bool:
+	if not e.alive():
+		return false
+	if e.frozen > 0:
+		return false
+	if e.eyes_max > 0 and e.eyes_open < e.eyes_max:
+		return false
+	return e.row <= front_row
+
 ## Fiendernas tur. Bossar med ögon slår när alla ögon är öppna.
 func enemy_turn() -> Array:
 	var events := []
@@ -249,9 +302,7 @@ func enemy_turn() -> Array:
 			e.frozen -= 1
 			events.append({"type": "thaw", "enemy": e.id, "left": e.frozen})
 			continue
-		if e.eyes_max > 0 and e.eyes_open < e.eyes_max:
-			continue
-		if e.row > front_row:
+		if not _slår_nästa_tur(e, front_row):
 			continue
 		dmg_total += e.damage
 	if dmg_total > 0.0:
@@ -302,19 +353,22 @@ func enemy_hp_percent() -> float:
 ##   5. spela aldrig Destroy-kort automatiskt (de är engångsresurser spelaren vill behålla)
 ##   6. spela aldrig ett kort som saknar manakostnad kvar att betala
 ##   7. inom SAMMA kostnad går ett kort som STANNAR i spel först (det betalar igen nästa tur)
+##   8. MÅLVAL (ratt E) är avstängt som förval: `målval=true` siktar kortet på den fiende telegrammet
+##      (`inkommande()`) säger slår hårdast härnäst, i stället för på främre raden. Slås på av den
+##      policy som ska bevisa att målvalet är värt något — annars vore skillnaden omätbar.
 ##
 ## REGEL 3 ÄR MÄTT IN (14/10): förut STANNADE autospelaren vid första glappet och lämnade både mana och
 ## kort ospelade. I en mätning klarade slumppolicyn 8 % av körningarna och solvern 2 % — den var alltså
 ## SÄMRE än att klicka på måfå. En solver som är sämre än slumpen är inte en solver. Talen, ratten och
 ## hela balansmätningen: `docs/balans.md`.
 ## Returnerar loggen över vad som spelades, i ordning.
-func auto_play(max_cards: int = 99, allow_wilds: bool = true) -> Array:
+func auto_play(max_cards: int = 99, allow_wilds: bool = true, målval: bool = false) -> Array:
 	var log := []
 	for step in max_cards:
 		var index := _best_index(allow_wilds)
 		if index < 0:
 			break
-		var r := play(index)
+		var r := play(index, _målval(index) if målval else null)
 		if not r.ok:
 			break
 		log.append(r)

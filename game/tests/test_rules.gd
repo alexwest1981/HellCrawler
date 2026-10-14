@@ -159,6 +159,42 @@ func _initialize() -> void:
 	check(is_equal_approx(hp.enemy_hp_percent(), 87.5), "procent räknas på kvarvarande fiender",
 		"%.1f %%" % hp.enemy_hp_percent())
 
+	print("— telegrammet och målvalet (M121, ratt E) —")
+	var tel := Combat.new(77)
+	tel.begin([], [combat_enemy(100.0, 5.0, 0), combat_enemy(100.0, 9.0, 0),
+		combat_enemy(100.0, 3.0, 1), combat_enemy(100.0, 99.0, 0, 4),
+		combat_enemy(100.0, 7.0, 0)])
+	tel.enemies[4].frozen = 1
+	var inkommer := tel.inkommande()
+	check(inkommer.size() == 2, "telegrammet listar bara dem som slår nästa tur",
+		"%d av %d (bakre raden, frusen och boss med stängda ögon slår inte)" % [
+			inkommer.size(), tel.enemies.size()])
+	var summa := 0.0
+	for rad in inkommer:
+		summa += float(rad["damage"])
+	check(is_equal_approx(summa, 14.0), "och summan är exakt det slaget kommer att kosta", "%.0f" % summa)
+	# Målregeln frågar efter ett kort på handen (den returnerar null utan ett), så provet lägger ett
+	# där: annars mäter kontrollen ingenting och kraschar på nollan.
+	tel.mana = 20
+	tel.hand = [db["lash"]]
+	var mal: Combat.Enemy = tel._målval(0)
+	check(mal == tel.enemies[1], "målvalet pekar på den som slår hårdast AV DEM SOM SLÅR",
+		"valde %.0f skada (bossen med %.0f slår inte än)" % [mal.damage, tel.enemies[3].damage])
+	var trad := Combat.new(77)
+	trad.begin([], [combat_enemy(100.0, 5.0, 0), combat_enemy(100.0, 9.0, 0)])
+	trad.mana = 20
+	trad.hand = [db["lash"]]
+	var utan := trad.play(0)
+	check(is_equal_approx(utan.damage, 12.0) and trad.enemies[0].hp < trad.enemies[1].hp,
+		"utan mål går skadan på den FRÄMSTA (som förut)", "%.0f" % utan.damage)
+	var med := Combat.new(77)
+	med.begin([], [combat_enemy(100.0, 5.0, 0), combat_enemy(100.0, 9.0, 0)])
+	med.mana = 20
+	med.hand = [db["lash"]]
+	med.play(0, med.enemies[1])
+	check(med.enemies[1].hp < med.enemies[0].hp, "med ett valt mål går samma kort på DET målet",
+		"fiende 2: %.0f HP mot fiende 1: %.0f HP" % [med.enemies[1].hp, med.enemies[0].hp])
+
 	_prov_nyckelord()
 	_run_shared_fixtures()
 

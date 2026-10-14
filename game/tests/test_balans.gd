@@ -43,6 +43,8 @@ var policy_spelade := 0
 var policy_gratis := 0
 var policy_mana := 0
 var policy_db: Dictionary = {}
+## Ratt E: målpolicyn spelar som autospelaren men siktar med telegrammet (`Combat.målval`).
+var policy_målval := false
 
 func check(ok: bool, what: String, detail: String = "") -> void:
 	checks += 1
@@ -76,7 +78,7 @@ func _initialize() -> void:
 		% [referens.enemies_per_encounter[0], referens.enemies_per_encounter[1], _tier1(bestiary)])
 
 	print("\nbana | lek | policy | n | klarade | dog | medelvåning | förlorade strider | skada tagen | nivå (kort) | vunna strider | spelade | gratis % | mana netto")
-	var summa := {"slump": 0, "auto": 0, "rutt": 0}
+	var summa := {"slump": 0, "auto": 0, "rutt": 0, "mal": 0}
 	var mojligt := ANTAL * STAGE_IDS.size()
 	if rattprov:
 		_rattprov(stages["stage_01"], bestiary, db, ids)
@@ -86,7 +88,7 @@ func _initialize() -> void:
 	for stage_id in STAGE_IDS:
 		var stage: Stages.StageDef = stages[stage_id]
 		for lek in ["startlek", "slump3"]:
-			for policy in ["slump", "auto", "rutt"]:
+			for policy in ["slump", "auto", "rutt", "mal"]:
 				var n := ANTAL if lek == "startlek" else ANTAL_SLUMP3
 				var total := _serie(stage, bestiary, db, ids, lek, policy, n)
 				print("%s | %s | %s | %d | %.0f%% | %.0f%% | %.2f | %.2f | %.1f | %.1f | %.1f | %.0f | %.0f%% | %+.1f" % [
@@ -110,6 +112,21 @@ func _initialize() -> void:
 				AUTO_ANDEL * 100.0, over_slump, AUTO_OVER_SLUMP])
 	check(summa["rutt"] >= summa["auto"], "kartan går att agera på: rutten slår att slåss med allt",
 		"rutt %d mot auto %d av %d" % [summa["rutt"], summa["auto"], mojligt])
+	# RATT E (M121): telegrammet (`Combat.inkommande`) och målvalet (`play(i, target)` +
+	# `Combat._målval`). Grinden är ENKELRIKTAD med flit: målvalet får inte göra det SÄMRE. Den
+	# strängare grinden — att välja mål slår att inte göra det — kan inte sättas förrän målvalet
+	# betyder något, och MÄTT betyder det inte i dag: i 60 körningar blev målpolicyn IDENTISK med
+	# autospelaren, rad för rad (11 mot 11), och försöket att ge den något att välja mellan (pack
+	# med BLANDADE fiender ur samma tier) gjorde spelet turligare utan att göra valet värt något
+	# (slumpen 5 -> 8 av 60, bästa policyn 12, kvoten 1,5x — alla grindar föll; försöket är rivet).
+	# Orsaken sitter i RADREGELN: bara främre raden slår, så främre raden är alltid rätt mål. E:s
+	# riktiga ratt är att låta VARJE fiende telegrafera sitt eget slag och slå oavsett rad — en
+	# kärnregel i striden, och ett beslut om spelets identitet, inte ett mått.
+	print("  målvalet: mål %d mot auto %d av %d  (%s)" % [summa["mal"], summa["auto"], mojligt,
+		"bättre" if summa["mal"] > summa["auto"] else
+		("lika" if summa["mal"] == summa["auto"] else "sämre")])
+	check(summa["mal"] >= summa["auto"], "målvalet gör det inte sämre",
+		"mål %d mot auto %d av %d" % [summa["mal"], summa["auto"], mojligt])
 	if rattprov:
 		_rattprov(stages["stage_01"], bestiary, db, ids)
 	print("kontroller: %d, fel: %d" % [checks, fails])
@@ -144,6 +161,7 @@ func _serie(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids: A
 				kort.append(ids[val.randi_range(0, ids.size() - 1)])
 		var run := Run.new(stage, bestiary, Cards.make_pile(db, kort), seed_value, db)
 		run.fighter = Callable(self, "_slump_fighter" if policy == "slump" else "_auto_fighter")
+		policy_målval = policy == "mal"
 		policy_rng = RandomNumberGenerator.new()
 		policy_rng.seed = seed_value * 7919 + 53
 		policy_damage = 0.0
@@ -207,7 +225,7 @@ func _auto_fighter(combat: Combat) -> void:
 	var turns := 0
 	while not combat.over() and turns < Run.MAX_TURNS_PER_FIGHT:
 		turns += 1
-		for r in combat.auto_play():
+		for r in combat.auto_play(99, true, policy_målval):
 			_bokför(r)
 		if not combat.over():
 			var before := combat.hp
