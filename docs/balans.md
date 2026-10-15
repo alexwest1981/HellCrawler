@@ -707,3 +707,52 @@ avstånd, vilket är dimman som ska bära avståndet.
 **Grind:** `test_ljus.gd` kör en våning och läser dimman, facklans dimenergi, avståndsdimman och
 väggtonen (och att väggbygget faktiskt skickar in den — den gamla buggen var ett argument som
 saknades, inte ett tal som var fel).
+
+---
+
+## 12. Texturpaketet: vad som faktiskt blev bättre (15/10)
+
+Alex pekade på `~/Downloads/Textures` och frågade om något därifrån kan användas i stället, och bad
+mig använda normalmappar och råhetskartor. Arbetet ligger i `tools/gen_ytor_paket.py` (egen generator —
+`gen_tiles_alex.py` rörs inte, den äger Alex' egna ark).
+
+**Två fällor som kostade mätningar:**
+1. **`N.png` i paketet är en PREVIEW**, inte rutan: en rendering av materialet på en cylinder med
+   inbakad belysning, och inte kvadratisk (729x745). Albedon är `N_diffuseOriginal.bmp` (1024x1024).
+   Mätte jag fel fil fick paketet "dubbelt så brett tonomfång" — det var cylinderns belysning.
+2. **Godots importcache.** Att skriva om en PNG gör ingenting förrän `godot --headless --editor --quit`
+   har importerat om: första mätningen efter bytet gav *identiska* siffror (0,2368 mot 0,2370) och det
+   var inte texturen, det var den gamla `.ctex`-filen.
+
+**Mätt, den här gången på rätt filer** (median / spann p90−p10), vår vägg mot paketets kandidater:
+
+| | median | spann |
+|---|---|---|
+| vår `asklunden/wall.png` | 0,212 | **0,224** |
+| Roots/2 (asklunden) | 0,408 | 0,404 |
+| Stone Wall/1 (krypta) | 0,384 | 0,435 |
+| Cave Wall/7 (grotta) | 0,318 | 0,329 |
+| Cobble Stone/2 (tunnel) | 0,431 | 0,380 |
+| Wood Planks/5 (bro) | 0,365 | 0,294 |
+
+Skarven mäts mot rutan **invändigt** (kant mot typisk grannkolumn): fyra av fem är sömlösa, och
+`Tiles/6` som hade bredast spann av alla (0,522) hade en SYNLIG skarv (23,9 mot 9,9) — att vrida rutan
+ett halvt varv gjorde den värre (36,3), så bytet gick till `Cobble Stone/2` i stället.
+
+**Vad bytet gav — och vad det INTE gav.** I spelvyn (samma fras, samma frö, frisk process per mätning):
+
+| | medel | mörkt | detalj (grannpixlar) |
+|---|---|---|---|
+| före ljusfixen (M130) | 0,059 | 82 % | 0,0113 |
+| efter ljusfixen, egna ytor | 0,237 | 23 % | 0,0234 |
+| efter ljusfixen, paketets ytor | 0,232 | 24 % | 0,0236 |
+
+Alltså: **den synliga detaljen kom från ljusfixen** (5,8 % → 11,5 % av pixlarna är kanter), medan
+paketets ytor ger +0,0002 — knappt mätbart i den här vyn. Vinsten med paketet är i stället att ytorna
+nu bär **riktiga PBR-kartor** (normal, AO, råhet ur `_smoothness`; `_metallic` används INTE — den ligger
+på 0,83–0,90 i median i hela paketet, alltså "allt är metall", och skulle göra sten och trä blanksvart).
+Reliefen syns svagt, och att höja `normal_scale` från 4,0 hjälper INTE: 7,0 och 10,0 sänker både
+detaljen (0,0236 → 0,0209) och ljuset (p50 0,202 → 0,184), samma resultat som den tidigare mätningen i
+`_add_boxes`. Reliefen binds av ljuset på ytan, inte av skalan.
+
+**Kvar:** golv och tak är fortfarande Alex' egna ark (bytet gäller väggarna, som var klagomålet).
