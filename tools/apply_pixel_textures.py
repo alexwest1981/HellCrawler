@@ -424,9 +424,26 @@ def balkmått(obj):
     """
     hörn = [obj.matrix_world @ Vector(c) for c in obj.bound_box]
     led = sorted((max(p[i] for p in hörn) - min(p[i] for p in hörn), i) for i in range(3))
-    return led, led[2][1], (led[2][0] >= 3.0 * led[1][0] and led[1][0] <= 1.0)
+    längst, näst, tunn = led[2][0], led[1][0], led[0][0]
+    fiber = led[2][1]
+    balk = längst >= 3.0 * näst and näst <= 1.0
+    fiber_v = Vector((0.0, 0.0, 0.0))
+    fiber_v[fiber] = 1.0
+    ## SNEDA BALKAR (takstolar, sparrar). BBoxen ser ingen balk: Tavern_Rafter_L är 2,37 x 0,14 x 2,12 m,
+    ## så näst längsta led är 2,12 och regeln ovan säger "vägg". MÄTT 15/10: 14 takstolar låg kvar på
+    ## PX_Wood med ådringen tvärs över sin egen lutning (Alex: "balken som lutar upp mot taknocken har
+    ## sin textur längst fel led ... de skall gå längs lutningen"). Det som skiljer en sned balk från en
+    ## plan yta i boxen är den TUNNA leden: balken är tunn (<= 0,35 m) och de två andra lederna är nästan
+    ## lika stora (>= 0,8 av varandra). Fibern är då diagonalen mellan dem, i världsrymden.
+    if not balk and tunn <= 0.35 and längst >= 1.0 and näst >= 0.8 * längst:
+        balk = True
+        fiber_v = Vector((0.0, 0.0, 0.0))
+        fiber_v[led[2][1]] = 1.0
+        fiber_v[led[1][1]] = 1.0
+        fiber_v.normalize()
+    return led, fiber, balk, fiber_v
 
-def sätt_uv(obj):
+def sätt_uv(obj, category=None):
     """KUBPROJEKTION i världskoordinater — en ruta är TILE_METER i världen, överallt.
 
     ÄNDRAT AV OSS (andra ändringen i Alex' skript): smart_project(scale_to_bounds=True) lade
@@ -457,6 +474,29 @@ def sätt_uv(obj):
     M = obj.matrix_world
     inv = M.to_3x3().inverted_safe().transposed()
     vrld = [M @ v.co for v in mesh.vertices]
+    hörn = [M @ Vector(c) for c in obj.bound_box]
+
+    ## FÖNSTRET SKA VISA HELA PLATTAN. Mätt 15/10: window_four_pane.png ÄR ett helt fönster (glaset
+    ## 94 % av bilden, ytterramen bara 4 px), men rutans UV kom ur VÄRLDENS koordinater delat med 1,0 —
+    ## så Tavern_Top_Win_Glass (0,85 m bred, på x -4,2, z 3,65) visade en 0,85 m-bildruta ur plattan och
+    ## inte fönstret (Alex: "fönstret ovanför skylten är ännu fel" — det läste som plank). Rutorna är små
+    ## och sitter på olika ställen i världen, så var och en måste få HELA plattan över sin egen yta.
+    if category in GLÖDER:
+        lo = Vector([min(p[i] for p in hörn) for i in range(3)])
+        stor = [max(p[i] for p in hörn) - lo[i] for i in range(3)]
+        for poly in mesh.polygons:
+            n = (inv @ poly.normal).normalized()
+            if abs(n.z) >= max(abs(n.x), abs(n.y)):
+                a, b = 0, 1
+            elif abs(n.x) >= abs(n.y):
+                a, b = 1, 2
+            else:
+                a, b = 0, 2
+            for li in poly.loop_indices:
+                co = vrld[mesh.loops[li].vertex_index]
+                uv.data[li].uv = ((co[a] - lo[a]) / max(stor[a], 1e-6),
+                                  (co[b] - lo[b]) / max(stor[b], 1e-6))
+        return
 
     ## FIBERRIKTNINGEN. Alex 2026-10-14: "texturen sitter på fel ledd längs skyltar och balkar".
     ## Kubprojektionen ger varje yta världsaxlar, och då blir V alltid "upp" — en VÅGRÄT balk fick
@@ -468,10 +508,7 @@ def sätt_uv(obj):
     ## förhållandet ensamt skiljer dem inte — och en vägg ska behålla stående plank. En balk är smal
     ## i BÅDA de andra leden (näst längsta <= 1 m), det är en vägg eller en dörr inte. Mätt på
     ## scenen: skyltbrädan 0,6 m (balk), tavernaväggen 3,0 m (inte balk).
-    hörn = [M @ Vector(c) for c in obj.bound_box]
-    led, fiber, balk = balkmått(obj)
-    fiber_v = Vector((0.0, 0.0, 0.0))
-    fiber_v[fiber] = 1.0
+    led, fiber, balk, fiber_v = balkmått(obj)
 
     for poly in mesh.polygons:
         n = (inv @ poly.normal).normalized()
@@ -572,7 +609,7 @@ def main():
                 ## True) på objektet, så den följer med i .blend och syns i Properties-panelen.
                 print("UV behållen (Alex' egen vinkel): %s" % obj.name)
             else:
-                sätt_uv(obj)
+                sätt_uv(obj, category)
             counts[category] = counts.get(category, 0) + 1
             per_material[ursprung] = per_material.get(ursprung, 0) + 1
             if källa == "namn":
