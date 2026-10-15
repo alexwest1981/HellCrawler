@@ -360,6 +360,21 @@ OVERRIDE = {
     ## fönstren — och den bär sin egen ram, så öppningen läser som ett fönster. GLÖDER-regeln ger den
     ## hela plattan över sin egen yta (annars visade den en 1-metersruta ur världen, se sätt_uv).
     "Jeweler_Top_Win_Frame": "Window Warm",
+    ## RESTEN AV FÖNSTREN: samma sak som juvelerarens toppfönster. MÄTT 15/10 i kedjans fil — för alla
+    ## fem ligger RAMEN som en solid låda med framsidan 2 cm FRAMFÖR glaset, så det man ser i öppningen
+    ## är ramens egen PX_Ram-yta (mörk planka) medan glaset bakom skyms helt:
+    ##   Tavern_Top_Win_Frame      1,01 x 0,14 x 1,01 m  y 0,67..0,81  glaset y 0,69..0,75
+    ##   BG_House_Left1_Win_Frame  0,71 x 0,14 x 0,81 m  y 4,31..4,45  glaset y 4,33..4,39
+    ##   BG_House_Left2_Win_Frame  0,71 x 0,14 x 0,81 m  y 4,01..4,15  glaset y 4,03..4,09
+    ##   BG_House_Right_Win_Frame  0,71 x 0,14 x 0,81 m  y 4,01..4,15  glaset y 4,03..4,09
+    ##   Weaver_Win_Frame          0,64 x 0,14 x 0,64 m  y 0,41..0,55  glaset y 0,43..0,49
+    ## Alla fem glas bär PX_Window Warm, alltså får ramarna samma platta — då läser öppningen som ett
+    ## fönster och spröjsen (Bar_H/Bar_V, PX_Wood Beam) ligger kvar framför som riktiga spröjsar.
+    "Tavern_Top_Win_Frame": "Window Warm",
+    "BG_House_Left1_Win_Frame": "Window Warm",
+    "BG_House_Left2_Win_Frame": "Window Warm",
+    "BG_House_Right_Win_Frame": "Window Warm",
+    "Weaver_Win_Frame": "Window Warm",
     ## GLASET. MÄTT ur modellens EGNA material Window_Warm/Window_Bright: nio objekt, och i en
     ## texturerad fil bar ALLA nio en platt platta (sju PX_Ram = mörk skyltram, två PX_Ljus Varm = plat
     ## guld) — fönster utan spröjs och utan ljus. Materialvägen kan inte nå dem (frusen) och NAMNET kan
