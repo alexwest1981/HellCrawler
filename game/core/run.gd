@@ -32,7 +32,7 @@ var damage_per_floor := 0.11
 ## RATTEN ÄR LITEN MED FLIT: rummets synliga svårighet är PACKET (1-3 fiender, se `enemy_count_for`),
 ## och rumstermen lägger bara en skugga över den. Första försöket (0,12/0,08 med fem grader) staplades
 ## på våningstermen och gjorde hela stage_01 till en vägg: mätt slump 0/20, autospelaren 0/20.
-var hp_per_room := 0.06
+var hp_per_room := 0.10
 var damage_per_room := 0.04
 ## XP FÖR FIENDE 2, 3 … I SAMMA MÖTE (ratt C, M118). 1,0 = som förut: mötet ger XP per fiende.
 ##
@@ -76,6 +76,18 @@ func led_sido() -> Vector2i:
 
 ## Hur många fiender som står i SAMMA rad. Rummet avgör, inte en tro: i en 1 m-gång finns ingen plats
 ## vid sidan (då står ledet på ett led, som förut), i en sal står två — eller tre — sida vid sida.
+## RADFAKTORN (M126): hur mycket fiendernas skada skalas upp när packet står i flera rader.
+## Ett pack som står i två rader slår mindre (bakre raden 0,6 av sin skada), så skadan skalas upp så att
+## packet slår EXAKT lika hårt som om alla stod i främre raden. Invarianten provet grindar:
+##   (per + (count - per) * BAKRE_SLAG) * radfaktor(count, per) == count
+## alltså: raderna ändrar FORMEN, inte TRYCKET. Utan faktorn blev spelet lättare och slumpen vann mer
+## (mätt: slumpen 9 -> 11 av 90, kvoten 2,3 -> 1,7). `per` måste räknas med PACKETS antal — stod en
+## boss (count 1) med det vanliga rummets radbredd blev kvoten negativ och bossens skada föll 29 %.
+static func radfaktor(count: int, per: int) -> float:
+	if count <= 0 or per >= count:
+		return 1.0
+	return float(count) / (float(per) + float(count - per) * Combat.BAKRE_SLAG)
+
 func per_rad(node: Dungeon.FloorNode) -> int:
 	var antal := enemy_count_for(node, false)
 	if antal <= 1 or explore == null or explore.floor_ref == null:
@@ -87,7 +99,13 @@ func per_rad(node: Dungeon.FloorNode) -> int:
 		plats += 1
 	if explore.floor_ref.is_floor_at(explore.pos + fram - sido):
 		plats += 1
-	return clampi(plats, 1, mini(antal, 3))
+	# TAKET ÄR TVÅ (M126). MÄTT: i 560 möten (fem frön × tre banor) hade **0** en bakre rad, för
+	# `per_rad` blir alltid >= antalet fiender — båda kommer ur SAMMA rumsterm (ett brett rum ger både
+	# fler platser och fler fiender). Alltså var hela radregeln overksam i verklig strid: bakre radens
+	# 0,6, knuffen som flyttar bakåt, och telegrammets val ("vem ska jag stänga av?") hade aldrig något
+	# att välja mellan. Med taket två får ett packet på tre alltid en bakre rad, och formeringen blir
+	# den referensen visar: två främst, en bakom.
+	return clampi(plats, 1, mini(antal, 2))
 
 # --- tillstånd ------------------------------------------------------------------------------
 ## Startvillkoren (önskemål 24, punkt 6). Id:na är ASCII; raden spelaren ser kommer ur i18n
@@ -519,6 +537,23 @@ func rum_svarighet(node: Dungeon.FloorNode, is_boss: bool = false) -> int:
 	return mini(4, Dungeon.rum_svarighet(explore.floor_ref, node.pos, seed_value) + relics.size())
 
 ## Bygg striden för en nod — men spela den inte. UI och tester äger speltiden.
+## VILKEN FIENDE SOM STÅR I DEN BAKRE RADEN (M126). Se `begin_fight`: rummets egen fiende står främst
+## (rummets identitet), och varje bakre rad drar en ANNAN fiende av SAMMA tier. Determinismen är kravet:
+## fröet kommer ur rummets position och radnumret, aldrig ur en global slump, så samma rum ger samma
+## pack varje gång — annars vore mätarens siffror en lögn och en omladdning ett nytt spel.
+func _bakre_fiende(def: Enemies.EnemyDef, node: Dungeon.FloorNode, rad: int) -> Enemies.EnemyDef:
+	var samma := []
+	for id in bestiary:
+		var d: Enemies.EnemyDef = bestiary[id]
+		if d.tier == def.tier and d.id != def.id:
+			samma.append(str(id))
+	if samma.is_empty():
+		return def                       # ensam i sin tier: rummet får sitt eget pack
+	samma.sort()                         # deterministiskt innan fröet rör listan
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + node.pos.x * 131 + node.pos.y * 17 + rad * 7919
+	return bestiary[samma[rng.randi_range(0, samma.size() - 1)]]
+
 func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
 	var def: Enemies.EnemyDef = bestiary.get(node.enemy_id)
 	if def == null:
@@ -530,7 +565,19 @@ func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
 	var scale_dmg := (1.0 + damage_per_difficulty * (stage.difficulty - 1) + damage_per_floor * floor_index
 		+ damage_per_room * (rum - 1))
 	var count := enemy_count_for(node, is_boss)
+	# `per_rad` räknar med det VANLIGA rummets fiendeantal, så för en boss (count 1) kunde raden bli
+	# bredare än packet — och då blev `count - per` negativ, packet "fick plats" i 1,4 rad och bossens
+	# skada föll 29 % (mätt: autospelaren 16 -> 49 av 90 av den enda missen, för bossen är grindvakten).
+	# Raden kan aldrig vara bredare än packet.
+	var per := mini(per_rad(node), count)
+	# RADERNA ÄNDRAR FORMEN, INTE TRYCKET (M126). Ett pack som står i två rader slår mindre (bakre raden
+	# 0,6 av sin skada), så skadan skalas upp så att packet slår EXAKT lika hårt som om alla stod i
+	# främre raden. Utan det blev spelet lättare och slumpen vann mer — MÄTT: slumpen 9 -> 11 klarade av
+	# 90 och kvoten skicklighet/slump 2,3 -> 1,7 (raderna var en rabatt, inte en form). Med faktorn är
+	# radregeln kvar som VAL: en knuff eller en frysning flyttar verklig skada i stället för ingen.
+	scale_dmg *= radfaktor(count, per)
 	var foes := []
+	var mix := []
 	for i in count:
 		# RADEN: packet står i rad 0, 1, 2 — inte hela packet i rad 0. combat.gd:s regel är att bara
 		# den främre raden slår och att nästa rad tar över när raden framför fallit ("främre raden
@@ -542,10 +589,23 @@ func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
 		# själv. Står två i främre raden slår båda (combat.gd: varje levande fiende med
 		# rad <= främsta raden), och nästa rad avancerar när den är död — "det tar tid att
 		# slåss med dem" (Alex).
-		var e := Combat.Enemy.new(def.name, def.hp * scale_hp, def.damage * scale_dmg,
-			i / per_rad(node), def.eyes)
+		var rad := i / per
+		var e_def: Enemies.EnemyDef = def
+		if rad > 0:
+			# BAKRE RADEN ÄR EN ANNAN SORT (M126). MÄTT: alla i ett pack var KLONER av rummets
+			# fiende, så telegrammet visade samma tal för alla och valet "vem ska jag stänga av?"
+			# var trivialt — det är därför målpolicyn inte kunde bita (mål 16 mot auto 16).
+			# Referensen blandar hot i samma möte. Draget är DETERMINISTISKT ur rummets eget frö
+			# (samma rum ger samma pack varje gång) och håller sig inom SAMMA tier, så
+			# svårighetsgraden är kvar och ingen ny slump kommer in i mätningen.
+			e_def = _bakre_fiende(def, node, rad)
+			if e_def.id != def.id:
+				mix.append(e_def.id)
+		var e := Combat.Enemy.new(e_def.name, e_def.hp * scale_hp, e_def.damage * scale_dmg,
+			rad, e_def.eyes)
 		foes.append(e)
-	events.append({"type": "combat_start", "enemy": def.id, "count": count, "boss": is_boss})
+	events.append({"type": "combat_start", "enemy": def.id, "count": count, "boss": is_boss,
+		"mix": mix})
 
 	var combat := Combat.new(seed_value + node.pos.x * 31 + node.pos.y)
 	combat.hp = hp

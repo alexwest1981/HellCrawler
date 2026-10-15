@@ -10028,6 +10028,12 @@ func _stage_fight(node: Dungeon.FloorNode) -> void:
 	# Rummet kan vara en enda ruta: är rutan framför en vägg stannar ledet innanför spelarens ruta
 	# i stället för att stå inne i en mur.
 	var framme: bool = run.explore.floor_ref.is_floor_at(run.explore.pos + fram)
+	# Hur många står i det här packet? Sista raden kan vara halv (2 främst + 1 bakom), och då måste
+	# raden centreras efter sitt EGET antal — se `sida` nedan.
+	var antal := 0
+	for e0 in _enemies:
+		if e0.get("nod") == node.pos:
+			antal += 1
 	var i := 0
 	for e in _enemies:
 		if e.get("nod") != node.pos:
@@ -10046,7 +10052,11 @@ func _stage_fight(node: Dungeon.FloorNode) -> void:
 		var per := run.per_rad(node)
 		var led := i / per
 		var kol := i % per
-		var sida := (float(kol) - float(per - 1) * 0.5) * Run.SIDLED
+		# RADEN CENTRERAS EFTER SITT EGET ANTAL (M126). Den gamla formeln räknade alltid med `per`, så
+		# en ensam figur i en halv rad hamnade en halv sidled utanför siktlinjen — MÄTT av svitens
+		# symmetrikontroll: "raderna är symmetriska kring siktlinjen (1 fel), rad 1: summa -0,31 m".
+		var i_rad := mini(per, antal - led * per)
+		var sida := (float(kol) - float(i_rad - 1) * 0.5) * Run.SIDLED
 		var d := (1.15 + float(led) * Run.RADAVSTAND) if framme else (0.75 + float(led) * 0.45)
 		var p: Vector2 = bas + Vector2(fram) * d + Vector2(sido) * sida
 		# VILOLÄGET FLYTTAR: vickningen lägger sin förskjutning ovanpå `bas`, så uppställningen skriver

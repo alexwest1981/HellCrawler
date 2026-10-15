@@ -212,7 +212,7 @@ byggs.
 | B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | Flaggan per kort **byggd** (M119). Reliken finns (`combo_stack`, M123) och ratten är byggd (M125) — men **MÄTT: låst kedja ger 0 av 90 klarade**. Vår lek är balanserad runt att kedjan ligger på, så B:s andra halva kräver att kortens grundskada höjs först (Alex' beslut). |
 | C | **Belöningarna är strypta**: `RewardProbability` per kort, `CardLimit` per kortgrupp, Reroll/Skip/Banish | Fler fiender = fler kort = **lättare**. Mätt: `fiender=3` gav slumpen **+20 pp** | Kortvalet på sannolikhet (under 1) och/eller trögare XP-kurva | Ny grindrad: "fler fiender får inte göra banan lättare" | **prövad, nedlagd** (se nedan) |
 | D | **Gratis är inte gratis**: 0-kostnadskort är Crawlers med Duration, eller wilds som förstörs | 18 kort på kostnad 0 ligger kvar; startleken har 4×`lash` (12 skada utan villkor) och **6 mana-positiva** kort (`ember_tome` 1→+2, `hourglass` 3→+5) | Duration/Destroy på gratiskorten (nyckelorden finns redan i 7 kort), eller mananeutrala tomtar | Gratiskortens andel av spelade kort faller; manan slutar gå plus | planerad |
-| E | Fienden **telegraferar**, spelaren väljer mål | Telegrammet, målvalet (`inkommande()`, `play(i, mål)`, `_målval`) och **radregeln** finns: alla rader slår, den bakre för 0,6 av sin skada (`BAKRE_SLAG`) | (byggd) | Målvalet slår att inte välja mål (i dag enkelriktad: får inte bli sämre) | **byggd, men valet betalar fortfarande inte: mätt 16 mot 16.** Orsaken är mätt: inget dör på en tur, så att slå den som slår sparar ingenting. Nästa ratt är att göra slaget AVVÄRJBLIGT (frys/nolla den namngivna slagmannen) — telegrammet är vad som gör det valet läsbart |
+| E | Fienden **telegraferar**, spelaren väljer mål | Telegrammet, målvalet och **radregeln** finns: alla rader slår, den bakre för 0,6 av sin skada | (byggd) | Målvalet slår att inte välja mål | **byggd och nu levande** (M126): raderna delades aldrig i verklig strid (0 av 560 möten) — med taket två har 34 % av mötena en bakre rad, och valet har tänder: avvärjningen 31 mot autospelarens 18 av 90 |
 
 ### A, byggd och mätt (M118)
 
@@ -330,6 +330,50 @@ Byggt (`game/core/relics.gd`, `game/data/relics/00_reliker.json`):
 - **`tests/test_relik.gd`** (8 kontroller): datan laddas, varje ratt når spelet (Järnhjärtat 60 → 75
   max-HP, Vässade eggen 12 → 16 på `lash`), samma relik kan inte tas två gånger, ett okänt id gör
   ingenting, och kistorna delar ut reliker i spelade körningar (3 av 20 i provet).
+
+### M126: raderna levde inte — och när de gör det får valet tänder
+
+M124 byggde radregeln (alla rader slår, den bakre svagare) och mätte en marginell skillnad. Frågan som
+ALDRIG ställdes var om raderna alls delas i verklig strid. Ett eget provmått svarade: i **560 möten**
+(fem frön × tre banor) hade **0** en bakre rad — `per_rad` blev alltid >= antalet fiender, för både
+gångens bredd och packetets storlek kommer ur SAMMA rumsterm (ett brett rum ger fler platser OCH fler
+fiender). Alltså var bakre radens 0,6, knuffen som flyttar bakåt, och telegrammets val overksamma, utan
+att ett enda prov sa till: kameraprovet mätte formationens geometri i en scen, inte om packet någonsin
+delades i rader.
+
+Byggt, i tre delar:
+
+1. **Taket två** (`Run.per_rad`): ett packet på tre får alltid en bakre rad. Mätt: 34 % av mötena har
+   en bakre rad (190 av 560).
+2. **Den bakre raden är en annan sort** (`Run._bakre_fiende`): rummets egen fiende står främst
+   (rummets identitet), varje bakre rad drar en annan fiende av SAMMA tier. Draget är deterministiskt
+   ur rummets frö — samma rum ger samma pack varje gång — så ingen ny slump kommer in i mätningen.
+   Mätt: 153 av 153 bakre rader är en annan fiende.
+3. **Rader ändrar formen, inte trycket** (`Run.radfaktor`): ett pack i två rader slår mindre, så skadan
+   skalas upp så att packet slår EXAKT lika hårt som om alla stod främst — invarianten
+   `(per + (count - per) x 0,6) x radfaktor(count, per) == count`. Utan den blev spelet lättare och
+   kvoten föll (slumpen 9 -> 11, kvoten 2,3 -> 1,7), alltså var raderna en rabatt och inte en form.
+
+**Mätt, hela paketet (n=90, samma frön):** slump 9, auto 18, rutt 21, mål 18, **avvärj 31**. Alla fem
+grindar gröna, kvoten 2,3x, och avvärjningens övertag är det största som uppmätts: **31 mot 18 (1,7x)**
+mot 24 mot 16 (1,5x) innan raderna levde. Svårigheten kompenserades med rummets HP-term
+(`hp_per_room` 0,06 -> 0,10), den enda ratten som behövde flyttas.
+
+Tre fynd som kom med på vägen, alla mätta:
+
+- **Bossen tappade 29 % av sin skada.** `per_rad` räknar med det VANLIGA rummets fiendeantal, så för en
+  boss (ett pack på en) blev `count - per` negativ, packet "fick plats" i 1,4 rad och skalningen drog
+  NER bossens skada. Mätt utfall av den enda missen: autospelaren 16 -> 49 av 90 (bossen är
+  grindvakten). Räknas nu ur packet: `per = min(per_rad, count)`, och `radfaktor(1, vad som helst) == 1`.
+- **En ensam figur i en halv rad stod 0,31 m utanför siktlinjen.** Placeringen räknade alltid med
+  radens BREDD, inte med hur många som stod i den. Fångades av svitens egen symmetrikontroll.
+- **Målregeln var fel för en värld med rader.** "Slå den som slår hårdast" är SÄMRE än "slå främre
+  raden" (mål 17 mot auto 18): en tung fiende i bakre raden slår bara 0,6, så den främre raden kostar
+  mest per slag. Regeln är nu främre raden först, och inom den den som slår hårdast.
+
+Grinden `tests/test_pack.gd` (8 kontroller) mäter det provet aldrig frågade: att en bakre rad FINNS i
+en betydande andel av mötena (krav 20 %), att den är en annan fiende, att främre raden är rummets egen,
+att samma frö ger samma pack, och tryckinvarianten.
 
 ### M125: kedjan låst bakom reliken — mätt, och den dödar spelet
 

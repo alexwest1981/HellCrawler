@@ -210,21 +210,30 @@ func play(index: int, target: Enemy = null) -> PlayResult:
 func _målval(index: int) -> Enemy:
 	if index < 0 or index >= hand.size():
 		return null
+	# MÄTT (M126): när raderna lever är "slå den som slår hårdast" SÄMRE än att slå den främre raden
+	# (mål 17 mot autospelarens 18) — en tung fiende i BAKRE raden slår bara 0,6, så det är den främre
+	# raden som kostar mest per slag. Regeln är därför: främre raden först, och inom den den som slår
+	# hårdast. Telegrammet behövs fortfarande — det är vad som säger VILKA som slår och för hur mycket.
+	var främst := 9999
+	for rad in inkommande():
+		var e: Enemy = rad["enemy"]
+		främst = mini(främst, e.row)
 	var hetast: Enemy = null
 	for rad in inkommande():
 		var e: Enemy = rad["enemy"]
-		if hetast == null or e.damage > hetast.damage:
+		if e.row != främst:
+			continue
+		if hetast == null or float(rad["damage"]) > float(_slagsverk(hetast, främst)):
 			hetast = e
 	if hetast != null:
 		return hetast
-	var framst := 9999
 	for e in enemies:
 		if e.alive():
-			framst = mini(framst, e.row)
-	if framst == 9999:
+			främst = mini(främst, e.row)
+	if främst == 9999:
 		return null
 	for e in enemies:
-		if e.alive() and e.row == framst:
+		if e.alive() and e.row == främst:
 			return e
 	return null
 
