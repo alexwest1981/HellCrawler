@@ -56,6 +56,10 @@ var policy_mana := 0
 var policy_db: Dictionary = {}
 ## Ratt E: målpolicyn spelar som autospelaren men siktar med telegrammet (`Combat.målval`).
 var policy_målval := false
+## Ratt E, andra halvan (M124): avvärjningspolicyn läser telegrammet och STÄNGER AV det värsta slaget
+## i stället för att sikta (`Combat._avvärj_index`). Frågan den svarar på är om spelet ERBJUDER ett
+## val värt att fatta — en policy som bara siktar kan inte svara på det.
+var policy_avvärj := false
 
 func check(ok: bool, what: String, detail: String = "") -> void:
 	checks += 1
@@ -89,7 +93,7 @@ func _initialize() -> void:
 		% [referens.enemies_per_encounter[0], referens.enemies_per_encounter[1], _tier1(bestiary)])
 
 	print("\nbana | lek | policy | n | klarade | dog | medelvåning | förlorade strider | skada tagen | nivå (kort) | vunna strider | spelade | gratis % | mana netto")
-	var summa := {"slump": 0, "auto": 0, "rutt": 0, "mal": 0}
+	var summa := {"slump": 0, "auto": 0, "rutt": 0, "mal": 0, "avvarj": 0}
 	var mojligt := ANTAL * STAGE_IDS.size()
 	if rattprov:
 		_rattprov(stages["stage_01"], bestiary, db, ids)
@@ -99,7 +103,7 @@ func _initialize() -> void:
 	for stage_id in STAGE_IDS:
 		var stage: Stages.StageDef = stages[stage_id]
 		for lek in ["startlek", "slump3"]:
-			for policy in ["slump", "auto", "rutt", "mal"]:
+			for policy in ["slump", "auto", "rutt", "mal", "avvarj"]:
 				var n := ANTAL if lek == "startlek" else ANTAL_SLUMP3
 				var total := _serie(stage, bestiary, db, ids, lek, policy, n)
 				print("%s | %s | %s | %d | %.0f%% | %.0f%% | %.2f | %.2f | %.1f | %.1f | %.1f | %.0f | %.0f%% | %+.1f" % [
@@ -138,6 +142,16 @@ func _initialize() -> void:
 		("lika" if summa["mal"] == summa["auto"] else "sämre")])
 	check(summa["mal"] >= summa["auto"], "målvalet gör det inte sämre",
 		"mål %d mot auto %d av %d" % [summa["mal"], summa["auto"], mojligt])
+	# RATT E, ANDRA HALVAN (M124): att SIKTA hjälpte inte (16 mot 16), för inget dör på en tur. Att
+	# STÄNGA AV är det andra svaret telegrammet möjliggör: avvärjningspolicyn fryser den som slår
+	# hårdast när slaget är värt ett kort. Grinden är den samma som för målvalet — den här policyn får
+	# inte vara sämre än autospelaren — men raden skrivs ut för att den ska gå att läsa.
+	print("  avvärjningen: avvärj %d mot auto %d av %d  (%s)" % [
+		summa["avvarj"], summa["auto"], mojligt,
+		"bättre" if summa["avvarj"] > summa["auto"] else
+		("lika" if summa["avvarj"] == summa["auto"] else "sämre")])
+	check(summa["avvarj"] >= summa["auto"], "avvärjningen gör det inte sämre",
+		"avvärj %d mot auto %d av %d" % [summa["avvarj"], summa["auto"], mojligt])
 	if rattprov:
 		_rattprov(stages["stage_01"], bestiary, db, ids)
 	print("kontroller: %d, fel: %d" % [checks, fails])
@@ -173,6 +187,7 @@ func _serie(stage: Stages.StageDef, bestiary: Dictionary, db: Dictionary, ids: A
 		var run := Run.new(stage, bestiary, Cards.make_pile(db, kort), seed_value, db)
 		run.fighter = Callable(self, "_slump_fighter" if policy == "slump" else "_auto_fighter")
 		policy_målval = policy == "mal"
+		policy_avvärj = policy == "avvarj"
 		policy_rng = RandomNumberGenerator.new()
 		policy_rng.seed = seed_value * 7919 + 53
 		policy_damage = 0.0
@@ -236,7 +251,7 @@ func _auto_fighter(combat: Combat) -> void:
 	var turns := 0
 	while not combat.over() and turns < Run.MAX_TURNS_PER_FIGHT:
 		turns += 1
-		for r in combat.auto_play(99, true, policy_målval):
+		for r in combat.auto_play(99, true, policy_målval, policy_avvärj):
 			_bokför(r)
 		if not combat.over():
 			var before := combat.hp

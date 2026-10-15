@@ -331,6 +331,39 @@ Byggt (`game/core/relics.gd`, `game/data/relics/00_reliker.json`):
   max-HP, Vässade eggen 12 → 16 på `lash`), samma relik kan inte tas två gånger, ett okänt id gör
   ingenting, och kistorna delar ut reliker i spelade körningar (3 av 20 i provet).
 
+### M124: avvärjningen — valet som telegrammet faktiskt gör möjligt
+
+Efter radregeln stod målvalet kvar på 16 mot 16. Frågan var då om spelet *erbjuder* ett val värt att
+fatta, eller om telegrammet är en siffra utan konsekvens. Svaret ligger i att **sikta inte är samma
+val som att stänga av**: en policy som läser telegrammet och FRYSER den som slår hårdast
+(`Combat._avvärj_index`, tröskel `AVVÄRJ_ANDEL` = 15 % av din HP, frys-kortet ur handen) går före
+autospelaren i båda mätningarna:
+
+| mätning | avvärj | auto | skillnad |
+|---|---|---|---|
+| n=30 (90 körningar per policy) | 24 | 16 | +8 pp (1,5x) |
+| n=60 (180 körningar per policy) | 49 | 40 | +5 pp (1,22x) |
+
+**Men skillnaden är inte bevisad.** Vid n=180 är den 5 procentenheter med ett standardfel på 4,6
+(z ≈ 1,1, alltså inte signifikant), och vid n=90 var den 1,4. Det är en riktning som håller i båda
+mätningarna, inte en fastställd effekt — för att skilja 5 pp från noll behövs i storleksordningen
+**700 körningar per policy** (≈ 50 minuters mätning). Att skriva "+8 pp" som ett resultat vore att
+läsa brus som en vinst; det som går att säga är att **ingen av mätningarna visar något annat än att
+avvärjningen ligger före**.
+
+Startleken har **exakt ett** frys-kort (`icicle`, 1 mana), och det räcker för hela skillnaden: 22
+kort, varav ett är svaret på frågan telegrammet ställer. Det är den närmaste förklaringen till att
+VC:s känsla av "jag läste motståndaren" går att bygga utan fler system.
+
+Mätaren har därför en femte policy (`avvarj`) med samma grind som de andra — den får inte vara
+sämre än autospelaren — och raden skrivs ut med ordet bättre/lika/sämre, så nästa steg (att kräva
+att den är BÄTTRE) är en mätning och inte en förhoppning.
+
+**Bieffekt av den högre upplösningen, och ärligt:** vid n=180 ligger grindarna på sina linjer
+(slumpen 22 av 180 = 12,2 % mot taket 12 %, kvoten 1,9 mot kravet 2,0) — alltså sitter grindarnas
+kalibrering nära bruset även efter ombaseringen. Provet står kvar på `ANTAL := 30`, där grindarna är
+satta och håller; n=60-körningen är ett upplösningsprov, inte en ny baslinje.
+
 ### M124: radregeln — telegrammet blev sant, men valet betalar fortfarande inte
 
 Ratt E:s egentliga ratt var radregeln: varje fiende telegraferar sitt EGET slag och slår oavsett rad.

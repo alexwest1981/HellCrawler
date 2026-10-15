@@ -380,17 +380,59 @@ func enemy_hp_percent() -> float:
 ## SÄMRE än att klicka på måfå. En solver som är sämre än slumpen är inte en solver. Talen, ratten och
 ## hela balansmätningen: `docs/balans.md`.
 ## Returnerar loggen över vad som spelades, i ordning.
-func auto_play(max_cards: int = 99, allow_wilds: bool = true, målval: bool = false) -> Array:
+func auto_play(max_cards: int = 99, allow_wilds: bool = true, målval: bool = false,
+		avvärj: bool = false) -> Array:
 	var log := []
 	for step in max_cards:
 		var index := _best_index(allow_wilds)
+		var mål: Enemy = null
+		if avvärj:
+			var av := _avvärj_index()
+			if av >= 0:
+				index = av
+				mål = _avvärj_mål
 		if index < 0:
 			break
-		var r := play(index, _målval(index) if målval else null)
+		if mål == null and målval:
+			mål = _målval(index)
+		var r := play(index, mål)
 		if not r.ok:
 			break
 		log.append(r)
 	return log
+
+## AVVÄRJNINGEN (M124): telegrammet säger vem som slår nästa tur och för hur mycket. Valet det gör
+## möjligt är inte bara "vem ska jag slå" utan "ska jag slå eller STÄNGA AV": finns ett frys-kort på
+## handen och ett slag värt att stoppa, är svaret det kortet, mot den som slår hårdast. Utan en policy
+## som fattar det valet mäter provet bara att målvalet inte hjälper — frågan är om spelet ERBJUDER
+## valet. Returnerar index för kortet att spela (och sätter `_avvärj_mål`), eller -1 för "slå som
+## vanligt". Tröskeln är en andel av din HP: att frysa ett slag för 4 när man har 100 HP är att slösa
+## ett kort, och det ska policyn inte göra.
+const AVVÄRJ_ANDEL := 0.15
+var _avvärj_mål: Enemy = null
+func _avvärj_index() -> int:
+	_avvärj_mål = null
+	var värst_skada := 0.0
+	for rad in inkommande():
+		var e: Enemy = rad["enemy"]
+		if e.frozen > 0:
+			continue
+		var d := float(rad["damage"])
+		if d > värst_skada:
+			värst_skada = d
+			_avvärj_mål = e
+	if _avvärj_mål == null or värst_skada < hp * AVVÄRJ_ANDEL:
+		_avvärj_mål = null
+		return -1
+	for i in hand.size():
+		var c: Cards.Card = hand[i]
+		if c.is_wild() or c.keywords.has("Destroy") or c.cost > mana:
+			continue
+		for eff in c.effects:
+			if str(eff.get("op", "")) == "freeze":
+				return i
+	_avvärj_mål = null
+	return -1
 
 ## Bästa spelbara kortet just nu, eller -1. Reglerna står i auto_play().
 func _best_index(allow_wilds: bool) -> int:
