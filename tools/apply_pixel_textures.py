@@ -746,34 +746,67 @@ def main():
         print("gömda ljusalternativ (eld i motorn i stället): %d objekt, %s" % (
             len(släckta), ", ".join(sorted(släckta)[:6])))
 
-    ## SMEDJANS DÖRR. Alex 15/10: "De bars jag menar hos smeden heter tydligen Smith_Sword_0 till 3, jag
-    ## hade hellre haft en dörr in till smedjan där." Modellen HAR dörren — Jeweler_Door, 0,68 x 1,82 m i
-    ## PX_Wood — så den lånas hit i stället för att bygga ny geometri (samma objekt, samma rotation,
-    ## flyttad till svärdens mitt på smedens framsida, y-värdet 0,02 utanför väggen: kameran tittar från
-    ## -y, så mindre y är närmare). Svärdens fyra järnbitar göms från rendering och därmed ur både vyn och
-    ## varje export. Idempotent: en tidigare kopia tas bort först, annars staplas dörrarna per körning.
+    ## DÖRRAR DÄR DET BARA ÄR VÄGG. Alex 15/10: smedjans högra framsida (där fyra svärd hängde — "de bars
+    ## jag menar hos smeden heter tydligen Smith_Sword_0 till 3, jag hade hellre haft en dörr in till
+    ## smedjan där") och tavernan ("mellan pelarna under bar-skylten hade det behövt en dörr, det är bara
+    ## vägg där"). Modellen HAR dörren — Jeweler_Door, 0,68 x 1,82 m i PX_Wood, botten 0,11 m över marken
+    ## — så den lånas dit i stället för att bygga ny geometri. Skalningen är gratis: plattan projiceras i
+    ## världskoordinater, så brädbredden är 1 m hur stor dörren än är. y = fästets y minus 0,02 (kameran
+    ## tittar från -y, så mindre y är närmare). Svärdens fyra järnbitar göms; pelarna är arkitektur och
+    ## står kvar. Idempotent: en tidigare kopia tas bort först, annars staplas dörrarna per körning.
     mall = bpy.data.objects.get("Jeweler_Door")
-    svärd = [bpy.data.objects.get("Smith_Sword_%d" % i) for i in range(4)]
-    svärd = [o for o in svärd if o is not None]
+    svärd = [o for o in (bpy.data.objects.get("Smith_Sword_%d" % i) for i in range(4)) if o is not None]
+    ## PELARNAS NAMN ÄR INTE STABILA: modellen har "Tavern_Pillar_-3.1500000000000004" (flyttal i
+    ## namnet), så uppslagning på "%.2f" hittar ingen pelare och dörren blir aldrig byggd — MÄTT 15/10:
+    ## en körning skapade ingen taverna-dörr alls medan den gamla kopian stod kvar. Leta därför på
+    ## namnförledet, sortera i x, och ta den öppning som rymmer en dörr (>= 1,2 m) och ligger närmast
+    ## Bar-skylten. Modellen har fyra pelare med öppningarna 1,5 / 1,4 / 0,8 m.
+    dörrar = []
     if mall is not None and svärd:
-        gammal = bpy.data.objects.get("Smith_Door_Door")
+        dörrar.append(("Smith_Door_Door", svärd, mall.dimensions.x, mall.dimensions.z, True))
+    pelare = sorted((o for o in bpy.context.scene.objects if o.name.startswith("Tavern_Pillar")),
+                    key=lambda o: o.matrix_world.translation.x)
+    skylt = bpy.data.objects.get("Sign_Bar_2_Board")
+    par = None
+    for v, h in zip(pelare, pelare[1:]):
+        gap = h.matrix_world.translation.x - v.matrix_world.translation.x
+        if gap < 1.2:
+            continue
+        avst = abs((v.matrix_world.translation.x + h.matrix_world.translation.x) / 2.0
+                   - (skylt.matrix_world.translation.x if skylt else -1.85))
+        if par is None or avst < par[3]:
+            par = (v, h, gap, avst)
+    if mall is not None and par is not None:
+        dörrar.append(("Tavern_Door_Door", [par[0], par[1]], par[2] - 0.32,
+                       par[0].dimensions.z - 0.1, False))
+    for namn, fästen, bredd, höjd, göm_fästen in dörrar:
+        gammal = bpy.data.objects.get(namn)
         if gammal is not None:
             bpy.data.objects.remove(gammal, do_unlink=True)
         ny = mall.copy()
         ny.data = mall.data.copy()
-        ny.name = ny.data.name = "Smith_Door_Door"
+        ny.name = ny.data.name = namn
         bpy.context.scene.collection.objects.link(ny)
         ny.matrix_world = mall.matrix_world.copy()
+        ## SKALAN. matrix_world bär hela transformen, så skalningen sätts efter translationen (den
+        ## ordningen är den trygga). OBS: obj.dimensions och obj.bound_box är CACHADE — utan en
+        ## uppdatering visar de före skalningen (MÄTT 15/10: dörren var 1,88 x 2,20 och scale 2,765 medan
+        ## dimensions påstod 0,68 x 1,82). Tvinga därför en uppdatering innan något mäts eller skrivs ut.
         ny.matrix_world.translation = Vector((
-            sum(o.matrix_world.translation.x for o in svärd) / len(svärd),
-            svärd[0].matrix_world.translation.y - 0.02,
-            1.02))
+            sum(o.matrix_world.translation.x for o in fästen) / len(fästen),
+            fästen[0].matrix_world.translation.y - 0.02,
+            0.11 + höjd / 2.0))
+        ny.scale = (bredd / mall.dimensions.x, 1.0, höjd / mall.dimensions.z)
+        bpy.context.view_layer.update()
         sätt_uv(ny, "Wood")
-        for o in svärd:
-            o.hide_render = True
-            o.hide_set(True)
-        print("smedjans dörr: %s i %s, %s gömd(a)" % (
-            ny.name, tuple(round(v, 2) for v in ny.matrix_world.translation), len(svärd)))
+        if göm_fästen:
+            for o in fästen:
+                o.hide_render = True
+                o.hide_set(True)
+        print("dörr: %s i %s, verkligt mått %s m%s" % (
+            namn, tuple(round(v, 2) for v in ny.matrix_world.translation),
+            tuple(round(v, 2) for v in ny.dimensions),
+            ", %d fästen gömda" % len(fästen) if göm_fästen else ""))
 
     print("Save the .blend, then export to glTF (.glb) for Godot.")
 
