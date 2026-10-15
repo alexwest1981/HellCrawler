@@ -4,6 +4,7 @@
  "kw.nocombo": "コンボなし",
  "kw.stannar": "%dターン残留（%s）",
  "ui.hud.hint": "WASD 移動 · 1-9 カード · P すべて出す · E ターン終了 · S 並べ替え (%s) · R やり直し",
+ "ui.hud.hotar": "脅威: %.0f",
  "ui.hud.logg.kista_lak": "宝箱: %d HP",
  "ui.hud.logg.splitter": "%d スプリッター",
  "ui.hud.logg.sten": "宝箱: %s",

@@ -4,6 +4,7 @@
  "kw.nocombo": "utan kedja",
  "kw.stannar": "stannar %d turer (på %s)",
  "ui.hud.hint": "WASD gå · 1-9 kort · P spela allt · E tur · S sortera (%s) · R om",
+ "ui.hud.hotar": "hotar: %.0f",
  "ui.hud.logg.kista_lak": "kista: %d HP",
  "ui.hud.logg.splitter": "%d splitter",
  "ui.hud.logg.sten": "kista: %s",

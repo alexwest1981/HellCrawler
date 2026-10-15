@@ -4,6 +4,7 @@
  "kw.nocombo": "bez kombinacji",
  "kw.stannar": "zostaje %d tur (%s)",
  "ui.hud.hint": "WASD idź · 1-9 karty · P zagraj wszystko · E koniec tury · S sortuj (%s) · R od nowa",
+ "ui.hud.hotar": "zagrożenie: %.0f",
  "ui.hud.logg.kista_lak": "skrzynia: %d HP",
  "ui.hud.logg.splitter": "%d splitter",
  "ui.hud.logg.sten": "skrzynia: %s",

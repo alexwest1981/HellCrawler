@@ -4,6 +4,7 @@
  "kw.nocombo": "sem combo",
  "kw.stannar": "fica %d turnos (%s)",
  "ui.hud.hint": "WASD andar · 1-9 cartas · P jogar tudo · E encerrar turno · S ordenar (%s) · R reiniciar",
+ "ui.hud.hotar": "ameaça: %.0f",
  "ui.hud.logg.kista_lak": "baú: %d HP",
  "ui.hud.logg.splitter": "%d splitter",
  "ui.hud.logg.sten": "baú: %s",

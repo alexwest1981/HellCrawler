@@ -4,6 +4,7 @@
  "kw.nocombo": "无连击",
  "kw.stannar": "停留 %d 回合（%s）",
  "ui.hud.hint": "WASD 移动 · 1-9 出牌 · P 全部打出 · E 结束回合 · S 排序 (%s) · R 重开",
+ "ui.hud.hotar": "威胁：%.0f",
  "ui.hud.logg.kista_lak": "宝箱：%d HP",
  "ui.hud.logg.splitter": "%d 裂片",
  "ui.hud.logg.sten": "宝箱：%s",

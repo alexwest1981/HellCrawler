@@ -4,6 +4,7 @@
  "kw.nocombo": "senza catena",
  "kw.stannar": "resta %d turni (%s)",
  "ui.hud.hint": "WASD muoversi · 1-9 carte · P gioca tutto · E fine turno · S ordina (%s) · R riavvia",
+ "ui.hud.hotar": "minaccia: %.0f",
  "ui.hud.logg.kista_lak": "scrigno: %d HP",
  "ui.hud.logg.splitter": "%d splitter",
  "ui.hud.logg.sten": "scrigno: %s",

@@ -4,6 +4,7 @@
  "kw.nocombo": "ohne Kette",
  "kw.stannar": "bleibt %d Züge (%s)",
  "ui.hud.hint": "WASD gehen · 1-9 Karten · P alles spielen · E Zug beenden · S sortieren (%s) · R neu",
+ "ui.hud.hotar": "droht: %.0f",
  "ui.hud.logg.kista_lak": "Truhe: %d HP",
  "ui.hud.logg.splitter": "%d Splitter",
  "ui.hud.logg.sten": "Truhe: %s",

@@ -9570,6 +9570,16 @@ func _refresh() -> void:
 	# något annat är värre än ingen ledtråd.
 	if musik != null and musik.antal() > 0 and not byggläge:
 		hint += " · N ♪ %s" % musik.nuvarande()
+	# TELEGRAMMET I LEDTRÅDEN (M124b-uppföljningen): summan är talet spelaren jämför med sina EGNA HP,
+	# och mätningen säger att det enda val som betalar är att stänga av det hårdaste slaget. Då ska
+	# summan stå där spelaren tittar, inte bara som enskilda siffror över fienderna. Talet kommer ur
+	# `inkommande()` — samma funktion som slaget läser.
+	if i_strid:
+		var hotar := 0.0
+		for rad in active_combat.inkommande():
+			hotar += float(rad["damage"])
+		if hotar > 0.0:
+			hint = "%s · %s" % [hint, Tr.t("ui.hud.hotar", "hotar: %.0f") % hotar]
 	hint_label.text = hint
 	_refresh_stats()
 	_refresh_hand()          # räknar om handen OCH korträknaren: de hör ihop
@@ -10346,31 +10356,42 @@ func _förvarning_visa() -> void:
 		return
 	# `_enemies` byggs ur samma `enemy_count_for` i samma ordning som `active_combat.enemies`, så
 	# indexet pekar på samma fiende i båda (står i bygget av listan).
+	# TALET KOMMER UR TELEGRAMMET, ALDRIG UR `e.damage` (M124-uppföljning): bakre raden slår 0,6 av sin
+	# skada, så vyn visade ett tal som var större än det som faktiskt föll. Samma funktion som
+	# `enemy_turn` läser, alltså kan de inte glida ifrån varandra igen.
+	var inkommer := active_combat.inkommande()
+	var värst := 0.0
+	for rad in inkommer:
+		värst = maxf(värst, float(rad["damage"]))
 	for i in active_combat.enemies.size():
 		if i >= _enemies.size():
 			break
 		var e: Combat.Enemy = active_combat.enemies[i]
 		if not e.alive():
 			continue
-		var slår := false
-		for rad in active_combat.inkommande():
+		var skada := -1.0
+		for rad in inkommer:
 			if rad["enemy"] == e:
-				slår = true
+				skada = float(rad["damage"])
 				break
-		if not slår:
+		if skada < 0.0:
 			continue
 		var spr: Sprite3D = _enemies[i]["spr"]
 		if not is_instance_valid(spr):
 			continue
 		var lbl := Label3D.new()
-		lbl.text = "−%.0f" % e.damage
+		lbl.text = "−%.0f" % skada
 		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		lbl.no_depth_test = true
 		lbl.pixel_size = 0.0032
 		lbl.font_size = 40
 		lbl.outline_size = 6
 		lbl.outline_modulate = Color(0.04, 0.03, 0.03, 0.95)
-		lbl.modulate = Color(1.0, 0.62, 0.35)      # varning, inte blod: det här är ännu inte skada
+		# DET HÅRDASTE SLAGET ÄR LJUSARE (M124b-uppföljningen): mätningen säger att det enda val som
+		# betalar är att STÄNGA AV det värsta slaget, så det ska gå att se vilket det är. Färgen är
+		# fortfarande varning (orange), inte blod — det här är ännu inte skada.
+		lbl.modulate = (Color(1.0, 0.88, 0.52) if skada >= värst
+			else Color(1.0, 0.62, 0.35))
 		lbl.position = _siffra_plats(spr, 0.0)
 		world.add_child(lbl)
 		_förvarningar.append(lbl)

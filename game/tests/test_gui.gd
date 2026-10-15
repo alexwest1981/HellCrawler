@@ -109,6 +109,33 @@ func _initialize() -> void:
 		"ja" if main.active_combat != null else "nej"])
 	check(main.active_combat != null, "provet fick en strid att mäta i")
 
+	## TELEGRAMMET I VYN (M124-uppföljningen). Två saker ska stämma, och den andra är den som fällde
+	## ett riktigt fel: vyn visade `e.damage` medan slagets regel (bakre raden 0,6) ger ett annat tal,
+	## alltså visade siffran över en bakre fiende mer än det som faktiskt föll. Vyn läser nu telegrammet.
+	print("")
+	print("— telegrammet i vyn —")
+	if main.active_combat != null:
+		var hotar := 0.0
+		for rad in main.active_combat.inkommande():
+			hotar += float(rad["damage"])
+		check(main.hint_label.text.contains("hotar: %.0f" % hotar),
+			"summan av slaget står i ledtråden", main.hint_label.text)
+		# Bakre radens tal, byggt för hand: formationen kan råka stå i ett enda led, och då finns inget
+		# bakre tal att mäta.
+		if main._enemies.size() >= 2:
+			var sparat: Combat = main.active_combat
+			var prov := Combat.new(11)
+			prov.begin([], [Combat.Enemy.new("prov", 50.0, 10.0, 0), Combat.Enemy.new("prov", 50.0, 10.0, 1)])
+			main.active_combat = prov
+			main._förvarning_visa()
+			var texter := []
+			for lbl in main._förvarningar:
+				texter.append(lbl.text)
+			check(texter == ["−10", "−6"], "och bakre radens siffra är det SVAGARE slaget (−10, −6)",
+				str(texter))
+			main.active_combat = sparat
+			main._förvarning_visa()
+
 	## FIGURERNA STÅR I FORMATION, RAD FÖR RAD (M100). M66 lade dem på ETT led för att en 1 m-gång inte
 	## rymde två sida vid sida — men då stod den bakre inne i den främre och man såg bara EN fiende
 	## (Alex: *"om man stöter på mer än 1 fiende i en ruta, så är fighten fortfarande bara med 1 fiende

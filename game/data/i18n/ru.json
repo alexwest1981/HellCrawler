@@ -4,6 +4,7 @@
  "kw.nocombo": "без комбо",
  "kw.stannar": "остаётся %d ходов (%s)",
  "ui.hud.hint": "WASD идти · 1-9 карты · P сыграть всё · E конец хода · S сортировка (%s) · R заново",
+ "ui.hud.hotar": "угроза: %.0f",
  "ui.hud.logg.kista_lak": "сундук: %d HP",
  "ui.hud.logg.splitter": "%d сплиттер",
  "ui.hud.logg.sten": "сундук: %s",

@@ -4,6 +4,7 @@
  "kw.nocombo": "sans chaîne",
  "kw.stannar": "reste %d tours (%s)",
  "ui.hud.hint": "WASD marcher · 1-9 cartes · P tout jouer · E fin de tour · S trier (%s) · R relancer",
+ "ui.hud.hotar": "menace : %.0f",
  "ui.hud.logg.kista_lak": "coffre : %d PV",
  "ui.hud.logg.splitter": "%d splitter",
  "ui.hud.logg.sten": "coffre : %s",

@@ -4,6 +4,7 @@
  "kw.nocombo": "콤보 없음",
  "kw.stannar": "%d턴 잔류(%s)",
  "ui.hud.hint": "WASD 이동 · 1-9 카드 · P 전부 사용 · E 턴 종료 · S 정렬 (%s) · R 다시",
+ "ui.hud.hotar": "위협: %.0f",
  "ui.hud.logg.kista_lak": "상자: %d HP",
  "ui.hud.logg.splitter": "%d 스플리터",
  "ui.hud.logg.sten": "상자: %s",

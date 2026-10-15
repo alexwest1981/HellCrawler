@@ -4,6 +4,7 @@
  "kw.nocombo": "no chain",
  "kw.stannar": "stays %d turns (on %s)",
  "ui.hud.hint": "WASD walk · 1-9 cards · P play all · E end turn · S sort (%s) · R restart",
+ "ui.hud.hotar": "incoming: %.0f",
  "ui.hud.logg.kista_lak": "chest: %d HP",
  "ui.hud.logg.splitter": "%d shards",
  "ui.hud.logg.sten": "chest: %s",
