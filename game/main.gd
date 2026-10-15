@@ -556,7 +556,7 @@ const SVING_TID := 0.35
 ## för att ändringen gör det den ska: ytorna var inte platta, de var oupplysta. 2,5 är vald för att
 ## mörkret finns kvar: två tredjedelar av vyn ligger fortfarande under 0,15. Vid 4,0 lyser halva
 ## rummet upp och stämningen börjar gå förlorad.
-const LJUS_STYRKA := 2.5
+const LJUS_STYRKA := 4.0
 ## GLANSEN: `light_specular` på lyktan och facklorna — ljuset ska kunna ge HÖGDAGRAR, inte bara belysa.
 ##
 ## Den var 0,0 på båda ("ingen glans: rutorna är målade, inte polerade"), och konsekvensen var att ingen
@@ -6905,7 +6905,7 @@ func _add_boxes(tiles: Array, color: Color, y: float, size: Vector3, ruta: Strin
 		# 4,10,20,4`) ger vyns medel 0,120 → 0,107 → 0,099 och mörkt 67 % → 74 % → 77 %, medan
 		# ljuspölarna KRYMPER (p90 0,346 → 0,310 → 0,286). Den extra reliefen betalas alltså med det
 		# Alex vill ha kvar: ljuset på golvet. Mörkret tvättas inte bort — pölarna äts upp.
-		mat.normal_scale = 2.0
+		mat.normal_scale = 6.0
 	if orm != null:
 		mat.roughness_texture = orm
 		mat.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN

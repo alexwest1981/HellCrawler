@@ -856,3 +856,30 @@ provat 2,0 mot 1,0 — ingen skillnad (0,3576 mot 0,3603), så 2,0 står kvar.
 ljusare albedo), så de kan inte bytas var för sig. `tools/ytor.sh egna|paket` växlar båda på en gång
 och importerar om — båda uppsättningarna finns i git, ingen lagerförs vid sidan av. Efter tre rundor av
 gissningar i bild är växeln svaret: Alex ser spelet, jag ser skärmdumpar.
+
+---
+
+## 16. Mer liv: reliefen upp igen, och ljuset med den (15/10)
+
+Alex: *"jag vill ha normalmapping och allt det, så det ser ut som att allt har mer 'liv' och inte är så
+platt"*. Att bara höja `normal_scale` är fel väg — M27 mätte den: 4,0 mot 10,0 mot 20,0 ger vyns medel
+0,120 → 0,107 → 0,099 och mörkt 67 % → 74 % → 77 %, medan ljuspölarna **krymper**. Reliefen bor i
+SKUGGNINGEN, så lyktan är hävstången. Svept båda ihop (samma kamera, samma våning):
+
+| normal_scale | ljus | medel | p90 | mörkt | detalj | kanter |
+|---|---|---|---|---|---|---|
+| 2,0 | 2,5 (före) | 0,364 | 0,666 | 10 % | 0,0113 | 3,2 % |
+| 4,0 | 2,5 | 0,292 | 0,584 | 22 % | 0,0116 | 3,2 % |
+| 4,0 | 3,5 | 0,345 | 0,657 | 14 % | 0,0125 | 3,7 % |
+| 6,0 | 4,5 | 0,339 | 0,657 | 15 % | 0,0132 | 4,2 % |
+| **6,0** | **4,0 (valt)** | **0,320** | **0,632** | **18 %** | **0,0129** | **4,0 %** |
+
+Det valda läget är det sista: mätningen visade att 4,5 gav en aning utfrätta topphögdagrar (p90 0,657
+mot 0,632), och 4,0 håller samma relief med p90 under 0,64. Lunden (gräs) får mest liv av alla:
+detalj 0,0160 och **kanter 6,0 %** mot kryptans 4,0 % — mjuka, organiska material svarar mer på
+reliefen än murade block.
+
+**Och ärligt om måttet:** kanter räknar skillnaden mellan GRANNPIXLAR, alltså fin detalj. Paketets
+relief ligger i skuggningen över större ytor (fogar, blockkanter) och syns i bild som "levande" medan
+siffran står kvar kring 4-6 % mot Alex' egna arks 11,5 %. Måttet underskattar alltså det här slaget av
+relief; bilden är facit, siffran är stöd.

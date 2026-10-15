@@ -12,11 +12,11 @@ fall="${1:-}"
 case "$fall" in
   egna)
     git checkout 39d1c253^ -- 'game/assets/tiles/*/wall*.png' 'game/assets/tiles/*/floor*.png' 'game/assets/tiles/*/ceiling*.png'
-    sed -i 's/^const VÄGG_TON :=.*/const VÄGG_TON := Color(3.00, 3.10, 3.40)/; s/^const GOLV_TON :=.*/const GOLV_TON := Color(1.60, 1.52, 1.40)/; s/^const TAK_TON :=.*/const TAK_TON := Color(1.50, 1.60, 2.10)/; s/^\t\tmat.normal_scale = .*/\t\tmat.normal_scale = 4.0/' game/main.gd
+    sed -i 's/^const VÄGG_TON :=.*/const VÄGG_TON := Color(3.00, 3.10, 3.40)/; s/^const GOLV_TON :=.*/const GOLV_TON := Color(1.60, 1.52, 1.40)/; s/^const TAK_TON :=.*/const TAK_TON := Color(1.50, 1.60, 2.10)/; s/^\t\tmat.normal_scale = .*/\t\tmat.normal_scale = 4.0/; s/^const LJUS_STYRKA :=.*/const LJUS_STYRKA := 2.5/' game/main.gd
     ;;
   paket)
     git checkout HEAD -- 'game/assets/tiles/*/wall*.png' 'game/assets/tiles/*/floor*.png' 'game/assets/tiles/*/ceiling*.png'
-    sed -i 's/^const VÄGG_TON :=.*/const VÄGG_TON := Color(0.95, 0.95, 0.95)/; s/^const GOLV_TON :=.*/const GOLV_TON := Color(0.58, 0.58, 0.58)/; s/^const TAK_TON :=.*/const TAK_TON := Color(0.72, 0.72, 0.72)/; s/^\t\tmat.normal_scale = .*/\t\tmat.normal_scale = 2.0/' game/main.gd
+    sed -i 's/^const VÄGG_TON :=.*/const VÄGG_TON := Color(0.95, 0.95, 0.95)/; s/^const GOLV_TON :=.*/const GOLV_TON := Color(0.58, 0.58, 0.58)/; s/^const TAK_TON :=.*/const TAK_TON := Color(0.72, 0.72, 0.72)/; s/^\t\tmat.normal_scale = .*/\t\tmat.normal_scale = 6.0/; s/^const LJUS_STYRKA :=.*/const LJUS_STYRKA := 4.0/' game/main.gd
     ;;
   *) echo "användning: tools/ytor.sh egna|paket"; exit 2;;
 esac
