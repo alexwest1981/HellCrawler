@@ -395,7 +395,15 @@ def main() -> int:
         print("  INGEN bild i något material — texturerna kom inte in i sessionen")
     skriv_mappning(ut)
 
-    per_material, per_typ = mät_per_material(meshar)
+    egna = [o for o in meshar if o.get("uv_keep")]
+    if egna:
+        print("  %d objekt äger sin egen UV (uv_keep i Properties → Custom Properties) och mäts inte: %s" %
+              (len(egna), ", ".join(o.name for o in egna[:6])))
+        utan_uv = [o.name for o in egna if not o.data.uv_layers]
+        if utan_uv:
+            print("  ##FEL## %d objekt har uv_keep men INGET UV-lager — exporten blir utan UV: %s" %
+                  (len(utan_uv), ", ".join(utan_uv[:6])))
+    per_material, per_typ = mät_per_material([o for o in meshar if not o.get("uv_keep")])
     print("\n=== (c) KAKELSTORLEK: meter per texturupprepning (mål %.1f-%.1f m) ===" % MÅL)
     print("%-18s %-7s %-11s %-11s %-11s %s" % ("MATERIAL", "YTOR", "MEDIAN m", "MIN m", "MAX m", "OMDÖME"))
     alla = []

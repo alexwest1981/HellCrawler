@@ -524,7 +524,14 @@ def main():
                 continue
             category, källa = classify_object(obj)
             assign_material(obj, MATERIALS[category])
-            sätt_uv(obj)
+            if obj.get("uv_keep") and obj.data.uv_layers:
+                ## ALEX ÄGER UV:N. Objektet bär en egen vinkel, satt för hand i UV-editorn, och då
+                ## rör skriptet varken UV-lagret eller dess namn — sätt_uv skulle skriva över vinkeln
+                ## och dessutom ta bort alla andra lager. Flaggan är en custom property (uv_keep =
+                ## True) på objektet, så den följer med i .blend och syns i Properties-panelen.
+                print("UV behållen (Alex' egen vinkel): %s" % obj.name)
+            else:
+                sätt_uv(obj)
             counts[category] = counts.get(category, 0) + 1
             per_material[ursprung] = per_material.get(ursprung, 0) + 1
             if källa == "namn":
