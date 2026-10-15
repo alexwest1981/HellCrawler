@@ -77,6 +77,14 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 				return null
 			row.append(Dungeon.FLOOR if ch == FLOOR_CH else Dungeon.WALL)
 		f.tiles.append(row)
+	# Öppna rum: [x, y, bredd, höjd] i rutor — taket byggs inte där och himlen läggs över (se
+	# main._öppen_himmel). Ett slagfält under öppen himmel är alltså något man RITAR in, inte något
+	# generatorn hittar på. Formen är Rect2i som resten av rumslistorna.
+	for r in d.get("öppna", []):
+		if r is Array and (r as Array).size() == 4:
+			f.öppna.append(Rect2i(int(r[0]), int(r[1]), int(r[2]), int(r[3])))
+		elif r is Rect2i:
+			f.öppna.append(r)
 	for k in d.get("ytor", {}):
 		f.ytor[str(k)] = str(d["ytor"][k])
 	for nd in d.get("nodes", []):
@@ -117,8 +125,15 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 		if n.xp != 0:
 			d["xp"] = n.xp
 		noder.append(d)
-	return {"stage_id": f.stage_id, "floor": f.index, "theme": f.theme, "tiles": rader,
+	var d := {"stage_id": f.stage_id, "floor": f.index, "theme": f.theme, "tiles": rader,
 		"nodes": noder, "ytor": f.ytor}
+	if not f.öppna.is_empty():
+		var rum := []
+		for r in f.öppna:
+			var rr: Rect2i = r
+			rum.append([rr.position.x, rr.position.y, rr.size.x, rr.size.y])
+		d["öppna"] = rum
+	return d
 
 
 ## Skriver kartan, men BARA om den går att spela. Felen returneras i stället för att skrivas —

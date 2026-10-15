@@ -237,7 +237,9 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 
 	f.start = start_centrum
 	f.boss_pos = _center(rooms[boss_rum])
-	f.öppna.append(rooms[boss_rum])     # bossrummet står under öppen himmel (se Floor.öppna)
+	# TAKET STÅR PÅ SOM FÖRUT (Alex 15/10: "vi ser ut att behöva tak på stället"). Generatorn öppnar
+	# inte längre bossrummet — öppna rum hör till KARTAN, inte till varje bossrum. `Floor.öppna` fylls
+	# av `MapIo.from_dict` (nyckeln "öppna"), så ett slagfält under himmel är ett val man gör per våning.
 	f.shovel_pos = f.boss_pos        # shoveln får man av bossen på våningen
 
 	var start_node := FloorNode.new()

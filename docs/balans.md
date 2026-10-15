@@ -641,10 +641,20 @@ faux-skybox-material i en egen materialplats.
 
 **Byggt hos oss** (`Dungeon.Floor.öppna` + `main.gd: _öppen_himmel`): en våning kan bära **öppna rum**,
 och i dem byggs takrutorna inte — i stället läggs en himmelyta (ett gradientkort, oupplyst) över
-rummet och en varm lampa utan skuggor, med referensens egen lampfärg. Generatorn gör **bossrummet**
-öppet: en våning slutar under öppen himmel. Mätt i en genererad våning: **18 takrutor borta** (rummet
-3×6), en himmelyta och en lampa i världen, och i bild syns en trapetsformad öppning mot ljusblå himmel
-över slagfältet, ~15–20 % av bilden, med tydliga kanter mot de mörka grottväggarna.
+rummet och en varm lampa utan skuggor, med referensens egen lampfärg.
+
+**Var himlen får finnas är ett VAL, inte generatorns påhitt.** Första versionen gjorde bossrummet på
+varje genererad våning öppet; Alex' dom efter en titt: *"vi ser ut att behöva tak på stället"*. Nu
+fyller generatorn aldrig `Floor.öppna`, och ett öppet rum kommer ur **kartdatan** —
+`"öppna": [[x, y, bredd, höjd]]` i `data/maps/<bana>_<våning>.json` (läses och skrivs av
+`MapIo`). Ett slagfält under öppen himmel är alltså något man ritar in, vilket också är referensens
+modell: himlen ligger i RUMSMALLEN, så en våning kan ha öppna och stängda rum sida vid sida.
+
+Mätt: `test_utomhus` (10 kontroller) håller båda ändarna — generatorns våningar har **noll** öppna rum
+(taket står på), kartdatans nyckel öppnar ett rum och överlever en sparad karta, och när ett rum väl är
+öppet bygger renderaren himmelytan + lampan med referensens färg och utan skuggor. I bild (första
+versionen, bossrummet öppet): en trapetsformad öppning mot ljusblå himmel över slagfältet, ~15–20 % av
+bilden, med tydliga kanter mot de mörka grottväggarna.
 
 **Kvar:** höga väggar runt det öppna rummet (referensens `FauxSkyboxBlocker`) om kanterna stör — man
 ser grannrummens tak ovanför våra låga väggar när man tittar i sidled; en **flaggai kartdatan** så en
