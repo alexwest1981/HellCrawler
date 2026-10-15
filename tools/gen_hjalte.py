@@ -154,15 +154,21 @@ def klipp(rad: int, kol: int) -> dict:
 
 
 def skala(bild: Image.Image) -> Image.Image:
-    """Ned till `MÅL_PX` höjd: figuren ritas 2x i vyn, och voxlarna/ritningen använder ändå aldrig
-    mer detalj än så. Färgen medelvärdesbildas, alfan trösklas (konturen förblir hård)."""
+    """Ned till `MÅL_PX` höjd. Färgen viktas med alfan INNAN den skalas ned (annars medelvärdesbildas
+    kanten mot genomskinligt svart och figuren blir grå — samma fix som i `gen_by_bybor.py`), och alfan
+    trösklas efteråt så konturen förblir hård."""
     if bild.size[1] <= MÅL_PX:
         return bild
     f = bild.size[1] / float(MÅL_PX)
     ny = (max(1, round(bild.size[0] / f)), MÅL_PX)
-    a = np.asarray(bild.resize(ny, Image.Resampling.BOX)).copy()
-    a[..., 3] = np.where(a[..., 3] > 128, 255, 0)
-    return Image.fromarray(a, mode="RGBA")
+    a = np.asarray(bild).astype(np.float32)
+    al = a[..., 3]
+    vikt = al / 255.0
+    förädlad = (a[..., :3] * vikt[..., None]).astype(np.uint8)
+    rgb = np.asarray(Image.fromarray(förädlad, "RGB").resize(ny, Image.Resampling.BOX)).astype(np.float32)
+    viktad = np.asarray(Image.fromarray(al.astype(np.uint8), "L").resize(ny, Image.Resampling.BOX)).astype(np.float32)
+    rgb = np.clip(rgb * 255.0 / np.maximum(viktad, 1.0)[..., None], 0.0, 255.0).astype(np.uint8)
+    return Image.fromarray(np.dstack([rgb, np.where(viktad > 128.0, 255, 0).astype(np.uint8)]), mode="RGBA")
 
 
 def bygg() -> list[dict]:

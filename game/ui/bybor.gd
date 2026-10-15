@@ -26,6 +26,19 @@ const MAPP := "res://assets/by/"
 ## 313x270 px, så en bybo är ett tiotal skärmpixlar hög. Se `tests/test_bybor.gd` för byggtiden.
 const SIDOR := 8
 
+## SKUGGAN under varje bybo: samma recept som fiendernas golvfläck i `main.gd` (samma textur, samma färg,
+## alfa och form) — byn och striden ska skugga likadant, och en figur utan fläck svävar i stället för att
+## stå. Fläcken ligger `SKUGGA_ÖVER` över markens y (annars z-fightar den med marken), är omskuggad av
+## (`cast_shadow` AV: en genomskinlig quad ska inte skugga hela rutan, se M80 i `main.gd`) och har MUKA
+## kanter (`alpha_cut` AV).
+const SKUGGA := "res://assets/fx/rok.png"
+const SKUGGA_PIXEL := 0.035      ## px-storleken som ger fläcken 32 x 0.035 = 1,12 m bredd
+const SKUGGA_BREDD := 1.12       ## fläckens bredd i meter vid skalan 1,0 (ur SKUGGA_PIXEL x texturens mått)
+const SKUGGA_FÄRG := 0.035
+const SKUGGA_ALFA := 0.75
+const SKUGGA_ÖVER := 0.005       ## hur högt över markens y fläcken ligger
+const SKUGGA_DJUP := 0.55        ## djupet som andel av bredden (samma som fiendernas)
+
 var antal: int = 0
 
 
@@ -78,7 +91,31 @@ func fyll() -> void:
 		mi.set_meta("bybo", p)
 		mi.set_meta("celler", v.antal_celler())
 		add_child(mi)
+		# SKUGGAN PÅ MARKEN, i bybons EGEN bredd (cellerna är kvadratiska, så bredden följer höjden och
+		# figurens proportioner): en häst får en lång fläck, fåret en kort.
+		var bredd := höjd * float(v.kolumner) / float(maxi(1, v.sidor))
+		skugga_under(mi.position.x, float(pos[1]), mi.position.z, bredd, str(p.get("id", "bybo")))
 		antal += 1
+
+
+## Golvfläcken. Receptet är fiendernas i `main.gd` (se konstanterna): en platt quad på marken, vriden
+## 90 grader, omskuggad och med mjuka kanter.
+func skugga_under(x: float, mark_y: float, z: float, bredd: float, id: String) -> Sprite3D:
+	var sk := Sprite3D.new()
+	sk.name = id + "_skugga"
+	sk.texture = load(SKUGGA)
+	sk.pixel_size = SKUGGA_PIXEL
+	sk.shaded = false
+	sk.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	sk.rotation.x = -PI * 0.5
+	sk.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	sk.modulate = Color(SKUGGA_FÄRG, SKUGGA_FÄRG * 0.68, SKUGGA_FÄRG * 0.5, SKUGGA_ALFA)
+	var f := maxf(0.35, bredd) / SKUGGA_BREDD
+	sk.scale = Vector3(f, f * SKUGGA_DJUP, 1.0)
+	sk.position = Vector3(x, mark_y + SKUGGA_ÖVER, z)
+	sk.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(sk)
+	return sk
 
 
 ## Bybons poster ur `bybor.json` — provet mäter mot SAMMA tabell som bygget läser.

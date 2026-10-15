@@ -5,7 +5,7 @@
       "bild": "bybor/handlare.png",
       "text": "handlerskan bakom saluståndet (Merchant)",
       "kategori": "kvinna",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         -11.83,
         0.08,
@@ -29,7 +29,7 @@
       "bild": "bybor/smed.png",
       "text": "smeden vid ässjan (Blacksmith)",
       "kategori": "man",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         -11.51,
         0.08,
@@ -53,7 +53,7 @@
       "bild": "bybor/pojke.png",
       "text": "pojken med käppen (Young Boy)",
       "kategori": "barn",
-      "höjd_m": 0.72,
+      "höjd_m": 1.15,
       "pos": [
         -10.67,
         0.08,
@@ -77,7 +77,7 @@
       "bild": "bybor/smedkund.png",
       "text": "kunden vid städet (Farmer)",
       "kategori": "man",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         -7.13,
         0.08,
@@ -101,7 +101,7 @@
       "bild": "bybor/krog_vänster.png",
       "text": "gästen i värdshusfönstret, vänster (Drunkard)",
       "kategori": "man",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         -6.08,
         0.08,
@@ -125,7 +125,7 @@
       "bild": "bybor/krog_värd.png",
       "text": "värden bakom disken (Innkeeper)",
       "kategori": "man",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         -5.45,
         0.08,
@@ -149,7 +149,7 @@
       "bild": "bybor/krog_höger.png",
       "text": "gästen i värdshusfönstret, höger (Tavern Patron)",
       "kategori": "man",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         -4.82,
         0.08,
@@ -173,7 +173,7 @@
       "bild": "bybor/krog_ute.png",
       "text": "kvinnan vid tunnan utanför krogen (Maid)",
       "kategori": "kvinna",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         -1.64,
         0.08,
@@ -197,7 +197,7 @@
       "bild": "bybor/gångerska.png",
       "text": "kvinnan som går över gatan (Herbalist)",
       "kategori": "kvinna",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         0.56,
         0.08,
@@ -221,7 +221,7 @@
       "bild": "bybor/juvel_kund_1.png",
       "text": "juveleraren utanför sin dörr (Jeweler)",
       "kategori": "man",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         4.78,
         0.08,
@@ -245,7 +245,7 @@
       "bild": "bybor/juvel_kund_2.png",
       "text": "kunden vid juveleraren (Mage)",
       "kategori": "kvinna",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         6.45,
         0.08,
@@ -269,7 +269,7 @@
       "bild": "bybor/herdinna.png",
       "text": "herdinnan vid stigen (sittande)",
       "kategori": "kvinna",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         10.93,
         0.12,
@@ -293,7 +293,7 @@
       "bild": "bybor/får_1.png",
       "text": "får på stigen",
       "kategori": "får",
-      "höjd_m": 0.45,
+      "höjd_m": 0.72,
       "pos": [
         11.72,
         0.12,
@@ -317,7 +317,7 @@
       "bild": "bybor/får_2.png",
       "text": "får på stigen",
       "kategori": "får",
-      "höjd_m": 0.45,
+      "höjd_m": 0.72,
       "pos": [
         12.95,
         0.12,
@@ -341,7 +341,7 @@
       "bild": "bybor/lamm_1.png",
       "text": "lammet vid hästen",
       "kategori": "lamm",
-      "höjd_m": 0.34,
+      "höjd_m": 0.5,
       "pos": [
         13.93,
         0.12,
@@ -365,7 +365,7 @@
       "bild": "bybor/häst.png",
       "text": "hästen",
       "kategori": "häst",
-      "höjd_m": 1.05,
+      "höjd_m": 1.55,
       "pos": [
         15.1,
         0.12,
@@ -389,7 +389,7 @@
       "bild": "bybor/får_3.png",
       "text": "fåret vid herden",
       "kategori": "får",
-      "höjd_m": 0.45,
+      "höjd_m": 0.72,
       "pos": [
         16.36,
         0.12,
@@ -413,7 +413,7 @@
       "bild": "bybor/herde.png",
       "text": "herden med hunden",
       "kategori": "man",
-      "höjd_m": 1.0,
+      "höjd_m": 1.72,
       "pos": [
         16.53,
         0.12,
@@ -437,7 +437,7 @@
       "bild": "bybor/får_berg_1.png",
       "text": "får uppe på gräset",
       "kategori": "får",
-      "höjd_m": 0.45,
+      "höjd_m": 0.72,
       "pos": [
         13.14,
         0.12,
@@ -461,7 +461,7 @@
       "bild": "bybor/får_berg_2.png",
       "text": "får uppe på gräset",
       "kategori": "får",
-      "höjd_m": 0.45,
+      "höjd_m": 0.72,
       "pos": [
         14.34,
         0.12,
@@ -485,7 +485,7 @@
       "bild": "bybor/får_berg_3.png",
       "text": "får uppe på gräset",
       "kategori": "får",
-      "höjd_m": 0.45,
+      "höjd_m": 0.72,
       "pos": [
         15.71,
         0.12,

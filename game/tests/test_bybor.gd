@@ -112,7 +112,12 @@ func _init() -> void:
 	var tid := Time.get_ticks_msec() - t0
 	check(grupp.antal == antal_på_disk, "en nod per post (%d av %d)" % [grupp.antal, antal_på_disk])
 	var celler := 0
+	var skuggor := 0
 	for barn in grupp.get_children():
+		# SKUGGAN är en egen nod (en platt fläck på marken), inte en bybo: hoppa över den här.
+		if barn is Sprite3D:
+			skuggor += 1
+			continue
 		var mi := barn as MeshInstance3D
 		var p: Dictionary = mi.get_meta("bybo") if mi != null and mi.has_meta("bybo") else {}
 		var id := str(p.get("id", mi.name)) if mi != null else "?"
@@ -137,7 +142,21 @@ func _init() -> void:
 		celler += int(mi.get_meta("celler", 0))
 	check(tid < TID_TAK_MS, "byggtiden %.0f ms under taket %d ms" % [tid, TID_TAK_MS])
 	check(celler > 0 and celler < CELL_TAK, "cellerna i hela gruppen: %d under taket %d" % [celler, CELL_TAK])
-	print("  bybor: %d st, %d celler, byggt på %.0f ms" % [grupp.antal, celler, tid])
+	# SKUGGAN: en fläck per bybo, på markens y, omskuggad och med en textur (samma recept som fiendernas
+	# i main.gd). Utan fläck svävar figuren i stället för att stå — Alex: *"sen behöver de ha skugga i
+	# spelet med"*.
+	check(skuggor == grupp.antal, "en skugga per bybo (%d av %d)" % [skuggor, grupp.antal])
+	for barn in grupp.get_children():
+		if not (barn is Sprite3D):
+			continue
+		var fläck := barn as Sprite3D
+		check(fläck.texture != null, "%s: skuggan har en textur" % fläck.name)
+		check(fläck.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF,
+			"%s: skuggan kastar ingen egen skugga" % fläck.name)
+		check(fläck.scale.x > 0.1 && fläck.scale.x < 4.0, "%s: fläcken är %.2f m bred" % [fläck.name, fläck.scale.x * 1.12])
+		check(absf(fläck.position.y - 0.085) < 0.05 || absf(fläck.position.y - 0.125) < 0.05,
+			"%s: fläcken ligger på marken (y %.3f)" % [fläck.name, fläck.position.y])
+	print("  bybor: %d st, %d celler, %d skuggor, byggt på %.0f ms" % [grupp.antal, celler, skuggor, tid])
 
 	# 6. INKOPPLINGEN: by-vyns EGEN väg (ui/village_view.gd -> ui/by_3d.gd) ska bära gruppen under
 	# `byn`, så en by som flyttas i scenen tar byborna med sig — och Alex hittar dem i editorn.
@@ -148,8 +167,8 @@ func _init() -> void:
 	var nod: By3D = byvy.by3d()
 	var under_byn: Node = null if nod == null or nod.by == null else nod.by.get_node_or_null("bybor")
 	check(under_byn != null, "by-vyns By3D bär byborna under `byn` (byn/bybor)")
-	check(under_byn != null and under_byn.get_child_count() == poster.size(),
-		"och gruppen har en nod per post (%d)" % (under_byn.get_child_count() if under_byn != null else 0))
+	check(under_byn != null and under_byn.get_child_count() == poster.size() * 2,
+		"och gruppen har en nod per post plus skuggan (%d av %d)" % [(under_byn.get_child_count() if under_byn != null else 0), poster.size() * 2])
 	byvy.free()
 	_clean()
 	await process_frame
@@ -190,6 +209,27 @@ func _init() -> void:
 				var pos: Array = p.get("pos", [0, 0, 0])
 				var sp: Vector2 = nod2.projicera(Vector3(float(pos[0]), float(pos[1]), float(pos[2])))
 				print("    %-14s vy-px (%.0f, %.0f)" % [str(p.get("id", "?")), sp.x, sp.y])
+			# HÖJDEN MOT DÖRREN (Alex: *"Jämför höjden på dörrar och figurerna, så ser du hur långt
+			# ifrån du är"*). Dörrbladet `Jeweler_Door` är modellens egen, 1,82 m; en vuxen ska vara
+			# strax under den. Båda mäts i VYNS px ur samma kamera och samma plan, alltså jämförbara.
+			var dörr := _exakt_aabb(nod2, "Jeweler_Door")
+			if dörr.size.y > 0.5:
+				var dm := dörr.get_center()
+				var d_px: float = absf(nod2.projicera(Vector3(dm.x, dörr.position.y + dörr.size.y, dm.z)).y
+					- nod2.projicera(Vector3(dm.x, dörr.position.y, dm.z)).y)
+				print("  dörren Jeweler_Door: %.2f m = %.0f vy-px" % [dörr.size.y, d_px])
+				for post in poster:
+					var p: Dictionary = post
+					var kat := str(p.get("kategori", ""))
+					if kat != "man" and kat != "kvinna":
+						continue
+					var pos: Array = p.get("pos", [0, 0, 0])
+					var botten := nod2.projicera(Vector3(float(pos[0]), float(pos[1]), float(pos[2]))).y
+					var topp := nod2.projicera(Vector3(float(pos[0]), float(pos[1]) + float(p.get("höjd_m", 1.0)), float(pos[2]))).y
+					var f_px: float = absf(topp - botten)
+					var kvot := f_px / maxf(1.0, d_px)
+					print("    %-14s %.2f m = %.0f vy-px = %.2f av dörren" % [str(p.get("id", "?")), float(p.get("höjd_m", 1.0)), f_px, kvot])
+					check(kvot > 0.80 and kvot < 1.15, "%s: %.0f vy-px mot dörrens %.0f (%.2f av dörren)" % [str(p.get("id", "?")), f_px, d_px, kvot])
 		else:
 			check(false, "gruppen bybor och 3D-ytan finns i by-vyn")
 		vy2.queue_free()
@@ -199,3 +239,23 @@ func _init() -> void:
 
 	print("=== %s: %d kontroller, %d fel ===" % ["BYBOR", kontroller, fel])
 	quit(1 if fel > 0 else 0)
+
+
+## ETT NAMNGETT objekts ruta i världen (till skillnad från `hus_aabb`, som slår ihop allt med samma
+## förled): dörrbladet `Jeweler_Door` mäts utan karm och glas, så höjden blir dörrens egen.
+func _exakt_aabb(nod: By3D, namn: String) -> AABB:
+	if nod == null or nod.by == null:
+		return AABB()
+	var mn := Vector3(INF, INF, INF)
+	var mx := Vector3(-INF, -INF, -INF)
+	var n := 0
+	for c in nod.by.find_children(namn, "MeshInstance3D", true, false):
+		var m := c as MeshInstance3D
+		var t: Transform3D = nod._kedja(m)
+		var a := m.get_aabb()
+		for i in 8:
+			var w: Vector3 = t * a.get_endpoint(i)
+			mn = Vector3(minf(mn.x, w.x), minf(mn.y, w.y), minf(mn.z, w.z))
+			mx = Vector3(maxf(mx.x, w.x), maxf(mx.y, w.y), maxf(mx.z, w.z))
+		n += 1
+	return AABB(mn, mx - mn) if n > 0 else AABB()

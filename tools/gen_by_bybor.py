@@ -80,9 +80,15 @@ MÅL_PX = 128
 ## största, så gränsen skiljer dem åt med god marginal.
 FIGUR_ANDEL = 0.30
 
-## Höjd per kategori i meter — paritet med den gamla modellen.
-KATEGORI_HÖJD = {"man": 1.00, "kvinna": 1.00, "barn": 0.72, "häst": 1.05, "får": 0.45,
-                 "lamm": 0.34, "hund": 0.30}
+## Höjd per kategori i meter. MÄNNISKAN ÄR MÄTT MOT MODELLENS EGNA DÖRRAR: `byn.glb`s dörrobjekt är
+## 1,82 m höga (mätt i modellen), och en vuxen ska vara strax under en dörr — 1,72 m är 0,95 av dörren.
+## MÄTT 15/10 i spelets egen bild: dörren 54 vy-px, bybon 51 vy-px = 0,95. Före den här ändringen var
+## byborna 1,00 m = 30 vy-px = 0,55 av dörren, alltså knappt midjehöjd (Alex: *"Jämför höjden på dörrar
+## och figurerna, så ser du hur långt ifrån du är"*). Provet mäter kvoten mot dörren varje körning.
+## Djuren är satta efter sina verkliga mått mot samma människa: häst 1,55 i mankhöjd, får 0,72,
+## lamm 0,50, hund 0,45.
+KATEGORI_HÖJD = {"man": 1.72, "kvinna": 1.72, "barn": 1.15, "häst": 1.55, "får": 0.72,
+                 "lamm": 0.50, "hund": 0.45}
 
 ## Tabellen: (id, kategori, z, mark-y, x, ark, rad, figur i raden, halva, höjd (0 = kategorins), text).
 ## Figuren väljs på sin plats i raden (se ARK): ark 1 är 4 rader x 5 bybor, ark 2 är 2 rader där rad 1
@@ -189,16 +195,23 @@ def figur_ruta(namn: str, rad: int, nr: int, val: int | None) -> tuple[int, int,
 
 
 def skala(bild: Image.Image) -> Image.Image:
-    """Ned till `MÅL_PX` höjd (se den konstanten): färgen medelvärdesbildas och alfan trösklas, så
-    konturen förblir hård. Utan nedskalningen bygger byn på ~1 s (mätt) för pixelarbete voxlarna
-    ändå kastar bort."""
+    """Ned till `MÅL_PX` höjd (se den konstanten). Färgen viktas med alfan innan den skalas ned, så
+    figurens kant inte blandas mot det genomskinliga fältets egen färg (hos hjältarna: den mörka
+    bottnen). MÄTT 15/10: för byborna, vars alfa är hård (0 eller 255), ger det ingen skillnad —
+    men det är samma sak som hjältarnas glöd behöver, och alfan trösklas efteråt så konturen förblir
+    hård."""
     if bild.size[1] <= MÅL_PX:
         return bild
     f = bild.size[1] / float(MÅL_PX)
     ny = (max(1, round(bild.size[0] / f)), MÅL_PX)
-    a = np.asarray(bild.resize(ny, Image.Resampling.BOX)).copy()
-    a[..., 3] = np.where(a[..., 3] > 128, 255, 0)
-    return Image.fromarray(a, mode="RGBA")
+    a = np.asarray(bild).astype(np.float32)
+    al = a[..., 3]
+    vikt = al / 255.0
+    förädlad = (a[..., :3] * vikt[..., None]).astype(np.uint8)
+    rgb = np.asarray(Image.fromarray(förädlad, "RGB").resize(ny, Image.Resampling.BOX)).astype(np.float32)
+    viktad = np.asarray(Image.fromarray(al.astype(np.uint8), "L").resize(ny, Image.Resampling.BOX)).astype(np.float32)
+    rgb = np.clip(rgb * 255.0 / np.maximum(viktad, 1.0)[..., None], 0.0, 255.0).astype(np.uint8)
+    return Image.fromarray(np.dstack([rgb, np.where(viktad > 128.0, 255, 0).astype(np.uint8)]), mode="RGBA")
 
 
 def klipp(post: tuple) -> dict:
