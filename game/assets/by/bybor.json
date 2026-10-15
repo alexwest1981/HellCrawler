@@ -3,7 +3,7 @@
     {
       "id": "handlare",
       "bild": "bybor/handlare.png",
-      "text": "handlerskan bakom saluståndet",
+      "text": "handlerskan bakom saluståndet (Merchant)",
       "kategori": "kvinna",
       "höjd_m": 1.0,
       "pos": [
@@ -11,329 +11,263 @@
         0.08,
         -0.1
       ],
-      "ruta": [
-        498,
-        880,
-        545,
-        968
+      "källa": "townfolks.jpeg rad 0 figur 3",
+      "ark": "bybor",
+      "ark_ruta": [
+        1704,
+        28,
+        1935,
+        325
       ],
-      "grov_ruta": [
-        498,
-        880,
-        545,
-        968
-      ],
-      "borta": 0.065,
-      "figur_andel": 0.741,
       "px": [
-        47,
-        88
+        100,
+        128
       ]
     },
     {
       "id": "smed",
       "bild": "bybor/smed.png",
-      "text": "smeden vid ässjan",
+      "text": "smeden vid ässjan (Blacksmith)",
       "kategori": "man",
       "höjd_m": 1.0,
       "pos": [
-        -11.512,
+        -11.51,
         0.08,
         -0.2
       ],
-      "ruta": [
-        513,
-        772,
-        588,
-        903
+      "källa": "townfolks2.jpeg rad 0 figur 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        177,
+        47,
+        619,
+        599
       ],
-      "grov_ruta": [
-        513,
-        772,
-        588,
-        903
-      ],
-      "borta": 0.042,
-      "figur_andel": 0.648,
       "px": [
-        75,
-        131
+        102,
+        128
       ]
     },
     {
       "id": "pojke",
       "bild": "bybor/pojke.png",
-      "text": "pojken med käppen",
+      "text": "pojken med käppen (Young Boy)",
       "kategori": "barn",
       "höjd_m": 0.72,
       "pos": [
-        -10.666,
+        -10.67,
         0.08,
         0.6
       ],
-      "ruta": [
-        592,
-        1002,
-        663,
-        1101
+      "källa": "townfolks.jpeg rad 1 figur 2",
+      "ark": "bybor",
+      "ark_ruta": [
+        1272,
+        419,
+        1493,
+        701
       ],
-      "grov_ruta": [
-        592,
-        1002,
-        663,
-        1103
-      ],
-      "borta": 0.079,
-      "figur_andel": 0.403,
       "px": [
-        71,
-        99
+        100,
+        128
       ]
     },
     {
       "id": "smedkund",
       "bild": "bybor/smedkund.png",
-      "text": "kunden vid städet",
+      "text": "kunden vid städet (Farmer)",
       "kategori": "man",
       "höjd_m": 1.0,
       "pos": [
-        -7.126,
+        -7.13,
         0.08,
         0.6
       ],
-      "ruta": [
-        922,
-        857,
-        978,
-        1043
+      "källa": "townfolks.jpeg rad 0 figur 2",
+      "ark": "bybor",
+      "ark_ruta": [
+        1260,
+        21,
+        1502,
+        326
       ],
-      "grov_ruta": [
-        922,
-        857,
-        978,
-        1043
-      ],
-      "borta": 0.062,
-      "figur_andel": 0.287,
       "px": [
-        56,
-        186
+        102,
+        128
       ]
     },
     {
       "id": "krog_vänster",
       "bild": "bybor/krog_vänster.png",
-      "text": "gästen i värdshusfönstret, vänster",
+      "text": "gästen i värdshusfönstret, vänster (Drunkard)",
       "kategori": "man",
       "höjd_m": 1.0,
       "pos": [
-        -6.084,
+        -6.08,
         0.08,
         -0.2
       ],
-      "ruta": [
-        1017,
-        862,
-        1073,
-        953
+      "källa": "townfolks2.jpeg rad 0 figur 2",
+      "ark": "bybor2",
+      "ark_ruta": [
+        1567,
+        79,
+        1992,
+        622
       ],
-      "grov_ruta": [
-        1017,
-        862,
-        1073,
-        953
-      ],
-      "borta": 0.06,
-      "figur_andel": 0.358,
       "px": [
-        56,
-        91
+        100,
+        128
       ]
     },
     {
       "id": "krog_värd",
       "bild": "bybor/krog_värd.png",
-      "text": "värden bakom disken",
+      "text": "värden bakom disken (Innkeeper)",
       "kategori": "man",
       "höjd_m": 1.0,
       "pos": [
-        -5.453,
+        -5.45,
         0.08,
         -0.2
       ],
-      "ruta": [
-        1077,
-        817,
-        1128,
-        933
+      "källa": "townfolks.jpeg rad 0 figur 1",
+      "ark": "bybor",
+      "ark_ruta": [
+        837,
+        28,
+        1122,
+        325
       ],
-      "grov_ruta": [
-        1077,
-        817,
-        1128,
-        933
-      ],
-      "borta": 0.069,
-      "figur_andel": 0.614,
       "px": [
-        51,
-        116
+        123,
+        128
       ]
     },
     {
       "id": "krog_höger",
       "bild": "bybor/krog_höger.png",
-      "text": "gästen i värdshusfönstret, höger",
+      "text": "gästen i värdshusfönstret, höger (Tavern Patron)",
       "kategori": "man",
       "höjd_m": 1.0,
       "pos": [
-        -4.821,
+        -4.82,
         0.08,
         -0.2
       ],
-      "ruta": [
-        1132,
-        862,
-        1188,
-        953
+      "källa": "townfolks.jpeg rad 3 figur 4",
+      "ark": "bybor",
+      "ark_ruta": [
+        2174,
+        1175,
+        2428,
+        1475
       ],
-      "grov_ruta": [
-        1132,
-        862,
-        1188,
-        953
-      ],
-      "borta": 0.06,
-      "figur_andel": 0.958,
       "px": [
-        56,
-        91
+        108,
+        128
       ]
     },
     {
       "id": "krog_ute",
       "bild": "bybor/krog_ute.png",
-      "text": "kvinnan vid tunnan utanför krogen",
+      "text": "kvinnan vid tunnan utanför krogen (Maid)",
       "kategori": "kvinna",
       "höjd_m": 1.0,
       "pos": [
-        -1.638,
+        -1.64,
         0.08,
         0.6
       ],
-      "ruta": [
-        1422,
-        777,
-        1478,
-        953
+      "källa": "townfolks.jpeg rad 2 figur 4",
+      "ark": "bybor",
+      "ark_ruta": [
+        2175,
+        783,
+        2391,
+        1084
       ],
-      "grov_ruta": [
-        1422,
-        777,
-        1478,
-        953
-      ],
-      "borta": 0.097,
-      "figur_andel": 0.253,
       "px": [
-        56,
-        176
+        92,
+        128
       ]
     },
     {
       "id": "gångerska",
       "bild": "bybor/gångerska.png",
-      "text": "kvinnan som går över gatan",
+      "text": "kvinnan som går över gatan (Herbalist)",
       "kategori": "kvinna",
       "höjd_m": 1.0,
       "pos": [
-        0.557,
+        0.56,
         0.08,
         0.9
       ],
-      "ruta": [
-        1622,
-        817,
-        1678,
-        1043
+      "källa": "townfolks.jpeg rad 2 figur 0",
+      "ark": "bybor",
+      "ark_ruta": [
+        316,
+        784,
+        557,
+        1084
       ],
-      "grov_ruta": [
-        1622,
-        817,
-        1678,
-        1043
-      ],
-      "borta": 0.093,
-      "figur_andel": 0.231,
       "px": [
-        56,
-        226
+        103,
+        128
       ]
     },
     {
       "id": "juvel_kund_1",
       "bild": "bybor/juvel_kund_1.png",
-      "text": "kunden utanför juveleraren",
+      "text": "juveleraren utanför sin dörr (Jeweler)",
       "kategori": "man",
       "höjd_m": 1.0,
       "pos": [
-        4.783,
+        4.78,
         0.08,
         0.4
       ],
-      "ruta": [
-        2007,
-        1007,
-        2063,
-        1078
+      "källa": "townfolks2.jpeg rad 0 figur 1",
+      "ark": "bybor2",
+      "ark_ruta": [
+        903,
+        49,
+        1320,
+        623
       ],
-      "grov_ruta": [
-        2007,
-        1002,
-        2063,
-        1078
-      ],
-      "borta": 0.205,
-      "figur_andel": 0.47,
       "px": [
-        56,
-        71
+        93,
+        128
       ]
     },
     {
       "id": "juvel_kund_2",
       "bild": "bybor/juvel_kund_2.png",
-      "text": "kvinnan vid juvelerarens dörr",
+      "text": "kunden vid juveleraren (Mage)",
       "kategori": "kvinna",
       "höjd_m": 1.0,
       "pos": [
-        6.446,
+        6.45,
         0.08,
         0.4
       ],
-      "ruta": [
-        2162,
-        997,
-        2211,
-        1075
+      "källa": "townfolks2.jpeg rad 0 figur 3",
+      "ark": "bybor2",
+      "ark_ruta": [
+        2263,
+        81,
+        2607,
+        624
       ],
-      "grov_ruta": [
-        2162,
-        997,
-        2211,
-        1075
-      ],
-      "borta": 0.279,
-      "figur_andel": 0.244,
       "px": [
-        49,
-        78
+        81,
+        128
       ]
     },
     {
       "id": "herdinna",
       "bild": "bybor/herdinna.png",
-      "text": "herdinnan vid stigen",
+      "text": "herdinnan vid stigen (sittande)",
       "kategori": "kvinna",
       "höjd_m": 1.0,
       "pos": [
@@ -341,23 +275,17 @@
         0.12,
         0.6
       ],
-      "ruta": [
-        2552,
-        881,
-        2638,
-        1043
+      "källa": "townfolks2.jpeg rad 1 figur 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        178,
+        939,
+        650,
+        1372
       ],
-      "grov_ruta": [
-        2552,
-        877,
-        2638,
-        1043
-      ],
-      "borta": 0.069,
-      "figur_andel": 0.636,
       "px": [
-        86,
-        162
+        140,
+        128
       ]
     },
     {
@@ -367,27 +295,21 @@
       "kategori": "får",
       "höjd_m": 0.45,
       "pos": [
-        11.715,
+        11.72,
         0.12,
         0.7
       ],
-      "ruta": [
-        2635,
-        997,
-        2698,
-        1048
+      "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        2127,
+        1069,
+        2404,
+        1325
       ],
-      "grov_ruta": [
-        2635,
-        997,
-        2698,
-        1048
-      ],
-      "borta": 0.093,
-      "figur_andel": 0.545,
       "px": [
-        63,
-        51
+        138,
+        128
       ]
     },
     {
@@ -401,23 +323,17 @@
         0.12,
         0.7
       ],
-      "ruta": [
-        2745,
-        997,
-        2813,
-        1051
+      "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        2127,
+        1069,
+        2404,
+        1325
       ],
-      "grov_ruta": [
-        2745,
-        997,
-        2813,
-        1051
-      ],
-      "borta": 0.141,
-      "figur_andel": 0.499,
       "px": [
-        68,
-        54
+        138,
+        128
       ]
     },
     {
@@ -427,27 +343,21 @@
       "kategori": "lamm",
       "höjd_m": 0.34,
       "pos": [
-        13.926,
+        13.93,
         0.12,
         0.7
       ],
-      "ruta": [
-        2835,
-        1006,
-        2901,
-        1052
+      "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        2127,
+        1069,
+        2404,
+        1325
       ],
-      "grov_ruta": [
-        2835,
-        1005,
-        2901,
-        1053
-      ],
-      "borta": 0.112,
-      "figur_andel": 0.046,
       "px": [
-        66,
-        46
+        138,
+        128
       ]
     },
     {
@@ -457,27 +367,21 @@
       "kategori": "häst",
       "höjd_m": 1.05,
       "pos": [
-        15.095,
+        15.1,
         0.12,
         0.7
       ],
-      "ruta": [
-        2886,
-        932,
-        3063,
-        1059
+      "källa": "townfolks2.jpeg rad 1 figur 2",
+      "ark": "bybor2",
+      "ark_ruta": [
+        1469,
+        798,
+        2004,
+        1375
       ],
-      "grov_ruta": [
-        2885,
-        925,
-        3063,
-        1061
-      ],
-      "borta": 0.068,
-      "figur_andel": 0.47,
       "px": [
-        177,
-        127
+        119,
+        128
       ]
     },
     {
@@ -487,57 +391,45 @@
       "kategori": "får",
       "höjd_m": 0.45,
       "pos": [
-        16.363,
+        16.36,
         0.12,
         0.7
       ],
-      "ruta": [
-        3057,
-        999,
-        3123,
-        1058
+      "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        2127,
+        1069,
+        2404,
+        1325
       ],
-      "grov_ruta": [
-        3057,
-        999,
-        3123,
-        1058
-      ],
-      "borta": 0.067,
-      "figur_andel": 0.653,
       "px": [
-        66,
-        59
+        138,
+        128
       ]
     },
     {
       "id": "herde",
       "bild": "bybor/herde.png",
-      "text": "herden med repet",
+      "text": "herden med hunden",
       "kategori": "man",
       "höjd_m": 1.0,
       "pos": [
-        16.528,
+        16.53,
         0.12,
         0.7
       ],
-      "ruta": [
-        3062,
-        875,
-        3148,
-        1061
+      "källa": "townfolks2.jpeg rad 1 figur 1",
+      "ark": "bybor2",
+      "ark_ruta": [
+        844,
+        797,
+        1320,
+        1372
       ],
-      "grov_ruta": [
-        3062,
-        875,
-        3148,
-        1061
-      ],
-      "borta": 0.052,
-      "figur_andel": 0.532,
       "px": [
-        86,
-        186
+        106,
+        128
       ]
     },
     {
@@ -547,27 +439,21 @@
       "kategori": "får",
       "höjd_m": 0.45,
       "pos": [
-        13.136,
+        13.14,
         0.12,
         -1.0
       ],
-      "ruta": [
-        2759,
-        787,
-        2833,
-        858
+      "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        2127,
+        1069,
+        2404,
+        1325
       ],
-      "grov_ruta": [
-        2759,
-        787,
-        2833,
-        858
-      ],
-      "borta": 0.071,
-      "figur_andel": 0.21,
       "px": [
-        74,
-        71
+        138,
+        128
       ]
     },
     {
@@ -577,27 +463,21 @@
       "kategori": "får",
       "höjd_m": 0.45,
       "pos": [
-        14.338,
+        14.34,
         0.12,
         -1.0
       ],
-      "ruta": [
-        2859,
-        763,
-        2952,
-        845
+      "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        2127,
+        1069,
+        2404,
+        1325
       ],
-      "grov_ruta": [
-        2859,
-        757,
-        2965,
-        845
-      ],
-      "borta": 0.132,
-      "figur_andel": 0.411,
       "px": [
-        93,
-        82
+        138,
+        128
       ]
     },
     {
@@ -611,23 +491,17 @@
         0.12,
         -1.0
       ],
-      "ruta": [
-        2992,
-        755,
-        3069,
-        851
+      "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
+      "ark": "bybor2",
+      "ark_ruta": [
+        2127,
+        1069,
+        2404,
+        1325
       ],
-      "grov_ruta": [
-        2992,
-        755,
-        3078,
-        851
-      ],
-      "borta": 0.183,
-      "figur_andel": 0.432,
       "px": [
-        77,
-        96
+        138,
+        128
       ]
     }
   ]

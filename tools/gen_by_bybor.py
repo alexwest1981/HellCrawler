@@ -1,34 +1,25 @@
-"""Byns bybor som voxlar, klippta ur Alex' egen målning (M129).
+"""Byns bybor som voxlar, klippta ur Alex' byboark (M129).
 
     python3 tools/gen_by_bybor.py            # skriv game/assets/by/bybor/*.png + bybor.json
-    python3 tools/gen_by_bybor.py --check    # mät mot källan och mot filerna på disk, exit 1 vid fel
+    python3 tools/gen_by_bybor.py --check    # mät mot arken och mot filerna på disk, exit 1 vid fel
 
-Alex 15/10: *"Jag tog bort alla NPC's från modellen, tänkte att man kan klistra in från bilden de
-karaktärer som finns, men som voxlar, så de står där, men platt... typ."*
+Alex 15/10: *"Jag la till två bilder med npc's i assets."* — `game/images/townfolks.jpeg` (20 bybor i
+4x5 rutor: Blacksmith, Innkeeper, Farmer, Merchant, Elder / Guard, Baker, Young Boy, Young Girl,
+Miller / Herbalist, Alchemist, Fisherman, Carpenter, Maid / Noblewoman, Nobleman, Priest, Archer,
+Tavern Patron) och `game/images/townfolks2.jpeg` (8 i 2x4: Blacksmith, Jeweler, Drunkard, Mage /
+sittande, herde med hund, häst, två får).
 
-Byborna i `game/assets/ui/byn.png` är målade figurer i scenen — samma personer som den gamla
-Blender-modellen hade som lådfigurer (105 objekt under förledet `Patron_*`, `Blacksmith_NPC_*`,
-`Bard_*`, `Walker_*`, `Herder_*`, `Shepherd_*`, `Jewel_Shopper_*`, `Gate_Traveler_*`, `Horse_*`,
-`Sheep_*`, borttagna i commit 1f6b86f0). Den här generatorn klipper ut dem ur målningen så spelet
-kan resa dem som voxlar i 3D-byn (se `game/ui/bybor.gd`).
+Det första försöket klippte byborna ur MÅLNINGEN (`assets/ui/byn.png`) och det gick inte: bakgrunden
+där är målad och ingen färgregel skiljer figur från kullersten, bänk och ässja (fyra metoder mätta och
+förkastade, se `hellcrawlers`-skillen). Arken är ritade på VIT botten, och då är klippningen en mätning
+i stället för en gissning: rutnätet delar arket, bakgrunden läses ur bildens hörn, och figuren blir de
+sammanhängande fälten i rutan (etikettens bokstäver är för små för att räknas).
 
-VARFÖR RUTOR OCH INTE EN MASKIN: bakgrunden bakom en bybo är en målad by — kullersten, bänkar,
-väggar, en ässja. Uppmätt 15/10: tre olika automatiska masker (lokal färgkontinuitet, kantbarriär,
-kantpalett) läckte alla in i figuren (smedens ben och byxor försvann, eller hela rutan blev
-"figur"), för figuren står INTE på en jämn duk. En ruta som följer figuren tätt plus en försiktig
-borttagning av det som hänger ihop med rutans KANT (kantpalett, tolerans `tol` per post) ger ett
-rent snitt där målningens egen kontur gör jobbet. `--check` mäter hur mycket som togs bort; en
-post vars borttagning faller utanför sitt fönster är en ruta som sitter fel.
-
-RUTORNA ÄR LÄSTA UR BILDEN, inte gissade: varje ruta är en mätning i remsor av `byn.png` med
-rutnät (se `docs/`-anteckningen i commiten). Figurens mitt i bilden ger bybons x i världen genom
-husmappningen nedan — husens rutor ur `PLATSER` i `game/ui/village_view.gd` mot husens egna
-b-bboxar i `byn.glb` — så bybon hamnar vid samma hus som i målningen.
-
-Höjden per kategori är PARITET med den gamla modellen (en människa 1,00 m, hästen 1,05, fåret
-0,45, lammet 0,34), inte en skala ur rutans pixelantal: bilden är målad i perspektiv, så en figur
-längre fram är ritad större, och att följa det hade gett en dvärg längst bak och en jätte längst
-fram i stället för en by.
+VAR DE STÅR ÄR OFÖRÄNDRAT: positionerna kommer ur husmappningen mot den gamla modellen (husens mitt i
+`PLATSER` mot husens mitt i `byn.glb`, sex punkter, största felet 0,47 m) och bor i tabellen nedan.
+Arken ändrar hur en bybo SER UT, inte var han står. Höjden per kategori är paritet med den gamla
+modellen (människa 1,00 m, häst 1,05, får 0,45, lamm 0,34); en post som bär rekvisita i samma ruta
+(smeden har städ och ässja) har sin egen höjd i stället, så mannen blir en man.
 """
 
 from __future__ import annotations
@@ -37,210 +28,215 @@ import argparse
 import hashlib
 import json
 import sys
+from collections import deque
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-KÄLLA = ROOT / "game" / "assets" / "ui" / "byn.png"
 UT = ROOT / "game" / "assets" / "by" / "bybor"
 DATA = ROOT / "game" / "assets" / "by" / "bybor.json"
 KONTAKT = UT / "_kontaktkarta.png"
 
-## HUSMAPPNINGEN: bybons x i världen ur figurens x i målningen.
-## MÄTT: husens mitt i procent av bildbredden (PLATSER:s `x`-fält) mot husens mitt i `byn.glb`
-## (Weaver -14,07 vid 8,5 %, Smith -9,93 vid 22,5 %, Tavern -3,74 vid 40 %, Gate 1,52 vid 53,5 %,
-## Jeweler 6,90 vid 69 %, Exit 11,20 vid 80,5 %). Minsta-kvadrat-anpassning över de sex punkterna
-## ger linjen nedan; största felet är 0,47 m, och de gamla NPC-positionerna i modellen hamnar inom
-## 0,5 m från samma linje (Blacksmith_NPC -11,90 mot -11,52, Patron -5,55 mot -6,08). Byborna står
-## alltså där målningen har dem, inte på en påhittad plats.
-X_LUTNING = 0.35476
-X_NOLLA = -17.55410
-BILD_BREDD = 3232
+## Arken och antalet rader i dem. Filerna ligger i game/images/ som Alex' övriga ark.
+## Raderna är jämna band (ark 1: 384 px, ark 2: 768 px) och figurerna ligger i x-ordning inom bandet —
+## rutnätets KOLUMNER är däremot inte figurens rutor: flera figurer står över en kolumngräns (mätt 15/10
+## skar den kolumnbundna klippningen av maidens vänstra sida med 78 px och tavernapatronens med 78 px).
+## Figuren väljs därför på sin PLATS I RADEN, inte i en kolumn.
+ARK = {
+    "bybor": (ROOT / "game" / "images" / "townfolks.jpeg", 4),
+    "bybor2": (ROOT / "game" / "images" / "townfolks2.jpeg", 2),
+}
 
-## Höjd per kategori i meter — paritet med den gamla modellen (se filhuvudet).
+## Bakgrunden: avståndet från arkets egen hörnfärg (vit). Låg nog att ta jpeg-bruset nära vitt, hög nog
+## att lämna kvar figurens mörka kontur och skugga.
+BAKGRUND_TOL = 0.12
+## Fält mindre än så är etikettbokstäver och brus, inte figurer. MÄTT: figurens egna fält ligger på
+## 18 000-160 000 px, medan bokstäverna under etiketten ligger på 550-1 400 px — de faller bort både på
+## storleken och på att de sitter i rutans nederkant (se `ETIKETT_TOPP`).
+FALT_MIN = 800
+## Etiketten (blacktexten under varje figur) sitter i rutans nederkant. FÄLT SOM BÖRJAR här eller
+## längre ned är text: mätt 15/10 börjar bokstäverna på 0,91 av rutans höjd i båda arken, medan den
+## lägsta figuren slutar på 0,78.
+ETIKETT_TOPP = 0.80
+## Rimligt mått på en klippt figur i arkets px. MÄTT: 200-360 px i ark 1, 300-660 px i ark 2. Utanför
+## det betyder det att rutnätet eller bakgrunden mättes fel, och då blir modellen fel i spelet.
+PX_MIN, PX_MAX = 120, 900
+## Fåren i ark 2 står ihop: två djur i samma fält och INGET gap mellan dem. Delningen sker därför på
+## mitten av fältet. MÄTT 15/10: den smalaste kolumnen letades upp först, låg 45 px fel och skar av det
+## högra fårets huvud; en delning på mitten (och bara den vänstra halvan) ger EN hel sheep — huvud, alla
+## fyra ben, inget av grannen.
+FAR_HALVA = 0.50
+## Målhöjden på den sparade figuren, i px. Voxlarna använder 16 celler över figurens höjd (`Voxel.ur_ark`
+## med `sidor` 8 x `DETALJ` 2) och cellen blir därför 8 px med den här höjden — ändå fyra gånger mer
+## källpixel per cell än vad `DETALJ` tillåter. MÄTT 15/10: 21 bybor klippta i arkets egen storlek
+## (442-577 px höga) byggde byn på 874-1025 ms, mot 103 ms för de gamla små rutorna; nedskalningen tar
+## 96 % av pixelarbetet utan att ändra rutnätet. Färgen medelvärdesbildas (BOX) och alfan trösklas, så
+## konturen förblir hård.
+MÅL_PX = 128
+## Hur stort ett fält måste vara för att räknas som figur, i andel av radens största fält. Rekvisitan
+## (smedens städ och ässja) ligger på 9-19 % av mannen medan minsta figuren i ett band är 36 % av bandets
+## största, så gränsen skiljer dem åt med god marginal.
+FIGUR_ANDEL = 0.30
+
+## Höjd per kategori i meter — paritet med den gamla modellen.
 KATEGORI_HÖJD = {"man": 1.00, "kvinna": 1.00, "barn": 0.72, "häst": 1.05, "får": 0.45,
                  "lamm": 0.34, "hund": 0.30}
 
-## MARKENS HÖJD, mätt med bboxar ur byn.glb: gatans och hagens översta yta ligger på 0,05-0,12 m,
-## så byborna ställs på 0,08 (gatan) respektive 0,12 (hagen) i stället för på 0 där fötterna sjunker.
-Y_GATA, Y_HAGE = 0.08, 0.12
-
-## Toleransen för kantborttagningen, MÄTT: fyra värden prövades mot hela tabellen 15/10 och andelen
-## borttaget gick från 2-6 % (0,00 — bara den platta ytan närmast kanten) till 67 % (0,04), där både
-## huvuden och byxor försvann. Bakgrunden bakom en bybo är MÅLAD (kullersten, bänkar, ässjan) med
-## toner som ligger nära figurens egna, så toleransen får inte vara stor: 0,01 tar den platta ytan
-## runt figuren och lämnar figuren hel.
-TOL = 0.01
-
-## Tabellen: (id, ruta i källans px (x0,y0,x1,y1), kategori, djup z, mark-y, text).
-## Rutorna är figurens egen ruta med några pixlars marginal, lästa ur målningen (se filhuvudet).
+## Tabellen: (id, kategori, z, mark-y, x, ark, rad, figur i raden, halva, höjd (0 = kategorins), text).
+## Figuren väljs på sin plats i raden (se ARK): ark 1 är 4 rader x 5 bybor, ark 2 är 2 rader där rad 1
+## har den sittande, herden med hunden, hästen och fåren.
 BYBOR = [
-    ("handlare",     (498, 880, 545, 968),    "kvinna", -0.10, Y_GATA, "handlerskan bakom saluståndet"),
-    ("smed",         (513, 772, 588, 903),   "man",    -0.20, Y_GATA, "smeden vid ässjan"),
-    ("pojke",        (592, 1002, 663, 1103), "barn",    0.60, Y_GATA, "pojken med käppen"),
-    ("smedkund",     (922, 857, 978, 1043),  "man",     0.60, Y_GATA, "kunden vid städet"),
-    ("krog_vänster", (1017, 862, 1073, 953), "man",    -0.20, Y_GATA, "gästen i värdshusfönstret, vänster"),
-    ("krog_värd",    (1077, 817, 1128, 933), "man",    -0.20, Y_GATA, "värden bakom disken"),
-    ("krog_höger",   (1132, 862, 1188, 953), "man",    -0.20, Y_GATA, "gästen i värdshusfönstret, höger"),
-    ("krog_ute",     (1422, 777, 1478, 953), "kvinna",  0.60, Y_GATA, "kvinnan vid tunnan utanför krogen"),
-    ("gångerska",    (1622, 817, 1678, 1043), "kvinna", 0.90, Y_GATA, "kvinnan som går över gatan"),
-    ("juvel_kund_1", (2007, 1002, 2063, 1078), "man",   0.40, Y_GATA, "kunden utanför juveleraren"),
-    ("juvel_kund_2", (2162, 997, 2211, 1075), "kvinna", 0.40, Y_GATA, "kvinnan vid juvelerarens dörr"),
-    ("herdinna",     (2552, 877, 2638, 1043), "kvinna", 0.60, Y_HAGE, "herdinnan vid stigen"),
-    ("får_1",        (2635, 997, 2698, 1048), "får",    0.70, Y_HAGE, "får på stigen"),
-    ("får_2",        (2745, 997, 2813, 1051), "får",    0.70, Y_HAGE, "får på stigen"),
-    ("lamm_1",       (2835, 1005, 2901, 1053), "lamm",  0.70, Y_HAGE, "lammet vid hästen"),
-    ("häst",         (2885, 925, 3063, 1061), "häst",   0.70, Y_HAGE, "hästen"),
-    ("får_3",        (3057, 999, 3123, 1058), "får",    0.70, Y_HAGE, "fåret vid herden"),
-    ("herde",        (3062, 875, 3148, 1061), "man",    0.70, Y_HAGE, "herden med repet"),
-    ("får_berg_1",   (2759, 787, 2833, 858), "får",    -1.00, Y_HAGE, "får uppe på gräset"),
-    ("får_berg_2",   (2859, 757, 2965, 845), "får",    -1.00, Y_HAGE, "får uppe på gräset"),
-    ("får_berg_3",   (2992, 755, 3078, 851), "får",    -1.00, Y_HAGE, "får uppe på gräset"),
+    ("handlare",     "kvinna", -0.10, 0.08, -11.83, "bybor",  0, 3, None, 0.0, "handlerskan bakom saluståndet (Merchant)"),
+    ("smed",         "man",    -0.20, 0.08, -11.51, "bybor2", 0, 0, None, 0.0, "smeden vid ässjan (Blacksmith)"),
+    ("pojke",        "barn",    0.60, 0.08, -10.67, "bybor",  1, 2, None, 0.0, "pojken med käppen (Young Boy)"),
+    ("smedkund",     "man",     0.60, 0.08,  -7.13, "bybor",  0, 2, None, 0.0, "kunden vid städet (Farmer)"),
+    ("krog_vänster", "man",    -0.20, 0.08,  -6.08, "bybor2", 0, 2, None, 0.0, "gästen i värdshusfönstret, vänster (Drunkard)"),
+    ("krog_värd",    "man",    -0.20, 0.08,  -5.45, "bybor",  0, 1, None, 0.0, "värden bakom disken (Innkeeper)"),
+    ("krog_höger",   "man",    -0.20, 0.08,  -4.82, "bybor",  3, 4, None, 0.0, "gästen i värdshusfönstret, höger (Tavern Patron)"),
+    ("krog_ute",     "kvinna",  0.60, 0.08,  -1.64, "bybor",  2, 4, None, 0.0, "kvinnan vid tunnan utanför krogen (Maid)"),
+    ("gångerska",    "kvinna",  0.90, 0.08,   0.56, "bybor",  2, 0, None, 0.0, "kvinnan som går över gatan (Herbalist)"),
+    ("juvel_kund_1", "man",     0.40, 0.08,   4.78, "bybor2", 0, 1, None, 0.0, "juveleraren utanför sin dörr (Jeweler)"),
+    ("juvel_kund_2", "kvinna",  0.40, 0.08,   6.45, "bybor2", 0, 3, None, 0.0, "kunden vid juveleraren (Mage)"),
+    ("herdinna",     "kvinna",  0.60, 0.12,  10.93, "bybor2", 1, 0, None, 0.0, "herdinnan vid stigen (sittande)"),
+    ("får_1",        "får",     0.70, 0.12,  11.72, "bybor2", 1, 3, 0,    0.0, "får på stigen"),
+    ("får_2",        "får",     0.70, 0.12,  12.95, "bybor2", 1, 3, 0,    0.0, "får på stigen"),
+    ("lamm_1",       "lamm",    0.70, 0.12,  13.93, "bybor2", 1, 3, 0,    0.0, "lammet vid hästen"),
+    ("häst",         "häst",    0.70, 0.12,  15.10, "bybor2", 1, 2, None, 0.0, "hästen"),
+    ("får_3",        "får",     0.70, 0.12,  16.36, "bybor2", 1, 3, 0,    0.0, "fåret vid herden"),
+    ("herde",        "man",     0.70, 0.12,  16.53, "bybor2", 1, 1, None, 0.0, "herden med hunden"),
+    ("får_berg_1",   "får",    -1.00, 0.12,  13.14, "bybor2", 1, 3, 0,    0.0, "får uppe på gräset"),
+    ("får_berg_2",   "får",    -1.00, 0.12,  14.34, "bybor2", 1, 3, 0,    0.0, "får uppe på gräset"),
+    ("får_berg_3",   "får",    -1.00, 0.12,  15.71, "bybor2", 1, 3, 0,    0.0, "får uppe på gräset"),
 ]
 
-## Fönstret för hur mycket kantborttagningen får ta. MÄTT: 4-22 % per figur vid toleransen 0,01, och
-## 67 % vid 0,04 — där både huvuden och byxor försvann. Över taket har fyllningen alltså ätit figuren.
-BORTA_MIN, BORTA_MAX = 0.02, 0.35
-## Hur stor del av rutan som är FIGUR (längre än `FIGUR_TOL` från rutans kantfärger). Det är den
-## siffra som avgör om snittet är en bybo eller en bit målning: mätt 20-40 % för byborna under den
-## här versionen, alltså bär varje modell en bit av målningens bakgrund med sig.
-##
-## VARFÖR DET INTE GÅR ATT GÖRA RENARE (mätt 15/10, fyra metoder mot hela tabellen):
-##   * lokal färgkontinuitet (0,06): åt smedens ben och byxor — figuren står inte på en jämn duk.
-##   * kantbarriär + frö i figuren: gav 0 px för en figur och hela rutan för en annan (läcker/blockerar).
-##   * kantpalett med tolerans: 0,04 åt 67 % (huvuden försvann), 0,01 tar 4-22 %.
-##   * avståndströskel mot kantfärgerna (0,06-0,14): karvade sönder kropparna (största komponenten var
-##     24-52 % av det kvarvarande för flera figurer).
-## Bakgrunden bakom en bybo är MÅLAD (kullersten, bänkar, ässjan, eld) med toner som ligger nära
-## figurens egna, så ingen färgregel skiljer dem. RENA SILHUETTER KRÄVER bildens egna sprites/lager
-## (Alex' källfil) eller för hand ritade masker — den här generatorn gör resten av kedjan färdig.
-FIGUR_TOL = 0.08
+
+def ark_bild(namn: str) -> tuple[np.ndarray, np.ndarray]:
+    """Arket som flyttal 0-1 och dess bakgrundsfärg (ur bildens hörn)."""
+    väg = ARK[namn][0]
+    if not väg.exists():
+        raise SystemExit(f"FEL: arket saknas: {väg}")
+    a = np.asarray(Image.open(väg).convert("RGB")).astype(np.float32) / 255.0
+    hörn = np.concatenate([a[0:8, 0:8].reshape(-1, 3), a[0:8, -8:].reshape(-1, 3),
+                           a[-8:, 0:8].reshape(-1, 3), a[-8:, -8:].reshape(-1, 3)])
+    return a, hörn.mean(axis=0)
 
 
-def kantpalett(patch: np.ndarray) -> np.ndarray:
-    """De vanligaste färgerna på rutans yttersta ring. Bakgrunden runt en bybo är målad (mark, vägg,
-    bänk) och har därför flera toner — en enda nyckelfärg hade bara tagit en.
-    Färgerna är KÄLLANS EGNA, inte kvantiserade: pixelkonsten har få och platta färger, och en
-    kvantisering hade lagt en osynlig tolerans på 1/24 (0,042) på varje jämförelse — mätt 15/10 åt
-    den upp både byxor och huvuden på folk medan fåren (vitt mot grönt) klarade sig."""
-    ring = np.concatenate([patch[0], patch[-1], patch[:, 0], patch[:, -1]])
-    kvant = np.rint(ring * 255).astype(np.uint8)
-    unika, antal = np.unique(kvant, axis=0, return_counts=True)
-    return unika[antal >= 3].astype(np.float32) / 255.0
-
-
-def ta_bort_bakgrund(patch: np.ndarray, tol: float) -> np.ndarray:
-    """Flodfyllning från rutans kant: en pixel blir genomskinlig om den ligger inom `tol` från NÅGON
-    kantfärg OCH hänger ihop med kanten. Figurens mitt når inte kanten och rörs därför inte."""
-    h, b = patch.shape[:2]
-    pal = kantpalett(patch)
-    if len(pal) == 0:
-        return np.ones((h, b), dtype=bool)
-    borta = np.zeros((h, b), dtype=bool)
-    kö: list[tuple[int, int]] = []
-
-    def put(y: int, x: int) -> None:
-        if not borta[y, x]:
-            borta[y, x] = True
-            kö.append((y, x))
-
-    for x in range(b):
-        put(0, x)
-        put(h - 1, x)
+def falt(mask: np.ndarray) -> list[tuple[int, int, int, int, int]]:
+    """Sammanhängande fält i en mask, som (px, x0, y0, x1, y1)."""
+    h, b = mask.shape
+    sedd = np.zeros((h, b), dtype=bool)
+    ut = []
     for y in range(h):
-        put(y, 0)
-        put(y, b - 1)
-    huvud = 0
-    while huvud < len(kö):
-        y, x = kö[huvud]
-        huvud += 1
-        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            ny, nx = y + dy, x + dx
-            if 0 <= ny < h and 0 <= nx < b and not borta[ny, nx]:
-                d = np.abs(pal - patch[ny, nx]).max(axis=1).min()
-                if d < tol:
-                    borta[ny, nx] = True
-                    kö.append((ny, nx))
-    return borta
+        for x in range(b):
+            if mask[y, x] and not sedd[y, x]:
+                kö = deque([(y, x)])
+                sedd[y, x] = True
+                xs_min, ys_min, xs_max, ys_max, n = x, y, x, y, 0
+                while kö:
+                    cy, cx = kö.popleft()
+                    n += 1
+                    xs_min = min(xs_min, cx)
+                    xs_max = max(xs_max, cx)
+                    ys_min = min(ys_min, cy)
+                    ys_max = max(ys_max, cy)
+                    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        ny, nx = cy + dy, cx + dx
+                        if 0 <= ny < h and 0 <= nx < b and mask[ny, nx] and not sedd[ny, nx]:
+                            sedd[ny, nx] = True
+                            kö.append((ny, nx))
+                ut.append((n, xs_min, ys_min, xs_max, ys_max))
+    return ut
 
 
-## Hur stor andel av en rad/kolumn som får vara "bakgrundsfärg" innan raden räknas som bakgrund när
-## figurens egen ruta letas upp. Figuren är smal i förhållande till rutans marginal, så dess rader och
-## kolumner domineras av figurens egna färger medan markens och väggens rader domineras av bakgrunden.
-RAD_ANDEL = 0.72
-TRIM_TOL = 0.03
+def figur_ruta(namn: str, rad: int, nr: int, val: int | None) -> tuple[int, int, int, int]:
+    """Figurens ruta i arket, MÄTT: radbandet delas upp i sammanhängande fält, etikettens bokstäver
+    (i bandets nederkant) och rekvisitan (små fält — smedens städ och ässja) faller bort, och det som
+    blir kvar sorteras i x-ordning: `nr` är figurens plats i raden.
+    `val` väljer halvan när rutan har TVÅ djur i samma fält (fåren står ihop, se `FAR_HALVA`). Rutan är
+    figurens EGEN bbox utan marginal — modellens underkant är fötterna, och provet mäter att figuren når
+    rutans båda kanter."""
+    a, bg = ark_bild(namn)
+    _, rader = ARK[namn]
+    h, b = a.shape[:2]
+    ch = h / rader
+    y0, y1 = int(round(rad * ch)), int(round((rad + 1) * ch))
+    mask = np.abs(a[y0:y1] - bg).max(axis=2) > BAKGRUND_TOL
+    fält = [f for f in falt(mask) if f[0] >= FALT_MIN and f[2] < ETIKETT_TOPP * (y1 - y0)]
+    if not fält:
+        raise SystemExit(f"FEL: inga figurer i {namn} rad {rad}")
+    # Rekvisitan är ett eget fält och mycket mindre än figuren (mätt: städet och ässjan 9-19 % av
+    # mannen, medan minsta figuren i ett band är 36 % av bandets största).
+    gräns = FIGUR_ANDEL * max(f[0] for f in fält)
+    figurer = sorted([f for f in fält if f[0] >= gräns], key=lambda f: f[1])
+    if nr >= len(figurer):
+        raise SystemExit(f"FEL: {namn} rad {rad} har {len(figurer)} figurer, nr {nr}")
+    n, xs0, ys0, xs1, ys1 = figurer[nr]
+    if val is not None:
+        skarv = xs0 + int((xs1 - xs0) * FAR_HALVA)
+        xs0, xs1 = (xs0, skarv) if val == 0 else (skarv + 1, xs1)
+        # Halvan mäts om: de två fåren har olika höjd, och en halva som ärver hela fältets höjd får
+        # genomskinliga rader över och under sig (modellen blir högre än djuret).
+        inne = mask[ys0:ys1 + 1, xs0:xs1 + 1]
+        rader = np.nonzero(inne.any(axis=1))[0]
+        kolonner = np.nonzero(inne.any(axis=0))[0]
+        if len(rader) == 0 or len(kolonner) == 0:
+            raise SystemExit(f"FEL: tom halva i {namn} rad {rad} nr {nr} val {val}")
+        ys0, ys1 = ys0 + int(rader[0]), ys0 + int(rader[-1])
+        xs0, xs1 = xs0 + int(kolonner[0]), xs0 + int(kolonner[-1])
+    return xs0, y0 + ys0, xs1 + 1, y0 + ys1 + 1
 
 
-def bakgrundskarta(patch: np.ndarray, pal: np.ndarray) -> np.ndarray:
-    """Per pixel: hur långt den ligger från den NÄRMASTE kantfärgen (största kanalskillnad)."""
-    d = None
-    for c in pal:
-        a = np.abs(patch - c).max(axis=2)
-        d = a if d is None else np.minimum(d, a)
-    return d if d is not None else np.zeros(patch.shape[:2], dtype=np.float32)
+def skala(bild: Image.Image) -> Image.Image:
+    """Ned till `MÅL_PX` höjd (se den konstanten): färgen medelvärdesbildas och alfan trösklas, så
+    konturen förblir hård. Utan nedskalningen bygger byn på ~1 s (mätt) för pixelarbete voxlarna
+    ändå kastar bort."""
+    if bild.size[1] <= MÅL_PX:
+        return bild
+    f = bild.size[1] / float(MÅL_PX)
+    ny = (max(1, round(bild.size[0] / f)), MÅL_PX)
+    a = np.asarray(bild.resize(ny, Image.Resampling.BOX)).copy()
+    a[..., 3] = np.where(a[..., 3] > 128, 255, 0)
+    return Image.fromarray(a, mode="RGBA")
 
 
-def figur_ruta(patch: np.ndarray) -> tuple[int, int, int, int] | None:
-    """Figurens EGEN ruta inuti den grova rutan, mätt som de rader och kolumner som inte domineras av
-    kantens färger. Utan det här följer några pixlars marginal med in i modellen, och de pixlarna
-    hamnar under fötterna (figuren svävar) och gör modellen bredare än figuren."""
-    pal = kantpalett(patch)
-    if len(pal) == 0:
-        return None
-    bak = bakgrundskarta(patch, pal) < TRIM_TOL
-    kol = np.nonzero(bak.mean(axis=0) < RAD_ANDEL)[0]
-    rad = np.nonzero(bak.mean(axis=1) < RAD_ANDEL)[0]
-    if len(kol) == 0 or len(rad) == 0:
-        return None
-    return int(kol[0]), int(rad[0]), int(kol[-1]) + 1, int(rad[-1]) + 1
-
-
-def klipp(id: str, ruta: tuple, kategori: str, z: float, y: float, text: str) -> dict:
-    """En bybo: rutan ur källan, trimmad till figuren, bakgrunden borta, x i världen ur husmappningen."""
-    x0, y0, x1, y1 = ruta
-    patch = np.asarray(Image.open(KÄLLA).convert("RGB")).astype(np.float32)[y0:y1, x0:x1] / 255.0
-    trimmad = figur_ruta(patch)
-    if trimmad is not None:
-        tx0, ty0, tx1, ty1 = trimmad
-        patch = patch[ty0:ty1, tx0:tx1]
-        x0, y0, x1, y1 = x0 + tx0, y0 + ty0, x0 + tx1, y0 + ty1
-    borta = ta_bort_bakgrund(patch, TOL)
-    rgba = np.dstack([(patch * 255).astype(np.uint8), np.where(borta, 0, 255).astype(np.uint8)])
-    bild = Image.fromarray(rgba, mode="RGBA")
+def klipp(post: tuple) -> dict:
+    """En bybo: figurens ruta i arket, bakgrunden genomskinlig, resten orörd färg."""
+    id, kat, z, y, x, ark, rad, nr, val, höjd_egen, text = post
+    a, bg = ark_bild(ark)
+    rx0, ry0, rx1, ry1 = figur_ruta(ark, rad, nr, val)
+    ruta = a[ry0:ry1, rx0:rx1]
+    alfa = np.where(np.abs(ruta - bg).max(axis=2) > BAKGRUND_TOL, 255, 0).astype(np.uint8)
+    bild = Image.fromarray(np.dstack([(ruta * 255).astype(np.uint8), alfa]), mode="RGBA")
+    bild = skala(bild)
     bild.save(UT / f"{id}.png")
-    andel = float(borta.mean())
-    # FIGURANDELEN: hur mycket av rutan som inte är rutans egen kantfärg. Det är måttet på hur mycket
-    # av målningens bakgrund modellen bär med sig (se FIGUR_ANDEL_MIN).
-    figur = float((bakgrundskarta(patch, kantpalett(patch)) > FIGUR_TOL).mean())
-    x_mitt = (x0 + x1) / 2.0
+    höjd = höjd_egen if höjd_egen > 0.0 else KATEGORI_HÖJD[kat]
     return {
         "id": id,
         "bild": f"bybor/{id}.png",
         "text": text,
-        "kategori": kategori,
-        "höjd_m": KATEGORI_HÖJD[kategori],
-        "pos": [round(X_LUTNING * (x_mitt / BILD_BREDD * 100.0) + X_NOLLA, 3), round(y, 3), round(z, 3)],
-        "ruta": [x0, y0, x1, y1],
-        "grov_ruta": list(ruta),
-        "borta": round(andel, 3),
-        "figur_andel": round(figur, 3),
-        "px": [x1 - x0, y1 - y0],
+        "kategori": kat,
+        "höjd_m": round(höjd, 3),
+        "pos": [round(x, 3), round(y, 3), round(z, 3)],
+        "källa": f"{ARK[ark][0].name} rad {rad} figur {nr}" + ("" if val is None else f", halva {val}"),
+        "ark": ark,
+        "ark_ruta": [rx0, ry0, rx1, ry1],
+        "px": [bild.size[0], bild.size[1]],
     }
 
 
 def bygg() -> list[dict]:
     UT.mkdir(parents=True, exist_ok=True)
-    poster = [klipp(*rad) for rad in BYBOR]
+    poster = [klipp(rad) for rad in BYBOR]
     DATA.write_text(json.dumps({"bybor": poster}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     kontaktyta(poster)
     return poster
 
 
 def kontaktyta(poster: list[dict]) -> None:
-    """Alla bybor sida vid sida på schackbräde, i sin egen skala (2x). Figuren avgörs av ögat —
-    siffrorna säger hur mycket som togs bort, inte om snittet blev rätt."""
+    """Alla bybor sida vid sida på schackbräde (2x). Siffrorna säger att klippningen är gjord; bara
+    ögat säger om figuren blev rätt."""
     bilder = [(p["id"], Image.open(UT / f'{p["id"]}.png')) for p in poster]
     s = 2
     höjd = max(b.size[1] for _, b in bilder) * s + 24
@@ -251,7 +247,7 @@ def kontaktyta(poster: list[dict]) -> None:
             if (x // 8 + y // 8) % 2:
                 duk.paste((52, 52, 58), (x, y, min(x + 8, bredd), min(y + 8, höjd)))
     x = 12
-    for id, b in bilder:
+    for _, b in bilder:
         b = b.resize((b.size[0] * s, b.size[1] * s), Image.NEAREST)
         duk.paste(b, (x, 12), b)
         x += b.size[0] + 12
@@ -271,8 +267,7 @@ def checka(poster: list[dict]) -> int:
             fel += 1
         print(("  OK   " if ok else "  ##FEL## ") + text)
 
-    src = np.asarray(Image.open(KÄLLA).convert("RGB"))
-    print(f"källa {KÄLLA.name} {src.shape[1]}x{src.shape[0]}, {len(poster)} bybor")
+    print(f"{len(poster)} bybor ur {len(ARK)} ark")
     for p in poster:
         fil = UT / f'{p["id"]}.png'
         if not fil.exists():
@@ -280,24 +275,36 @@ def checka(poster: list[dict]) -> int:
             continue
         bild = Image.open(fil)
         arr = np.asarray(bild)
-        x0, y0, x1, y1 = p["ruta"]
-        krav(bild.size == (x1 - x0, y1 - y0), f'{p["id"]}: rutan {bild.size} == {x1 - x0}x{y1 - y0}')
-        # PIXLARNA STÄMMER MED KÄLLAN: en klippning får bara sätta alfan, aldrig röra färgen.
-        samma = np.array_equal(arr[..., :3], src[y0:y1, x0:x1])
-        krav(samma, f'{p["id"]}: färgerna är källans egna ({arr[..., :3].mean():.1f} i medel)')
         alfa = arr[..., 3]
-        krav(0 < int((alfa > 0).sum()) < alfa.size, f'{p["id"]}: figuren finns ({(alfa > 0).mean() * 100:.0f} % kvar)')
-        krav(BORTA_MIN <= p["borta"] <= BORTA_MAX, f'{p["id"]}: bakgrund borta {p["borta"] * 100:.0f} % inom {BORTA_MIN:.0%}-{BORTA_MAX:.0%}')
-        # FIGURANDELEN mäts och skrivs ut men är ingen grind: måttet är för grovt för att fälla på
-        # (en ruta inne i krogens mörka interiör får 96 % "figur" eftersom inget där liknar kantens
-        # färger, medan ett vitt lamm på grus får 5 %). Det pekar ut vilka rutor som är för stora.
-        print(f'  ..   {p["id"]}: figurandel {p["figur_andel"] * 100:.0f} % av rutan (resten är målningens bakgrund)')
-        # FOTEN I NEDERKANT: figuren ska stå på rutans nederkant, annars svävar den i modellen.
-        nederst = np.nonzero((alfa > 0).any(axis=1))[0]
-        krav(len(nederst) > 0 and nederst[-1] >= alfa.shape[0] - 6,
-             f'{p["id"]}: figuren når rutans nederkant (rad {int(nederst[-1]) if len(nederst) else -1} av {alfa.shape[0]})')
+        a, bg = ark_bild(p["ark"])
+        x0, y0, x1, y1 = p["ark_ruta"]
+        krav(bild.size == (p["px"][0], p["px"][1]), f'{p["id"]}: måttet {bild.size} är tabellens')
+        krav(bild.size[0] / bild.size[1] > 0.1, f'{p["id"]}: rutan är {bild.size[0]}x{bild.size[1]} px')
+        # RUTAN LIGGER I ARKET, och figuren är högst lika hög som rutan (nedskalningen krymper, aldrig
+        # tvärtom) — ett negativt eller förskjutet svar betyder att rutnätet mättes fel.
+        krav(0 <= x0 < x1 <= a.shape[1] and 0 <= y0 < y1 <= a.shape[0],
+             f'{p["id"]}: rutan ({x0},{y0})-({x1},{y1}) ligger i arket {a.shape[1]}x{a.shape[0]}')
+        krav(bild.size[1] <= y1 - y0, f'{p["id"]}: figuren är {bild.size[1]} px hög av rutans {y1 - y0}')
+        # FÄRGEN ÄR ARKETS. Bara figurens pixlar jämförs: nedskalningen av en RGBA-bild lämnar
+        # genomskinliga pixlar svarta (Pillow premultiplicerar om alfakanalen), och de pixlarna syns
+        # aldrig i spelet. Medelvärdet över figuren är däremot oförändrat av nedskalningen.
+        källa = a[y0:y1, x0:x1] * 255.0
+        källa_figur = np.abs(a[y0:y1, x0:x1] - bg).max(axis=2) > BAKGRUND_TOL
+        avvikelse = float(np.abs(arr[..., :3][alfa > 0].mean(axis=0)
+                                 - källa[källa_figur].mean(axis=0)).max())
+        krav(avvikelse < 4.0, f'{p["id"]}: figurens medelfärg är arkets ({avvikelse:.2f} steg från källan)')
+        kvar = float((alfa > 0).mean())
+        krav(0.10 < kvar < 0.95, f'{p["id"]}: figuren fyller rutan, inte bakgrunden ({kvar * 100:.0f} %)')
+        # FOTEN I NEDERKANT och hjässan i överkant: annars står modellen och svävar, eller så bar
+        # rutan med sig mark över figuren.
+        rader = np.nonzero((alfa > 0).any(axis=1))[0]
+        krav(len(rader) > 0 and rader[0] <= 2 and rader[-1] >= alfa.shape[0] - 3,
+             f'{p["id"]}: figuren fyller rutan på höjden (rad {int(rader[0]) if len(rader) else -1}'
+             f'-{int(rader[-1]) if len(rader) else -1} av {alfa.shape[0]})')
+        krav(PX_MIN <= p["px"][1] <= PX_MAX, f'{p["id"]}: figuren är {p["px"][1]} px hög (arkets mått)')
         krav(-17.0 < p["pos"][0] < 17.0, f'{p["id"]}: x {p["pos"][0]:.2f} inom byn')
-    # DETERMINISM: alla filer har ett avtryck, och en andra körning ska ge samma.
+        krav(0.3 <= p["höjd_m"] <= 2.0, f'{p["id"]}: höjd {p["höjd_m"]:.2f} m')
+    # DETERMINISM: alla filer har ett avtryck, och en andra körning ska ge samma summa.
     summa = hashlib.md5("".join(avtryck(UT / f'{p["id"]}.png') for p in poster).encode()).hexdigest()[:12]
     print(f"  avtryck {summa}")
     print(f"=== {'KLART' if fel == 0 else f'{fel} FEL'} ({len(poster)} bybor) ===")
@@ -305,16 +312,13 @@ def checka(poster: list[dict]) -> int:
 
 
 def main() -> int:
-    global TOL
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check", action="store_true", help="mät i stället för att skriva")
-    ap.add_argument("--tol", type=float, default=TOL, help="tolerans för kantborttagningen")
     a = ap.parse_args()
-    TOL = a.tol
     poster = bygg()
     for p in poster:
         print(f'{p["id"]:14s} x {p["pos"][0]:7.2f}  z {p["pos"][2]:5.2f}  {p["höjd_m"]:.2f} m  '
-              f'borta {p["borta"] * 100:3.0f} %  figur {p["figur_andel"] * 100:3.0f} %  {p["text"]}')
+              f'{p["px"][0]:3d}x{p["px"][1]:3d} px  {p["källa"]}')
     if a.check:
         return checka(poster)
     return 0
