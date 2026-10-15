@@ -1,0 +1,154 @@
+{
+  "hjalte": [
+    {
+      "id": "auric_paladin",
+      "namn": "AURIC PALADIN",
+      "bild": "hjalte/auric_paladin.png",
+      "ark_ruta": [
+        55,
+        159,
+        448,
+        644
+      ],
+      "px": [
+        39,
+        48
+      ]
+    },
+    {
+      "id": "sylvan_ranger",
+      "namn": "SYLVAN RANGER",
+      "bild": "hjalte/sylvan_ranger.png",
+      "ark_ruta": [
+        691,
+        183,
+        1103,
+        624
+      ],
+      "px": [
+        45,
+        48
+      ]
+    },
+    {
+      "id": "runic_guardian",
+      "namn": "RUNIC GUARDIAN",
+      "bild": "hjalte/runic_guardian.png",
+      "ark_ruta": [
+        1163,
+        152,
+        1620,
+        500
+      ],
+      "px": [
+        63,
+        48
+      ]
+    },
+    {
+      "id": "arcane_mage",
+      "namn": "ARCANE MAGE",
+      "bild": "hjalte/arcane_mage.png",
+      "ark_ruta": [
+        1786,
+        145,
+        2207,
+        643
+      ],
+      "px": [
+        41,
+        48
+      ]
+    },
+    {
+      "id": "shadowblade_rogue",
+      "namn": "SHADOWBLADE ROGUE",
+      "bild": "hjalte/shadowblade_rogue.png",
+      "ark_ruta": [
+        2398,
+        194,
+        2528,
+        404
+      ],
+      "px": [
+        30,
+        48
+      ]
+    },
+    {
+      "id": "cleric_of_light",
+      "namn": "CLERIC OF LIGHT",
+      "bild": "hjalte/cleric_of_light.png",
+      "ark_ruta": [
+        118,
+        832,
+        464,
+        1287
+      ],
+      "px": [
+        37,
+        48
+      ]
+    },
+    {
+      "id": "fury_barbarian",
+      "namn": "FURY BARBARIAN",
+      "bild": "hjalte/fury_barbarian.png",
+      "ark_ruta": [
+        732,
+        881,
+        1103,
+        1124
+      ],
+      "px": [
+        73,
+        48
+      ]
+    },
+    {
+      "id": "aeon_guardian",
+      "namn": "AEON GUARDIAN",
+      "bild": "hjalte/aeon_guardian.png",
+      "ark_ruta": [
+        1214,
+        808,
+        1655,
+        1258
+      ],
+      "px": [
+        47,
+        48
+      ]
+    },
+    {
+      "id": "druidic_sage",
+      "namn": "DRUIDIC SAGE",
+      "bild": "hjalte/druidic_sage.png",
+      "ark_ruta": [
+        1822,
+        823,
+        2118,
+        1114
+      ],
+      "px": [
+        49,
+        48
+      ]
+    },
+    {
+      "id": "solar_seraph",
+      "namn": "SOLAR SERAPH",
+      "bild": "hjalte/solar_seraph.png",
+      "ark_ruta": [
+        2284,
+        789,
+        2759,
+        1308
+      ],
+      "px": [
+        44,
+        48
+      ]
+    }
+  ]
+}

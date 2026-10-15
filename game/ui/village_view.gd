@@ -60,12 +60,16 @@ extends Control
 signal vald(skepp: String)
 
 const BILD := "res://assets/ui/byn.png"
-## Figuren som går i byn (och på kartan): samma lilla figur som huvudmenyns markör — den finns redan
-## och är i spelets egen stil, så ingen ny tillgång behövs för en gångare.
-const FIGUR := "res://assets/ui/markor.png"
-## Hur stor figuren ritas i vyns px. 23x21 px blir 46x42 — en människa mot ett tvåvåningshus
+## Figuren som går i byn (och på kartan): en av HJÄLTARNA ur Alex' hjälteark (`game/images/heroes.jpeg`,
+## klippta av `tools/gen_hjalte.py`, som också sparar namnen i `assets/ui/hjalte.json`).
+## Byt hjälte genom att peka den här raden på en annan fil i `assets/ui/hjalte/` — de tio är
+## auric_paladin, sylvan_ranger, runic_guardian, arcane_mage, shadowblade_rogue, cleric_of_light,
+## fury_barbarian, aeon_guardian, druidic_sage, solar_seraph.
+const FIGUR := "res://assets/ui/hjalte/auric_paladin.png"
+## Hur stor figuren ritas i vyns px. Hjälten är klippt till 48 px höjd och ritas i skalan 1,0 —
+## samma höjd som den gamla 23x21-markören ritades (46 px), alltså en människa mot ett tvåvåningshus
 ## (husen är ~250 vyn-px höga), inte en prick.
-const FIGUR_SKALA := 2.0
+const FIGUR_SKALA := 1.0
 
 ## Platserna i gatuordning (vänster → höger, som bilden visar dem): `x` är platsens mitt på BILDEN i
 ## procent av bredden, `x0`/`x1` är HUSETS KROPP i procent av bildens bredd (2D-reservrutan, se
