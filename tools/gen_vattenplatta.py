@@ -33,6 +33,18 @@ def main():
     ## dit), men upplösningen gör det: 798 px över 3 m ger 266 px per meter, alltså i klass med
     ## byn. Sidledes sträcks bilden till 14:1, vilket för vatten blir mjuka horisontella drag.
     platta = bild.resize((BREDD, max(8, round(BREDD * bild.height / bild.width))), Image.LANCZOS)
+    ## NATTLÄGE. Alex 15/10: "Sänk ljuset på vattnet, då det skall vara kväll/natt i spelet när man
+    ## är i byn." MÄTT: plattan höll medel 93 och en 99-percentil på 222 — de vita vågkammarna.
+    ## En rak faktor sänker medelvärdet men lämnar kammarna kvar (255 x 0,58 = 148, alltså ändå
+    ## ljusast i byn, och renderingen dömde: "lyser starkt och sticker ut oproportionerligt").
+    ## En gamma drar ner mitten och de ljusa mer än de mörka, faktorn sätter taket.
+    g, f = 1.45, 0.72
+    a = np.asarray(platta).astype(float)
+    m0, h0 = a.reshape(-1, 3).mean(), np.percentile(a, 99)
+    platta = Image.fromarray(np.clip(255.0 * np.power(a / 255.0, g) * f, 0, 255).astype(np.uint8))
+    b = np.asarray(platta).astype(float)
+    print("  nattkurva gamma %.2f faktor %.2f:  medel %.0f -> %.0f   99-percentil %.0f -> %.0f" % (
+        g, f, m0, b.reshape(-1, 3).mean(), h0, np.percentile(b, 99)))
     platta.save(UT)
     a = np.asarray(platta).astype(float)
     print("  plattan %dx%d  ton (%d,%d,%d)  variation %.2f" % (
