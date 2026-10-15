@@ -74,7 +74,7 @@ const FAN_SJUNK := 0.035           ## andel av korthöjden som ytterkortet sitte
 
 ## Ljud: genererade av tools/gen_sfx.py, hämtade från res://assets/sfx. Saknas filen tiger
 ## spelet i stället för att krascha — konsten och ljudet ska aldrig vara ett krav för att köra.
-const SFX_NAMES := ["card", "hit", "crit", "coin", "step", "pick", "level_up", "descend", "death"]
+const SFX_NAMES := ["card", "hit", "crit", "coin", "step", "pick", "level_up", "descend", "death"]  ## se `data/sfx.json` (M122)
 var sfx: Dictionary = {}
 var sfx_players: Array[AudioStreamPlayer] = []
 var sfx_next := 0
@@ -5491,11 +5491,26 @@ func _pixelregn(spr: Sprite3D, antal: int) -> void:
 	Fx.skärva(world, spr.global_position + Vector3(0.0, 0.22, 0.0), [Palett.c(11), Palett.c(8)], antal)
 
 
+## TRÄFFSTOPPET (M122). Referensens träffar "tar i": bilden stannar en bildruta eller två i själva
+## träffögonblicket. Mätt mot VC var avsaknaden av det här det andra "billigt"-tecknet (0 hit-stop i
+## koden, fyra skak-referenser). Skalan sätts NED, aldrig till noll — vid 0 står även tweenen som ska
+## återställa den still, och spelet blir stående för alltid. Därför en tween som IGNORERAR tidsskalan.
+## Längden följer slagets vikt: ett vanligt slag 45 ms, ett kritslag 110 ms.
+func _hit_stop(sekunder: float) -> void:
+	if sekunder <= 0.0:
+		return
+	Engine.time_scale = 0.06
+	var t := create_tween()
+	t.set_ignore_time_scale(true)
+	t.tween_property(Engine, "time_scale", 1.0, sekunder)
+
+
 ## Rikta ett angrepp mot en figur. Vapnet ritas i SKÄRMKOORDINATER, så världspunkten måste räknas om
 ## — och står fienden bakom spelaren uteblir svepet i stället för att svepa mot ingenting.
 func _attack_fx(kort: Cards.Card, spr: Sprite3D, mult: int) -> void:
 	if attack_fx == null or not is_instance_valid(spr):
 		return
+	_hit_stop(0.11 if mult >= 3 else 0.045)
 	var mål := spr.global_position + Vector3(0.0, 0.22, 0.0)
 	if cam.is_position_behind(mål):
 		return
@@ -8376,6 +8391,10 @@ func _animate_cam() -> void:
 ## Kameran SNÄPPER till rutan och riktningen direkt, utan glid. Striden börjar här: fienden ska stå i
 ## bild i samma bildruta som slaget börjar, inte en halv sekund senare när en tween hunnit fram.
 func _snap_cam() -> void:
+	# TRÄFFSTOPPET STÄDAS HÄR (M122): kameran snäpper vid varje stridstart, och skulle en tween som
+	# skulle återställa tidsskalan ha dött (striden tog slut mitt i ett träffstopp) står spelet annars
+	# kvar i slow motion för alltid. En rad på den plats där vyn ändå nollas.
+	Engine.time_scale = 1.0
 	if cam == null:
 		return
 	if _cam_tween != null and _cam_tween.is_valid():
@@ -8392,11 +8411,30 @@ func _snap_cam() -> void:
 	cam.rotation.z = 0.0
 
 # --- ljud -------------------------------------------------------------------
+## Ljudkartan bor i `data/sfx.json` (M122): NAMN -> fil. Koden frågar efter namnet, och en rad i
+## filen byter ljudet utan att röra koden.
+##
+## MÄTT mot referensen: Vampire Crawlers har 106 AudioClip. Vi spelade NIO — medan 400 licensierade
+## ljud låg oanvända i `assets/tredjepart/ljud_400` (Card and Board 24, UI 30, Combat and Gore 17 …).
+## Ett kort som gav rustning, helade eller fyllde mana var tyst, en fiende som dog lät ingenting, och
+## `_sfx("select")` frågade efter ett ljud som inte fanns (inget `select.wav` i assets/sfx) — alltså
+## ett anrop som såg ut att spela något och spelade ingenting. Grinden för alla tre ligger i
+## `tests/test_ljud.gd`: varje namn koden frågar efter måste finnas i kartan OCH på disk.
 func _load_sfx() -> void:
-	for name in SFX_NAMES:
-		var path := "res://assets/sfx/%s.wav" % name
+	var text := FileAccess.get_file_as_string("res://data/sfx.json")
+	var karta: Variant = JSON.parse_string(text)
+	if typeof(karta) != TYPE_DICTIONARY:
+		push_error("data/sfx.json kunde inte läsas — inga ljud spelas")
+		return
+	for name in karta:
+		if str(name).begins_with("_"):
+			continue                                  # `_`-raderna är förklaringar, inte ljud
+		var path := str(karta[name])
 		if ResourceLoader.exists(path):
-			sfx[name] = load(path)
+			sfx[str(name)] = load(path)
+		else:
+			# Ett namn utan fil är exakt felet `_sfx("select")` var: tyst, och ingenstans att se det.
+			push_error("ljudet %s pekar på en fil som inte finns: %s" % [name, path])
 	for i in 6:                                    # liten pool: ljud får överlappa
 		var p := AudioStreamPlayer.new()
 		add_child(p)
@@ -10907,6 +10945,7 @@ func _on_draft_pick(index: int) -> void:
 	var choices := run.pending_draft()
 	if index < 0 or index >= choices.size():
 		return
+	_sfx("draft_pick")     # valet av ett nytt kort är en belöning — det ska höras (M122)
 	run.pick_card(choices[index])
 	_flush_events()
 	_show_draft()
@@ -11080,6 +11119,10 @@ func _enter_node_here() -> void:
 		active_node = node
 		active_combat = run.enter_node(node)
 		if active_combat != null:
+			# BOSSEN ANNONSERAS (M122): ett eget ljud när ett bossrum öppnas, i stället för att samma
+			# klick som en vanlig fiende. Referensens "level start"-stinger gör samma sak.
+			if node.kind == "boss":
+				_sfx("boss")
 			battle_panel.visible = true
 			_stage_fight(node)      # uppställning: fienderna måste stå FRAMFÖR spelaren
 			# Baslinjen: figurens hp vid stridens START. Sattes den vid första slaget i stället
@@ -11382,6 +11425,7 @@ func _on_card(index: int) -> void:
 	# Siffrorna är kortets EGNA gåvor (`PlayResult.mana/hp/guld`), alltså vad kortet gav och inte
 	# skillnaden i striden: en mana-dryck som kostar två och ger tre kvitteras "+3 mana". Provat i
 	# `tests/test_reward.gd`.
+	var rustning_före := active_combat.armor
 	var r := active_combat.play(hi)
 	if r.reason.is_empty():
 		var card_ev := {"type": "card", "card": r.card_id,
@@ -11396,6 +11440,17 @@ func _on_card(index: int) -> void:
 			Palett.c(22))
 	else:
 		_sfx("crit" if r.multiplier >= 3 else "card")
+		# LJUDTÄCKNINGEN (M122): dessa fyra händelser var TYSTA ända till nu — att få rustning, bli
+		# helad, fylla mana eller döda en fiende hördes inte alls, medan referensen har 106 ljud.
+		# Siffrorna läses ur spelrapporten (`PlayResult`), inte ur en gissning om vad kortet gjorde.
+		if r.mana > 0:
+			_sfx("mana")
+		if r.hp > 0:
+			_sfx("heal")
+		if active_combat.armor > rustning_före:
+			_sfx("armor")
+		if not r.killed.is_empty():
+			_sfx("enemy_die_big" if r.killed.size() > 1 else "enemy_die")
 		# VAPNET SVINGER (M110): kortets egen bild far genom bilden innan figuren reagerar. Här, i den
 		# enda väg ett kort spelas — hover och omläggningen av handen är andra funktioner och rör den inte.
 		_vapensving(kort)
@@ -11459,6 +11514,7 @@ func _on_end_turn() -> void:
 		# medan fienden fortfarande spände sig, och kvar blev bara hugget. Granskningarna pekade på samma
 		# sak två gånger: det som saknas är en HÅLL-BEAT, inte fler pixlar. Väntan är därför lika lång som
 		# förvarningen: spänningen hinner ses klart, och först då faller slaget.
+		_sfx("click")     # turen avslutas: ett klick, inte tystnad — och det hörs INNAN förvarningen (M122)
 		_enemy_läge_alla(ENEMY_WINDUP, FÖRVARNING_TID)
 		await get_tree().create_timer(FÖRVARNING_TID).timeout
 	if active_combat == null:

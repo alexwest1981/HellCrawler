@@ -27,7 +27,7 @@ tabellen nedan. Det här dokumentet är sammanställningen; paketets egen fil ä
 | SBS Horror Texture Pack | Screaming Brain Studios | CC0 1.0 | ja | `game/assets/tredjepart/sbs_horror_textures/License.txt` |
 | Super Pixel Effects Gigapack | Will Tice / unTied Games | egen licens, **kredit krävs** | ja | `game/assets/tredjepart/untied_super_pixel_effects/license.txt` |
 | 32rogues | Seth Boyles | egen licens, **får ej vidaredistribueras** | **nej — undantagen** | (utanför repot) |
-| 400 Sounds Pack | okänd upphovsman | ingen licensfil hittad | **nej — utanför git** | — se nedan |
+| 400 Sounds Pack | okänd upphovsman | ingen licensfil hittad | **nej — utanför git** | — se nedan. Används av `data/sfx.json` (M122); licensen är fortfarande obekräftad |
 | Horror SFX Free | okänd upphovsman | ingen licensfil hittad | **nej — utanför git** | — se nedan |
 | Item icons (1244 st, 16x16) | okänd upphovsman | ingen licensfil hittad | **nej — utanför git** | — se nedan |
 
@@ -160,7 +160,7 @@ kan beläggas.
 
 | Paket | Mapp | I repot | Vad som ligger där |
 |---|---|---|---|
-| 400 Sounds Pack | `game/assets/tredjepart/ljud_400/` | **nej — utanför git** | 400 wav i nio underkataloger (Card and Board, Weapons, …) |
+| 400 Sounds Pack | `game/assets/tredjepart/ljud_400/` | **nej — utanför git** | 400 wav i nio underkataloger (Card and Board, Weapons, …). **Används sedan M122:** `game/data/sfx.json` pekar på 9 av dem (kort, klick, mana, helande, rustning, fiendedöd, kortval, boss). Ligger paketet inte där tiger de ljuden — spelet faller tillbaka på de egna `assets/sfx/`, och `tests/test_ljud.gd` skriver ut hur många som saknas |
 | Horror SFX Free | `game/assets/tredjepart/ljud_horror/` | **nej — utanför git** | 149 wav i sex underkataloger (Ambient, Monsters & Ghosts, …) — **en fil är utelämnad**, se nedan |
 | Item icons | `game/assets/tredjepart/ikoner_1244/` | **nej — utanför git** | 1244 png, 16x16 |
 

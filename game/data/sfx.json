@@ -1,0 +1,21 @@
+{
+  "_": "Ljudkartan (M122). Namn -> fil. Koden frågar efter NAMNET; filen byts här, utan att röra koden. Jag har valt på filnamn ur paketet assets/tredjepart/ljud_400 (400 ljud, licensierade och redan i repot men oanvända: bara 9 av dem spelades). Alex dömer med öronen — en rad här är hela ändringen.",
+  "card": "res://assets/sfx/card.wav",
+  "hit": "res://assets/sfx/hit.wav",
+  "crit": "res://assets/sfx/crit.wav",
+  "coin": "res://assets/sfx/coin.wav",
+  "step": "res://assets/sfx/step.wav",
+  "pick": "res://assets/sfx/pick.wav",
+  "level_up": "res://assets/sfx/level_up.wav",
+  "descend": "res://assets/sfx/descend.wav",
+  "death": "res://assets/sfx/death.wav",
+  "select": "res://assets/tredjepart/ljud_400/UI/select_1.wav",
+  "click": "res://assets/tredjepart/ljud_400/UI/click_double_on.wav",
+  "mana": "res://assets/tredjepart/ljud_400/Items/gem_collect.wav",
+  "heal": "res://assets/tredjepart/ljud_400/Items/heart_collect.wav",
+  "armor": "res://assets/tredjepart/ljud_400/Materials/metal_blunt_tap.wav",
+  "enemy_die": "res://assets/tredjepart/ljud_400/Combat and Gore/splat_quick.wav",
+  "enemy_die_big": "res://assets/tredjepart/ljud_400/Combat and Gore/crunch_splat.wav",
+  "boss": "res://assets/tredjepart/ljud_400/Musical Effects/8_bit_level_start.wav",
+  "draft_pick": "res://assets/tredjepart/ljud_400/Card and Board/chips_place_1.wav"
+}
