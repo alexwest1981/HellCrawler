@@ -1128,28 +1128,14 @@ def main():
         ob.matrix_world = m
     bpy.context.view_layer.update()
 
-    ## SPRICKAN VID VATTNET. MÄTT 15/10: renderingen visade ett rakt, kolsvart band tvärs över
-    ## vattnet. Bandet ligger inte i plattan (den mörka kanten i överkant skalades bort och mättes),
-    ## och klippans geometri är en ren låda utan hål. Det är en SPRICKA: Cliff_Face har sin överkant
-    ## på z -0,05 medan plattan över (Cobble_Plaza_*/Gate_Plaza_Bed) har sin undersida 0,11 m högre
-    ## upp. Kameran står lågt och ser rakt in i springan, alltså en svart linje över hela bredden.
-    ## Klippan lyfts med det uppmätta avståndet så att ytorna möts — mätt ur scenen, inte gissat.
-    ## Marken, inte plattan: MÄTT 15/10 är det Grass_Main som reser sig ur vattnet. Klippans överkant
-    ## ligger på z -0,052 och markens yta på z 0,000, alltså en 5 cm hög kant tvärs över vattnets
-    ## bortre ände — kameran står lågt och ser den som ett svart streck. Klippan sätts så att dess
-    ## överkant är markens yta. Absolut värde, ingen flagga: en omkörning gör ingenting.
-    klippa = bpy.data.objects.get("Cliff_Face")
-    gras = bpy.data.objects.get("Grass_Main")
-    if klippa is not None and gras is not None:
-        tak = max((klippa.matrix_world @ Vector(c)).z for c in klippa.bound_box)
-        mal = max((gras.matrix_world @ Vector(c)).z for c in gras.bound_box)
-        if abs(mal - tak) > 0.0005:
-            m = klippa.matrix_world.copy()
-            m.translation.z += (mal - tak)
-            klippa.matrix_world = m
-            bpy.context.view_layer.update()
-            ny = max((klippa.matrix_world @ Vector(c)).z for c in klippa.bound_box)
-            print("springan: klippans överkant %.3f -> %.3f, marken %.3f" % (tak, ny, mal))
+    ## DET SVARTA STRECKET VID STRANDKANTEN - UTRETT, INTE ATGARDAT. MATT 15/10: renderingen
+    ## visar ett rakt kolsvart streck dar vattnet moter byn. Det ar inte plattan (paketets morka
+    ## overkant skalades bort och mats, 92 rader), inte en halighet (stralprov fran kamerans
+    ## position traffar klippans framsida pa varje vinkel), och inte en nivaaskillnad: tre
+    ## geometriska forsok - overkant 5 cm under marken, exakt i plan med marken (gav z-fighting),
+    ## 2 mm under - lamnade strecket orort. Modellen far darfor sin egen hojd; kallan ar Alex
+    ## session, sa klippan ar orord. Nasta steg: se den i Blender i Rendered-lage och mat vilken
+    ## yta strecket faktiskt tillhor.
 
     print("Save the .blend, then export to glTF (.glb) for Godot.")
 
