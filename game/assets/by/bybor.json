@@ -1,0 +1,634 @@
+{
+  "bybor": [
+    {
+      "id": "handlare",
+      "bild": "bybor/handlare.png",
+      "text": "handlerskan bakom saluståndet",
+      "kategori": "kvinna",
+      "höjd_m": 1.0,
+      "pos": [
+        -11.83,
+        0.08,
+        -0.1
+      ],
+      "ruta": [
+        498,
+        880,
+        545,
+        968
+      ],
+      "grov_ruta": [
+        498,
+        880,
+        545,
+        968
+      ],
+      "borta": 0.065,
+      "figur_andel": 0.741,
+      "px": [
+        47,
+        88
+      ]
+    },
+    {
+      "id": "smed",
+      "bild": "bybor/smed.png",
+      "text": "smeden vid ässjan",
+      "kategori": "man",
+      "höjd_m": 1.0,
+      "pos": [
+        -11.512,
+        0.08,
+        -0.2
+      ],
+      "ruta": [
+        513,
+        772,
+        588,
+        903
+      ],
+      "grov_ruta": [
+        513,
+        772,
+        588,
+        903
+      ],
+      "borta": 0.042,
+      "figur_andel": 0.648,
+      "px": [
+        75,
+        131
+      ]
+    },
+    {
+      "id": "pojke",
+      "bild": "bybor/pojke.png",
+      "text": "pojken med käppen",
+      "kategori": "barn",
+      "höjd_m": 0.72,
+      "pos": [
+        -10.666,
+        0.08,
+        0.6
+      ],
+      "ruta": [
+        592,
+        1002,
+        663,
+        1101
+      ],
+      "grov_ruta": [
+        592,
+        1002,
+        663,
+        1103
+      ],
+      "borta": 0.079,
+      "figur_andel": 0.403,
+      "px": [
+        71,
+        99
+      ]
+    },
+    {
+      "id": "smedkund",
+      "bild": "bybor/smedkund.png",
+      "text": "kunden vid städet",
+      "kategori": "man",
+      "höjd_m": 1.0,
+      "pos": [
+        -7.126,
+        0.08,
+        0.6
+      ],
+      "ruta": [
+        922,
+        857,
+        978,
+        1043
+      ],
+      "grov_ruta": [
+        922,
+        857,
+        978,
+        1043
+      ],
+      "borta": 0.062,
+      "figur_andel": 0.287,
+      "px": [
+        56,
+        186
+      ]
+    },
+    {
+      "id": "krog_vänster",
+      "bild": "bybor/krog_vänster.png",
+      "text": "gästen i värdshusfönstret, vänster",
+      "kategori": "man",
+      "höjd_m": 1.0,
+      "pos": [
+        -6.084,
+        0.08,
+        -0.2
+      ],
+      "ruta": [
+        1017,
+        862,
+        1073,
+        953
+      ],
+      "grov_ruta": [
+        1017,
+        862,
+        1073,
+        953
+      ],
+      "borta": 0.06,
+      "figur_andel": 0.358,
+      "px": [
+        56,
+        91
+      ]
+    },
+    {
+      "id": "krog_värd",
+      "bild": "bybor/krog_värd.png",
+      "text": "värden bakom disken",
+      "kategori": "man",
+      "höjd_m": 1.0,
+      "pos": [
+        -5.453,
+        0.08,
+        -0.2
+      ],
+      "ruta": [
+        1077,
+        817,
+        1128,
+        933
+      ],
+      "grov_ruta": [
+        1077,
+        817,
+        1128,
+        933
+      ],
+      "borta": 0.069,
+      "figur_andel": 0.614,
+      "px": [
+        51,
+        116
+      ]
+    },
+    {
+      "id": "krog_höger",
+      "bild": "bybor/krog_höger.png",
+      "text": "gästen i värdshusfönstret, höger",
+      "kategori": "man",
+      "höjd_m": 1.0,
+      "pos": [
+        -4.821,
+        0.08,
+        -0.2
+      ],
+      "ruta": [
+        1132,
+        862,
+        1188,
+        953
+      ],
+      "grov_ruta": [
+        1132,
+        862,
+        1188,
+        953
+      ],
+      "borta": 0.06,
+      "figur_andel": 0.958,
+      "px": [
+        56,
+        91
+      ]
+    },
+    {
+      "id": "krog_ute",
+      "bild": "bybor/krog_ute.png",
+      "text": "kvinnan vid tunnan utanför krogen",
+      "kategori": "kvinna",
+      "höjd_m": 1.0,
+      "pos": [
+        -1.638,
+        0.08,
+        0.6
+      ],
+      "ruta": [
+        1422,
+        777,
+        1478,
+        953
+      ],
+      "grov_ruta": [
+        1422,
+        777,
+        1478,
+        953
+      ],
+      "borta": 0.097,
+      "figur_andel": 0.253,
+      "px": [
+        56,
+        176
+      ]
+    },
+    {
+      "id": "gångerska",
+      "bild": "bybor/gångerska.png",
+      "text": "kvinnan som går över gatan",
+      "kategori": "kvinna",
+      "höjd_m": 1.0,
+      "pos": [
+        0.557,
+        0.08,
+        0.9
+      ],
+      "ruta": [
+        1622,
+        817,
+        1678,
+        1043
+      ],
+      "grov_ruta": [
+        1622,
+        817,
+        1678,
+        1043
+      ],
+      "borta": 0.093,
+      "figur_andel": 0.231,
+      "px": [
+        56,
+        226
+      ]
+    },
+    {
+      "id": "juvel_kund_1",
+      "bild": "bybor/juvel_kund_1.png",
+      "text": "kunden utanför juveleraren",
+      "kategori": "man",
+      "höjd_m": 1.0,
+      "pos": [
+        4.783,
+        0.08,
+        0.4
+      ],
+      "ruta": [
+        2007,
+        1007,
+        2063,
+        1078
+      ],
+      "grov_ruta": [
+        2007,
+        1002,
+        2063,
+        1078
+      ],
+      "borta": 0.205,
+      "figur_andel": 0.47,
+      "px": [
+        56,
+        71
+      ]
+    },
+    {
+      "id": "juvel_kund_2",
+      "bild": "bybor/juvel_kund_2.png",
+      "text": "kvinnan vid juvelerarens dörr",
+      "kategori": "kvinna",
+      "höjd_m": 1.0,
+      "pos": [
+        6.446,
+        0.08,
+        0.4
+      ],
+      "ruta": [
+        2162,
+        997,
+        2211,
+        1075
+      ],
+      "grov_ruta": [
+        2162,
+        997,
+        2211,
+        1075
+      ],
+      "borta": 0.279,
+      "figur_andel": 0.244,
+      "px": [
+        49,
+        78
+      ]
+    },
+    {
+      "id": "herdinna",
+      "bild": "bybor/herdinna.png",
+      "text": "herdinnan vid stigen",
+      "kategori": "kvinna",
+      "höjd_m": 1.0,
+      "pos": [
+        10.93,
+        0.12,
+        0.6
+      ],
+      "ruta": [
+        2552,
+        881,
+        2638,
+        1043
+      ],
+      "grov_ruta": [
+        2552,
+        877,
+        2638,
+        1043
+      ],
+      "borta": 0.069,
+      "figur_andel": 0.636,
+      "px": [
+        86,
+        162
+      ]
+    },
+    {
+      "id": "får_1",
+      "bild": "bybor/får_1.png",
+      "text": "får på stigen",
+      "kategori": "får",
+      "höjd_m": 0.45,
+      "pos": [
+        11.715,
+        0.12,
+        0.7
+      ],
+      "ruta": [
+        2635,
+        997,
+        2698,
+        1048
+      ],
+      "grov_ruta": [
+        2635,
+        997,
+        2698,
+        1048
+      ],
+      "borta": 0.093,
+      "figur_andel": 0.545,
+      "px": [
+        63,
+        51
+      ]
+    },
+    {
+      "id": "får_2",
+      "bild": "bybor/får_2.png",
+      "text": "får på stigen",
+      "kategori": "får",
+      "höjd_m": 0.45,
+      "pos": [
+        12.95,
+        0.12,
+        0.7
+      ],
+      "ruta": [
+        2745,
+        997,
+        2813,
+        1051
+      ],
+      "grov_ruta": [
+        2745,
+        997,
+        2813,
+        1051
+      ],
+      "borta": 0.141,
+      "figur_andel": 0.499,
+      "px": [
+        68,
+        54
+      ]
+    },
+    {
+      "id": "lamm_1",
+      "bild": "bybor/lamm_1.png",
+      "text": "lammet vid hästen",
+      "kategori": "lamm",
+      "höjd_m": 0.34,
+      "pos": [
+        13.926,
+        0.12,
+        0.7
+      ],
+      "ruta": [
+        2835,
+        1006,
+        2901,
+        1052
+      ],
+      "grov_ruta": [
+        2835,
+        1005,
+        2901,
+        1053
+      ],
+      "borta": 0.112,
+      "figur_andel": 0.046,
+      "px": [
+        66,
+        46
+      ]
+    },
+    {
+      "id": "häst",
+      "bild": "bybor/häst.png",
+      "text": "hästen",
+      "kategori": "häst",
+      "höjd_m": 1.05,
+      "pos": [
+        15.095,
+        0.12,
+        0.7
+      ],
+      "ruta": [
+        2886,
+        932,
+        3063,
+        1059
+      ],
+      "grov_ruta": [
+        2885,
+        925,
+        3063,
+        1061
+      ],
+      "borta": 0.068,
+      "figur_andel": 0.47,
+      "px": [
+        177,
+        127
+      ]
+    },
+    {
+      "id": "får_3",
+      "bild": "bybor/får_3.png",
+      "text": "fåret vid herden",
+      "kategori": "får",
+      "höjd_m": 0.45,
+      "pos": [
+        16.363,
+        0.12,
+        0.7
+      ],
+      "ruta": [
+        3057,
+        999,
+        3123,
+        1058
+      ],
+      "grov_ruta": [
+        3057,
+        999,
+        3123,
+        1058
+      ],
+      "borta": 0.067,
+      "figur_andel": 0.653,
+      "px": [
+        66,
+        59
+      ]
+    },
+    {
+      "id": "herde",
+      "bild": "bybor/herde.png",
+      "text": "herden med repet",
+      "kategori": "man",
+      "höjd_m": 1.0,
+      "pos": [
+        16.528,
+        0.12,
+        0.7
+      ],
+      "ruta": [
+        3062,
+        875,
+        3148,
+        1061
+      ],
+      "grov_ruta": [
+        3062,
+        875,
+        3148,
+        1061
+      ],
+      "borta": 0.052,
+      "figur_andel": 0.532,
+      "px": [
+        86,
+        186
+      ]
+    },
+    {
+      "id": "får_berg_1",
+      "bild": "bybor/får_berg_1.png",
+      "text": "får uppe på gräset",
+      "kategori": "får",
+      "höjd_m": 0.45,
+      "pos": [
+        13.136,
+        0.12,
+        -1.0
+      ],
+      "ruta": [
+        2759,
+        787,
+        2833,
+        858
+      ],
+      "grov_ruta": [
+        2759,
+        787,
+        2833,
+        858
+      ],
+      "borta": 0.071,
+      "figur_andel": 0.21,
+      "px": [
+        74,
+        71
+      ]
+    },
+    {
+      "id": "får_berg_2",
+      "bild": "bybor/får_berg_2.png",
+      "text": "får uppe på gräset",
+      "kategori": "får",
+      "höjd_m": 0.45,
+      "pos": [
+        14.338,
+        0.12,
+        -1.0
+      ],
+      "ruta": [
+        2859,
+        763,
+        2952,
+        845
+      ],
+      "grov_ruta": [
+        2859,
+        757,
+        2965,
+        845
+      ],
+      "borta": 0.132,
+      "figur_andel": 0.411,
+      "px": [
+        93,
+        82
+      ]
+    },
+    {
+      "id": "får_berg_3",
+      "bild": "bybor/får_berg_3.png",
+      "text": "får uppe på gräset",
+      "kategori": "får",
+      "höjd_m": 0.45,
+      "pos": [
+        15.71,
+        0.12,
+        -1.0
+      ],
+      "ruta": [
+        2992,
+        755,
+        3069,
+        851
+      ],
+      "grov_ruta": [
+        2992,
+        755,
+        3078,
+        851
+      ],
+      "borta": 0.183,
+      "figur_andel": 0.432,
+      "px": [
+        77,
+        96
+      ]
+    }
+  ]
+}

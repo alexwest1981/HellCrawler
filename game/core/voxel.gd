@@ -231,8 +231,24 @@ static func _stäng(bg: PackedByteArray, w: int, h: int) -> PackedByteArray:
 	return ut
 
 
+## Bakgrunden ur ALFAN, för ark som redan är utklippta (byborna, M129). Flodfyllningen nedan kostar
+## en runda över varje pixel i GDScript och är till för ett ark med OGENOMSKINLIG duk; har bilden
+## redan genomskinlig bakgrund är alfan hela sanningen, och då är den här vägen ~4x billigare.
+## MÄTT 15/10: 21 bybor med flodfyllning 1 250 ms, med alfan i stället 250 ms.
+static func bakgrund_ur_alfa(img: Image, r: Rect2) -> PackedByteArray:
+	var w := int(r.size.x)
+	var h := int(r.size.y)
+	var bg := PackedByteArray()
+	bg.resize(w * h)
+	for y in h:
+		for x in w:
+			if img.get_pixel(int(r.position.x) + x, int(r.position.y) + y).a < GRANS:
+				bg[y * w + x] = 1
+	return bg
+
+
 static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
-		antal_sidor: int = 32, antal_djup: int = 2) -> Voxel:
+		antal_sidor: int = 32, antal_djup: int = 2, bakgrundsprov: bool = true) -> Voxel:
 	var v := Voxel.new()
 	v.sidor = antal_sidor
 	v.djup = antal_djup
@@ -250,7 +266,8 @@ static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
 	# meter betyder figurens höjd — samma mått som healthbaren räknar ur (34 x pixel_size).
 	# Bakgrunden räknas EN gång per RUTA, inte per cell (flodfyllning från ramen), och bara den som
 	# hänger ihop med ramen tas bort — en svart mantel inuti figuren blir kvar som figur.
-	var bg := bakgrund(img, Rect2(Vector2(ruta * fw, 0), Vector2(fw, fh)))
+	var bg := bakgrund(img, Rect2(Vector2(ruta * fw, 0), Vector2(fw, fh))) if bakgrundsprov \
+		else bakgrund_ur_alfa(img, Rect2(Vector2(ruta * fw, 0), Vector2(fw, fh)))
 	var x_min := fw
 	var x_max := -1
 	var y_min := fh

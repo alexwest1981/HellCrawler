@@ -73,6 +73,9 @@ var by: Node3D = null            ## byn.glb, instansen i scenen
 var rök: GPUParticles3D = null   ## röken — provet i tests/test_by_rok.gd mäter den
 var kamera: Camera3D = null      ## scenens kamera; projektionen nedan räknar ur DEN
 var miljö: WorldEnvironment = null
+## BYBORNA (M129): målningens figurer resta som voxlar under `byn/bybor`. Byggs här först när glb:n
+## finns, och ligger som EN nod under byn så de följer modellen och går att gömma i editorn.
+var bybor: Bybor = null
 ## VYN som byn ritas i, i px. Projektionen (`projicera`) räknar ur den, och `village_view._bygg_by3d`
 ## sätter den till samma ruta som SubViewporten fick. Utan den kunde rutan och husens px glida isär.
 var vy := Vector2(480.0, 270.0)
@@ -91,6 +94,18 @@ func _knyt() -> void:
 	rök = get_node_or_null("rök") as GPUParticles3D
 	if by != null:
 		_släck_dubblar(by)
+		_bygg_bybor()
+
+## Byborna hänger under `byn` (modellen), inte under den här noden: de hör till byggnaden, och en
+## by som flyttas i scenen ska ta dem med sig. Redan byggda (scenen kan knytas om) lämnas i fred.
+func _bygg_bybor() -> void:
+	if by == null:
+		return
+	var gammal := by.get_node_or_null("bybor")
+	if gammal != null:
+		bybor = gammal as Bybor
+		return
+	bybor = Bybor.bygg(by)
 
 func _bygg_i_kod() -> void:
 	var s: Node = load(SCEN).instantiate()
