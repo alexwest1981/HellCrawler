@@ -508,8 +508,14 @@ const LAGA_ENERGI := 0.75
 ## dränker skillnaden: mätt i bild låg taket på 23,17,14, väggen på 15,9,7 och golvet på 43,29,27 —
 ## samma brunhet i alla tre (Alex: *"det är ännu samma tak/golv som väggar"*). Tonen är den enda
 ## ratten som skiljer dem åt i LJUSET: taket kallt och mörkt, golvet lite ljusare och neutralt.
-const TAK_TON := Color(0.60, 0.66, 0.90)
-const GOLV_TON := Color(1.12, 1.06, 0.98)
+const TAK_TON := Color(1.50, 1.60, 2.10)
+const GOLV_TON := Color(1.60, 1.52, 1.40)
+## VÄGGARNAS TON (15/10): väggarna skickade ingen ton alls, alltså rak textur × albedo — och deras
+## albedo är MÖRK (median 0,21 i sRGB, ~0,035 linjärt), så en upplyst vägg blev nästan svart medan
+## golvet (som har en ton) gick att se. Alex: "alldeles för murrigt och svårt att se något". Mätt i
+## bild: med tonen på 3,0 gick andelen nästan svarta bildpunkter från 82 % till 62 % och
+## högdagerpixlarna (där man ser formen) från 10 till 3 700 i samma scen.
+const VÄGG_TON := Color(3.00, 3.10, 3.40)
 const LAGA_RACKVIDD := 6.5
 const LAGA_FARG := Color(1.0, 0.78, 0.55)
 ## GLÖDEN PÅ DEN LYSANDE REKVISITENS MODELL (M110): en MYCKET svag emission som `_fladdra` rör med
@@ -1932,7 +1938,7 @@ func _ljusprov_bild(post: Dictionary) -> void:
 	for l in _lågor:
 		if post.has("sken"):
 			l.shadow_enabled = bool(post["sken"])
-		l.light_volumetric_fog_energy = float(post.get("fackel_luft", 6.0))
+		l.light_volumetric_fog_energy = float(post.get("fackel_luft", 9.0))
 		l.light_energy = float(post.get("fackel_glod", l.light_energy))
 	if _lykta != null:
 		_lykta.light_energy = float(post.get("lykta", _lykta_energi)) * _ljus_f
@@ -6321,10 +6327,11 @@ func _build_world() -> void:
 	var golvgrupper := _gruppera(fint_golv, 41, SUPER_YTOR)
 	for i in SUPER_YTOR:
 		_add_boxes_ytor(vägggrupper[i], COL_WALL, TAK_HÖJD * 0.5, Vector3(1, TAK_HÖJD, 1),
-			"wall_super_%d" % i, 31 + i, 1.0)
+			"wall_super_%d" % i, 31 + i, 1.0, VÄGG_TON)
 		_add_boxes_ytor(golvgrupper[i], COL_FLOOR, 0.02, Vector3(1, 0.04, 1), "floor_super_%d" % i,
 			41 + i, 1.0, GOLV_TON)
-	_add_boxes_ytor(sliten_vägg, COL_WALL, TAK_HÖJD * 0.5, Vector3(1, TAK_HÖJD, 1), "wall_moss", 37)
+	_add_boxes_ytor(sliten_vägg, COL_WALL, TAK_HÖJD * 0.5, Vector3(1, TAK_HÖJD, 1), "wall_moss", 37, 2.0,
+		VÄGG_TON)
 	_add_boxes_ytor(slitet_golv, COL_FLOOR, 0.02, Vector3(1, 0.04, 1), "floor_crack", 43, 2.0,
 		GOLV_TON)
 	# TAKET ÖVER ETT ÖPPET RUM BYGGS INTE (VC-paritet 15/10): i stället för takrutor läggs en himmelyta
@@ -7007,7 +7014,11 @@ func _apply_tema() -> void:
 		# disigt (kryptan, tunneln) ska ha tjockare luft också där ljuset går genom den. Taket på
 		# 0,05 är mätt: över det blir lyktan en grå vägg och rummet försvinner bakom sin egen luft.
 		if _vol:
-			env.volumetric_fog_density = clampf(float(l.get("dimma", 0.04)) * 0.32, 0.022, 0.05)
+			# GOLVET HÖJT FRÅN 0,022 (Alex 15/10: "alldeles för murrigt och svårt att se något").
+			# Mätt i `-- ljusprov`, samma scen i samma process: 0,022 gav mörkt 51 % av vyn och en
+			# median på 0,145; 0,030 gav mörkt 43 % och median 0,174. Ljusare dimma LYFTER alltså
+			# mörkret i stället för att grumla det — den volymetriska dimman bär ljuset i luften.
+			env.volumetric_fog_density = clampf(float(l.get("dimma", 0.04)) * 0.32, 0.030, 0.05)
 			env.volumetric_fog_albedo = env.background_color.lightened(0.5)
 
 ## Ljuset som faller på YTORNA: lyktan i handen och facklorna i rummet, gånger `f`. EN väg in, så
@@ -8042,7 +8053,9 @@ func _add_lagor(f: Dungeon.Floor) -> void:
 		ljus.shadow_bias = 0.04            # flera skuggande punktljus per våning kostar mer än det ger
 		# Facklans ljus i dimman: det är käglan runt lågan som gör elden till en LJUSKÄLLA och inte
 		# till en orange fläck. Energin är högre än lyktans — facklan ska synas på håll i en korridor.
-		ljus.light_volumetric_fog_energy = 6.0   # vol-05: 2,2 syntes inte i luften (mätt i bildprov)
+		# 9,0 sedan 15/10 (var 6,0): i ljusprovet gav 9,0 1 397 högdagerpixlar mot 778 vid 6,0 — det är
+		# formen på det ljuset faller på som blir synlig, inte att hela rutan ljusnar (medel +0,006).
+		ljus.light_volumetric_fog_energy = 9.0
 		# Ljuset sitter I LÅGAN, inte i golvrutan: en eld i ögonhöjd lyser rummet, en eld på golvet
 		# lyser bara sin egen fläck. Lyktan i handen står på 0,5 m, så en fackla på 1,3 m är över
 		# spelarens huvud — som en fackla på en vägg ska vara.

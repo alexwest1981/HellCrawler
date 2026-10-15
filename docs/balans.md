@@ -674,3 +674,36 @@ ser grannrummens tak ovanför våra låga väggar när man tittar i sidled; en *
 handritad våning kan sätta öppna rum själv (i dag bara generatorn); och horisonten i en shader
 (`SCREEN_UV.y` mot en split) i stället för ett gradientkort, om himlen ska kunna stå still när man rör
 sig.
+
+---
+
+## 11. Väggarna: mörka av sin egen albedo (15/10)
+
+Alex: *"kan vi kika över grafiken på väggarna nu då? Det är alldeles för murrigt och svårt att se
+något."* Mätt först, ändrat sedan.
+
+**Mätt i bild** (spelvyn, 1 280×720, en vanlig körning på Asklunden, frisk process per mätning):
+medel 0,059, **median 0,0025**, **82 % av vyn under 0,12**, 10 högdagerpixlar. Bilden visade "svarta
+ytor med svaga konturerr och ett fläckigt mönster av orange punkter mot svart" — dvs. texturens
+LJUSA punkter överlevde medan allt annat krossades.
+
+**Orsaken var albedon, inte ljuset.** Väggarnas textur har median **0,212 i sRGB** — det är **0,035
+linjärt**, alltså en vägg som reflekterar 3,5 % av ljuset. Ingen lykta kan lysa upp den: ljus × 0,035
+är mörkt hur starkt ljuset än är. Till det kom att **väggarna inte fick någon ton alls**:
+`_add_boxes_ytor(..., ruta, skugga_frö, upprepa, ton)` har `ton = Color.WHITE` som default, och
+vägganropet skickade bara fyra argument medan golvet skickade `GOLV_TON`. Golvet kunde alltså ses,
+väggen inte.
+
+**Åtgärden:** en egen `VÄGG_TON` (3,00, 3,10, 3,40 — samma kyliga nyans som `COL_WALL`), och
+golv-/taktonerna ned från ett tidigare försök (golvet blev utfrätt av 5,0; p90 gick till 0,74).
+Taket 0,60 → 1,50. Dessutom golvet i den volymetriska dimman från 0,022 till 0,030 och facklans ljus
+i dimman från 6,0 till 9,0 (mätt i `-- ljusprov`: 778 → 1 397 högdagerpixlar).
+
+**Mätt efter:** medel 0,059 → **0,237**, median 0,0025 → **0,209**, mörkt 82 % → **23 %**, högdagrar
+10 → 2 890 px, och p90 0,433 (alltså inget utfrätt — försöket med 5,0 gav 0,74 och ett vitt golv).
+I bild syns nu "block, fogar och stenmönster"; mörkret som är kvar ligger i fogar, skuggor och
+avstånd, vilket är dimman som ska bära avståndet.
+
+**Grind:** `test_ljus.gd` kör en våning och läser dimman, facklans dimenergi, avståndsdimman och
+väggtonen (och att väggbygget faktiskt skickar in den — den gamla buggen var ett argument som
+saknades, inte ett tal som var fel).
