@@ -85,6 +85,7 @@
   "Ram": "ram.png",
   "Sand Path": "atlas/sand_path.png",
   "Skylt": "skylt.png",
+  "Skylt Board": "skylt_balk.png",
   "Slate Roof": "tak_skiffer.png",
   "Stone": "mursten.png",
   "Stone Mossy": "atlas/stone_wall_mossy_small.png",
@@ -92,7 +93,8 @@
   "Tudor Plaster": "puts.png",
   "Window Bright": "atlas/window_narrow.png",
   "Window Warm": "atlas/window_four_pane.png",
-  "Wood": "virke.png"
+  "Wood": "virke.png",
+  "Wood Beam": "virke_balk.png"
  },
  "plates_used": [
   "Bark",
@@ -110,6 +112,7 @@
   "Purple Roof",
   "Ram",
   "Skylt",
+  "Skylt Board",
   "Slate Roof",
   "Stone",
   "Stone Mossy",
@@ -117,7 +120,8 @@
   "Tudor Plaster",
   "Window Bright",
   "Window Warm",
-  "Wood"
+  "Wood",
+  "Wood Beam"
  ],
  "roof_material_on_wall_plate": [],
  "smoke_center_gltf": null,

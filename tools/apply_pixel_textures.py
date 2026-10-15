@@ -55,6 +55,16 @@ TEXTURES = {
     "Slate Roof": "tak_skiffer.png",
     "Purple Roof": "tak_lila.png",
     "Wood": "virke.png",
+    ## BALKPLATTORNA. virke.png och skylt.png är PLANKVÄGGAR — mätt 12 brädskarvar i U, 0 vågräta —
+    ## och plattan upprepas var 1:e meter. På en balk blir U = höjden (0,55 m), alltså ~7 skarvar per
+    ## meter: en 5,2 m lång list såg ut som ~36 sågade bitar. Alex 2026-10-14: "det är EN balk som
+    ## ligger vågrätt, inte 40 på höjden avsågade och ihopklistrade" och "detsamma gäller taknockar,
+    ## skyltar osv" — dvs allt trä som är längre än en meter. Balkplattan är EN planka ur samma källa
+    ## (den bredaste plankytan, 81 px), töjd till 512 och tonad till förlagans medelton. MÄTT:
+    ## kolumnspridning 17,2 -> 6,2 (skarvarna borta), radspridning 2,0 -> 3,5 (ådringen kvar, starkare).
+    ## UV-regeln rörs inte: U blir fortfarande höjden, V längden, och nu är U en enda bräda.
+    "Wood Beam": "virke_balk.png",
+    "Skylt Board": "skylt_balk.png",
     "Tudor Plaster": "puts.png",
     "Grass": "gras.png",
     "Dirt": "dirt.png",
@@ -390,6 +400,17 @@ def classify_object(obj):
         return platta, "material"
     return namnregler(obj), "namn"
 
+def balkmått(obj):
+    """(led, fiber, balk) för ett objekt — SAMMA mått som sätt_uv använder, så klassningen och UV:n
+    inte kan glida isär.
+
+    balk = smal i BÅDA de andra leden (näst längsta <= 1 m): en planka, en balk, en taknock, en
+    skyltbräda. En vägg (3,0 m) eller en dörr är det inte.
+    """
+    hörn = [obj.matrix_world @ Vector(c) for c in obj.bound_box]
+    led = sorted((max(p[i] for p in hörn) - min(p[i] for p in hörn), i) for i in range(3))
+    return led, led[2][1], (led[2][0] >= 3.0 * led[1][0] and led[1][0] <= 1.0)
+
 def sätt_uv(obj):
     """KUBPROJEKTION i världskoordinater — en ruta är TILE_METER i världen, överallt.
 
@@ -433,11 +454,9 @@ def sätt_uv(obj):
     ## i BÅDA de andra leden (näst längsta <= 1 m), det är en vägg eller en dörr inte. Mätt på
     ## scenen: skyltbrädan 0,6 m (balk), tavernaväggen 3,0 m (inte balk).
     hörn = [M @ Vector(c) for c in obj.bound_box]
-    led = sorted((max(p[i] for p in hörn) - min(p[i] for p in hörn), i) for i in range(3))
-    fiber = led[2][1]
+    led, fiber, balk = balkmått(obj)
     fiber_v = Vector((0.0, 0.0, 0.0))
     fiber_v[fiber] = 1.0
-    balk = led[2][0] >= 3.0 * led[1][0] and led[1][0] <= 1.0
 
     for poly in mesh.polygons:
         n = (inv @ poly.normal).normalized()
@@ -523,6 +542,13 @@ def main():
                 rök_hoppade[obj.name] = ursprung
                 continue
             category, källa = classify_object(obj)
+            ## BALKPLATTAN I STÄLLET FÖR PLANKVÄGGEN, för allt trä som är en balk (planka, taknock,
+            ## skyltbräda): virke.png/skylt.png är plankväggar med 12 brädskarvar i U, och på en 5,2 m
+            ## list blir U höjden, alltså ~36 skarvar längs balken — "40 på höjden avsågade och
+            ## ihopklistrade". Bara de två plankkategorierna byts; kanter (Ram) och bokstäver
+            ## (Ljus Varm) ligger kvar på sina platta plattor.
+            if balkmått(obj)[2]:
+                category = {"Wood": "Wood Beam", "Skylt": "Skylt Board"}.get(category, category)
             assign_material(obj, MATERIALS[category])
             if obj.get("uv_keep") and obj.data.uv_layers:
                 ## ALEX ÄGER UV:N. Objektet bär en egen vinkel, satt för hand i UV-editorn, och då
