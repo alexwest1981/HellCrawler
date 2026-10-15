@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s 反應：%.0f 傷害",
+ "ui.hud.logg.reagerar": "%s 反應",
+ "kw.nocombo": "無連擊",
+ "kw.stannar": "停留 %d 回合（%s）",
  "ui.hud.hint": "WASD 移動 · 1-9 出牌 · P 全部打出 · E 結束回合 · S 排序 (%s) · R 重來",
  "ui.hud.logg.kista_lak": "寶箱：%d HP",
  "ui.hud.logg.splitter": "%d 裂片",

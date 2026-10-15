@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s reacts: %.0f damage",
+ "ui.hud.logg.reagerar": "%s reacts",
+ "kw.nocombo": "no chain",
+ "kw.stannar": "stays %d turns (on %s)",
  "ui.hud.hint": "WASD walk · 1-9 cards · P play all · E end turn · S sort (%s) · R restart",
  "ui.hud.logg.kista_lak": "chest: %d HP",
  "ui.hud.logg.splitter": "%d shards",

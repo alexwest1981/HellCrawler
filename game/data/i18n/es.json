@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s reacciona: %.0f de daño",
+ "ui.hud.logg.reagerar": "%s reacciona",
+ "kw.nocombo": "sin cadena",
+ "kw.stannar": "queda %d turnos (%s)",
  "ui.hud.hint": "WASD andar · 1-9 cartas · P jugar todo · E fin del turno · S ordenar (%s) · R reiniciar",
  "ui.hud.logg.kista_lak": "cofre: %d PV",
  "ui.hud.logg.splitter": "%d splitter",

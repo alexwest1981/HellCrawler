@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s реагирует: %.0f урона",
+ "ui.hud.logg.reagerar": "%s реагирует",
+ "kw.nocombo": "без комбо",
+ "kw.stannar": "остаётся %d ходов (%s)",
  "ui.hud.hint": "WASD идти · 1-9 карты · P сыграть всё · E конец хода · S сортировка (%s) · R заново",
  "ui.hud.logg.kista_lak": "сундук: %d HP",
  "ui.hud.logg.splitter": "%d сплиттер",

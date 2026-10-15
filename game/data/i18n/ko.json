@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s 반응: %.0f 피해",
+ "ui.hud.logg.reagerar": "%s 반응",
+ "kw.nocombo": "콤보 없음",
+ "kw.stannar": "%d턴 잔류(%s)",
  "ui.hud.hint": "WASD 이동 · 1-9 카드 · P 전부 사용 · E 턴 종료 · S 정렬 (%s) · R 다시",
  "ui.hud.logg.kista_lak": "상자: %d HP",
  "ui.hud.logg.splitter": "%d 스플리터",

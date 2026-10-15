@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s が反応: %.0f ダメージ",
+ "ui.hud.logg.reagerar": "%s が反応",
+ "kw.nocombo": "コンボなし",
+ "kw.stannar": "%dターン残留（%s）",
  "ui.hud.hint": "WASD 移動 · 1-9 カード · P すべて出す · E ターン終了 · S 並べ替え (%s) · R やり直し",
  "ui.hud.logg.kista_lak": "宝箱: %d HP",
  "ui.hud.logg.splitter": "%d スプリッター",

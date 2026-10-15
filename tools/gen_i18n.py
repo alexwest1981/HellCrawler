@@ -32,6 +32,10 @@ OUT = GAME / "data" / "i18n"
 # (Tr.is_complete); fmt.*/kw.* är kortens text och hör till samma krav; innehållsnamnen får vänta.
 UI: dict[str, dict[str, str]] = {
     "sv": {
+        "ui.hud.logg.reagerar_skada": "%s reagerar: %.0f skada",
+        "ui.hud.logg.reagerar": "%s reagerar",
+        "kw.nocombo": "utan kedja",
+        "kw.stannar": "stannar %d turer (på %s)",
         "ui.hud.hint": "WASD gå · 1-9 kort · P spela allt · E tur · S sortera (%s) · R om",
         "ui.hud.logg.kista_lak": "kista: %d HP",
         "ui.hud.logg.splitter": "%d splitter",
@@ -82,6 +86,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.wild": "Vild",
     },
     "en": {
+        "ui.hud.logg.reagerar_skada": "%s reacts: %.0f damage",
+        "ui.hud.logg.reagerar": "%s reacts",
+        "kw.nocombo": "no chain",
+        "kw.stannar": "stays %d turns (on %s)",
         "ui.hud.hint": "WASD walk · 1-9 cards · P play all · E end turn · S sort (%s) · R restart",
         "ui.hud.logg.kista_lak": "chest: %d HP",
         "ui.hud.logg.splitter": "%d shards",
@@ -132,6 +140,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.wild": "Wild",
     },
     "de": {
+        "ui.hud.logg.reagerar_skada": "%s reagiert: %.0f Schaden",
+        "ui.hud.logg.reagerar": "%s reagiert",
+        "kw.nocombo": "ohne Kette",
+        "kw.stannar": "bleibt %d Züge (%s)",
         "ui.hud.hint": "WASD gehen · 1-9 Karten · P alles spielen · E Zug beenden · S sortieren (%s) · R neu",
         "ui.hud.logg.kista_lak": "Truhe: %d HP",
         "ui.hud.logg.splitter": "%d Splitter",
@@ -168,6 +180,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "Zerstören", "kw.evolved": "Entwickelt", "kw.wild": "Wild", "kw.companion": "Begleiter",
     },
     "fr": {
+        "ui.hud.logg.reagerar_skada": "%s réagit : %.0f dégâts",
+        "ui.hud.logg.reagerar": "%s réagit",
+        "kw.nocombo": "sans chaîne",
+        "kw.stannar": "reste %d tours (%s)",
         "ui.hud.hint": "WASD marcher · 1-9 cartes · P tout jouer · E fin de tour · S trier (%s) · R relancer",
         "ui.hud.logg.kista_lak": "coffre : %d PV",
         "ui.hud.logg.splitter": "%d splitter",
@@ -204,6 +220,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "Détruire", "kw.evolved": "Évoluée", "kw.wild": "Joker", "kw.companion": "Compagnon",
     },
     "es": {
+        "ui.hud.logg.reagerar_skada": "%s reacciona: %.0f de daño",
+        "ui.hud.logg.reagerar": "%s reacciona",
+        "kw.nocombo": "sin cadena",
+        "kw.stannar": "queda %d turnos (%s)",
         "ui.hud.hint": "WASD andar · 1-9 cartas · P jugar todo · E fin del turno · S ordenar (%s) · R reiniciar",
         "ui.hud.logg.kista_lak": "cofre: %d PV",
         "ui.hud.logg.splitter": "%d splitter",
@@ -240,6 +260,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "Destruir", "kw.evolved": "Evolucionada", "kw.wild": "Comodín", "kw.companion": "Aliado",
     },
     "it": {
+        "ui.hud.logg.reagerar_skada": "%s reagisce: %.0f danni",
+        "ui.hud.logg.reagerar": "%s reagisce",
+        "kw.nocombo": "senza catena",
+        "kw.stannar": "resta %d turni (%s)",
         "ui.hud.hint": "WASD muoversi · 1-9 carte · P gioca tutto · E fine turno · S ordina (%s) · R riavvia",
         "ui.hud.logg.kista_lak": "scrigno: %d HP",
         "ui.hud.logg.splitter": "%d splitter",
@@ -276,6 +300,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "Distruggi", "kw.evolved": "Evoluta", "kw.wild": "Jolly", "kw.companion": "Compagno",
     },
     "pl": {
+        "ui.hud.logg.reagerar_skada": "%s reaguje: %.0f obrażeń",
+        "ui.hud.logg.reagerar": "%s reaguje",
+        "kw.nocombo": "bez kombinacji",
+        "kw.stannar": "zostaje %d tur (%s)",
         "ui.hud.hint": "WASD idź · 1-9 karty · P zagraj wszystko · E koniec tury · S sortuj (%s) · R od nowa",
         "ui.hud.logg.kista_lak": "skrzynia: %d HP",
         "ui.hud.logg.splitter": "%d splitter",
@@ -312,6 +340,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "Zniszcz", "kw.evolved": "Ulepszona", "kw.wild": "Dzika", "kw.companion": "Towarzysz",
     },
     "pt-BR": {
+        "ui.hud.logg.reagerar_skada": "%s reage: %.0f de dano",
+        "ui.hud.logg.reagerar": "%s reage",
+        "kw.nocombo": "sem combo",
+        "kw.stannar": "fica %d turnos (%s)",
         "ui.hud.hint": "WASD andar · 1-9 cartas · P jogar tudo · E encerrar turno · S ordenar (%s) · R reiniciar",
         "ui.hud.logg.kista_lak": "baú: %d HP",
         "ui.hud.logg.splitter": "%d splitter",
@@ -348,6 +380,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "Destruir", "kw.evolved": "Evoluída", "kw.wild": "Curinga", "kw.companion": "Aliado",
     },
     "ru": {
+        "ui.hud.logg.reagerar_skada": "%s реагирует: %.0f урона",
+        "ui.hud.logg.reagerar": "%s реагирует",
+        "kw.nocombo": "без комбо",
+        "kw.stannar": "остаётся %d ходов (%s)",
         "ui.hud.hint": "WASD идти · 1-9 карты · P сыграть всё · E конец хода · S сортировка (%s) · R заново",
         "ui.hud.logg.kista_lak": "сундук: %d HP",
         "ui.hud.logg.splitter": "%d сплиттер",
@@ -384,6 +420,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "Уничтожить", "kw.evolved": "Улучшенная", "kw.wild": "Дикая", "kw.companion": "Спутник",
     },
     "ja": {
+        "ui.hud.logg.reagerar_skada": "%s が反応: %.0f ダメージ",
+        "ui.hud.logg.reagerar": "%s が反応",
+        "kw.nocombo": "コンボなし",
+        "kw.stannar": "%dターン残留（%s）",
         "ui.hud.hint": "WASD 移動 · 1-9 カード · P すべて出す · E ターン終了 · S 並べ替え (%s) · R やり直し",
         "ui.hud.logg.kista_lak": "宝箱: %d HP",
         "ui.hud.logg.splitter": "%d スプリッター",
@@ -420,6 +460,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "破壊", "kw.evolved": "進化", "kw.wild": "ワイルド", "kw.companion": "仲間",
     },
     "ko": {
+        "ui.hud.logg.reagerar_skada": "%s 반응: %.0f 피해",
+        "ui.hud.logg.reagerar": "%s 반응",
+        "kw.nocombo": "콤보 없음",
+        "kw.stannar": "%d턴 잔류(%s)",
         "ui.hud.hint": "WASD 이동 · 1-9 카드 · P 전부 사용 · E 턴 종료 · S 정렬 (%s) · R 다시",
         "ui.hud.logg.kista_lak": "상자: %d HP",
         "ui.hud.logg.splitter": "%d 스플리터",
@@ -456,6 +500,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "파괴", "kw.evolved": "진화", "kw.wild": "와일드", "kw.companion": "동료",
     },
     "zh-Hans": {
+        "ui.hud.logg.reagerar_skada": "%s 反应：%.0f 伤害",
+        "ui.hud.logg.reagerar": "%s 反应",
+        "kw.nocombo": "无连击",
+        "kw.stannar": "停留 %d 回合（%s）",
         "ui.hud.hint": "WASD 移动 · 1-9 出牌 · P 全部打出 · E 结束回合 · S 排序 (%s) · R 重开",
         "ui.hud.logg.kista_lak": "宝箱：%d HP",
         "ui.hud.logg.splitter": "%d 裂片",
@@ -492,6 +540,10 @@ UI: dict[str, dict[str, str]] = {
         "kw.destroy": "摧毁", "kw.evolved": "进化", "kw.wild": "万能", "kw.companion": "同伴",
     },
     "zh-Hant": {
+        "ui.hud.logg.reagerar_skada": "%s 反應：%.0f 傷害",
+        "ui.hud.logg.reagerar": "%s 反應",
+        "kw.nocombo": "無連擊",
+        "kw.stannar": "停留 %d 回合（%s）",
         "ui.hud.hint": "WASD 移動 · 1-9 出牌 · P 全部打出 · E 結束回合 · S 排序 (%s) · R 重來",
         "ui.hud.logg.kista_lak": "寶箱：%d HP",
         "ui.hud.logg.splitter": "%d 裂片",

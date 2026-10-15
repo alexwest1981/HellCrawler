@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s reagiert: %.0f Schaden",
+ "ui.hud.logg.reagerar": "%s reagiert",
+ "kw.nocombo": "ohne Kette",
+ "kw.stannar": "bleibt %d Züge (%s)",
  "ui.hud.hint": "WASD gehen · 1-9 Karten · P alles spielen · E Zug beenden · S sortieren (%s) · R neu",
  "ui.hud.logg.kista_lak": "Truhe: %d HP",
  "ui.hud.logg.splitter": "%d Splitter",

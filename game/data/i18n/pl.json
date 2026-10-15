@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s reaguje: %.0f obrażeń",
+ "ui.hud.logg.reagerar": "%s reaguje",
+ "kw.nocombo": "bez kombinacji",
+ "kw.stannar": "zostaje %d tur (%s)",
  "ui.hud.hint": "WASD idź · 1-9 karty · P zagraj wszystko · E koniec tury · S sortuj (%s) · R od nowa",
  "ui.hud.logg.kista_lak": "skrzynia: %d HP",
  "ui.hud.logg.splitter": "%d splitter",

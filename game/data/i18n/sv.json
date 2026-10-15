@@ -1,4 +1,8 @@
 {
+ "ui.hud.logg.reagerar_skada": "%s reagerar: %.0f skada",
+ "ui.hud.logg.reagerar": "%s reagerar",
+ "kw.nocombo": "utan kedja",
+ "kw.stannar": "stannar %d turer (på %s)",
  "ui.hud.hint": "WASD gå · 1-9 kort · P spela allt · E tur · S sortera (%s) · R om",
  "ui.hud.logg.kista_lak": "kista: %d HP",
  "ui.hud.logg.splitter": "%d splitter",

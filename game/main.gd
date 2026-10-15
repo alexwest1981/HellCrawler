@@ -10528,10 +10528,14 @@ func _flush_events() -> void:
 				_logga(Tr.t("ui.hud.logg.vaning", "ned till våning %d") % (run.floor_index + 1),
 					Palett.c(23))
 			"chest":
-				_sfx("level_up" if str(e.get("vad", "")) == "relik" else "coin")
+				# Namnet ur händelsen i en EGEN variabel: en sträng inne i `_sfx(...)`-anropet såg ut
+				# som ett ljudnamn för grinden i `tests/test_ljud.gd` (mätt: den krävde att ljud som
+				# heter "vad" och "relik" fanns i kartan).
+				var är_relik := str(e.get("vad", "")) == "relik"
+				_sfx("level_up" if är_relik else "coin")
 				_visa_belöning(e)
 				var rad := ""
-				if str(e.get("vad", "")) == "relik":
+				if är_relik:
 					# RELIKEN (M123): lagrets största händelse ska stå i loggen med sitt namn —
 					# annars är det bara en kista till som spelade ett annat ljud.
 					rad = Tr.t("ui.hud.logg.relik", "relik: %s") % str(e.get("namn", ""))
