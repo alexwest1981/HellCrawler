@@ -31,8 +31,11 @@ func _initialize() -> void:
 	# VÄGGARNAS TON: buggen var att väggarna inte fick någon ton alls och därför blev nästan svarta
 	# (rak textur × albedo 0,21 sRGB ≈ 0,035 linjärt). Två saker ska stå kvar: talet, och att anropet
 	# som bygger väggarna faktiskt skickar in det.
-	check(minf(main.VÄGG_TON.r, minf(main.VÄGG_TON.g, main.VÄGG_TON.b)) > 2.0, "väggtonen står kvar över 2,0 (annars är väggen svart av sin albedo)",
-		str(main.VÄGG_TON))
+	# TONEN FÖLJER ALBEDON (mätt två gånger): med våra gamla, mörka ytor (median 0,21) behövdes 3,0 för
+	# att väggen skulle synas; med paketets (0,38-0,60) blev 3,0 utfrätt (vyns medel 0,78, p90 0,97) och
+	# 0,90 gav 0,281 / mörkt 24 %. Grinden håller bandet, inte en siffra från ett annat material.
+	var ton: float = minf(main.VÄGG_TON.r, minf(main.VÄGG_TON.g, main.VÄGG_TON.b))
+	check(ton > 0.5 and ton < 1.5, "väggtonen ligger i det mätta bandet 0,5-1,5 för paketets ytor", str(main.VÄGG_TON))
 	var källkod := FileAccess.get_file_as_string("res://main.gd")
 	check(källkod.contains('1.0, VÄGG_TON'), "och väggbygget skickar in den")
 	check(not källkod.contains('"wall_moss", 37)'), "ingen väggyta står kvar utan ton (den gamla buggen)")

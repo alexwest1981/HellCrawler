@@ -760,3 +760,45 @@ paketets sida efter att Alex pekat på den. Fri för privata och kommersiella pr
 vidareförsäljning av texturena som de är är förbjuden. Credit är frivilligt och står i `CREDITS.md`.
 
 **Kvar:** golv och tak är fortfarande Alex' egna ark (bytet gäller väggarna, som var klagomålet).
+
+---
+
+## 13. Golv och tak ur samma paket (15/10)
+
+Samma generator, `tools/gen_ytor_paket.py`, ritar nu även `floor_super_0..3`, `floor`,
+`floor_crack` och `ceiling` — alltså exakt de namn `_add_boxes_ytor` frågar efter. 25 ytor över fem
+teman byts: **albedo och normalmap**, men **inte `_orm`** — Alex' egna råhetskartor ligger kvar.
+
+**Varför ORM:en inte byts (mätt):** paketets `_smoothness` är jämnt matt (median 0,13 → råhet 0,87),
+och med den hittar spelets regel "fuktiga ytor blänker" (`GLANS_BLÖT_ANDEL`, Alex: *"så väggar kan se
+fuktiga ut, så det blänker gentemot ljus"*) **noll** blöta fläckar: `test_normalprov` föll, hela spelet
+blev matt och högdagrarna försvann. Hans kartor har de blöta partierna (33 av temats 33 ORM-rutor i
+`bro` ligger över gränsen). Priset är att AO-kartan är ritad för hans mönster i stället för paketets —
+en skillnad som knappt syns, mot en glans som försvinner helt.
+
+**Valet sköter generatorn själv nu, på mätning:** för varje plats provas alla varianter i mappvalet,
+och den med bredast spann vinner — men bara om skarven är ren. Resultatet: **alla 25 ytor sömlösa**
+och alla utom en över vår egen vägg (0,224): kryptans golv har bredast spann av allt (0,702),
+asklundens gräs 0,537, brons virke 0,294.
+
+| tema | vägg | sliten vägg | golv | sprucket golv | tak |
+|---|---|---|---|---|---|
+| asklunden | Roots/2 | Mystical/6 | Grass/16 | Fall Ground/6 | Roof/7 |
+| krypta | Stone Wall/1 | Damaged Wall/2 | Floor/18 | Damaged Parquet/3 | Cave Wall/2 |
+| grotta | Cave Wall/7 | Mystical/6 | Cave Floor/7 | Fall Ground/6 | Cave Wall/2 |
+| tunnel | Cobble Stone/2 | Damaged Wall/2 | Tiles/3 | Damaged Parquet/3 | Magical Wood Planks/3 |
+| bro | Wood Planks/5 | Magical Wood Planks/3 | Wood Planks/5 | Damaged Parquet/3 | Wood Planks/5 |
+
+**Tonerna var satta för de gamla, mörka ytorna och blev utfrätta.** Paketets albedon ligger 2–2,5
+gånger högre (0,38–0,60 mot 0,21–0,24), så `VÄGG_TON` 3,0 / `GOLV_TON` 1,6 / `TAK_TON` 1,5 gav medel
+**0,78** och p90 0,97 — nästan vitt. Svept ned till 0,90 / 0,55 / 0,70, som ger medel 0,281, mörkt
+24 % och den högsta detaljen av paket-varianterna (0,0151). Jämför `VÄGG_TON` 1,2/0,9/0,9 → medel
+0,428, mörkt 10 %; 0,75/0,42/0,58 → medel 0,218, mörkt 35 %.
+
+**Rutstorleken provad: 512 gav +7 % detalj (0,0133 → 0,0142) för 2,5 gånger tyngre filer** — inte
+värt det, så 256 står kvar. **Och den ärliga slutsatsen:** paketets ytor visar mindre fin detalj i vår
+vy än Alex' egna (0,0151 mot 0,0236, kanter 5,7 % mot 11,5 %). Det beror inte på skalan — paketet är
+målat med större, renare former medan hans ark är brusiga AI-texturer. Bytet är alltså ett byte av
+**utseende** (målade material, riktiga PBR-kartor, relief och fogar som syns) och inte av skärpa; i
+bild läses rummet som ett sammanhållet målarmaterial, inte som tre olika spel, och högdagrarna ligger
+kring 0,54 (p90) — inget som är utfrätt.

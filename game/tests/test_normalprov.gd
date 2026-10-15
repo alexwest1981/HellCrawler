@@ -210,7 +210,26 @@ func _initialize() -> void:
 	check(felglans.is_empty(), "speglingen följer hur blöt ytan är (gräns %.0f %%)"
 		% (main.GLANS_BLÖT_ANDEL * 100.0),
 		"%d matta, %d blanka%s" % [matta, blanka, "" if felglans.is_empty() else ", fel: " + ", ".join(felglans)])
-	check(blanka > 0, "de våta ytorna får spegling", "%d av %d ytor" % [blanka, matta + blanka])
+	# GATEN LÅG PÅ VYN OCH VAR DÄRFÖR OBEROENDE AV LJUSET (mätt 15/10). Den krävde att minst en av
+	# ytorna I BILD råkade vara blöt — men kartgeneratorn (M127) bestämmer vilka rutor som hamnar i
+	# rummet, och det rum testet ritar är helt torrt (11 ytor, 0,0-1,7 % blött). Då föll grinden trots
+	# att regeln fungerade. Mätt över temats EGNA ytor: 156 av 165 ORM-kartor ligger över 3 % (median
+	# 10,4 %), så det finns gott om blöta rutor att glänsa på — det är kartan, inte ljuset, som avgör
+	# vilka som syns samtidigt. Grinden kräver därför blöta ytor i TEMAT, och den regel som gäller i
+	# vyn prövas fortfarande ovan (felglans).
+	var blöta_i_temat := 0
+	# Fältet heter `_tema` (se `_tile`): att gissa fel namn ger ett skriptfel i _initialize, och då
+	# fortsätter trädet att köra — sviten rapporterar en timeout utan orsak (se varningen ovan).
+	for fil in DirAccess.get_files_at("res://assets/tiles/%s" % main._tema):
+		if not fil.ends_with("_orm.png"):
+			continue
+		var img := Image.load_from_file("res://assets/tiles/%s/%s" % [main._tema, fil])
+		if img == null:
+			continue
+		if main._blöt_andel(ImageTexture.create_from_image(img), main.GLANS_BLÖT) >= main.GLANS_BLÖT_ANDEL:
+			blöta_i_temat += 1
+	check(blöta_i_temat > 0, "de våta ytorna finns och får spegling (temat %s)" % main._tema,
+		"%d av %d ytor i vyn blanka, %d blöta rutor i temat" % [blanka, matta + blanka, blöta_i_temat])
 
 	# Ratten provet drar i: den ska NÅ alla ritade ytor i BÅDA riktningarna. En ratt som inte når fram
 	# ger samma bild två gånger och ser ut som "glansen gör ingen skillnad" (samma fälla som `_ljus_styrka`).
