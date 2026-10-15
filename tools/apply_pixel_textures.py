@@ -30,6 +30,16 @@ if not os.path.isdir(TEXTURE_DIR):
     TEXTURE_DIR = bpy.path.abspath("//textures")
 
 UV_NAME = "UVMap_PixelArt"
+
+## FÖNSTREN SOM LYSER. Alex 2026-10-14: "Rutorna ... de skall ha lätt sken ur sig, som om det finns
+## något ljus som brinner där inne då det skall vara kväll ute." Spelet HAR ett kvällsläge (by_3d.gd:
+## nattljuset, nattvarianten), och där syns bara det materialet SJÄLV skickar ut. Mätt på glbn före
+## den här ändringen: emissiveFactor=None och emissiveTexture=nej på båda fönsterplattorna — rutorna
+## var alltså helt beroende av solljuset och slocknade på kvällen.
+## EFFEKT är ratten: 1,0 = plattans egen ljusstyrka. Högre värde ger överskott och, om Godot-scenens
+## miljö har glow på, en blomning runt rutan.
+GLÖDER = ("Window Warm", "Window Bright")
+EFFEKT = 1.0
 ISLAND_MARGIN = 0.015
 REPLACE_EXISTING_MATERIALS = True
 ## Rutans storlek i meter. En ruta = en hel 512-platta, så 1,0 m ger 512 px per meter — samma täthet
@@ -142,6 +152,11 @@ def make_material(name, filename):
     uv.uv_map = UV_NAME
     uv.location = (-470, 50)
     links.new(uv.outputs["UV"], tex.inputs["Vector"])
+    ## Fönstren lyser av sig själva: plattans bild blir materialets emission, så rutan skickar ut sitt
+    ## eget ljus i kvällsläget i stället för att bara reflektera solen. Se GLÖDER/EFFEKT högst upp.
+    if name in GLÖDER:
+        links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+        bsdf.inputs["Emission Strength"].default_value = EFFEKT
     links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     mat.diffuse_color = (0.35, 0.32, 0.27, 1.0)
