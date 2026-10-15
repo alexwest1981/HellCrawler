@@ -149,10 +149,17 @@ def main() -> int:
             bäst = rena[0] if rena else kand[0]
             # wall/floor ritas som fyra super-rutor och behöver fyra OLIKA rutor; de andra en.
             antal = SUPER if plats in ("wall", "floor") else 1
-            valda = rena[:antal] if len(rena) >= antal else (rena if rena else kand[:1])
+            # FYLL PÅ MED DE ORENA EFTER DE RENA (mätt 15/10): `tiles` har bara tre skarvfria rutor, och
+            # utan påfyllning stod `tunnel/floor_super_3.png` kvar ORÖRD från förra milstolpen — en ruta
+            # av ett helt annat material mitt bland de nya. En svag skarv i en av fyra rutor är mycket
+            # bättre än en ruta som inte hör dit; bara om det inte finns fyra rutor ALLS är det fel.
+            valda = (rena + [k for k in kand if not k["ren"]])[:antal]
             if len(valda) < antal:
-                print("%-10s %-12s %-22s bara %d rena rutor (behöver %d)" % (tema, plats, mapp, len(valda), antal))
+                print("%-10s %-12s %-22s bara %d rutor i mappen (behöver %d)" % (tema, plats, mapp, len(valda), antal))
                 fel += 1
+            elif valda[-1] is not None and not valda[-1]["ren"]:
+                print("%-10s %-12s %-22s %d rena + %d med svag skarv (sista super-rutan)" % (tema, plats, mapp,
+                    len(rena), antal - len(rena)))
             print("%-10s %-12s %-22s %-7.3f %s" % (tema, plats, "%s/%s" % (mapp, bäst["nr"]), bäst["spann"],
                 "ren" if bäst["ren"] else "SKARV SYNS — tog näst bästa rena"))
             if bäst["spann"] <= VÅR_SPANN:

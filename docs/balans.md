@@ -795,6 +795,11 @@ gånger högre (0,38–0,60 mot 0,21–0,24), så `VÄGG_TON` 3,0 / `GOLV_TON` 1
 24 % och den högsta detaljen av paket-varianterna (0,0151). Jämför `VÄGG_TON` 1,2/0,9/0,9 → medel
 0,428, mörkt 10 %; 0,75/0,42/0,58 → medel 0,218, mörkt 35 %.
 
+**En fjärde ruta kan behöva fyllas på med svag skarv:** `tiles` har bara tre skarvfria rutor, och utan
+påfyllning stod `tunnel/floor_super_3.png` kvar **orörd från förra milstolpen** — en ruta av ett annat
+material mitt bland de nya. Generatorn tar nu de rena först och fyller på med de ore na; bara om mappen
+inte har fyra rutor alls räknas det som fel (0 fel).
+
 **Rutstorleken provad: 512 gav +7 % detalj (0,0133 → 0,0142) för 2,5 gånger tyngre filer** — inte
 värt det, så 256 står kvar. **Och den ärliga slutsatsen:** paketets ytor visar mindre fin detalj i vår
 vy än Alex' egna (0,0151 mot 0,0236, kanter 5,7 % mot 11,5 %). Det beror inte på skalan — paketet är
