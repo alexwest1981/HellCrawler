@@ -166,23 +166,24 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Hedge` | `hedge.png` | 38 | 3040 | 177.4 |
 | `PX_Iron Riveted` | `metal_riveted.png` | 44 | 1532 | 11.5 |
 | `PX_Ljus Varm` | `ljus_varm.png` | 0 | 0 | 0.0 |
+| `PX_Ljusglöd` | `ljus_varm.png` | 30 | 2400 | 1.1 |
 | `PX_Lövverk` | `lov.png` | 55 | 4400 | 705.8 |
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
 | `PX_Mörk Zon` | `mork_zon.png` | 1 | 6 | 742.2 |
 | `PX_Purple Roof` | `tak_lila.png` | 98 | 588 | 43.3 |
-| `PX_Ram` | `ram.png` | 20 | 126 | 25.2 |
+| `PX_Ram` | `ram.png` | 19 | 120 | 19.9 |
 | `PX_Sand Path` | `sand_path.png` | 0 | 0 | 0.0 |
 | `PX_Skylt` | `skylt.png` | 3 | 18 | 2.6 |
 | `PX_Skylt Board` | `skylt_balk.png` | 5 | 30 | 12.4 |
 | `PX_Slate Roof` | `tak_skiffer.png` | 280 | 1680 | 104.5 |
-| `PX_Stone` | `mursten.png` | 377 | 5660 | 1283.9 |
+| `PX_Stone` | `mursten.png` | 347 | 3260 | 1282.9 |
 | `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
 | `PX_Terracotta Roof` | `tak_tegel.png` | 322 | 1932 | 131.9 |
 | `PX_Tudor Plaster` | `puts.png` | 71 | 426 | 862.9 |
 | `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
-| `PX_Window Warm` | `window_four_pane.png` | 13 | 78 | 29.2 |
+| `PX_Window Warm` | `window_four_pane.png` | 14 | 84 | 34.4 |
 | `PX_Wood` | `virke.png` | 82 | 556 | 231.0 |
 | `PX_Wood Beam` | `virke_balk.png` | 127 | 778 | 447.3 |
 | `Sign_Text` | `**ingen bild**` | 0 | 0 | 0.0 |
 
-Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 33 material i filen står med.
+Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 34 material i filen står med.

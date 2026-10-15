@@ -38,7 +38,7 @@ UV_NAME = "UVMap_PixelArt"
 ## var alltså helt beroende av solljuset och slocknade på kvällen.
 ## EFFEKT är ratten: 1,0 = plattans egen ljusstyrka. Högre värde ger överskott och, om Godot-scenens
 ## miljö har glow på, en blomning runt rutan.
-GLÖDER = ("Window Warm", "Window Bright")
+GLÖDER = ("Window Warm", "Window Bright", "Ljusglöd")
 EFFEKT = 1.0
 ISLAND_MARGIN = 0.015
 REPLACE_EXISTING_MATERIALS = True
@@ -110,6 +110,10 @@ TEXTURES = {
     "Skylt": "skylt.png",
     "Ram": "ram.png",
     "Ljus Varm": "ljus_varm.png",
+    ## LAMPORNA GLÖR. Alex 15/10: "se till att alla som heter Bulb är light emitters istället för en
+    ## fysisk plopp". Egen kategori (inte "Ljus Varm") så att skyltbokstäverna inte tänds på köpet —
+    ## samma bild, eget material. Emissionen kommer ur GLÖDER nedan.
+    "Ljusglöd": "ljus_varm.png",
 }
 
 def load_texture(filename):
@@ -370,6 +374,11 @@ OVERRIDE = {
     ##   Weaver_Win_Frame          0,64 x 0,14 x 0,64 m  y 0,41..0,55  glaset y 0,43..0,49
     ## Alla fem glas bär PX_Window Warm, alltså får ramarna samma platta — då läser öppningen som ett
     ## fönster och spröjsen (Bar_H/Bar_V, PX_Wood Beam) ligger kvar framför som riktiga spröjsar.
+    ## JUVELERARENS SKYLTFONSTER. MÄTT 15/10: Jeweler_Shop_Win_Frame är 1,55 x 0,18 x 1,35 m på
+    ## y 0,69..0,87, glaset (Jeweler_Shop_Win_Glow, PX_Window Bright) ligger på y 0,69..0,79 alltså
+    ## innanför — samma mönster som de sex andra. Ramen är nästan kvadratisk, så den fyrdelade
+    ## fönsterplattan passar bättre än det smala tvådelade glaset bakom.
+    "Jeweler_Shop_Win_Frame": "Window Warm",
     "Tavern_Top_Win_Frame": "Window Warm",
     "BG_House_Left1_Win_Frame": "Window Warm",
     "BG_House_Left2_Win_Frame": "Window Warm",
@@ -410,6 +419,12 @@ def classify_object(obj):
     ## som trädens delar: NAMNET först. MÄTT i bilden: bräda (115,91,72), ram (39,29,37),
     ## bokstäver och lyst glas (235,181,119).
     n = obj.name.lower()
+    ## LAMPORNA. MÄTT 15/10: 30 klossar (Bulb_Bot_0..10, Bulb_Top_0..10, Bulb_L_1..4, Bulb_R_1..4,
+    ## 0,10 x 0,11 x 0,11 m) bär PX_Stone och sitter som en ram runt EXIT-skylten (x 9,98..12,42,
+    ## z 1,38..2,52) — en grå "plopp" i stället för ljus. De får Ljusglöd-plattan och glöder.
+    ## Själva ljuset finns redan: Exit_Sign_Glow (POINT, 90,0) står i ramens mitt.
+    if "bulb" in n:
+        return "Ljusglöd", "namn (lampa)"
     if n.endswith("_txt"):
         return "Ljus Varm", "namn (skylttext)"
     ## SKYLTENS KANT ÄR RAMEN: i bilden är ramen mörk (39,29,37) och brädan ljusare (115,91,72) — med
@@ -509,6 +524,12 @@ def sätt_uv(obj, category=None):
     # tidigare körning hade blivit det som exporterades (samma indata ska ge samma utdata).
     while len(mesh.uv_layers) > 1:
         mesh.uv_layers.remove(mesh.uv_layers[-1])
+    ## HÄMTA OM LAGRET EFTER BORTTAGNINGARNA. MÄTT 15/10: `uv_layers.remove()` gör den gamla
+    ## referensen ogiltig, och `mesh.uv_layers.active = uv` med en död referens SEGFAULAR Blender
+    ## (kraschlogg: "line 527 in sätt_uv", core-dump 4006968, 139 = SIGSEGV). Fyra objekt i scenen har
+    ## flera UV-lager, så raden körs varje gång — och samma rad kördes när Alex' egen Blender dog mitt i
+    ## kedjan i morse. Att hämta om lagret efteråt tar bort hela problemet.
+    uv = mesh.uv_layers.get(UV_NAME) or mesh.uv_layers[0]
     mesh.uv_layers.active = uv
     uv.active_render = True
 
