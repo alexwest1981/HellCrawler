@@ -568,3 +568,86 @@ Nästa steg i flödet, i den ordning mätningen pekar: **Reroll/Skip/Banish i ko
 referensens egen resurs), **offerbordet** (ett kort blir en permanent stat/HP/mana — mekaniken finns
 redan som `Evolution`), **resultatskärmen med Max Combo** (mätbar direkt ur `Combat`), och sist
 **byn med byggnader** (störst, och det enda som kräver ny scen).
+
+---
+
+## 10. VC-paritet: kartan och himlen (15/10)
+
+Två nya frågor från Alex: *"ta reda på hur de gör med sina kartor, och kopiera tillvägagångssättet de
+genererar dem, men vi måste behålla möjligheten till random generated dungeons"* och *"hur de gör när
+man går utomhus i en dungeon, där man ser himlen utanför … för jag vill kunna ha öppna slagfält
+utanför en stängd area"*. Forskningen ligger i `docs/referens/vc-kartgenerering-spec.md` och
+`docs/referens/vc-utomhus-spec.md` (varje påstående med `dump.cs`-rad, typetree-fält eller
+bundle-namn, och en egen lista över vad som inte kunde beläggas).
+
+### 10a. Kartan: kopierat och mätt
+
+**Ryggraden är nu ett minimalt spännande träd.** Referensen bygger korridorerna som Delaunay +
+minimum spanning tree och lägger sedan medvetet till extra kanter
+(`PathMinimumSpanningTreeGenerationLayer`, `_maxExtraEdgeSelectionChance`, `_maximumLength`, och en
+`_middleZoneRadius` som håller genvägar borta från mitten). Vi kedjade rummen i BSP-ordning — oftast
+grannskap, men inte alltid, och en kedjelänk kunde gräva en lång gång tvärs över våningen.
+
+Byggt: `Dungeon._mst_länkar` (Prim över rummens gångavstånd; vid ett tiotal rum ger den exakt samma
+träd som Delaunay + MST gör i referensen) och extrakanter med ett tak sprunget ur ryggradens längsta
+länk (`× 1,5`) i stället för en fast siffra — referensens `_maximumLength` finns för samma sak: en
+genväg rakt till bossen kortar den väg våningen just gjorde lång.
+
+**Slingorna var det som räddade körningen, och antalet är mätt.** Ett träd har inga slingor, så varje
+gren måste gås fram och tillbaka: med bara `rum/4` extrakanter (högst 5) tog fixturen i `test_run`
+**4 341 steg** och dog av stegvakten med 39 vunna strider och **noll** förlorade. A/B mot samma frö:
+**0 extrakanter → död, `rum/4` → död, `rum/2` → klarad**; takets storlek (0,5× mot 1,5× längsta
+länken) avgjorde inte alls. Lärdomen om mätaren: **golvytan mäter inte det här** — 494 rutor i alla
+varianter, för rummen är stora och en extra gång mellan två rumskarvar gräver mest över golv som redan
+finns. Räknaren för körbarhet är körningens steg.
+
+**Mätt (40 frön × 3 svårigheter × 3 banor, samma frön före och efter):**
+
+| | före (BSP-kedja) | efter (MST) |
+|---|---|---|
+| golvrutor i snitt | 536 | **494** (−8 %) |
+| steg till bossen, fixturen | klarar | klarar (men bara med slingor, se nedan) |
+| oåtkomliga noder | 0 | 0 |
+| återvändsgränder | 0 | 0 |
+
+Kortare gångar mellan rummen med samma framkomlighet — och slumpen är kvar: trädet beror bara på
+våningens eget rng, och extrakanterna dras ur samma ström.
+
+**Inte byggt, med flit:** referensens omförsöksloop (`maxRegenerationAttempts`). Vår kontroll finns
+(`Dungeon.unreachable_nodes`) men ingenstans att köra den: 360 genererade våningar gav **0**
+oåtkomliga noder, så en omförsöksloop är spekulativ tills en våning faktiskt faller. Den dagen är
+den billig — samma funktion anropas med `seed + försök * 104729` i en slinga.
+
+**Kvar att kopiera ur kart-specen** (i den ordning den pekar på): *taggade rumsmallar* med krav
+("N rum av den här typen", `RoomTagSelector { Tags, Number }`) i stället för att bara dela BSP djupare;
+*svårighet per RUTA* med sänkt svårighet vid sidan av huvudvägen (`AssignTileDifficulties`,
+`_offPathDifficultyInitialScale`); *händelseordningen* (boss → minibossar → side events → manuella →
+bakhåll → mallmöten, `EventGenerationLayer`) med spridning via flödesfält; och *mötesmatrisen*
+(`EnemyConfig[,]` med `EncounterTemplate._rules` per plats: Empty/Baseline/LowerDifficulty/
+HigherDifficulty) — den sista är vi redan halvvägs in i, för våra rader (M126) är samma idé.
+
+### 10b. Himlen: tekniken, och första biten byggd
+
+**Referensens teknik, mätt i deras egna filer:** dungeons har *inget* skybox-material — kameran
+rensar till färg (`m_ClearFlags = 2`), `RenderSettings.m_SkyboxMaterial` är NULL och
+`m_AmbientMode = 3` (Flat). Himlen ligger i stället som **geometri i rumsmallen**: faux-skybox-plan
+med en kubkarta (`GalloFauxSkybox` med `_RotatingCubemap`, `_Color = 4.35, 7.22, 11.98`), horisonten
+i en shader (`cloudscroll_*` med `_ScreenPositionSplit` 0.4–0.6 av skärmhöjden plus `_ColorTop`/
+`_ColorBottom`), och i Gallo Towers en `FauxSkyboxBlocker`-slabbe som skymmer. Ljuset är platt
+ambient plus identiska punktlampor (`0.877, 0.658, 0.203`, intensitet 0.75, range 2.0,
+**m_Shadows = None**) — och hela spelet saknar lightmaps. Spelaren hålls inne av en osynlig 10×10-
+platta per ruta, inte av väggar. Kyrkfönstren i Cappella Magna *är* hålet mot himlen: samma
+faux-skybox-material i en egen materialplats.
+
+**Byggt hos oss** (`Dungeon.Floor.öppna` + `main.gd: _öppen_himmel`): en våning kan bära **öppna rum**,
+och i dem byggs takrutorna inte — i stället läggs en himmelyta (ett gradientkort, oupplyst) över
+rummet och en varm lampa utan skuggor, med referensens egen lampfärg. Generatorn gör **bossrummet**
+öppet: en våning slutar under öppen himmel. Mätt i en genererad våning: **18 takrutor borta** (rummet
+3×6), en himmelyta och en lampa i världen, och i bild syns en trapetsformad öppning mot ljusblå himmel
+över slagfältet, ~15–20 % av bilden, med tydliga kanter mot de mörka grottväggarna.
+
+**Kvar:** höga väggar runt det öppna rummet (referensens `FauxSkyboxBlocker`) om kanterna stör — man
+ser grannrummens tak ovanför våra låga väggar när man tittar i sidled; en **flaggai kartdatan** så en
+handritad våning kan sätta öppna rum själv (i dag bara generatorn); och horisonten i en shader
+(`SCREEN_UV.y` mot en split) i stället för ett gradientkort, om himlen ska kunna stå still när man rör
+sig.

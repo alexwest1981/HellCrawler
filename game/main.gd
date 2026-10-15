@@ -23,6 +23,14 @@ const DECK := [
 const COL_WALL := Color(0.50, 0.54, 0.64)
 const COL_FLOOR := Color(0.26, 0.24, 0.30)
 const COL_CEIL := Color(0.20, 0.19, 0.25)
+## HIMMELN (VC-paritet 15/10). Referensen har inget skybox-material i dungeons alls — kameran rensar
+## till färg och himlen ligger som GEOMETRI i rummet. Färgerna är tagna ur deras egna faux-skybox-
+## material (GalloFauxSkybox _Color = 4.35, 7.22, 11.98) och lampan är deras egen punktljusfärg
+## (0.877, 0.658, 0.203), utan skuggor.
+const COL_HIMMEL_TOPP := Color(0.16, 0.24, 0.46)
+const COL_HIMMEL_HORISONT := Color(0.62, 0.70, 0.86)
+const HIMLEN_HÖJD := 6.0
+var _himmelmat: StandardMaterial3D = null
 ## Antal super-rutor per yta. tools/gen_tiles.py bygger fyra ordningar av basvarianterna, och varje
 ## ruta väljer en av dem med hash — upprepningen blir därför fyra meter i stället för en halvmeter.
 const SUPER_YTOR := 4
@@ -6157,6 +6165,61 @@ func _preview_text() -> String:
 		" + ".join(per), p["damage"], p["multiplier"]]
 
 # --- 3D-vyn -----------------------------------------------------------------
+## ÖPPEN HIMMEL över ett rum (VC-paritet 15/10). Referensen lägger himlen som geometri i rumsmallen
+## (faux-skybox-plan med en kubkarta, horisonten i en shader med `_ScreenPositionSplit`); här blir
+## motsvarigheten EN plan yta ovanför rummet med ett rakt gradientkort — himlen är alltså inget
+## scen-tillstånd utan något rummet bär, precis som hos dem. Ljuset är deras eget punktljus, utan
+## skuggor: deras lampor har m_Shadows = None och hela spelet saknar lightmaps.
+##
+## Medvetet enkelt: taket är borta och himlen ligger över. Att också bygga höga väggar runt rummet
+## (referensens FauxSkyboxBlocker) är nästa steg om kanterna stör — annars ser man grannrummens tak
+## ovanför de låga väggarna när man tittar i sidled.
+func _öppen_himmel(f: Dungeon.Floor) -> void:
+	if f.öppna.is_empty():
+		return
+	for r in f.öppna:
+		var rum: Rect2i = r
+		var mitt := Vector3(float(rum.position.x) + float(rum.size.x) * 0.5, HIMLEN_HÖJD,
+			float(rum.position.y) + float(rum.size.y) * 0.5)
+		var plan := PlaneMesh.new()
+		# Marginalen gör att himlen räcker ut över rummets kant, så kanten inte syns som en skarv när
+		# man står vid väggen och tittar upp.
+		plan.size = Vector2(float(rum.size.x) + 8.0, float(rum.size.y) + 8.0)
+		var mi := MeshInstance3D.new()
+		mi.name = "himmel"
+		mi.mesh = plan
+		mi.material_override = _himlemat()
+		mi.position = mitt
+		mi.rotation_degrees.x = 180.0        # ytan ska vetta NEDÅT: man tittar upp på den
+		world.add_child(mi)
+		var ljus := OmniLight3D.new()
+		ljus.name = "himmel_ljus"
+		ljus.position = mitt - Vector3(0.0, 1.5, 0.0)
+		ljus.light_color = Color(0.877, 0.658, 0.203)
+		ljus.light_energy = 1.4
+		ljus.omni_range = maxf(float(rum.size.x), float(rum.size.y)) * 1.6
+		ljus.shadow_enabled = false
+		world.add_child(ljus)
+
+## Himmelns material: ett rakt gradientkort, oupplyst (himlen ska lysa av sig själv, inte av facklor).
+## 1 x 32 px räcker — ytan är en enda tonövergång, och närmaste-granne håller den i samma pixeluttryck
+## som resten av spelet.
+func _himlemat() -> StandardMaterial3D:
+	if _himmelmat != null:
+		return _himmelmat
+	var h := 32
+	var img := Image.create(1, h, false, Image.FORMAT_RGBA8)
+	for y in h:
+		var t := float(y) / float(h - 1)
+		img.set_pixel(0, y, COL_HIMMEL_TOPP.lerp(COL_HIMMEL_HORISONT, t))
+	_himmelmat = StandardMaterial3D.new()
+	_himmelmat.albedo_texture = ImageTexture.create_from_image(img)
+	_himmelmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_himmelmat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_himmelmat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	return _himmelmat
+
+
 func _build_world() -> void:
 	_världsbyggen += 1
 	if world != null:
@@ -6230,16 +6293,25 @@ func _build_world() -> void:
 	_add_boxes_ytor(sliten_vägg, COL_WALL, TAK_HÖJD * 0.5, Vector3(1, TAK_HÖJD, 1), "wall_moss", 37)
 	_add_boxes_ytor(slitet_golv, COL_FLOOR, 0.02, Vector3(1, 0.04, 1), "floor_crack", 43, 2.0,
 		GOLV_TON)
-	_add_boxes_ytor(floors, COL_CEIL, TAK_HÖJD, Vector3(1, 0.04, 1), "ceiling", 47, 2.0, TAK_TON)
+	# TAKET ÖVER ETT ÖPPET RUM BYGGS INTE (VC-paritet 15/10): i stället för takrutor läggs en himmelyta
+	# över rummet. `floors` är hela rutnätet, så takrutorna delas i två listor — de stängda rummen får
+	# tak som förut, det öppna får himmel.
+	var takrutor: Array = []
+	for p in floors:
+		if not f.är_öppen(p):
+			takrutor.append(p)
+	_add_boxes_ytor(takrutor, COL_CEIL, TAK_HÖJD, Vector3(1, 0.04, 1), "ceiling", 47, 2.0, TAK_TON)
+	_öppen_himmel(f)
 	# Siffrorna i loggen: hur stor del av ytorna som blev slitna partier. Utan dem går det inte att
 	# se att fältet faktiskt delar våningen (en andel på 0 % eller 100 % ser ut som "ingen variation").
-	print("  ytor: golv %d (%d slitna), vägg %d (%d slitna), tak %d"
-		% [floors.size(), slitet_golv.size(), walls.size(), sliten_vägg.size(), floors.size()])
+	print("  ytor: golv %d (%d slitna), vägg %d (%d slitna), tak %d (%d i öppna rum)"
+		% [floors.size(), slitet_golv.size(), walls.size(), sliten_vägg.size(), takrutor.size(),
+			floors.size() - takrutor.size()])
 
 	# Dekorationen läggs EFTER golvet: den står på det. Ingen kollision, ingen nod per tuva — se DEKOR_*.
 	_bygg_dekor(floors)
 
-	# Området är mörkt; lyktan är det som lyser. Facklorna är rummets egna ljuspunkter.
+## Området är mörkt; lyktan är det som lyser. Facklorna är rummets egna ljuspunkter.
 	_add_lagor(f)
 	# Effekterna: eld i facklorna, damm i luften, fukten på golvet och dropparna från taket.
 	if _fx:

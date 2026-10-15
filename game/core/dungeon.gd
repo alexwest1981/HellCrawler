@@ -113,9 +113,23 @@ class Floor extends RefCounted:
 	## ritas med det i stället för temats ruta. Tomt = temat gäller, precis som förut. Id:t är en
 	## sökväg utan ändelse under assets/tiles/, så motorn hittar bilden utan en egen tabell.
 	var ytor: Dictionary = {}
+	## ÖPPNA RUM (VC-paritet 15/10): rum UTAN TAK — slagfältet under himlen. Referensen har inget
+	## skybox-material i dungeons alls (kameran rensar till färg, `m_SkyboxMaterial` är NULL): himlen
+	## ligger som GEOMETRI i rumsmallen (faux-skybox-plan med en kubkarta). Här är motsvarigheten att
+	## takrutorna i de här rummen inte byggs, och att en himmelyta läggs över dem i stället.
+	## Generatorn gör bossrummet öppet: en våning slutar under öppen himmel, och en handritad karta kan
+	## sätta flaggan själv senare utan att något annat ändras.
+	var öppna: Array = []
 	var start := Vector2i.ZERO
 	var boss_pos := Vector2i.ZERO
 	var shovel_pos := Vector2i.ZERO
+
+	## Ligger rutan i ett öppet rum? Renderaren frågar en gång per takruta.
+	func är_öppen(p: Vector2i) -> bool:
+		for r in öppna:
+			if (r as Rect2i).has_point(p):
+				return true
+		return false
 
 	func is_floor_at(p: Vector2i) -> bool:
 		if p.x < 0 or p.y < 0 or p.x >= w or p.y >= h:
@@ -165,18 +179,45 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 	f.rum = rooms                      # rummen följer med våningen: påfyllningen och proven läser dem
 	for r in rooms:
 		_carve_room(f, r)
-	for i in rooms.size() - 1:
-		_carve_corridor(f, _center(rooms[i]), _center(rooms[i + 1]))
-	# Kedjan är ryggraden och garanterar att varje rum går att nå. Men en ren kedja har samma FORM varje
-	# gång: man lär sig "följ gången till slutet" utan att titta på kartan, och det är precis det Alex
-	# ville bort. Några extra förbindelser mellan rum som inte ligger intill varandra gör våningen till
-	# ett nät — det finns genvägar att hitta och rum man inte måste passera. Få, inte många: varje extra
-	# förbindelse gör våningen lättare att lära sig, och en genväg rakt till bossen kortar den väg vi
-	# just gjorde lång.
-	for i in mini(rooms.size() / 4, 5):
+	# RYGGGRADEN: ETT MINIMALT SPÄNNANDE TRÄD (VC-paritet 15/10). Referensen bygger korridorerna som
+	# Delaunay + minimum spanning tree och lägger sedan medvetet till extra kanter
+	# (`PathMinimumSpanningTreeGenerationLayer`, `_maxExtraEdgeSelectionChance`, `_maximumLength`).
+	# Vi kedjade rummen i BSP-ordning. BSP-ordningen är oftast grannskap, men inte alltid: en kedjelänk
+	# kan hoppa tvärs över våningen och gräva en lång gång genom rum den inte borde röra. Ett MST väljer
+	# alltid den billigaste förbindelsen, så ryggraden blir den kortaste som binder ihop ALLA rum — och
+	# den beror fortfarande bara på våningens eget rng, så slumpen är kvar. Rummen är ett tiotal, så en
+	# O(n²) Prim är gratis (ponytail: Delaunay behövs först vid hundratals rum).
+	var länkar := _mst_länkar(rooms)
+	var längder := []
+	for l in länkar:
+		var a: Vector2i = _center(rooms[l[0]])
+		var b: Vector2i = _center(rooms[l[1]])
+		längder.append(_avstånd(a, b))
+		_carve_corridor(f, a, b)
+	# Extra förbindelser: ett nät, inte en kedja — man ska kunna hitta genvägar och slippa passera
+	# varje rum. Men de får inte vara hur långa som helst: en genväg rakt till bossen kortar den väg vi
+	# just gjorde lång. Referensen har samma spärr (`_maximumLength`); vårt tak är sprunget ur
+	# ryggradens egna längder, så taket följer våningens storlek i stället för att vara en siffra.
+	var längsta := 0.0
+	if not längder.is_empty():
+		var sorterade := längder.duplicate()
+		sorterade.sort()
+		längsta = float(sorterade[sorterade.size() - 1])
+	# En slinga får vara litet längre än en ryggradsgång men inte gå tvärs över våningen (referensens
+	# `_maximumLength`). Taket avgjorde INTE fixturen — 0,5x och 1,5x längsta länken gav samma utfall —
+	# så det står kvar som en formregel, inte som en mätt tröskel.
+	var tak := längsta * 1.5
+	# ANTALET däremot ÄR mätt: med rum/4 (högst 5) blev trädet en återvändsgränd att gå tillbaka i, och
+	# en körning tog 4 341 steg och dog av stegvakten med 39 vunna strider och NOLL förlorade (test_run).
+	# Ett träd har inga slingor, så varje gren måste gås fram och tillbaka; rum/2 gav ett nät att välja
+	# väg i. A/B mot samma frö: 0 extrakanter → död, rum/4 → död, rum/2 → klarad.
+	# Golvytan mäter INTE det här (494 rutor i alla varianter) — rummen är stora och en extra gång
+	# mellan två rumskarvar gräver mest över golv som redan finns. Räknaren för det är körningens steg.
+	# Referensen lägger slingor med flit (`_maxExtraEdgeSelectionChance`) av samma skäl.
+	for i in mini(rooms.size() / 2, 8):
 		var a := rng.randi_range(0, rooms.size() - 1)
 		var b := rng.randi_range(0, rooms.size() - 1)
-		if absi(a - b) > 1:
+		if absi(a - b) > 1 and _avstånd(_center(rooms[a]), _center(rooms[b])) <= tak:
 			_carve_corridor(f, _center(rooms[a]), _center(rooms[b]))
 
 	# BOSSEN LIGGER INTE ALLTID SIST. Rummen kommer i BSP-ordning, inte i avståndsordning, så det
@@ -196,6 +237,7 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 
 	f.start = start_centrum
 	f.boss_pos = _center(rooms[boss_rum])
+	f.öppna.append(rooms[boss_rum])     # bossrummet står under öppen himmel (se Floor.öppna)
 	f.shovel_pos = f.boss_pos        # shoveln får man av bossen på våningen
 
 	var start_node := FloorNode.new()
@@ -383,6 +425,38 @@ static func _carve_room(f: Floor, r: Rect2i) -> void:
 		for x in range(r.position.x, r.position.x + r.size.x):
 			if x > 0 and y > 0 and x < f.w - 1 and y < f.h - 1:
 				f.tiles[y][x] = FLOOR
+
+## PRIM ÖVER RUMMENS AVSTÅND: den billigaste uppsättningen länkar som binder ihop ALLA rum, som
+## indexpar. Kostnaden är gångavståndet (samma L-form som `_carve_corridor` gräver), inte det raka
+## avståndet — det är korridoren man betalar för. Referensen gör samma sak med Delaunay + MST
+## (`PathMinimumSpanningTreeGenerationLayer`); vid ett tiotal rum ger Prim exakt samma träd.
+static func _mst_länkar(rooms: Array) -> Array:
+	var n := rooms.size()
+	if n <= 1:
+		return []
+	var i_trädet := [0]
+	var kvar := []
+	for i in range(1, n):
+		kvar.append(i)
+	var ut := []
+	while not kvar.is_empty():
+		var bäst_a := -1
+		var bäst_b := -1
+		var bäst_v := 1 << 30
+		for a in i_trädet:
+			for b in kvar:
+				var v := _avstånd(_center(rooms[a]), _center(rooms[b]))
+				if v < bäst_v:
+					bäst_v = v
+					bäst_a = a
+					bäst_b = b
+		if bäst_b < 0:
+			break
+		ut.append([bäst_a, bäst_b])
+		i_trädet.append(bäst_b)
+		kvar.erase(bäst_b)
+	return ut
+
 
 static func _carve_corridor(f: Floor, a: Vector2i, b: Vector2i) -> void:
 	var x := a.x
