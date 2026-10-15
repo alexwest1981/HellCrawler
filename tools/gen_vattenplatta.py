@@ -1,19 +1,18 @@
-"""Skär vattenplattan ur Alex' vattenpaket, med ytans format och utan upprepning.
+"""Skär vattenplattan ur Alex' vattenpaket — originalet, inte cylinderrenderingen.
 
-Alex 15/10: "Cliff_Face, kan vi byta den mot en vattentextur ... @folder:Downloads/Textures/Water".
+Alex 15/10: "Vattnet ... behöver åtgärdas, se om du hittar något i mappen med vattentexturer jag gav
+dig, 8'an jag bifogar eller någon annan som inte är renderad på en cylinder."
 
-TRE VÄGAR PROVADE, ALLA MÄTTA:
- 1. Paketrutan kaklad 256 -> 512. Fogen 8,60/5,79 (synlig), och kantblandning gav 27,9 nivåer
-    mot rutans egna 3,5.
- 2. Speglad ruta. Fogen exakt 0,00 — men renderingen dömde: "tydliga upprepade skarvar och ett
-    rutmönster där texturen spegelvänds". Spegling av en riktningskänslig yta blir ett kalejdoskop.
- 3. Konceptbildens vatten, speglat. Slätare (1,15), men paketets vågkam syns ändå: "pixlad
-    damast, Rorschach-liknande former". Fogen mäter kanten, inte symmetrin.
+MATT, och han hade rätt. Varje N.png är renderad på en cylinder och har fog 9,8..18,2 i radled, alltså
+9-18 gånger rutans egna kanter — det är banden man ser. Varje N_diffuseOriginal.bmp är 1024x1024 och
+mäter 0,61..1,51, alltså sömlös. Källan är 8_diffuseOriginal.bmp, hans eget val.
 
-LÄRDOMEN: en 42 m yta kan inte täckas med en upprepad liten ruta ur en strukturerad textur. Hela
-plattan läggs därför över ytan (HELA_YTAN i kedjan), och då plattans format görs efter ytans
-(42,22 x 3,01 m = 14:1) blir ingenting utsträckt heller. Ingen upprepning, ingen fog, ingen
-symmetri — och ingen skarv att dölja.
+Sömlös betyder att plattan kan KAKLAS i stället för att sträckas: 1024 px per meter över hela den
+42 m breda ytan, mot 37 px per meter när en enda bild drogs ut. Vatten är därför borta ur HELA_YTAN.
+
+TONEN. Ytan är kväll och natt i spelet. Plattan mäts mot konceptbildens eget vatten (52,66,70):
+medelvärdet flyttas dit, en gamma drar ner de ljusa vågkammarna (en rak faktor gjorde det inte — det
+är topparna som syns i en mörk scen), och kontrasten halveras så att inget sticker ut ur byn.
 """
 import os
 import numpy as np
@@ -21,60 +20,40 @@ from PIL import Image
 
 PAKET = os.path.expanduser("~/Downloads/Textures/Water")
 UT = "/home/alex/Projects/hellcrawlers/game/assets/by/tex/vatten.png"
-KALLA = "2/2.png"          # den mest kaklingsbara rutan i paketet (mätt)
-BREDD = 1536
-MATTNAD = 0.42      # hur mycket färgen dras mot sin egen ljushet (dov natt)               # 14:1 mot ytans 42,22 x 3,01 m
+KALLA = "8/8_diffuseOriginal.bmp"
+MALTON = np.array([52.0, 66.0, 70.0])      # konceptbildens vatten, mätt
+GAMMA = 1.35
+KONTRAST = 0.55
+
+def fog(x):
+    k = np.abs(x[:, -1] - x[:, 0]).mean() / max(np.abs(np.diff(x, axis=1)).mean(), 1e-6)
+    r = np.abs(x[-1, :] - x[0, :]).mean() / max(np.abs(np.diff(x, axis=0)).mean(), 1e-6)
+    return k, r
 
 def main():
     bild = Image.open(os.path.join(PAKET, KALLA)).convert("RGB")
-    print("  kalla %s  %dx%d" % (KALLA, bild.width, bild.height))
-    ## HELA bilden, inte ett band. MÄTT: ett 14:1-band gav 109 px på höjden, alltså 36 px per
-    ## meter över klippans 3 m — byns övriga plattor ligger på 512 px per meter, och blockigheten
-    ## syntes i renderingen. Formatet spelar ingen roll (hela plattan läggs över ytan och sträcks
-    ## dit), men upplösningen gör det: 798 px över 3 m ger 266 px per meter, alltså i klass med
-    ## byn. Sidledes sträcks bilden till 14:1, vilket för vatten blir mjuka horisontella drag.
-    platta = bild.resize((BREDD, max(8, round(BREDD * bild.height / bild.width))), Image.LANCZOS)
-    ## NATTLÄGE. Alex 15/10: "Sänk ljuset på vattnet, då det skall vara kväll/natt i spelet när man
-    ## är i byn." MÄTT: plattan höll medel 93 och en 99-percentil på 222 — de vita vågkammarna.
-    ## En rak faktor sänker medelvärdet men lämnar kammarna kvar (255 x 0,58 = 148, alltså ändå
-    ## ljusast i byn, och renderingen dömde: "lyser starkt och sticker ut oproportionerligt").
-    ## En gamma drar ner mitten och de ljusa mer än de mörka, faktorn sätter taket.
-    ## DEN MÖRKA KANTEN. MÄTT: bildens översta rader är mycket mörkare än resten (medel 22..26
-    ## mot 58 i mitten, max 36 mot 183) — en ram i paketets renderade bild. Lades den med blev det
-    ## ett svart band där klippans ytor möts; renderingen kallade det "en grov renderingsmiss".
-    ## Kanten hittas med mätning, inte med en gissad procentsats: skala bort rader så länge radens
-    ## medel ligger under halva bildens.
-    a0 = np.asarray(platta).astype(float)
-    mitt = a0.reshape(-1, 3).mean()
-    topp = 0
-    while topp < a0.shape[0] // 4 and a0[topp].mean() < mitt * 0.6:
-        topp += 1
-    if topp:
-        platta = platta.crop((0, topp, platta.width, platta.height))
-        print("  mörk kant bortskalad: %d rader i överkant" % topp)
-    g, f = 1.45, 0.72
-    a = np.asarray(platta).astype(float)
-    m0, h0 = a.reshape(-1, 3).mean(), np.percentile(a, 99)
-    platta = Image.fromarray(np.clip(255.0 * np.power(a / 255.0, g) * f, 0, 255).astype(np.uint8))
-    ## MÄTTNADEN. MÄTT: plattan höll 38,5 i mättnad (max-min per pixel) mot 24,7 i konceptbildens
-    ## vatten — den låg kvar som klarblå medan byn är dov, och renderingen dömde två gånger att
-    ## vattnet "lyser starkare" trots att medelvärdet var rätt. En dov natt drar därför ut färgen
-    ## mot sin egen ljushet.
-    b = np.asarray(platta).astype(float)
-    ljus = b @ np.array([0.299, 0.587, 0.114])
-    b = b * (1 - MATTNAD) + ljus[:, :, None] * MATTNAD
-    platta = Image.fromarray(np.clip(b, 0, 255).astype(np.uint8))
-    b = np.asarray(platta).astype(float)
-    print("  nattkurva gamma %.2f faktor %.2f:  medel %.0f -> %.0f   99-percentil %.0f -> %.0f" % (
-        g, f, m0, b.reshape(-1, 3).mean(), h0, np.percentile(b, 99)))
-    print("  mättnad %.1f -> %.1f   (konceptbildens vatten 24,7)" % (
-        (a0.max(axis=2) - a0.min(axis=2)).mean(), (b.max(axis=2) - b.min(axis=2)).mean()))
-    platta.save(UT)
-    a = np.asarray(platta).astype(float)
-    print("  plattan %dx%d  ton (%d,%d,%d)  variation %.2f" % (
-        platta.width, platta.height, *a.reshape(-1, 3).mean(axis=0),
-        np.abs(np.diff(a, axis=1)).mean() + np.abs(np.diff(a, axis=0)).mean()))
-    print("  ingen upprepning: hela plattan laggs over ytan")
+    a = np.asarray(bild).astype(float)
+    m0 = a.reshape(-1, 3).mean(axis=0)
+    k0, r0 = fog(a)
+    print("  kalla %s  %dx%d  ton (%d,%d,%d)  mättnad %.0f  fog %.2f/%.2f" % (
+        KALLA, bild.width, bild.height, m0[0], m0[1], m0[2],
+        (a.max(axis=2) - a.min(axis=2)).mean(), k0, r0))
+    ## ORDNINGEN SPELAR ROLL. MÄTT: lades medelvärdet mot måltonen FÖRE gamman blev resultatet
+    ## (31,41,44) i stället för (52,66,70) — kurvan drog ner det igen. Gamman och kontrasten först,
+    ## tonen sist: då landar medelvärdet exakt.
+    a = 255.0 * np.power(np.clip(a, 0, 255) / 255.0, GAMMA)
+    m1 = a.reshape(-1, 3).mean(axis=0)
+    a = m1 + (a - m1) * KONTRAST                     # halverad kontrast, inget som sticker ut
+    m2 = a.reshape(-1, 3).mean(axis=0)
+    a = a * (MALTON / m2)                            # medelvärdet till konceptbildens vatten, sist
+    Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).save(UT)
+    b = np.asarray(Image.open(UT).convert("RGB")).astype(float)
+    m2 = b.reshape(-1, 3).mean(axis=0)
+    k1, r1 = fog(b)
+    print("  efter: ton (%d,%d,%d)  mättnad %.0f  99-percentil %.0f  fog %.2f/%.2f" % (
+        m2[0], m2[1], m2[2], (b.max(axis=2) - b.min(axis=2)).mean(), np.percentile(b, 99), k1, r1))
+    print("  mål: konceptbildens vatten (52,66,70), mättnad 25, fog under 1,0 = osynlig")
+    print("  plattan kaklas: 1024 px per meter över ytan")
 
 if __name__ == "__main__":
     main()

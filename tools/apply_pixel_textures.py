@@ -46,6 +46,18 @@ REPLACE_EXISTING_MATERIALS = True
 ## som projektets egna plattor (tools/gen_tiles_alex.py mätte 512 px/m).
 TILE_METER = 1.0
 
+## EN RUTA ÄR INTE ALLTID EN METER. MÄTT 15/10: vattenplattan är 1024x1024 och kaklad en gång per
+## meter blev det 42 upprepningar över den 42 m breda ytan — renderingen såg ett galler: "för litet
+## och för tätt, tiled för många gånger". Konceptbildens eget vatten ligger på 77 px/m, alltså en
+## platta per 14 m: tre upprepningar och 73 px/m, samma klass som referensen. Byns egna plattor
+## lämnas på TILE_METER — de är mätta och tunade.
+RUTA_METER = {"Vatten": 14.0}
+
+
+def ruta_meter(category):
+    """Rutans storlek i meter för en kategori. Undantagen står i RUTA_METER."""
+    return RUTA_METER.get(category, TILE_METER)
+
 ## Mappningsrapporten skrivs hit. Kontrollskriptet (tools/byn_tex_prov.py) kör EFTER det här skriptet
 ## i samma Blender-session, och då är de ursprungliga materialen redan borta ur scenen — filen är
 ## enda vägen att få ut vilket material som blev vilken platta, till texturlistan.
@@ -134,7 +146,11 @@ TEXTURES = {
 ## Vattnet hör också hit: klippan är 42,22 x 3,01 m och plattan är gjord i samma 14:1-format, så
 ## hela plattan läggs över ytan utan en enda upprepning. Mätt tre gånger: en liten ruta ur en
 ## strukturerad vattenyta kan inte kaklas 42 gånger utan att skarven eller spegelvändningen syns.
-HELA_YTAN = GLÖDER + ("Baner Blå", "Baner Röd", "Vatten")
+## Vatten ligger INTE här: plattan är sömlös (mätt 0,90/1,04 ur 8_diffuseOriginal.bmp) och ska
+## kaklas i världskoordinater, en platta per meter — 1024 px per meter över hela den 42 m breda
+## ytan, mot 37 px per meter när en enda bild drogs ut över allt. Cylinderrenderingen N.png, som
+## först användes, har fog 9,8..18,2 i radled; det var banden.
+HELA_YTAN = GLÖDER + ("Baner Blå", "Baner Röd")
 
 def load_texture(filename):
     path = os.path.join(TEXTURE_DIR, filename)
@@ -652,11 +668,11 @@ def sätt_uv(obj, category=None):
                     u = n.cross(v)
             for li in poly.loop_indices:
                 co = vrld[mesh.loops[li].vertex_index]
-                uv.data[li].uv = (co.dot(u) / TILE_METER, co.dot(v) / TILE_METER)
+                uv.data[li].uv = (co.dot(u) / ruta_meter(category), co.dot(v) / ruta_meter(category))
             continue
         for li in poly.loop_indices:
             co = vrld[mesh.loops[li].vertex_index]
-            uv.data[li].uv = (co[a] / TILE_METER, co[b] / TILE_METER)
+            uv.data[li].uv = (co[a] / ruta_meter(category), co[b] / ruta_meter(category))
 
 def assign_material(obj, mat):
     if obj.data.materials:
