@@ -48,6 +48,26 @@ func _initialize() -> void:
 	var r3 := c.play(0)
 	check(r3.multiplier == 4, "kortet efter den flaggade får steget den gav", "×%d" % r3.multiplier)
 
+	# FÖRHANDSVISNINGEN MÅSTE LOVA SAMMA SOM SLAGET GER (M125). `play` och `preview` hade varje sin egen
+	# regel: förhandsvisningen visade en multiplikator för de flaggade korten som `play` aldrig gav —
+	# alltså en siffra spelaren såg men inte fick. Kontrollen mäter BÅDA på samma ställning och kräver
+	# att de är lika; den fäller den gamla koden (då stod det ×3 i förhandsvisningen och ×1 i slaget).
+	print("")
+	print("— förhandsvisningen och slaget säger samma sak —")
+	var cvis := Combat.new(4242)
+	cvis.begin([], [combat_enemy(100000.0, 5.0)])
+	cvis.mana = 20
+	cvis.hand = [db["lash"], db["dagger"], db["shrouded_bell"]]
+	cvis.play(0)                                 # lash: kedjan står på 1
+	cvis.play(0)                                 # dagger: kedjan står på 2
+	var visad := cvis.preview(0)
+	var slagen := cvis.play(0)
+	check(visad.multiplier == slagen.multiplier,
+		"det flaggade kortets förhandsvisning visar samma multiplikator som slaget ger",
+		"visad ×%d, slagen ×%d" % [visad.multiplier, slagen.multiplier])
+	check(visad.damage == slagen.damage,
+		"och samma skada", "visad %.0f, slagen %.0f" % [visad.damage, slagen.damage])
+
 	print("— kortet som stannar i spel (Crawlers + Duration) —")
 	var c2 := Combat.new(2026)
 	c2.begin([], [combat_enemy(100000.0, 5.0)])

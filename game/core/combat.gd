@@ -161,15 +161,9 @@ func play(index: int, target: Enemy = null) -> PlayResult:
 		r.betalat_med_blod = true
 
 	var continuing := Rules.continues_chain(card.cost, last_cost)
-	var combo_used := combo
+	var combo_used := _combo_used(card)
 	if not continuing:
-		combo_used = 0
 		r.broke_chain = true
-	# KEDJAN GÅR ATT VÄGRA (M119, referensens `ReceivesComboMultiplier` per kort): några kort får ingen
-	# multiplikator hur väl kedjan än ligger. Kortet vägrar sin EGEN multiplikator — steget i kedjan
-	# räknas ändå vidare, för nästa kort.
-	if not card.receives_combo:
-		combo_used = 0
 
 	r.combo = combo_used
 	r.multiplier = Rules.damage_multiplier(combo_used)
@@ -489,6 +483,30 @@ static func _less(a: Array, b: Array) -> bool:
 func chain_continues(card: Cards.Card) -> bool:
 	return Rules.continues_chain(card.cost, last_cost)
 
+## KEDJAN KORTET FAKTISKT FÅR — EN regel, läst av både `play` och `preview`.
+## - Kedjan måste fortsätta: kostnaden ska öka (wild är en bro och ger ingen egen multiplikator).
+## - Kortet får VÄGRA sin multiplikator (M119, referensens `ReceivesComboMultiplier` per kort). Steget
+##   i kedjan räknas ändå vidare, för nästa kort.
+## - Kedjan kan vara LÅST bakom en relik (se `KEDJAN_KRÄVER_RELIK`).
+## Låg de två första på varsitt ställe (en i `play`, en i `preview`) visade förhandsvisningen en
+## multiplikator som kortet inte fick: samma klass av fel som telegrammet finns för att förhindra.
+func _combo_used(card: Cards.Card) -> int:
+	if KEDJAN_KRÄVER_RELIK and combo_bonus <= 0:
+		return 0                     # ingen Kedjesten: ingen multiplikator
+	if not Rules.continues_chain(card.cost, last_cost):
+		return 0
+	if not card.receives_combo:
+		return 0
+	return combo
+
+## KEDJAN SOM BELÖNING (M125, ratt B, docs/balans.md §8): referensen kräver relicen Combo Stack för
+## `ReceivesComboMultiplier` — multiplikatorn är en VINST, inte grundtillståndet. Här är den av som
+## förval och slås på av Kedjestenen (`combo_stack`), som också ger sitt extra steg. Flaggan är en
+## ratt för mätningen: slå av/på och kör `tests/test_balans.gd` — den här ändringen flyttar hela
+## skadekurvan och ska mätas innan den får vara på (den breda `receives_combo`-flaggan tog decken
+## från 17 till 6 klarade körningar av 60).
+const KEDJAN_KRÄVER_RELIK := false
+
 ## Vad kortet skulle göra NU: vilka fiender det träffar och för hur mycket. REN — den spelar inte
 ## kortet, drar inte mana och rör inte kedjan. Den räknar med EXAKT samma regler och samma
 ## målutdelning som play() (båda går genom _hit_plan), så siffran spelaren ser är den han får.
@@ -504,7 +522,7 @@ func preview(index: int) -> Dictionary:
 	if not card.is_wild() and card.cost > mana:
 		out.reason = "for_lite_mana"
 		return out
-	var combo_used := combo if chain_continues(card) else 0
+	var combo_used := _combo_used(card)
 	out.combo = combo_used
 	out.multiplier = Rules.damage_multiplier(combo_used)
 	var total := 0.0
