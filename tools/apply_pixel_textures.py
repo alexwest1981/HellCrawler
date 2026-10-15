@@ -925,12 +925,17 @@ def main():
         dörrar.append(("Tavern_Door_Door", [par[0], par[1]], par[2] - 0.32,
                        par[0].dimensions.z - 0.1, False))
     for namn, fästen, bredd, höjd, göm_fästen in dörrar:
-        ## Ta bort ALLA tidigare kopior med det namnförledet, inte bara den exakta träffen. MÄTT 15/10:
-        ## en kvarbliven "Smith_Door_Door.001" (PX_Wood.001, på x -14,61) låg kvar i scenen som en
-        ## dubbel dörr — Blender lägger på .001 när namnet redan är taget, och remove(get(namn)) såg
-        ## den aldrig.
-        for gammal in [o for o in bpy.data.objects if o.name == namn or o.name.startswith(namn + ".")]:
+        ## ALEX ÄGER DÖRREN. MÄTT 15/10: blocket raderade ALLA kopior (även den exakta) och byggde en
+        ## ny på en räknad plats varje körning — Alex: "Kan du snälla sluta flytta på dörrarna jag
+        ## satt på rätt ställe sen?" Samma regel som för balkplattan och OVERRIDE: ett uttryckligt val
+        ## vinner över heuristiken. Finns dörren lämnas den och dess fästen orörda; bara en SAKNAD
+        ## dörr byggs. Kvarblivna ".001"-dubbletter (Blender lägger på suffix när namnet är taget)
+        ## städas fortfarande bort — de är aldrig hans.
+        for gammal in [o for o in bpy.data.objects if o.name.startswith(namn + ".")]:
             bpy.data.objects.remove(gammal, do_unlink=True)
+        if bpy.data.objects.get(namn) is not None:
+            print("dörr: %s finns redan, lämnas orörd" % namn)
+            continue
         ny = mall.copy()
         ny.data = mall.data.copy()
         ny.name = ny.data.name = namn
