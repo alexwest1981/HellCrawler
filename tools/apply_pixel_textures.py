@@ -379,6 +379,17 @@ OVERRIDE = {
     ## innanför — samma mönster som de sex andra. Ramen är nästan kvadratisk, så den fyrdelade
     ## fönsterplattan passar bättre än det smala tvådelade glaset bakom.
     "Jeweler_Shop_Win_Frame": "Window Warm",
+    ## KORNISCHARNAS PLATTA. Alex 15/10: "Gate_Cornice_Lower och Upper — deras UV på fel ledd, det ser ut
+    ## som vågformat brun lera, jag vill ha så man ser träfibrer som i en stolpe." MÄTT: UV:n ligger RÄTT
+    ## (V = (1,0,0), spann 5,20 m på alla sex ytorna), men plattan virke_balk.png är en 81 px remsa töjd
+    ## 6,3x i sidled — kolumnspridning 12,17 mot radspridning 14,29. På en smal stolpe (U = 0,16 m) syns
+    ## bara en remsa av den, därför ser stolparna bra ut; på kornischen (U = 0,55 m) syns mer än halva
+    ## plattan och då blir de utsmetade banden "lera". Renderat rakt framifrån med båda plattorna och
+    ## läst av bilden: virke.png ger "tydliga horisontella fibrer och ådring längs balken, fogarna ser ut
+    ## som riktiga plankfogar". Bara de två kornischarna byts — stolparna behåller balkplattan de ser bra
+    ## ut med.
+    "Gate_Cornice_Lower": "Wood",
+    "Gate_Cornice_Upper": "Wood",
     "Tavern_Top_Win_Frame": "Window Warm",
     "BG_House_Left1_Win_Frame": "Window Warm",
     "BG_House_Left2_Win_Frame": "Window Warm",
@@ -425,6 +436,10 @@ def classify_object(obj):
     ## Själva ljuset finns redan: Exit_Sign_Glow (POINT, 90,0) står i ramens mitt.
     if "bulb" in n:
         return "Ljusglöd", "namn (lampa)"
+    ## SKYTTEGLUGGARNA. MÄTT 15/10: de fyra Gate_Slit_* (0,28 x 0,15 x 0,72 m) bar PX_Stone, alltså samma
+    ## platta som tornet — ingen öppning syns. De är själva gluggen och ska vara mörka (bildens mörka zon).
+    if n.startswith("gate_slit"):
+        return "Mörk Zon", "namn (skytteglugg)"
     if n.endswith("_txt"):
         return "Ljus Varm", "namn (skylttext)"
     ## SKYLTENS KANT ÄR RAMEN: i bilden är ramen mörk (39,29,37) och brädan ljusare (115,91,72) — med
@@ -661,7 +676,11 @@ def main():
             ## list blir U höjden, alltså ~36 skarvar längs balken — "40 på höjden avsågade och
             ## ihopklistrade". Bara de två plankkategorierna byts; kanter (Ram) och bokstäver
             ## (Ljus Varm) ligger kvar på sina platta plattor.
-            if balkmått(obj)[2]:
+            ## MÄTT 15/10: kornischarna blev kvar på PX_Wood Beam trots att de stod i OVERRIDE. Raden
+            ## nedan kör EFTER klassningen och skrev om "Wood" -> "Wood Beam" för allt som är en balk,
+            ## alltså även ett uttryckligt val. Felet gällde hela klassen: vilket objekt som helst i
+            ## OVERRIDE som samtidigt är en balk blev överskrivet. Bara heuristikens eget svar byts.
+            if balkmått(obj)[2] and källa != "override (namn)":
                 category = {"Wood": "Wood Beam", "Skylt": "Skylt Board"}.get(category, category)
             assign_material(obj, MATERIALS[category])
             if obj.get("uv_keep") and obj.data.uv_layers:
@@ -931,6 +950,63 @@ def main():
             lampa.location = (mitt.x, mitt.y + 0.33, mitt.z)
             print("ässjan: elden flyttad in i härden: %s (styrka %.1f)" % (
                 tuple(round(v, 2) for v in lampa.location), lampa.data.energy))
+
+    ## PORTEN GENOM TORNET. Alex 15/10: "om du skulle öppna dörrarna till gaten så skulle du se rakt in
+    ## i en mur, det måste vara öppet där" och "Gate_Slit-delarna skall ju egentligen vara urskurna ur
+    ## tornet, så det ser ut som fönster". MÄTT: Gate_Recess_Dark (2,80 x 0,40 x 3,90 m, y 1,15..1,55) och
+    ## Gate_Center_Mass (4,80 x 2,60 x 6,20 m, y 1,20..3,80) är SOLIDA block tvärs över portöppningen —
+    ## öppnar man dörrarna ser man rakt in i stenen. Och de fyra Gate_Slit_* ligger som platta PX_Stone-
+    ## skivor på y 1,10..1,25 utan urtag bakom. Båda skärs med boolean, precis som ässjan, och med samma
+    ## fälla: markera målet och sätt det aktivt före modifier_apply, annars blir det en tyst no-op.
+    port = bpy.data.objects.get("Gate_Recess_Dark")
+    massa = bpy.data.objects.get("Gate_Center_Mass")
+    if port is not None and not port.get("port_karvad"):
+        # GÅNGEN: 2,40 x 3,45 m genom både den mörka väggen och hela tornmassan (y 0,90..4,10)
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=(1.50, 2.50, 1.72))
+        skärare = bpy.context.active_object
+        skärare.name = "Port_Skarare"
+        skärare.dimensions = (2.40, 3.20, 3.45)
+        bpy.context.view_layer.update()
+        # GLUGGARNA: ett 0,30 x 0,90 x 0,74 m urtag bakom varje gluggplatta, 0,8 m in i tornet
+        gluggar = []
+        for g in [o for o in bpy.data.objects if o.name.startswith("Gate_Slit_")]:
+            c = g.matrix_world.translation
+            bpy.ops.mesh.primitive_cube_add(size=1.0, location=(c.x, 1.55, c.z))
+            gs = bpy.context.active_object
+            gs.name = "Glugg_Skarare"
+            gs.dimensions = (0.30, 0.90, 0.74)
+            gluggar.append(gs)
+        bpy.context.view_layer.update()
+        for mål in (port, massa):
+            if mål is None or mål.get("port_karvad"):
+                continue
+            for bit in [skärare] + gluggar:
+                bpy.ops.object.select_all(action="DESELECT")
+                mål.select_set(True)
+                bpy.context.view_layer.objects.active = mål
+                mod = mål.modifiers.new("Port", "BOOLEAN")
+                mod.operation = "DIFFERENCE"
+                mod.object = bit
+                mod.solver = "EXACT"
+                bpy.ops.object.modifier_apply(modifier="Port")
+                bpy.context.view_layer.update()
+            mål["port_karvad"] = True
+            print("porten: öppning karvad i %s (%d ytor, %d hörn)" % (
+                mål.name, len(mål.data.polygons), len(mål.data.vertices)))
+        for bit in [skärare] + gluggar:
+            bpy.data.objects.remove(bit, do_unlink=True)
+
+    ## GLUGGARNA SKA SYNAS SOM URTAG. MÄTT efter skärningen: plattan ligger kvar pa y 1,10..1,25 och
+    ## skymmer hela urtaget — stralen stannar pa y 1,11, alltsa precis som fore. Den flyttas 0,45 m in
+    ## sa tornets skurna kant bildar en karm runt en mork glugg, och urtaget (0,8 m djupt) blir synligt.
+    ## Egen flagga: port_karvad ar redan satt av den korning som skar porten.
+    for g in [o for o in bpy.data.objects
+              if o.name.startswith("Gate_Slit_") and not o.get("glugg_indragen")]:
+        m = g.matrix_world.copy()
+        m.translation.y += 0.45
+        g.matrix_world = m
+        g["glugg_indragen"] = True
+        print("gluggen: %s flyttad in till y %.2f" % (g.name, g.matrix_world.translation.y))
 
     print("Save the .blend, then export to glTF (.glb) for Godot.")
 

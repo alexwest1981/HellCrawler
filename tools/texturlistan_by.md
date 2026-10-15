@@ -169,21 +169,21 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Ljusglöd` | `ljus_varm.png` | 30 | 2400 | 1.1 |
 | `PX_Lövverk` | `lov.png` | 55 | 4400 | 705.8 |
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
-| `PX_Mörk Zon` | `mork_zon.png` | 1 | 6 | 742.2 |
+| `PX_Mörk Zon` | `mork_zon.png` | 5 | 30 | 745.0 |
 | `PX_Purple Roof` | `tak_lila.png` | 98 | 588 | 43.3 |
 | `PX_Ram` | `ram.png` | 17 | 108 | 19.2 |
 | `PX_Sand Path` | `sand_path.png` | 0 | 0 | 0.0 |
 | `PX_Skylt` | `skylt.png` | 2 | 12 | 1.8 |
 | `PX_Skylt Board` | `skylt_balk.png` | 5 | 30 | 12.4 |
 | `PX_Slate Roof` | `tak_skiffer.png` | 280 | 1680 | 104.5 |
-| `PX_Stone` | `mursten.png` | 267 | 2484 | 1261.0 |
+| `PX_Stone` | `mursten.png` | 263 | 2492 | 1252.4 |
 | `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
 | `PX_Terracotta Roof` | `tak_tegel.png` | 322 | 1932 | 131.9 |
 | `PX_Tudor Plaster` | `puts.png` | 68 | 408 | 862.2 |
 | `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
 | `PX_Window Warm` | `window_four_pane.png` | 14 | 84 | 34.4 |
-| `PX_Wood` | `virke.png` | 69 | 478 | 227.2 |
-| `PX_Wood Beam` | `virke_balk.png` | 97 | 598 | 442.5 |
+| `PX_Wood` | `virke.png` | 71 | 490 | 244.2 |
+| `PX_Wood Beam` | `virke_balk.png` | 95 | 586 | 425.6 |
 | `Sign_Text` | `**ingen bild**` | 0 | 0 | 0.0 |
 
 Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 34 material i filen står med.
