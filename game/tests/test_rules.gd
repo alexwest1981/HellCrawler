@@ -166,13 +166,15 @@ func _initialize() -> void:
 		combat_enemy(100.0, 7.0, 0)])
 	tel.enemies[4].frozen = 1
 	var inkommer := tel.inkommande()
-	check(inkommer.size() == 2, "telegrammet listar bara dem som slår nästa tur",
-		"%d av %d (bakre raden, frusen och boss med stängda ögon slår inte)" % [
+	# M124: ALLA rader slår (den bakre svagare). Telegrammet måste visa samma som `enemy_turn` kostar.
+	check(inkommer.size() == 3, "telegrammet listar alla som slår nästa tur",
+		"%d av %d (den frusna och bossen med stängda ögon slår inte; den bakre raden slår)" % [
 			inkommer.size(), tel.enemies.size()])
 	var summa := 0.0
 	for rad in inkommer:
 		summa += float(rad["damage"])
-	check(is_equal_approx(summa, 14.0), "och summan är exakt det slaget kommer att kosta", "%.0f" % summa)
+	check(is_equal_approx(summa, 15.8), "och summan är exakt det slaget kommer att kosta",
+		"%.1f (5 + 9 + 3 x %.1f bakre rad)" % [summa, Combat.BAKRE_SLAG])
 	# Målregeln frågar efter ett kort på handen (den returnerar null utan ett), så provet lägger ett
 	# där: annars mäter kontrollen ingenting och kraschar på nollan.
 	tel.mana = 20
@@ -211,7 +213,7 @@ func _order(db: Dictionary, log: Array) -> String:
 
 ## De två nya nyckelorden: knuff (bakåt i raden) och frys (står över turer).
 func _prov_nyckelord() -> void:
-	print("— knuffen: den farliga främre raden tystas —")
+	print("— knuffen: den farliga flyttas till den svagare raden —")
 	var c7 := Combat.new(1)
 	var fram := combat_enemy(60.0, 9.0)          # farlig, står främst
 	var bakom := combat_enemy(60.0, 3.0, 1)      # svag, står bakom
@@ -225,13 +227,18 @@ func _prov_nyckelord() -> void:
 	c7.play(0)
 	check(fram.row == 2, "den främre knuffas bakom den andra", "rad %d" % fram.row)
 	c7.enemy_turn()
-	check(c7.hp == 97.0, "och den svaga bakom slår i stället för den farliga", "hp %.0f" % c7.hp)
-	# Motprov: utan knuffen tar den farliga främre raden smällen över 9 i stället för 3.
+	# M124: den knuffade slår fortfarande, men svagare (9 x 0,6 = 5,4), och den svaga som fick
+	# framplatsen slår nu fullt (3). Summan 8,4 mot 10,8 utan knuff — kortet betalar, men det TYSTAR
+	# inte längre den farliga. Det är bytet: raden är en skala, inte en strömbrytare.
+	check(is_equal_approx(c7.hp, 91.6), "och den knuffade slår svagare (5,4 i stället för 9)",
+		"hp %.1f" % c7.hp)
+	# Motprov: utan knuffen står den farliga främst och slår fullt (9), den bakre svagt (1,8).
 	var c7b := Combat.new(1)
 	c7b.begin([], [combat_enemy(60.0, 9.0), combat_enemy(60.0, 3.0, 1)])
 	c7b.hp = 100.0
 	c7b.enemy_turn()
-	check(c7b.hp == 91.0, "utan knuff slår den främre (9 i stället för 3)", "hp %.0f" % c7b.hp)
+	check(is_equal_approx(c7b.hp, 89.2), "utan knuff slår den främre fullt (9) och den bakre svagt (1,8)",
+		"hp %.1f" % c7b.hp)
 	# En ensam fiende som knuffas bakåt har ingen framför sig och slår därför ändå: en knuff får
 	# inte kunna låsa striden för alltid.
 	var c7c := Combat.new(1)

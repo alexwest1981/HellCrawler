@@ -266,20 +266,35 @@ func end_turn() -> Array:
 
 ## VEM som slår nästa fiende tur och för hur mycket — TELEGRAMMET, utan att röra något. Referensen
 ## visar fiendens drag innan man spelar; spelarens svar (och provets målpolicy) behöver samma siffra.
-## Regeln bor i `_slår_nästa_tur`, som `enemy_turn` också läser — annars kunde telegrammet ljuga.
+## Regeln bor i `_slagsverk`, som `enemy_turn` också läser — annars kunde telegrammet ljuga.
 func inkommande() -> Array:
-	var front_row := 9999
-	for e in enemies:
-		if e.alive():
-			front_row = mini(front_row, e.row)
+	var front_row := _främre_rad()
 	var ut := []
 	for e in enemies:
 		if _slår_nästa_tur(e, front_row):
-			ut.append({"enemy": e, "damage": e.damage})
+			ut.append({"enemy": e, "damage": _slagsverk(e, front_row)})
 	return ut
 
-## Slår fienden när turen kommer? Frusen står still, en boss med stängda ögon slår inte, och bara den
-## FRÄMRE raden slår (bakre rader avancerar när raden framför är död).
+## SLAGSVERKAN (M124): hur hårt fienden slår när turen kommer. Främre raden slår fullt, bakre raden
+## slår svagare — men den SLÅR. Före den här ändringen slog bara främre raden, och då var målvalet
+## alltid samma svar (främre raden) och betydde ingenting: mätt 11 mot 11 för mål- och autopolicyn.
+## Telegrammet och `enemy_turn` läser SAMMA funktion, annars kan telegrammet ljuga.
+const BAKRE_SLAG := 0.6             ## bakre radens andel av sin skada
+func _slagsverk(e: Enemy, front_row: int) -> float:
+	if e.row <= front_row:
+		return e.damage
+	return e.damage * BAKRE_SLAG
+
+## Lägsta raden bland de levande = den främre. Bakre rader avancerar när raden framför är död.
+func _främre_rad() -> int:
+	var framst := 9999
+	for e in enemies:
+		if e.alive():
+			framst = mini(framst, e.row)
+	return framst
+
+## Slår fienden när turen kommer? Frusen står still, en boss med stängda ögon slår inte, och alla
+## levande rader slår (den bakre svagare, se `BAKRE_SLAG`).
 func _slår_nästa_tur(e: Enemy, front_row: int) -> bool:
 	if not e.alive():
 		return false
@@ -287,19 +302,14 @@ func _slår_nästa_tur(e: Enemy, front_row: int) -> bool:
 		return false
 	if e.eyes_max > 0 and e.eyes_open < e.eyes_max:
 		return false
-	return e.row <= front_row
+	return _slagsverk(e, front_row) > 0.0
 
 ## Fiendernas tur. Bossar med ögon slår när alla ögon är öppna.
 func enemy_turn() -> Array:
 	var events := []
-	# ponytail: bara främre raden slår (rad 0). Bakre rader avancerar när raden framför är död.
-	# Bara den främsta raden slår: lägsta raden bland de levande. Bakre rader avancerar när raden
-	# framför är död — och om ALLA knuffats bakåt är den lägsta raden den främsta, annars kunde en
-	# knuff göra fienden farligare i stället för ofarlig.
-	var front_row := 9999
-	for e in enemies:
-		if e.alive():
-			front_row = mini(front_row, e.row)
+	# ALLA rader slår (M124), den bakre svagare. En knuff gör alltså inte längre fienden ofarlig — den
+	# flyttar den till den svagare raden, vilket är vad kortet säger att det gör.
+	var front_row := _främre_rad()
 	var dmg_total := 0.0
 	for e in enemies:
 		if not e.alive():
@@ -312,7 +322,7 @@ func enemy_turn() -> Array:
 			continue
 		if not _slår_nästa_tur(e, front_row):
 			continue
-		dmg_total += e.damage
+		dmg_total += _slagsverk(e, front_row)
 	if dmg_total > 0.0:
 		var absorbed: float = min(armor, dmg_total)
 		armor -= absorbed

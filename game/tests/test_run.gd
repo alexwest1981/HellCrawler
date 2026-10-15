@@ -218,9 +218,9 @@ func _initialize() -> void:
 		check(per >= 1 and per <= 3, "per_rad är 1-3 (rummet avgör, inte en tro)", str(per))
 
 		# MEKANISMEN (combat.gd), oberoende av hur ledet råkade se ut i den här våningen: två i främre
-		# raden slår BÅDA, och raden bakom väntar tills den främre fallit. Striden byggs för hand
-		# (samma Combat.Enemy som begin_fight använder), annars mäter provet run.gd:s uppställning en
-		# gång till i stället för regeln.
+		# raden slår BÅDA för fullt, och den i raden bakom slår svagare (M124) i stället för att vänta.
+		# Striden byggs för hand (samma Combat.Enemy som begin_fight använder), annars mäter provet
+		# run.gd:s uppställning en gång till i stället för regeln.
 		var c2 := Combat.new(7)
 		var foes := []
 		for i in 3:
@@ -229,7 +229,8 @@ func _initialize() -> void:
 		c2.hp = 100.0
 		c2.max_hp = 100.0
 		c2.end_turn()
-		check(is_equal_approx(100.0 - c2.hp, 8.0), "två i främre raden slår båda (2 x 4 skada)",
+		check(is_equal_approx(100.0 - c2.hp, 8.0 + 4.0 * Combat.BAKRE_SLAG),
+			"två i främre raden slår båda, den bakre svagare (8 + 4 x %.1f)" % Combat.BAKRE_SLAG,
 			"tappade %.0f" % (100.0 - c2.hp))
 		for e in foes:
 			if e.row == 0:

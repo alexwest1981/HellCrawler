@@ -212,7 +212,7 @@ byggs.
 | B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | **byggd som lager** (M123): flaggan per kort, och relik-lagret med Kedjestenen finns och mäts. Kvar: att LÅSA kedjan bakom reliken (en balansändring som kräver mätning) |
 | C | **Belöningarna är strypta**: `RewardProbability` per kort, `CardLimit` per kortgrupp, Reroll/Skip/Banish | Fler fiender = fler kort = **lättare**. Mätt: `fiender=3` gav slumpen **+20 pp** | Kortvalet på sannolikhet (under 1) och/eller trögare XP-kurva | Ny grindrad: "fler fiender får inte göra banan lättare" | **prövad, nedlagd** (se nedan) |
 | D | **Gratis är inte gratis**: 0-kostnadskort är Crawlers med Duration, eller wilds som förstörs | 18 kort på kostnad 0 ligger kvar; startleken har 4×`lash` (12 skada utan villkor) och **6 mana-positiva** kort (`ember_tome` 1→+2, `hourglass` 3→+5) | Duration/Destroy på gratiskorten (nyckelorden finns redan i 7 kort), eller mananeutrala tomtar | Gratiskortens andel av spelade kort faller; manan slutar gå plus | planerad |
-| E | Fienden **telegraferar**, spelaren väljer mål | Telegrammet och målvalet finns i maskinen (`inkommande()`, `play(i, mål)`, `_målval`), och målpolicyn är mätt. **Mätt: valet betyder inget än** — 11 mot 11, rad för rad identiskt, för bara främre raden slår | Radregeln: varje fiende telegraferar sitt EGET slag och slår oavsett rad (referensens modell) | Målvalet slår att inte välja mål (i dag enkelriktad: får inte bli sämre) | halvbyggd |
+| E | Fienden **telegraferar**, spelaren väljer mål | Telegrammet, målvalet (`inkommande()`, `play(i, mål)`, `_målval`) och **radregeln** finns: alla rader slår, den bakre för 0,6 av sin skada (`BAKRE_SLAG`) | (byggd) | Målvalet slår att inte välja mål (i dag enkelriktad: får inte bli sämre) | **byggd, men valet betalar fortfarande inte: mätt 16 mot 16.** Orsaken är mätt: inget dör på en tur, så att slå den som slår sparar ingenting. Nästa ratt är att göra slaget AVVÄRJBLIGT (frys/nolla den namngivna slagmannen) — telegrammet är vad som gör det valet läsbart |
 
 ### A, byggd och mätt (M118)
 
@@ -330,6 +330,28 @@ Byggt (`game/core/relics.gd`, `game/data/relics/00_reliker.json`):
 - **`tests/test_relik.gd`** (8 kontroller): datan laddas, varje ratt når spelet (Järnhjärtat 60 → 75
   max-HP, Vässade eggen 12 → 16 på `lash`), samma relik kan inte tas två gånger, ett okänt id gör
   ingenting, och kistorna delar ut reliker i spelade körningar (3 av 20 i provet).
+
+### M124: radregeln — telegrammet blev sant, men valet betalar fortfarande inte
+
+Ratt E:s egentliga ratt var radregeln: varje fiende telegraferar sitt EGET slag och slår oavsett rad.
+Före M124 slog bara den främre raden, och då var målvalet alltid samma svar (den främre raden) — det
+är därför M121 mätte 11 mot 11 och valet var innehållslöst.
+
+Byggt: `Combat.BAKRE_SLAG := 0.6` och `_slagsverk(e, front_row)` — samma funktion som telegrammet
+(`inkommande`) och `enemy_turn` läser, så telegrammet kan inte ljuga om summan. Främre raden slår
+fullt, bakre raden 0,6 av sin skada. Knuffen blev en **skala i stället för en strömbrytare**: förut
+tystade den den farliga helt (raden bakom väntade), nu flyttar den den till den svagare raden
+(9 + 3 = 12 blir 5,4 + 3 = 8,4 utan knuff mot 10,8 med den gamla regeln).
+
+**Mätt (n=90, tre banor):** slump 9, auto 16, rutt 21, mål 16. Alla fyra grindar gröna (kvot 2,3x),
+och rutten går från 20 till 21.
+
+**Men målvalet betalar fortfarande inte: 16 mot 16.** Det var inte raden som var hela orsaken. Den
+mätta orsaken nu: **inget dör på en tur.** Att sikta på den som slår sparar bara skada om den hinner
+dö innan turen kommer, och det gör den inte — alltså är målvalet nästan irrelevant hur raden än
+fungerar. Nästa ratt är därför inte fler rader utan **avvärjbarhet**: ett slag ska kunna nollas av
+spelarens svar på telegrammet (frys/blockera just den fienden). Telegrammet är redan vad som gör ett
+sådant val läsbart, och `frozen` finns i maskinen — det är den kopplingen som saknas.
 
 Ordningen de tas i är inte tabellordningen: **C** prövades först och lades ned, **A** är byggd, **B** är
 halvvägs (flaggan per kort är byggd och mätt, relicen som låser upp kedjan är kvar), sedan **D** (kortdata
