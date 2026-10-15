@@ -650,7 +650,20 @@ fyller generatorn aldrig `Floor.öppna`, och ett öppet rum kommer ur **kartdata
 `MapIo`). Ett slagfält under öppen himmel är alltså något man ritar in, vilket också är referensens
 modell: himlen ligger i RUMSMALLEN, så en våning kan ha öppna och stängda rum sida vid sida.
 
-Mätt: `test_utomhus` (10 kontroller) håller båda ändarna — generatorns våningar har **noll** öppna rum
+**Himlen är ett VALV, inte en skiva** (Alex: *"kunna gå över en bro å se himlen runtom"*). En enda
+yta räcker rakt upp men inte när man står på en bro och tittar ut; därför är himlen en **cylinder runt
+hela våningen** (radie = kartans diagonal/2 + 4 m, höjd 6 m, öppna ändar) plus en plan yta överst.
+Cylindern ligger utanför kartans kant och kan därför aldrig stå i en dörröppning eller en gång, och en
+våning utan öppna rum ser den aldrig (taket är i vägen). Taket över det öppna har **en** färg i
+stället för gradientkortet: på en vågrät yta ligger texturens v-axel i golvplanet, så tonövergången
+drogs i sidled och såg ut som en rand — horisonten hör till cylinderns väggar, där "upp" betyder något.
+
+**Mätt i pixlar** (andel blåaktig yta i bildens toppband, 1 280×720): **öppet fält 69,5 % framåt och
+71,6 % åt sidan** — himlen står still och finns runtom. **Bro, 1 ruta bred: 30,3 % framåt, 0 % åt
+sidan** — skygglorna står en halvmeter från näsan och skymmer sidan upp till 58° höjd, vilket är
+precis vad en bro med räcken gör. Dörröppningar och broar är redan gångbara: ett steg tas bara mot
+golv (`Explore.forward()` → `"vaggen"`), så rutnätet ÄR stängslet och ingen fysik behövs.
+`test_utomhus` (21 kontroller) håller båda ändarna — generatorns våningar har **noll** öppna rum
 (taket står på), kartdatans nyckel öppnar ett rum och överlever en sparad karta, och när ett rum väl är
 öppet bygger renderaren himmelytan + lampan med referensens färg och utan skuggor. I bild (första
 versionen, bossrummet öppet): en trapetsformad öppning mot ljusblå himmel över slagfältet, ~15–20 % av

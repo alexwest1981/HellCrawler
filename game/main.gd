@@ -31,6 +31,7 @@ const COL_HIMMEL_TOPP := Color(0.16, 0.24, 0.46)
 const COL_HIMMEL_HORISONT := Color(0.62, 0.70, 0.86)
 const HIMLEN_HÖJD := 6.0
 var _himmelmat: StandardMaterial3D = null
+var _toppmat: StandardMaterial3D = null
 ## Antal super-rutor per yta. tools/gen_tiles.py bygger fyra ordningar av basvarianterna, och varje
 ## ruta väljer en av dem med hash — upprepningen blir därför fyra meter i stället för en halvmeter.
 const SUPER_YTOR := 4
@@ -6177,21 +6178,42 @@ func _preview_text() -> String:
 func _öppen_himmel(f: Dungeon.Floor) -> void:
 	if f.öppna.is_empty():
 		return
+	# Himlen är en CYLINDER runt hela våningen, inte en skiva per rum: står man på en bro ska man se
+	# himmel runt omkring sig, inte bara rakt upp. Cylindern ligger UTANFÖR kartans kant, så den kan
+	# aldrig stå i en dörröppning eller en gång — den syns bara där taket är borta. En stängd våning
+	# har tak överallt och ser den aldrig.
+	var cx := float(f.w) * 0.5
+	var cz := float(f.h) * 0.5
+	var radie := sqrt(float(f.w) * float(f.w) + float(f.h) * float(f.h)) * 0.5 + 4.0
+	var himmel := CylinderMesh.new()
+	himmel.top_radius = radie
+	himmel.bottom_radius = radie
+	himmel.height = HIMLEN_HÖJD
+	himmel.radial_segments = 16
+	himmel.cap_top = false
+	himmel.cap_bottom = false
+	var vägg := MeshInstance3D.new()
+	vägg.name = "himmel"
+	vägg.mesh = himmel
+	vägg.material_override = _himlemat()
+	vägg.position = Vector3(cx, HIMLEN_HÖJD * 0.5, cz)
+	world.add_child(vägg)
+	# Taket över det öppna: en yta i samma höjd, med EN färg. Ett gradientkort på en vågrät yta drar
+	# tonövergången i sidled (texturens v axel ligger i golvplanet), vilket ser ut som en rändig skarv
+	# — horisonten hör till cylinderns väggar, där "upp" betyder något.
+	var tak := PlaneMesh.new()
+	tak.size = Vector2(float(f.w) + 16.0, float(f.h) + 16.0)
+	var topp := MeshInstance3D.new()
+	topp.name = "himmel_topp"
+	topp.mesh = tak
+	topp.material_override = _himlemat_topp()
+	topp.position = Vector3(cx, HIMLEN_HÖJD, cz)
+	topp.rotation_degrees.x = 180.0        # ytan ska vetta NEDÅT: man tittar upp på den
+	world.add_child(topp)
 	for r in f.öppna:
 		var rum: Rect2i = r
 		var mitt := Vector3(float(rum.position.x) + float(rum.size.x) * 0.5, HIMLEN_HÖJD,
 			float(rum.position.y) + float(rum.size.y) * 0.5)
-		var plan := PlaneMesh.new()
-		# Marginalen gör att himlen räcker ut över rummets kant, så kanten inte syns som en skarv när
-		# man står vid väggen och tittar upp.
-		plan.size = Vector2(float(rum.size.x) + 8.0, float(rum.size.y) + 8.0)
-		var mi := MeshInstance3D.new()
-		mi.name = "himmel"
-		mi.mesh = plan
-		mi.material_override = _himlemat()
-		mi.position = mitt
-		mi.rotation_degrees.x = 180.0        # ytan ska vetta NEDÅT: man tittar upp på den
-		world.add_child(mi)
 		var ljus := OmniLight3D.new()
 		ljus.name = "himmel_ljus"
 		ljus.position = mitt - Vector3(0.0, 1.5, 0.0)
@@ -6200,6 +6222,18 @@ func _öppen_himmel(f: Dungeon.Floor) -> void:
 		ljus.omni_range = maxf(float(rum.size.x), float(rum.size.y)) * 1.6
 		ljus.shadow_enabled = false
 		world.add_child(ljus)
+
+## Himlen rakt ovanför: EN färg, samma mitt i övergången som väggarna har. Se `_öppen_himmel` om
+## varför toppen inte får gradientkortet (texturens v axel ligger i golvplanet på en vågrät yta).
+func _himlemat_topp() -> StandardMaterial3D:
+	if _toppmat != null:
+		return _toppmat
+	_toppmat = StandardMaterial3D.new()
+	_toppmat.albedo_color = COL_HIMMEL_TOPP.lerp(COL_HIMMEL_HORISONT, 0.45)
+	_toppmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_toppmat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return _toppmat
+
 
 ## Himmelns material: ett rakt gradientkort, oupplyst (himlen ska lysa av sig själv, inte av facklor).
 ## 1 x 32 px räcker — ytan är en enda tonövergång, och närmaste-granne håller den i samma pixeluttryck
