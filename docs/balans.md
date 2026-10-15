@@ -755,4 +755,8 @@ Reliefen syns svagt, och att höja `normal_scale` från 4,0 hjälper INTE: 7,0 o
 detaljen (0,0236 → 0,0209) och ljuset (p50 0,202 → 0,184), samma resultat som den tidigare mätningen i
 `_add_boxes`. Reliefen binds av ljuset på ytan, inte av skalan.
 
+**Licensen: CC0 1.0** (Texture Pack by Lynocs, https://lynocs.itch.io/texture-pack) — verifierad på
+paketets sida efter att Alex pekat på den. Fri för privata och kommersiella projekt, även ändrad; bara
+vidareförsäljning av texturena som de är är förbjuden. Credit är frivilligt och står i `CREDITS.md`.
+
 **Kvar:** golv och tak är fortfarande Alex' egna ark (bytet gäller väggarna, som var klagomålet).

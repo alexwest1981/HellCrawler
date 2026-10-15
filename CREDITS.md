@@ -183,10 +183,13 @@ Spelets egen konst (kort, fiender, hjältar, byn, plattorna) är Alex' egen. Byn
 Blender-scen exporterad till glTF. Schablonerna i `game/ui/*.gdshader` bär sina upphovsmän i
 filhuvudet där krediten hör hemma. Den här filen handlar om de **externa paketen**.
 
-## Texturpaketet i Download/Textures — LICENSEN ÄR INTE KÄND
+## Texturpaketet — Texture Pack by Lynocs (CC0 1.0)
 
 Väggytorna i `game/assets/tiles/<tema>/wall{,_super_0..3}{,_n,_orm}.png` klipps sedan 15/10 ur
-texturpaketet i `~/Downloads/Textures` med `tools/gen_ytor_paket.py`. Paketet har **ingen licensfil** —
-varken i mapparna eller inuti zip-filerna (kontrollerat 15/10), och ingen upphovsman är angiven någonstans.
-Filerna ligger därför i repot på prov tills källan är känd: **de får inte publiceras** (release, itch,
-Steam, publikt repo) förrän licensen är bekräftad. Originalen ligger utanför git, i `~/Downloads`.
+**Texture Pack by Lynocs** — https://lynocs.itch.io/texture-pack — med `tools/gen_ytor_paket.py`.
+Originalen ligger utanför git i `~/Downloads/Textures`.
+
+Licensen är **CC0 1.0** (verifierad på paketets sida 15/10): fri att använda i privata och
+kommersiella projekt, även att ändra, med ett undantag — texturena får inte säljas vidare som de är.
+Credit "would be nice but is not necessary"; den står här ändå. Paketet är AI-assisterat och gjort av
+Lynocs, som släppt 536 texturer med diffuse, AO, edge, height, metallic, normal och smoothness.

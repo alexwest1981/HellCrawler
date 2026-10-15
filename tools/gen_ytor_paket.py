@@ -21,8 +21,10 @@ färger — ingen palettkvantisering behövs) och skarven mäts: sista kolumnen 
 ruta upprepas per block, så en skarv blir ett rutnät över hela väggen.
 
 KÖRNING:  python3 tools/gen_ytor_paket.py [--prov]
-LICENSEN: paketet har INGEN licensfil (varken i mapparna eller i zip-filerna, kontrollerat 15/10).
-Filerna skrivs därför med en varning i CREDITS.md — de får inte publiceras förrän källan är känd.
+LICENS: CC0 1.0 — Texture Pack by Lynocs, https://lynocs.itch.io/texture-pack (verifierad 15/10).
+Fri för privata och kommersiella projekt, även ändrad; texturena får bara inte säljas vidare som de är.
+(Första kontrollen hittade ingen licensfil i mappen eller i zip-filerna, och Alex fick då skriva in
+källan — därför står den i filhuvudet nu, inte bara i CREDITS.md.)
 """
 import os
 import sys
