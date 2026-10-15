@@ -209,7 +209,7 @@ byggs.
 | # | Referensen | Vi (mätt) | Ändringen | Grinden som bevisar den | Status |
 |---|---|---|---|---|---|
 | A | Svårigheten bor **på kartan**: varje ruta får en svårighetsgrad ur en kurva (`CalculatePathDifficulties`), och mötet väljer fiender i ett spann kring den (`EncounterTemplate.EnemySelectionRule[,]` med `Min/MaxEnemyVariance`) | Per bana + per våning — varje rum i en våning hade samma form | En svårighetsgrad per rum, härledd ur avståndet från starten med spridning ur våningens frö; den styr antal fiender, HP och skada | Spridningen i tagen skada ökar *inom* en bana; slumpens andel faller utan att autospelarens gör det | **byggd** |
-| B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | **byggd som lager** (M123): flaggan per kort, och relik-lagret med Kedjestenen finns och mäts. Kvar: att LÅSA kedjan bakom reliken (en balansändring som kräver mätning) |
+| B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | Flaggan per kort **byggd** (M119). Reliken finns (`combo_stack`, M123) och ratten är byggd (M125) — men **MÄTT: låst kedja ger 0 av 90 klarade**. Vår lek är balanserad runt att kedjan ligger på, så B:s andra halva kräver att kortens grundskada höjs först (Alex' beslut). |
 | C | **Belöningarna är strypta**: `RewardProbability` per kort, `CardLimit` per kortgrupp, Reroll/Skip/Banish | Fler fiender = fler kort = **lättare**. Mätt: `fiender=3` gav slumpen **+20 pp** | Kortvalet på sannolikhet (under 1) och/eller trögare XP-kurva | Ny grindrad: "fler fiender får inte göra banan lättare" | **prövad, nedlagd** (se nedan) |
 | D | **Gratis är inte gratis**: 0-kostnadskort är Crawlers med Duration, eller wilds som förstörs | 18 kort på kostnad 0 ligger kvar; startleken har 4×`lash` (12 skada utan villkor) och **6 mana-positiva** kort (`ember_tome` 1→+2, `hourglass` 3→+5) | Duration/Destroy på gratiskorten (nyckelorden finns redan i 7 kort), eller mananeutrala tomtar | Gratiskortens andel av spelade kort faller; manan slutar gå plus | planerad |
 | E | Fienden **telegraferar**, spelaren väljer mål | Telegrammet, målvalet (`inkommande()`, `play(i, mål)`, `_målval`) och **radregeln** finns: alla rader slår, den bakre för 0,6 av sin skada (`BAKRE_SLAG`) | (byggd) | Målvalet slår att inte välja mål (i dag enkelriktad: får inte bli sämre) | **byggd, men valet betalar fortfarande inte: mätt 16 mot 16.** Orsaken är mätt: inget dör på en tur, så att slå den som slår sparar ingenting. Nästa ratt är att göra slaget AVVÄRJBLIGT (frys/nolla den namngivna slagmannen) — telegrammet är vad som gör det valet läsbart |
@@ -330,6 +330,34 @@ Byggt (`game/core/relics.gd`, `game/data/relics/00_reliker.json`):
 - **`tests/test_relik.gd`** (8 kontroller): datan laddas, varje ratt når spelet (Järnhjärtat 60 → 75
   max-HP, Vässade eggen 12 → 16 på `lash`), samma relik kan inte tas två gånger, ett okänt id gör
   ingenting, och kistorna delar ut reliker i spelade körningar (3 av 20 i provet).
+
+### M125: kedjan låst bakom reliken — mätt, och den dödar spelet
+
+Referensens modell är entydig: multiplikatorn kräver relicen Combo Stack (`ReceivesComboMultiplier`),
+den är en vinst man hittar, inte grundtillståndet. Ratten byggdes (`Combat.KEDJAN_KRÄVER_RELIK`,
+läst av `_combo_used` som både `play` och `preview` använder) och mättes med flaggan PÅ:
+
+| policy | kedjan på (i dag) | kedjan låst |
+|---|---|---|
+| slump | 9 | **0** |
+| auto | 16 | **0** |
+| rutt | 21 | **0** |
+| mål | 16 | **0** |
+| avvärj | 24 | **1** |
+
+**0 av 90.** Ingen policy klarar ens den första banan. Orsaken är mätt och enkel: vår lek är
+balanserad RUNT att kedjan alltid ligger på — multiplikatorn (×2 till ×4 på varje kort) ÄR
+skademotorn, inte en krydda. Att kopiera referensens modell genom att vända en flagga tar bort
+motorn, och då finns ingen skada kvar att vinna med.
+
+Slutsatsen är därför inte "riv ratten" utan **ordningen**: referensens modell kräver att kortens
+grundskada höjs i samma veva, alltså en balansrunda över korten själva (Alex' data, hans beslut).
+Ratten står kvar på `false` med den här mätningen i sin kommentar i stället för att vara en glömd
+flagga — den som vill slå på den ser först vad som händer.
+
+**Lärdom som gäller varje "referensen gör X":** en mekanik kan vara rätt och ändå döda spelet, för
+vår baslinje är kalibrerad runt att den INTE finns. Mät flaggan innan den får vara på, och om
+mätningen säger noll är svaret en följdändring (här: kortens grundskada), inte att flaggan var fel.
 
 ### M124: avvärjningen — valet som telegrammet faktiskt gör möjligt
 

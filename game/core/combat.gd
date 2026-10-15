@@ -500,11 +500,14 @@ func _combo_used(card: Cards.Card) -> int:
 	return combo
 
 ## KEDJAN SOM BELÖNING (M125, ratt B, docs/balans.md §8): referensen kräver relicen Combo Stack för
-## `ReceivesComboMultiplier` — multiplikatorn är en VINST, inte grundtillståndet. Här är den av som
-## förval och slås på av Kedjestenen (`combo_stack`), som också ger sitt extra steg. Flaggan är en
-## ratt för mätningen: slå av/på och kör `tests/test_balans.gd` — den här ändringen flyttar hela
-## skadekurvan och ska mätas innan den får vara på (den breda `receives_combo`-flaggan tog decken
-## från 17 till 6 klarade körningar av 60).
+## `ReceivesComboMultiplier` — multiplikatorn är en VINST, inte grundtillståndet.
+##
+## MÄTT 15/10 med flaggan PÅ: **0 av 90** körningar klarar banorna (slump 0, auto 0, rutt 0, mål 0,
+## avvärj 1). Vår lek är balanserad RUNT att kedjan alltid ligger på — multiplikatorn är skademotorn
+## (×2 till ×4 på varje kort), inte en krydda. Att kopiera referensens modell genom att vända en
+## flagga tar bort motorn: kortens grundskada skulle först behöva höjas i samma veva, och det är
+## kortens egen balans (Alex'), inte en ratt. Flaggan står därför kvar på false med mätningen
+## dokumenterad — inte som en glömd ratt.
 const KEDJAN_KRÄVER_RELIK := false
 
 ## Vad kortet skulle göra NU: vilka fiender det träffar och för hur mycket. REN — den spelar inte
