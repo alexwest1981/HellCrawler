@@ -807,3 +807,31 @@ målat med större, renare former medan hans ark är brusiga AI-texturer. Bytet 
 **utseende** (målade material, riktiga PBR-kartor, relief och fogar som syns) och inte av skärpa; i
 bild läses rummet som ett sammanhållet målarmaterial, inte som tre olika spel, och högdagrarna ligger
 kring 0,54 (p90) — inget som är utfrätt.
+
+---
+
+## 14. Ett material per yta (15/10)
+
+Alex: *"det ser ut som någon kräkts upp färg på väggarna huller om buller ... du blandar hej vilt
+texturer mitt på golvet"*. Felet var mitt: `wall_super_0..3` och `floor_super_0..3` tog de fyra
+**renaste varianterna** i en paketmapp — men varianterna i en mapp är olika **material** (Grass 16,
+15, 14, 13 är fyra olika växter), så varje våning blev ett lapptäcke. Dessutom kom `wall_moss`,
+`floor_crack` och `ceiling` från **andra mappar** (asklundens slitna vägg var `Mystical` = det lila
+valvet intill grå sten).
+
+**Reglerna nu** (och generatorn skriver bara två mappar per tema):
+
+| regel | varför |
+|---|---|
+| `wall_super_0..3` och `floor_super_0..3` = **samma ruta fyra gånger** | variationen ska komma från spelets UV, inte från fyra material |
+| `wall_moss` / `floor_crack` = näst bästa rutan i **samma** mapp | en sliten variant av samma material, inte ett främmande |
+| `ceiling` = väggfamiljens ruta | ett valv av samma sten som väggarna |
+
+Mappvalen ändrades också efter att ha tittat på dem: kryptans golv var paketets `Floor` (teal-mosaik)
+och `Tiles` visade sig vara **färgade spelhallsplattor** — kryptan fick `Cobble Stone`, tunneln
+`Cave Floor`. Allt mätt med samma spann/skarv-prov som förut: **0 fel, alla ytor över vår egen (0,224)**.
+
+**Tonerna gjordes neutrala** (`VÄGG_TON` 0,95 / `GOLV_TON` 0,58 / `TAK_TON` 0,72, gråa i stället för
+färgade). De gamla var varma för att kompensera Alex' varma ark; med målade material *färgade* de om
+dem (gräset blev brunt). Mätt efter: vyns medel 0,301, mörkt 18 %, detalj 0,0156, p90 0,554 — inget
+utfrätt, och gräset är grönt i bild.

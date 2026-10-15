@@ -15,10 +15,10 @@ VAD SOM ANVÄNDS, OCH VAD SOM INTE:
   `_height.bmp`, `_edge.bmp` -> används inte (spelet har ingen parallax, och `_kant` räknas ur albedon).
 
 VILKA FILER SOM SKRIVS (exakt de namn spelet läser, se `_add_boxes_ytor` i `main.gd`):
-  wall_super_0..3, floor_super_0..3   de STORA ytorna (fyra olika rutor av samma material)
-  wall, wall_moss                     små väggrutor, varav den andra är den slitna varianten
-  floor, floor_crack                  små golvrutor, varav den andra är den spruckna
-  ceiling                             taket (spelet ritar taket som EN yta)
+  wall_super_0..3, floor_super_0..3   de STORA ytorna (samma ruta fyra gånger, se VAL)
+  wall, wall_moss                     små väggrutor, den andra slitnare men SAMMA material
+  floor, floor_crack                  små golvrutor, den andra slitnare men SAMMA material
+  ceiling                             taket, ur väggfamiljen (spelet ritar taket som EN yta)
 Varje ruta skalas till 256x256 och får en `_n` (normal). `_orm` skrivs INTE — Alex' egna behålls, se
 `skriv()`. Ingen palettkvantisering: de nuvarande ytorna är mjuka AI-texturer med ~12 000 färger, så en
 nedskalad 1024-ruta är samma sorts bild.
@@ -50,27 +50,24 @@ VÅR_SPANN = 0.224  # vår egen vägg — det tal varje val måste slå
 
 # tema -> plats -> paketmapp. Varje plats tar den bästa rena rutan ur sin mapp.
 VAL = {
-    "asklunden": {                       # lunden: rötter, gräs, löv, trätak
-        "wall": "Roots", "wall_moss": "Mystical",
-        "floor": "Grass", "floor_crack": "Fall Ground", "ceiling": "Roof",
-    },
-    "krypta": {                          # kryptan: murad sten, golvplattor, valv
-        "wall": "Stone Wall", "wall_moss": "Damaged Wall",
-        "floor": "Floor", "floor_crack": "Damaged Parquet", "ceiling": "Cave Wall",
-    },
-    "grotta": {                          # grottan: berg överallt
-        "wall": "Cave Wall", "wall_moss": "Mystical",
-        "floor": "Cave Floor", "floor_crack": "Fall Ground", "ceiling": "Cave Wall",
-    },
-    "tunnel": {                          # byggd gång: kullersten, plattor, träbalkar i taket
-        "wall": "Cobble Stone", "wall_moss": "Damaged Wall",
-        "floor": "Tiles", "floor_crack": "Damaged Parquet", "ceiling": "Magical Wood Planks",
-    },
-    "bro": {                             # bron: virke, även i taket
-        "wall": "Wood Planks", "wall_moss": "Magical Wood Planks",
-        "floor": "Wood Planks", "floor_crack": "Damaged Parquet", "ceiling": "Wood Planks",
-    },
+    "asklunden": {"wall": "Roots", "floor": "Grass"},
+    "krypta": {"wall": "Stone Wall", "floor": "Cobble Stone"},
+    "grotta": {"wall": "Cave Wall", "floor": "Cave Floor"},
+    "tunnel": {"wall": "Cobble Stone", "floor": "Cave Floor"},
+    "bro": {"wall": "Wood Planks", "floor": "Wood Planks"},
 }
+
+# ETT MATERIAL PER FAMILJ (Alex 15/10: "det ser ut som någon kräkts upp färg på väggarna huller om
+# buller ... du blandar hej vilt texturer mitt på golvet"). Felet var att super-rutorna tog de fyra
+# renaste VARIANTERNA i en mapp — men varianterna i en mapp är OLIKA ytor (gräs 16, 15, 14, 13 är fyra
+# olika växter), så golv och väggar blev lapptäcken, och `wall_moss`/`floor_crack`/`ceiling` kom från
+# helt andra mappar (Mystical = det lila valvet intill grå sten). Reglerna nu:
+#   wall/wall_super_0..3  SAMMA ruta fyra gånger — variationen får komma från spelets UV, inte från
+#                         fyra olika material
+#   wall_moss             näst bästa ruta i SAMMA mapp (en sliten variant av samma material)
+#   floor/floor_super..   den bästa rutan i golvmappen
+#   floor_crack           näst bästa ruta i SAMMA mapp
+#   ceiling               väggfamiljens ruta — ett valv av samma sten som väggarna
 
 
 def las(sökväg: str) -> Image.Image:
@@ -137,44 +134,33 @@ def skriv(tema: str, namn: str, mapp: str, nr: str) -> None:
 def main() -> int:
     torr = "--prov" in sys.argv
     fel = 0
-    print("%-10s %-12s %-22s %-7s %s" % ("tema", "plats", "mapp/ruta", "spann", "skarv"))
-    for tema, platser in VAL.items():
-        for plats, mapp in platser.items():
+    print("%-10s %-9s %-22s %-7s %s" % ("tema", "yta", "mapp/ruta", "spann", "skarv"))
+    for tema, mappar in VAL.items():
+        for familj, mapp in mappar.items():
             kand = kandidater(mapp)
             if not kand:
-                print("%-10s %-12s %-22s SAKNAS" % (tema, plats, mapp))
+                print("%-10s %-9s %-22s SAKNAS" % (tema, familj, mapp))
                 fel += 1
                 continue
             rena = [k for k in kand if k["ren"]]
-            bäst = rena[0] if rena else kand[0]
-            # wall/floor ritas som fyra super-rutor och behöver fyra OLIKA rutor; de andra en.
-            antal = SUPER if plats in ("wall", "floor") else 1
-            # FYLL PÅ MED DE ORENA EFTER DE RENA (mätt 15/10): `tiles` har bara tre skarvfria rutor, och
-            # utan påfyllning stod `tunnel/floor_super_3.png` kvar ORÖRD från förra milstolpen — en ruta
-            # av ett helt annat material mitt bland de nya. En svag skarv i en av fyra rutor är mycket
-            # bättre än en ruta som inte hör dit; bara om det inte finns fyra rutor ALLS är det fel.
-            valda = (rena + [k for k in kand if not k["ren"]])[:antal]
-            if len(valda) < antal:
-                print("%-10s %-12s %-22s bara %d rutor i mappen (behöver %d)" % (tema, plats, mapp, len(valda), antal))
-                fel += 1
-            elif valda[-1] is not None and not valda[-1]["ren"]:
-                print("%-10s %-12s %-22s %d rena + %d med svag skarv (sista super-rutan)" % (tema, plats, mapp,
-                    len(rena), antal - len(rena)))
-            print("%-10s %-12s %-22s %-7.3f %s" % (tema, plats, "%s/%s" % (mapp, bäst["nr"]), bäst["spann"],
-                "ren" if bäst["ren"] else "SKARV SYNS — tog näst bästa rena"))
+            # bästa rena först, fyll på med de ore na (en svag skarv slår en ruta ur förra milstolpen)
+            kö = rena + [k for k in kand if not k["ren"]]
+            bäst = kö[0]
+            sliten = kö[1] if len(kö) > 1 else kö[0]
+            print("%-10s %-9s %-22s %-7.3f %s" % (tema, familj, "%s/%s (+%s sliten)" % (mapp, bäst["nr"], sliten["nr"]),
+                bäst["spann"], "ren" if bäst["ren"] else "SVAG SKARV"))
             if bäst["spann"] <= VÅR_SPANN:
                 print("   OBS: spannet slår inte vår egen yta (%.3f)" % VÅR_SPANN)
                 fel += 1
             if torr:
                 continue
-            for i, k in enumerate(valda):
-                if antal > 1:
-                    skriv(tema, "%s_super_%d" % (plats, i), mapp, k["nr"])
-                    if i == 0:
-                        skriv(tema, plats, mapp, k["nr"])      # smårutorna = den bästa av de fyra
-                else:
-                    skriv(tema, plats, mapp, k["nr"])
-            print("   skrivet: %s/%s%s" % (tema, plats, "_super_0..%d" % (len(valda) - 1) if antal > 1 else ""))
+            for i in range(SUPER):                      # fyra super-rutor, samma material
+                skriv(tema, "%s_super_%d" % (familj, i), mapp, bäst["nr"])
+            skriv(tema, familj, mapp, bäst["nr"])        # smårutorna
+            skriv(tema, familj + ("_moss" if familj == "wall" else "_crack"), mapp, sliten["nr"])
+            if familj == "wall":
+                skriv(tema, "ceiling", mapp, bäst["nr"])
+            print("   skrivet: %s/%s, _moss/_crack och ceiling" % (tema, familj))
     print("%d fel" % fel)
     return 1 if fel else 0
 

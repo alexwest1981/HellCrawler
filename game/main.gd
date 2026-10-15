@@ -508,14 +508,14 @@ const LAGA_ENERGI := 0.75
 ## dränker skillnaden: mätt i bild låg taket på 23,17,14, väggen på 15,9,7 och golvet på 43,29,27 —
 ## samma brunhet i alla tre (Alex: *"det är ännu samma tak/golv som väggar"*). Tonen är den enda
 ## ratten som skiljer dem åt i LJUSET: taket kallt och mörkt, golvet lite ljusare och neutralt.
-const TAK_TON := Color(0.70, 0.74, 0.95)
-const GOLV_TON := Color(0.55, 0.52, 0.48)
+const TAK_TON := Color(0.72, 0.72, 0.72)
+const GOLV_TON := Color(0.58, 0.58, 0.58)
 ## VÄGGARNAS TON (15/10): väggarna skickade ingen ton alls, alltså rak textur × albedo — och deras
 ## albedo är MÖRK (median 0,21 i sRGB, ~0,035 linjärt), så en upplyst vägg blev nästan svart medan
 ## golvet (som har en ton) gick att se. Alex: "alldeles för murrigt och svårt att se något". Mätt i
 ## bild: med tonen på 3,0 gick andelen nästan svarta bildpunkter från 82 % till 62 % och
 ## högdagerpixlarna (där man ser formen) från 10 till 3 700 i samma scen.
-const VÄGG_TON := Color(0.90, 0.92, 1.00)
+const VÄGG_TON := Color(0.95, 0.95, 0.95)
 const LAGA_RACKVIDD := 6.5
 const LAGA_FARG := Color(1.0, 0.78, 0.55)
 ## GLÖDEN PÅ DEN LYSANDE REKVISITENS MODELL (M110): en MYCKET svag emission som `_fladdra` rör med
