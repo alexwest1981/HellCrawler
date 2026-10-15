@@ -42,6 +42,7 @@ class PlayResult extends RefCounted:
 	var killed: Array = []
 	var gold := 0                     ## guld ur en ädelsten (girigstenen), läggs på körningen
 	var mana := 0                     ## mana gained from card effects
+	var armor := 0                    ## rustning kortet gav (skalas av kedjan, se Rules.scaled)
 	var hp := 0                       ## hp healed by card effects
 	## Vad KOMPANJONERNA I SPEL gjorde av det här kortet (M119): en rapport per reaktion, i samma form
 	## som kortets egen, så UI:t kan kvittera dem likadant och testerna mäta dem.
@@ -177,7 +178,14 @@ func play(index: int, target: Enemy = null) -> PlayResult:
 		if e.alive() and e.eyes_max > 0:
 			e.eyes_open += 1
 	var combo_före := combo
-	combo = Rules.combo_after(card.cost, last_cost, combo)
+	# COMBO BREAKER (VC:s egen text): "Ends combo but always benefits from the multiplier." /
+	# "Consumes the combo to benefit from the multiplier." Kortet FICK multiplikatorn (se `_combo_used`),
+	# och betalar med hela kedjan: efter det står combon på noll. Det är bytet — toppen av kedjan blir
+	# en engångssmäll i stället för en trappa att klättra vidare på.
+	if card.keywords.has("ComboBreaker"):
+		combo = 0
+	else:
+		combo = Rules.combo_after(card.cost, last_cost, combo)
 	# KEDJESTENEN (M123): en relik gör varje stigande steg värt mer — men bara när kedjan FORTSÄTTER.
 	# En relik ska inte kunna starta en kedja ur tomma luften; då vore den inte en belöning för att
 	# spela korten i rätt ordning. (`combo > 1` = steget är en fortsättning, inte en nystart.)
@@ -502,6 +510,12 @@ func chain_continues(card: Cards.Card) -> bool:
 func _combo_used(card: Cards.Card) -> int:
 	if KEDJAN_KRÄVER_RELIK and combo_bonus <= 0:
 		return 0                     # ingen Kedjesten: ingen multiplikator
+	# EASY COMBO (VC:s egen text): "This card always benefits from Combo, even if you break the Combo."
+	# och COMBO BREAKER: "This card always benefits from combo, but will end it too." Båda FÅR
+	# multiplikatorn även när steget inte fortsätter — det är hela deras poäng. Skillnaden är vad som
+	# händer EFTERÅT (se `play`): en breaker konsumerar kedjan, en easy combo lämnar den i fred.
+	if card.keywords.has("EasyCombo") or card.keywords.has("ComboBreaker"):
+		return combo
 	if not Rules.continues_chain(card.cost, last_cost):
 		return 0
 	if not card.receives_combo:
@@ -517,6 +531,16 @@ func _combo_used(card: Cards.Card) -> int:
 ## flagga tar bort motorn: kortens grundskada skulle först behöva höjas i samma veva, och det är
 ## kortens egen balans (Alex'), inte en ratt. Flaggan står därför kvar på false med mätningen
 ## dokumenterad — inte som en glömd ratt.
+## VC-PARITET 15/10: referensen kräver reliken Combo Stack för multiplikatorn ("Play cards in ascending
+## Mana cost order for a Combo Multiplier"). MÄTT, TRE GÅNGER, och flaggan står därför kvar på false:
+##   1. med relikrum + relikval (Kedjestenen går att välja):  1-5 av 90 klarade
+##   2. + kortens skada x2 (grundvärdet ska bära sig självt):  1 av 90
+##   3. + fiendernas HP x2 (VC:s parning):                     1 av 90
+## och utan låset, med samma skalning: slump 11, auto 25, rutt 32, avvärj 38 av 90 (kvot 2,9x).
+## Vår lek är byggd KRING kedjan — den är spelets skademotor, inte en krydda — och referensens reliker
+## är så många (67, ur relikrum, ljuskällor och NPC-gåvor) att Combo Stack i praktiken alltid kommer
+## tidigt. Att låsa kedjan kräver alltså relikABUNDANS först, inte bara ett relikrum per våning.
+## Flaggan är rätt modell och fel läge: den slås på när relikerna är lika många som referensens.
 const KEDJAN_KRÄVER_RELIK := false
 
 ## Vad kortet skulle göra NU: vilka fiender det träffar och för hur mycket. REN — den spelar inte
@@ -589,28 +613,30 @@ func _apply_effects(card: Cards.Card, combo_used: int, target: Enemy, r: PlayRes
 					combo_used, base, hits, might, area, gems)
 				total += _deal(dmg, int(hits), target, r)
 			"armor":
-				armor += float(effect.get("amount", 0.0))
+				var rustning := Rules.scaled(float(effect.get("amount", 0.0)), combo_used)
+				armor += rustning
+				r.armor += int(round(rustning))
 			"heal":
 				var hp_before := hp
-				hp = min(max_hp, hp + float(effect.get("amount", 0.0)))
+				hp = min(max_hp, hp + Rules.scaled(float(effect.get("amount", 0.0)), combo_used))
 				r.hp += int(round(hp - hp_before))
 			"mana":
-				var m := int(effect.get("amount", 0))
+				var m := int(round(Rules.scaled(float(effect.get("amount", 0)), combo_used)))
 				mana += m
 				r.mana += m
 			"draw":
-				draw(int(effect.get("amount", 1)))
+				draw(int(round(Rules.scaled(float(effect.get("amount", 1)), combo_used))))
 			"knockback":
 				# Knuffa bakåt: en fiende i bakre raden slår inte förrän raden framför är död
 				# (se enemy_turn). Träffar samma mål som kortets skada, så riktmarkeringen stämmer.
-				var steg := int(effect.get("amount", 1))
+				var steg := int(round(Rules.scaled(float(effect.get("amount", 1)), combo_used)))
 				for h in _hit_plan(0.0, int(effect.get("hits", 1)), target):
 					var bak: Enemy = h.enemy
 					bak.row += steg
 			"freeze":
 				# Frusen står still i N turer (tinas i enemy_turn). Längsta frysningen gäller:
 				# två frys-kort ska inte kunna stapla 4 turer på samma fiende.
-				var turer := int(effect.get("amount", 1))
+				var turer := int(round(Rules.scaled(float(effect.get("amount", 1)), combo_used)))
 				for h in _hit_plan(0.0, int(effect.get("hits", 1)), target):
 					var mal: Enemy = h.enemy
 					mal.frozen = maxi(mal.frozen, turer)

@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d 张",
  "ui.draft.prompt": "选择卡牌：1-%d（也可点击）",
  "ui.draft.title": "等级 %d — 选择一张卡",
+ "ui.draft.relic": "发现遗物 — 选择一件",
  "ui.draft.evo": "进化：%s → %s",
  "ui.battle.title": "战斗",
  "ui.battle.play_all": "全部打出 (P)",

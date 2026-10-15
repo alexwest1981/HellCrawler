@@ -239,13 +239,19 @@ func _init() -> void:
 	check(str(receipt_mana["text"]).contains("1") and str(receipt_mana["text"]).contains("mana"),
 		"mana receipt carries exact amount (+1 mana)", str(receipt_mana["text"]))
 
-	# Heal card (salve): exactly 1 receipt with +4 hp and red color
+	# Heal card (salve): exactly 1 receipt with +4 hp and red color.
+	# VC-PARITET 15/10: läkningen skalas nu av kedjan som allt annat i `_apply_effects` (referensens
+	# "{0:combo:}" sitter på varje effektvärde). Provet stod på 4 — det var regeln FÖRE pariteten.
+	# Kortets basvärde är fortfarande 4; vad som läses här är 4 x multiplikatorn, och multiplikatorn
+	# skrivs ut så att en framtida ändring i kedjan syns i utfallet i stället för att bara fälla.
 	c.hand = [db["salve"]]
 	var hp_before := c.hp
 	var res_salve := c.play(0)
 	check(res_salve.ok, "played heal card salve successfully")
-	check(res_salve.hp == 4, "salve restored 4 hp", "%d" % res_salve.hp)
-	check(c.hp == hp_before + 4.0, "combat hp state updated accordingly")
+	var läkt_förväntat := 4 * res_salve.multiplier
+	check(res_salve.hp == läkt_förväntat, "salve restored 4 x kedjan",
+		"%d (multiplikator %d)" % [res_salve.hp, res_salve.multiplier])
+	check(c.hp == hp_before + float(läkt_förväntat), "combat hp state updated accordingly")
 	var receipt_heal := RewardFx.från_event({"type": "card", "card": res_salve.card_id,
 		"mana": res_salve.mana, "hp": res_salve.hp, "gold": res_salve.gold})
 	check(not receipt_heal.is_empty(), "played heal card produces a receipt")
@@ -253,8 +259,8 @@ func _init() -> void:
 		"heal card produces exactly one receipt with heal variant")
 	check(receipt_heal["färg"] == Color(0.82, 0.32, 0.30),
 		"heal card receipt carries heal red color")
-	check(str(receipt_heal["text"]).contains("4") and str(receipt_heal["text"]).contains("hp"),
-		"heal receipt carries exact amount (+4 hp)", str(receipt_heal["text"]))
+	check(str(receipt_heal["text"]).contains(str(läkt_förväntat)) and str(receipt_heal["text"]).contains("hp"),
+		"heal receipt carries exact amount (+%d hp)" % läkt_förväntat, str(receipt_heal["text"]))
 
 	# Gold from card with gem: exactly 1 receipt with +10 gold and gold color
 	c.gem_bonus = {"dagger": {"gold": 10}}

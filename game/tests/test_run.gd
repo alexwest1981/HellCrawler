@@ -351,6 +351,16 @@ func _initialize() -> void:
 	while not rb.drafts.is_empty() and varv < 60:
 		varv += 1
 		var d: Dictionary = rb.drafts[0]
+		# RELIKVALET (VC-paritet 15/10) svaras i sin egen väg (`pick_relic`): en relik går till
+		# körningen, ett kort till leken. Utan den grenen står den här kön still på ett val som
+		# `pick_card` med rätta vägrar — och provet hade mätt sin egen kö, inte spelets.
+		if bool(d.get("relic", false)):
+			var rk: Array = (d.choices as Array).duplicate()
+			if rk.is_empty():
+				break
+			if not rb.pick_relic(str(rk[0])):
+				break
+			continue
 		var valt := ""
 		for kandidat in d.choices:
 			if rb.pick_card(str(kandidat)):

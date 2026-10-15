@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d 장",
  "ui.draft.prompt": "카드 선택: 1-%d (클릭 가능)",
  "ui.draft.title": "레벨 %d — 카드 선택",
+ "ui.draft.relic": "유물 발견 — 하나 선택",
  "ui.draft.evo": "강화: %s → %s",
  "ui.battle.title": "전투",
  "ui.battle.play_all": "전부 사용 (P)",

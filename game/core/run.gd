@@ -180,10 +180,68 @@ func pending_draft() -> Array:
 func pending_draft_boss() -> bool:
 	return not drafts.is_empty() and bool(drafts[0].get("boss", false))
 
+## Väntar ett RELIKVAL? (VC-paritet 15/10.) Referensen ger reliker som ett VAL — "Choose a reward",
+## "Relic Found!" (`ReceiveRelicModal`, kursiverad ny rad i spelets egen texttabell) — och deras reliker
+## kommer ur relikrum, ljuskällor och NPC-gåvor, aldrig ur en lott. Ett val är skillnaden mellan att
+## hoppas på Kedjestenen och att välja den, och det är hela skälet att deras kedja kan vara låst bakom
+## en relik: spelaren kan skaffa den med avsikt.
+func pending_draft_relic() -> bool:
+	return not drafts.is_empty() and bool(drafts[0].get("relic", false))
+
+## Relikvalets kandidater (samma form som `Relics.load_all`-posterna).
+func pending_relics() -> Array:
+	if not pending_draft_relic():
+		return []
+	return drafts[0].choices
+
+## Ett relikval: kandidaterna byggs ur körningens seed och nodens position, så samma kista erbjuder
+## samma par varje gång (determinismprovet gäller även val). Två kandidater är referensens minsta
+## meningsfulla val; finns bara en kvar i högen ges den utan val, och finns ingen alls blir kistan
+## vanlig guld/läkning i stället (se `_open_chest`).
+func _relic_draft(node: Dungeon.FloorNode) -> Array:
+	var lediga := []
+	for rid in Relics.load_all():
+		if not relics.has(rid):
+			lediga.append(rid)
+	# EN RELIK SOM LIGGER I ETT OÖPPNAT VAL ÄR INTE LEDIG (mätt 15/10: två våningar erbjöd samma
+	# relik, och det andra valet gick inte att svara på — kandidaten var redan tagen). Valen byggs när
+	# våningen klaras och svaras senare, så utan den här raden kan samma relik ligga i två köade val.
+	for d in drafts:
+		if bool(d.get("relic", false)):
+			for rid in d.choices:
+				lediga.erase(str(rid))
+	if lediga.size() < 2:
+		return lediga
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + node.pos.x * 6151 + node.pos.y * 104729
+	var ut := []
+	for i in mini(2, lediga.size()):
+		ut.append(str(lediga.pop_at(rng.randi_range(0, lediga.size() - 1))))
+	return ut
+
+## Spelaren har valt en relik ur ett relikval. Reliken läggs på körningen, kön går vidare.
+func pick_relic(id: String) -> bool:
+	if not pending_draft_relic():
+		return false
+	if not drafts[0].choices.has(id):
+		return false
+	var r: Relics.RelicDef = add_relic(id)
+	if r == null:
+		# Inaktuellt val (reliken togs av ett tidigare val): kön går vidare i stället för att låsa sig.
+		# Med upptagenheten i `_relic_draft` ska det inte kunna hända — det här är säkerhetsnätet, för
+		# en kö som inte kan tömmas är en hängning i spelet, inte ett dåligt val.
+		drafts.pop_front()
+		return false
+	drafts.pop_front()
+	events.append({"type": "relic", "id": r.id, "name": r.name, "text": r.text})
+	return true
+
 ## Spelaren har valt ett kort. Läggs i leken, kön går vidare.
 func pick_card(id: String) -> bool:
 	if drafts.is_empty():
 		return false
+	if pending_draft_relic():
+		return false                     # relikvalet svaras i `pick_relic`, inte här
 	if not card_db.has(id):
 		push_error("okänt kort i kortvalet: %s" % id)
 		return false
@@ -396,6 +454,11 @@ func _next_objective() -> Dungeon.FloorNode:
 	for n in f.nodes:
 		if not n.cleared and n.kind == "chest":
 			return n
+	# RELIKRUMMET (VC-paritet 15/10): värt en omväg — en relik är permanent för körningen och väger
+	# tyngre än en kista. Före facklan och bossen.
+	for n in f.nodes:
+		if not n.cleared and n.kind == "relic":
+			return n
 	# Facklan: bara en omväg om man är skadad. En hel spelare går raka vägen till nästa fiende.
 	if hp < max_hp * 0.5:
 		for n in f.nodes:
@@ -420,10 +483,30 @@ func _resolve(node: Dungeon.FloorNode) -> void:
 			descend()
 		"chest":
 			events.append(_open_chest(node))
+		"relic":
+			var rv := _relic_rum(node)
+			events.append(rv if not rv.is_empty() else _rest())
 		"torch":
 			events.append(_rest())
 		_:
 			pass
+
+## ETT RELIKRUM (VC-paritet 15/10): motsvarigheten till referensens `roomtemplates-relics`. Spelaren
+## får två kandidater och VÄLJER en (`pick_relic`); kandidaterna kommer ur körningens seed och rummets
+## position, så samma våning erbjuder samma par varje gång. Är högen tom blir rummet inget — kistan
+## faller då tillbaka på guld/läkning, och ett ensamt relikrum blir en andhämtning.
+func _relic_rum(node: Dungeon.FloorNode) -> Dictionary:
+	var kandidater := _relic_draft(node)
+	if kandidater.is_empty():
+		return {}
+	if kandidater.size() == 1:
+		var r: Relics.RelicDef = add_relic(str(kandidater[0]))
+		if r == null:
+			return {}
+		events.append({"type": "relic", "id": r.id, "name": r.name, "text": r.text})
+		return {"type": "relic_rum", "vad": "relik", "relik": r.id, "namn": r.name, "text": r.text}
+	drafts.append({"level": level, "choices": kandidater, "relic": true})
+	return {"type": "relic_rum", "vad": "relikval", "val": kandidater}
 
 ## Kistan: guld eller en klunk läkning, avgjort av körningens seed och nodens position — samma kista
 ## ger samma sak varje gång. Låg den på ett tärningsslag som inte var seedat vore våningen "slumpad"
@@ -439,18 +522,14 @@ func _open_chest(node: Dungeon.FloorNode) -> Dictionary:
 	# (seedat), så samma kista ger samma sak varje gång, och en relik som redan plockats upp
 	# lämnas tillbaka till högen i stället för att bli en dubblett.
 	if slag < 4:
-		var lediga := []
-		for rid in Relics.load_all():
-			if not relics.has(rid):
-				lediga.append(rid)
-		if not lediga.is_empty():
-			var rng := RandomNumberGenerator.new()
-			rng.seed = seed_value + node.pos.x * 6151 + node.pos.y * 104729
-			var r: Relics.RelicDef = add_relic(str(lediga[rng.randi_range(0, lediga.size() - 1)]))
-			if r != null:
-				events.append({"type": "relic", "id": r.id, "name": r.name, "text": r.text})
-				return {"type": "chest", "vad": "relik", "relik": r.id, "namn": r.name,
-					"text": r.text, "shards": sp}
+		# RELIKEN BLIR ETT VAL (VC-paritet 15/10): referensen ger reliker som "Choose a reward"
+		# (`ReceiveRelicModal`, "Relic Found!"), och deras kedja kan bara vara låst bakom en relik
+		# därför att spelaren kan VÄLJA den. Lotten gjorde Kedjestenen till en förhoppning; valet gör
+		# den till ett beslut. Samma regel som relikrummet (`_relic_rum`), en regel på ett ställe.
+		var val := _relic_rum(node)
+		if not val.is_empty():
+			val["shards"] = sp
+			return val
 	# Två trädnoder flyttar FÖNSTREN i samma seedade slag: girigheten ger fler stenfönster (gem_find)
 	# och färre läkefönster (chest_luck). Slaget är detsamma — bara gränserna rör sig.
 	var sten_fönster := 15 + stat_int("gem_find") * 10
@@ -500,6 +579,9 @@ func enter_node(node: Dungeon.FloorNode) -> Combat:
 			descend()
 		"chest":
 			events.append(_open_chest(node))
+		"relic":
+			var rv := _relic_rum(node)
+			events.append(rv if not rv.is_empty() else _rest())
 		"torch":
 			events.append(_rest())
 	return null

@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d karty",
  "ui.draft.prompt": "WYBIERZ KARTĘ: 1-%d (albo kliknij)",
  "ui.draft.title": "POZIOM %d — wybierz kartę",
+ "ui.draft.relic": "ZNALEZIONO RELIKWIĘ — wybierz jedną",
  "ui.draft.evo": "ULEPSZENIE: %s → %s",
  "ui.battle.title": "WALKA",
  "ui.battle.play_all": "Zagraj wszystko (P)",

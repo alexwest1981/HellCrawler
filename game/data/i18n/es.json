@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d cartas",
  "ui.draft.prompt": "ELIGE UNA CARTA: 1-%d (o haz clic)",
  "ui.draft.title": "NIVEL %d — elige una carta",
+ "ui.draft.relic": "RELIQUIA ENCONTRADA — elige una",
  "ui.draft.evo": "MEJORA: %s → %s",
  "ui.battle.title": "COMBATE",
  "ui.battle.play_all": "Jugar todo (P)",

@@ -60,18 +60,41 @@ func _initialize() -> void:
 	check(is_equal_approx(d2 - d1, 4.0), "relikens skada läggs på varje träff (12 -> 16 på lash)",
 		"utan %.0f, med %.0f" % [d1, d2])
 
-	# 4) Leveransen: kistorna. Kör några hela körningar och räkna hur många som hittade minst en
-	#    relik — fönstret är 8 % av kistorna, så noll av tjugo vore ett tecken på att koden inte nås.
-	var med_relik := 0
-	var antal: Array = []
-	for i in 20:
-		var rr := _run(700000 + i * 97)
-		_spela(rr)
-		if not rr.relics.is_empty():
-			med_relik += 1
-			antal.append(rr.relics.size())
-	check(med_relik > 0, "kistorna delar ut reliker i spelade körningar",
-		"%d av 20 körningar, %s reliker i dem" % [med_relik, str(antal)])
+	# 4) Leveransen: ett VAL, inte en lott (VC-paritet 15/10). Provet mätte förut tjugo spelade
+	#    körningar och krävde att minst en hittade en relik — men sedan reliken blev ett val ligger
+	#    den inte på körningen förrän spelaren SVARAR, och rutten går genom handritade kartor
+	#    (`data/maps/*.json`, generatorn är reserven), så sällan-kortet är inte provets sak.
+	#    Grinden är därför deterministisk: slagfönstret är seedat (`(seed + x*31 + y*17) % 100`), så
+	#    provet VÄLJER en ruta som ligger innanför det och prövar hela vägen — kista -> val -> relik.
+	var rr2 := _run(4242)
+	var nod := Dungeon.FloorNode.new()
+	nod.kind = "chest"
+	var träffad := false
+	for y in 40:
+		for x in 40:
+			if (rr2.seed_value + x * 31 + y * 17) % 100 < 4:
+				nod.pos = Vector2i(x, y)
+				träffad = true
+				break
+		if träffad:
+			break
+	check(träffad, "provet hittar en kistruta innanför relikfönstret", "ruta %s" % str(nod.pos))
+	var ev := rr2._open_chest(nod)
+	check(str(ev.get("vad", "")) == "relikval", "kistan erbjuder ett relikval", str(ev.get("vad", "")))
+	check(rr2.pending_draft_relic(), "och valet ligger i kön",
+		"%s" % str(rr2.pending_relics()))
+	var kandidater: Array = rr2.pending_relics()
+	check(kandidater.size() >= 2, "med minst två kandidater att välja mellan", "%d" % kandidater.size())
+	check(rr2.relics.is_empty(), "reliken ligger INTE på körningen förrän valet svaras", str(rr2.relics))
+	if not kandidater.is_empty():
+		check(rr2.pick_relic(str(kandidater[0])), "valet går att svara på")
+		check(rr2.relics.size() == 1, "och då ligger reliken på körningen", str(rr2.relics))
+		check(not rr2.pending_draft_relic(), "och kön är tom efteråt")
+	# Ett VAL är deterministiskt: samma frö och samma ruta ger samma par.
+	var rr3 := _run(4242)
+	var ev2 := rr3._open_chest(nod)
+	check(str(ev2.get("val", [])) == str(kandidater), "samma frö ger samma kandidater (valet är seedat)",
+		"%s mot %s" % [str(ev2.get("val", [])), str(kandidater)])
 
 	print("")
 	print("%d kontroller, %d fel" % [checks, fails])
@@ -130,3 +153,13 @@ func _spela(run: Run) -> void:
 		if n == null:
 			break
 		run._resolve(n)
+		# RELIKVALET SVARAS (VC-paritet 15/10): reliken ges inte längre av att man går in i rummet —
+		# den är ett VAL (referensens "Choose a reward"), och först när spelaren svarar hamnar den på
+		# körningen. Provet tar den första kandidaten: det här provet mäter leveransen, inte policyn.
+		var svar := 0
+		while run.pending_draft_relic() and svar < 8:
+			svar += 1
+			var k: Array = run.pending_relics()
+			if k.is_empty():
+				break
+			run.pick_relic(str(k[0]))

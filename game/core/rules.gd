@@ -25,6 +25,25 @@ static func damage(card_damage: float, combo: int, base_damage: float, amount: f
 static func damage_multiplier(combo: int) -> int:
 	return combo + 1
 
+## KEDJEMULTIPLIKATORN, ETT TAL FÖR ALLT (VC-paritet 15/10). Referensens egna effekttexter skalar VARJE
+## värde med den: "Deal {0:combo:} damage", "Add {0:combo:} Mana", "Apply {0:combo:} Freeze",
+## "{KeywordName} {0:combo:} row", "Draw {0:combo:} card", "Add {0:combo:} coin", "Gain {0:combo:} XP",
+## "Gain {0:combo:} MaxHealth" — och "{0:combo:%}" för procentsatser. Vår multiplikator gjorde bara den
+## ena halvan: skadan skalades, rustningen/manan/draget/frysningen/knuffen gjorde det inte. Det är
+## därför kedjan hos oss är en skadekurva och hos dem en MOTOR.
+##
+## Referensens `GetComboMultiplier(isInCombo, playerModel, cardModel)` är en int och räknas PER KORT
+## (relicer, arcanas och gems kan ändra den; `KillEffect` har `additionalComboMultiplier`), och
+## `CardModel.RefreshReceivesComboMultiplier()` gör flaggan dynamisk — därför är den här funktionen
+## den ENDA platsen vår kod frågar efter talet.
+static func combo_multiplier(combo: int) -> int:
+	return maxi(0, combo + 1)
+
+## Ett effektvärde skalat av kedjan. `{0:combo:}` i referensens text betyder exakt det här — talet
+## gånger multiplikatorn — och gäller varje op, inte bara skadan (se `combo_multiplier`).
+static func scaled(amount: float, combo: int) -> float:
+	return amount * float(combo_multiplier(combo))
+
 ## Får kortet med `cost` spelas efter ett kort med `last_cost` utan att kedjan bryts?
 static func continues_chain(cost: int, last_cost: int) -> bool:
 	if cost == WILD_COST:

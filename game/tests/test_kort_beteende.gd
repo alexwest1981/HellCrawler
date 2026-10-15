@@ -68,6 +68,62 @@ func _initialize() -> void:
 	check(visad.damage == slagen.damage,
 		"och samma skada", "visad %.0f, slagen %.0f" % [visad.damage, slagen.damage])
 
+	# VC:s COMBO-VOKABULÄR (15/10). Deras egna texter: "This card always benefits from Combo, even if
+	# you break the Combo" (Easy Combo) och "Ends combo but always benefits from the multiplier"
+	# (Combo Breaker). Regeln är att BÅDA får multiplikatorn även när steget inte fortsätter — och att
+	# breakern betalar med hela kedjan.
+	print("")
+	print("— VC:s combo-vokabulär: Easy Combo och Combo Breaker —")
+	var c4 := Combat.new(99)
+	c4.begin([], [combat_enemy(100000.0, 5.0)])
+	c4.mana = 20
+	var lätt := Cards.Card.new()
+	lätt.id = "prov_latt"
+	lätt.cost = 0
+	lätt.card_type = "attack"
+	lätt.keywords = ["EasyCombo"]
+	lätt.effects = [{"op": "damage", "damage": 10, "hits": 1}]
+	var brytare := Cards.Card.new()
+	brytare.id = "prov_bryt"
+	brytare.cost = 0
+	brytare.card_type = "attack"
+	brytare.keywords = ["ComboBreaker"]
+	brytare.effects = [{"op": "damage", "damage": 10, "hits": 1}]
+	var vård := Cards.Card.new()
+	vård.id = "prov_vard"
+	vård.cost = 2
+	vård.card_type = "item"
+	vård.effects = [{"op": "armor", "amount": 2}]
+	c4.hand = [db["lash"], db["dagger"], lätt, brytare, vård]
+	c4.play(0)                                   # lash (0): kedjan står på 1
+	c4.play(0)                                   # dagger (1): kedjan står på 2
+	var rl := c4.play(0)                         # easy combo (0) BRYTER steget, men får multiplikatorn
+	check(rl.multiplier == 3, "Easy Combo får multiplikatorn även när steget inte fortsätter",
+		"×%d, combo efter %d" % [rl.multiplier, c4.combo])
+	var rb := c4.play(0)                         # combo breaker (0): får den, och konsumerar kedjan
+	check(rb.multiplier == 2 and c4.combo == 0,
+		"Combo Breaker får multiplikatorn och lämnar kedjan på noll",
+		"×%d, combo efter %d" % [rb.multiplier, c4.combo])
+	# VC:s `{0:combo:}`: multiplikatorn gäller VARJE effektvärde, inte bara skadan. Kortet här ger
+	# 2 rustning utan kedja — och 2 x multiplikatorn med.
+	var c6 := Combat.new(99)
+	c6.begin([], [combat_enemy(100000.0, 5.0)])
+	c6.mana = 20
+	c6.hand = [vård]
+	c6.play(0)
+	check(is_equal_approx(c6.armor, 2.0), "utan kedja ger rustningskortet sitt basvärde",
+		"%.0f rustning" % c6.armor)
+	var c5 := Combat.new(99)
+	c5.begin([], [combat_enemy(100000.0, 5.0)])
+	c5.mana = 20
+	c5.hand = [db["lash"], db["dagger"], vård]
+	c5.play(0)
+	c5.play(0)                                   # kedjan står på 2 -> multiplikator 3
+	c5.armor = 0.0
+	c5.play(0)                                   # kostnad 2 > 1: steget FORTSÄTTER
+	check(is_equal_approx(c5.armor, 6.0), "och med kedjan skalas rustningen som skadan (2 x 3)",
+		"%.0f rustning" % c5.armor)
+
 	print("— kortet som stannar i spel (Crawlers + Duration) —")
 	var c2 := Combat.new(2026)
 	c2.begin([], [combat_enemy(100000.0, 5.0)])

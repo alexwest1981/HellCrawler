@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d kort",
  "ui.draft.prompt": "VÄLJ KORT: 1-%d (eller klicka)",
  "ui.draft.title": "NIVÅ %d — välj ett kort",
+ "ui.draft.relic": "RELIK FUNNEN — välj en",
  "ui.draft.evo": "UPPGRADERING: %s → %s",
  "ui.battle.title": "STRID",
  "ui.battle.play_all": "Spela allt (P)",

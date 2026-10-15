@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d Karten",
  "ui.draft.prompt": "KARTE WÄHLEN: 1-%d (oder klicken)",
  "ui.draft.title": "STUFE %d — Karte wählen",
+ "ui.draft.relic": "RELIKT GEFUNDEN — wähle einen",
  "ui.draft.evo": "VERBESSERUNG: %s → %s",
  "ui.battle.title": "KAMPF",
  "ui.battle.play_all": "Alles spielen (P)",

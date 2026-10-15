@@ -267,8 +267,33 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 			c.gold = 10 + stage.difficulty * 5
 			f.nodes.append(c)
 			kistor += 1
+	_relikrum(f, rng, rooms)
 	_facklor(f, rng, rooms)
 	return f
+
+
+## RELIKRUMMET (VC-paritet 15/10). Referensen har egna relikrum (`roomtemplates-relics` i dess
+## bundle-lista) och delar ut reliker som ett VAL, inte som en lott. Ett rum per våning: över tre
+## våningar möter spelaren tre relikval, och kan alltså skaffa Kedjestenen med avsikt — vilket är
+## förutsättningen för att kedjan ska kunna vara låst bakom den (se Combat.KEDJAN_KRÄVER_RELIK).
+static func _relikrum(f: Floor, rng: RandomNumberGenerator, rooms: Array) -> void:
+	if rooms.size() < 3:
+		return
+	var upptagna := {}
+	for n in f.nodes:
+		upptagna[n.pos] = true
+	var kandidater := []
+	for i in range(1, rooms.size() - 1):
+		var rutor := _väggrutor(f, rooms[i], upptagna)
+		if not rutor.is_empty():
+			kandidater.append(rutor)
+	if kandidater.is_empty():
+		return
+	var rum: Array = kandidater[rng.randi_range(0, kandidater.size() - 1)]
+	var n := FloorNode.new()
+	n.kind = "relic"
+	n.pos = rum[rng.randi_range(0, rum.size() - 1)]
+	f.nodes.append(n)
 
 
 ## FACKLORNA PÅ VÄGGARNA. Alex: *"Det behöver ut lite random facklor på väggarna ... det är väldigt

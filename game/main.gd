@@ -10884,6 +10884,32 @@ func _show_draft() -> bool:
 		draft_box.remove_child(child)
 		child.queue_free()
 	var choices := run.pending_draft()
+	# RELIKVALET (VC-paritet 15/10) ritas som en knapprad per relik i samma ruta som kortvalet:
+	# referensen öppnar `ReceiveRelicModal` — "Relic Found!" — och valet är ett val, inte en lott.
+	# En relik har ingen konst än, så en knapp med namn + text går att läsa; rubriken säger vad som
+	# händer, precis som bossvalets gör.
+	if run.pending_draft_relic():
+		draft_label.text = Tr.t("ui.draft.relic", "RELIK FUNNEN — välj en")
+		var alla: Dictionary = Relics.load_all()
+		var kk: float = maxf(1.0, _vy_korg.scale.x)
+		var bredd: float = minf((_vy_mått().x - 30.0) * kk, 420.0 * kk)
+		for i in choices.size():
+			var rd: Relics.RelicDef = alla.get(str(choices[i]))
+			if rd == null:
+				continue
+			var knapp := Button.new()
+			knapp.text = "%d  %s\n%s" % [i + 1, rd.name, rd.text]
+			knapp.custom_minimum_size = Vector2(bredd, 46.0 * kk)
+			knapp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			knapp.pressed.connect(_on_draft_pick.bind(i))
+			draft_box.add_child(knapp)
+		draft_panel.visible = true
+		draft_panel.move_to_front()
+		if crt != null:
+			_runt.move_child(crt, -1)
+		hand_zone.visible = false
+		battle_panel.visible = false
+		return true
 	# Bossens byte (M45) har sin egen rubrik: valet blir permanent, och det ska synas att det är
 	# något annat än en vanlig nivåuppgång.
 	draft_label.text = (Tr.t("ui.draft.boss", "BOSSENS BYTE — välj ett kort till samlingen")
@@ -11023,7 +11049,12 @@ func _on_draft_pick(index: int) -> void:
 	if index < 0 or index >= choices.size():
 		return
 	_sfx("draft_pick")     # valet av ett nytt kort är en belöning — det ska höras (M122)
-	run.pick_card(choices[index])
+	# RELIKVALET (VC-paritet 15/10) svaras i sin egen väg: korten går till leken, relikerna till
+	# körningen. Samma knapp, samma siffertangent — olika lager.
+	if run.pending_draft_relic():
+		run.pick_relic(choices[index])
+	else:
+		run.pick_card(choices[index])
 	_flush_events()
 	_show_draft()
 	_refresh()

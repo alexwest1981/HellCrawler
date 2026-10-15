@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d 枚",
  "ui.draft.prompt": "カードを選択: 1-%d (クリックでも可)",
  "ui.draft.title": "レベル %d — カードを選ぶ",
+ "ui.draft.relic": "遺物を発見 — 1つ選ぶ",
  "ui.draft.evo": "進化: %s → %s",
  "ui.battle.title": "戦闘",
  "ui.battle.play_all": "すべて出す (P)",

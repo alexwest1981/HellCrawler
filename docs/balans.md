@@ -461,3 +461,110 @@ sådant val läsbart, och `frozen` finns i maskinen — det är den kopplingen s
 Ordningen de tas i är inte tabellordningen: **C** prövades först och lades ned, **A** är byggd, **B** är
 halvvägs (flaggan per kort är byggd och mätt, relicen som låser upp kedjan är kvar), sedan **D** (kortdata
 är Alex' konst) och sist **E** (ny mekanik i striden).
+
+---
+
+## 9. VC-paritet: att kopiera referensens combo och dess flöde (15/10)
+
+Alex' besked var inte "inspireras av" utan **"rent av kopiera"**: combon som i VC, och HELA deras
+spelflöde. Arbetet har därför gått till deras egen kod och deras egna texter, och varje regel nedan
+står med den sträng ur spelets lokaliserings-tabeller som säger den.
+
+### 9a. Källor, och varför de räckte
+
+`il2cpp/dump.cs` (Il2CppDumper, 45 MB) har **typer, fält och metodsignaturer — inga metodkroppar**.
+Exakta formler går alltså inte att läsa därur; det var den gamla utredningens vägg. Vägen runt den:
+spelets **egna texter**. `localization-string-tables-english(en)_assets_all.bundle` bär 13
+MonoBehaviour-tabeller med **2 271 strängar** — korttexter, reliktexter, hjälptexter, menyer,
+nyckelordsdefinitioner — och där står reglerna i ord. Utdraget ligger i
+`scratch/vc_texter/*.json` (`vc_tabeller_ut.py`); flödes-specen i
+`scratch/drangsrapporter/vc-flode-spec.md` (297 rader, varje påstående med strängnyckel eller
+`dump.cs`-rad, och en egen lista över vad som inte kunde beläggas).
+
+### 9b. Combon, ordagrant ur referensen
+
+| Regel | Referensens egen text |
+|---|---|
+| Kedjan är stigande manakostnad | `633906212883: "Play cards in ascending {0} Mana cost order for a Combo Multiplier."` |
+| Wild-kort bryggar kedjor | `158106791638413313: "Wild cards can be used to connect combos together to make bigger Combos."` |
+| **Multiplikatorn gäller varje effektvärde** | `{0:combo:}` på skada, mana, rustning, frys, dra, rader, fiender, XP, mynt, HP, tur — och `{0:combo:%}` för procentsatser |
+| Kedjan nollställs mellan turer | `91224384860053509: "Combos don't clear between turns."` (en Arcana tar bort förvalet) |
+| Breakern konsumerar kedjan | `"Ends combo but always benefits from the multiplier."` / `"Consumes the combo to benefit from the multiplier."` |
+| Easy Combo behåller den | `"This card always benefits from Combo, even if you break the Combo."` |
+| Omvänd riktning finns | `"Reverses Combo direction."` |
+| Handen kan sorteras i kedjeordning | `190734195120615427: "Mana Ascending"` (`Sort Hand`) |
+| Kedjan är en hög man ser | `ComboPileModel` (PlayerModel fält `_comboPile`, `DiscardComboPile()`, `CardCombo`) |
+| Multiplikatorn kräver reliken | `633906212882/883: "Combo Stack"` — `ComboPileModel._comboRelic` + `IsUnlockedAndActive` |
+| Talet räknas per kort och är dynamiskt | `GetComboMultiplier(isInCombo, playerModel, cardModel) -> int`, `CardModel.RefreshReceivesComboMultiplier()`, `CardStats.ComboMultiplier` |
+
+**Byggt:** multiplikatorn är EN funktion (`Rules.combo_multiplier`) och EN skalning (`Rules.scaled`)
+som alla effektvärden går genom — rustning, mana, läkning, dra, knuff, frys, inte bara skada. Det var
+den stora skillnaden mot vår: hos oss var kedjan en skadekurva, hos dem en motor. Plus **Easy Combo**
+och **Combo Breaker** som kort-nyckelord (`card.keywords`), och att kedjan redan nollställdes mellan
+turer (samma som referensens förval).
+
+### 9c. MÄTT: skalningen gjorde manan positiv och spelet mer skillnadsstyrt
+
+| | före (M126) | efter (VC-skalningen) |
+|---|---|---|
+| slump | 9 | 11 |
+| auto | 18 | **25** |
+| rutt | 21 | **32** |
+| mål | 18 | 25 |
+| avvärj | 31 | **38** |
+| kvot | 2,3x | **2,9x** |
+| mana netto (startleken) | −40 … −58 | **+93 … +102** |
+
+Manan går från att aldrig nå plus till att gå kraftigt plus — det är referensens mana-kort
+(`"Add {0:combo:} Mana"`) som gör sitt. Det är också ratt D:s svar: gratiskorten behöver inte kosta
+något, kedjan gör dem lönsamma, precis som hos referensen. En grind föll: slumpen klarade 11 av 90
+mot taket 10 — **en körning över**, och grinden står kvar (att flytta den vore att flytta målet).
+
+### 9d. MÄTT: kedjan låst bakom reliken — tre försök, samma svar
+
+Referensens modell säger att multiplikatorn kräver `Combo Stack`. Vi byggde först vägen dit: relikerna
+blev ett **VAL** (se 9e) och **relikrum** (`Dungeon._relikrum`, ett per våning, referensens
+`roomtemplates-relics`), så Kedjestenen går att skaffa med avsikt. Sedan mättes flaggan:
+
+| försök | vad som ändrades | resultat |
+|---|---|---|
+| 1 | relikrum + relikval | 1–5 av 90 klarade |
+| 2 | + kortens skada x2 (grundvärdet ska bära sig självt) | 1 av 90 |
+| 3 | + fiendernas HP x2 (referensens parning) | 1 av 90 |
+
+Slutsatsen är mätt, inte tyckt: **vår lek är byggd KRING kedjan** — multiplikatorn är skademotorn
+(×2–×4 per kort), inte en krydda. Referensen kan låsa den därför att dess reliker är 67 stycken ur
+relikrum, ljuskällor och NPC-gåvor: Combo Stack kommer i praktiken alltid tidigt. Att låsa kedjan
+kräver alltså **relikabundans först**, inte bara ett relikrum per våning. Flaggan
+(`Combat.KEDJAN_KRÄVER_RELIK`) är rätt modell och fel läge: den står på `false` med de tre mätningarna
+i kommentaren, och slås på när relikerna är lika många som referensens.
+
+### 9e. "Choose a reward": reliken blev ett val
+
+Referensen ger sina reliker som ett val (`ReceiveRelicModal`: `56142799869829120: "{Relic} Found!"`,
+`56142799869829121: "New!"`, och NPC-raden `31543270518784: "I gift unto you this Relic as a reward
+for finding me."`), aldrig som en lott i en kista. Vår kista gav reliken på 4 % — alltså blev
+`Run.pick_relic` + relikrummet + draft-panelen (samma ruta, samma siffertangenter) den nya vägen:
+två kandidater, spelaren väljer, kandidaterna ur körningens seed och rummets position (determinismen
+gäller även val). Slumppolicyn väljer likformigt bland dem, de kompetenta tar Kedjestenen först
+(`_relikvärde`) — det är samma fråga som för korten, och svaret ska mätas på samma sätt.
+
+### 9f. Flödet: vad referensen gör, och vad vi har
+
+Flödesspecen (`vc-flode-spec.md`) i sammandrag, med vår status:
+
+| Steg | Referensen | Vi |
+|---|---|---|
+| Meny → Crawler-val → by (hub) | `CharacterSelect`, `TownViewController` med Inn/Shop/Fortune Teller/Museum/Town Hall/Blacksmith/Graveyard | **saknas** (vi har meny → bana) |
+| Världskarta med underbanor | `LevelSelect`, `MapLocationInfoPanel`, "Cleared", Endless, Hurry | **delvis** (vår bana-karusell) |
+| Dungeonen | förstaperson-rutnät, `EventMarker` per ruta, rummen PÅTRÄFFAS | **delvis** (nodkarta; vi har rumstyper, inte gång) |
+| Rumstyper | strid, vaktare/coffin, offerbord, evolutionsbord, gemkista, relikrum, NPC-dialog, handlare, bakhåll | **strid, kista, relikrum, fackla, boss, spade** — offerbord/evolution/NPC/handlare saknas |
+| Level up | XP-bar fylld av golvkristaller → `ChooseCardModal` "Level Up!"/"Choose a reward", **Reroll / Skip / Banish**, Luck ger chans till 4 val | **delvis**: kort ELLER gem, Luck→4 val ✓; Reroll/Skip/Banish saknas |
+| Nedstigning | spaden gräver upp utgången (`Descend`), `FloorTransitionState` | ✓ (spade + nedstigning) |
+| Slut | boss/Red Death → `DungeonCompleteState` → **Resultatskärm** (tid, våningar, mynt, level, fiender, Max Combo, bonusmynt, New Best) | **delvis** (slutskärm utan Max Combo/resultatrad) |
+| Meta | mynt → `TotalCoins`, byggnader, upplåsningar, achievements, PowerUps per rang | **delvis** (splitter/träd, ingen by) |
+
+Nästa steg i flödet, i den ordning mätningen pekar: **Reroll/Skip/Banish i kortvalet** (billigt, och
+referensens egen resurs), **offerbordet** (ett kort blir en permanent stat/HP/mana — mekaniken finns
+redan som `Evolution`), **resultatskärmen med Max Combo** (mätbar direkt ur `Combat`), och sist
+**byn med byggnader** (störst, och det enda som kräver ny scen).

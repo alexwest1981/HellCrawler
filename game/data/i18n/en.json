@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d cards",
  "ui.draft.prompt": "CHOOSE A CARD: 1-%d (or click)",
  "ui.draft.title": "LEVEL %d — pick a card",
+ "ui.draft.relic": "RELIC FOUND — choose one",
  "ui.draft.evo": "UPGRADE: %s → %s",
  "ui.battle.title": "COMBAT",
  "ui.battle.play_all": "Play all (P)",

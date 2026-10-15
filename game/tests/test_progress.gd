@@ -69,23 +69,58 @@ func _initialize() -> void:
 			bossbyten += 1
 	check(level_ups >= 3, "körningen gav level ups", "%d st" % level_ups)
 	check(run.level == 1 + level_ups, "nivån stämmer med antalet level ups", "nivå %d" % run.level)
-	check(run.pending_draft().size() == 3, "ett kortval väntar på svar")
+	# Det FÖRSTA väntande valet kan vara ett relikval (VC-paritet 15/10): relikrummen och kistornas
+	# relikfönster lägger sina val i samma kö. Provet letar upp det första KORTVALET i stället för att
+	# anta att kön börjar med ett.
+	var första_kortval: Array = []
+	for d in run.drafts:
+		if not bool(d.get("relic", false)):
+			första_kortval = d.choices
+			break
+	check(första_kortval.size() == 3, "ett kortval väntar på svar", str(första_kortval))
 	check(run.deck.size() == start_size, "leken växer inte förrän spelaren väljer")
 
 	print("— att välja kort —")
-	var offered := run.pending_draft()
+	var offered: Array = []
+	for d in run.drafts:
+		if not bool(d.get("relic", false)):
+			offered = d.choices
+			break
 	var queued := run.drafts.size()
 	check(run.pick_card("finns_inte") == false, "okänt kort nekas")
 	check(run.pick_card(offered[0]), "ett av de erbjudna korten går att välja", offered[0])
 	check(run.deck.size() == start_size + 1, "kortet hamnade i leken", "%d kort" % run.deck.size())
 	check(run.drafts.size() == queued - 1, "kön gick vidare")
-	while not run.drafts.is_empty():
-		run.pick_card(run.pending_draft()[0])
+	var köade_val := run.drafts.size() + 1        # +1: det första valet svarades strax ovanför
+	var tagna := 1                                # +1: valet strax ovanför loopen gav ett kort
+	var struckna := 0                             # kortval som ströks (uppgraderingens delar är borta)
+	var relikval := 0
+	var varv := 0
+	while not run.drafts.is_empty() and varv < 200:
+		varv += 1
+		# RELIKVALET (VC-paritet 15/10) svaras i sin egen väg — `pick_card` vägrar en relik, och en
+		# loop som bara svarar kort snurrar då evigt (mätt: exit 124, timeout).
+		if run.pending_draft_relic():
+			var rk: Array = run.pending_relics()
+			if rk.is_empty() or not run.pick_relic(str(rk[0])):
+				break
+			relikval += 1
+			continue
+		if run.pick_card(run.pending_draft()[0]):
+			tagna += 1
+		else:
+			struckna += 1                # valet ströks av `pick_card` — det är inte ett svar
 	check(run.pending_draft().is_empty(), "alla kortval besvarades")
-	# Ett kort per nivåuppgång OCH ett per bossbyte (M45): bossens kort är också ett kort i leken.
-	check(run.deck.size() == start_size + level_ups + bossbyten,
-		"leken växte med ett kort per nivå och ett per bossbyte",
-		"%d → %d" % [start_size, run.deck.size()])
+	# Leken växer med ETT kort per besvarat kortval — relikvalen ger inga kort (de går till körningen).
+	# Antalet kortval är minst antalet nivåuppgångar; en bossstrid ger TVÅ event (`boss_reward` och
+	# `level_up`) men ETT val, så den gamla raden "nivåer + byten" räknade event, inte val.
+	check(tagna + struckna >= level_ups, "varje nivåuppgång gav ett kortval",
+		"%d tagna + %d strukna mot %d nivåer" % [tagna, struckna, level_ups])
+	check(tagna + struckna + relikval == köade_val, "varje köat val besvarades",
+		"%d tagna + %d strukna + %d relik mot %d köade" % [tagna, struckna, relikval, köade_val])
+	check(run.deck.size() == start_size + tagna,
+		"leken växte med ett kort per taget kortval",
+		"%d → %d (%d tagna, %d strukna, %d relikval)" % [start_size, run.deck.size(), tagna, struckna, relikval])
 
 	print("— samma seed, samma val (kortvalen har egen RNG-ström) —")
 	# KORTVALENS EGEN RNG-STRÖM: samma seed ska ge samma erbjudande — men jämförelsen måste ske vid

@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d carte",
  "ui.draft.prompt": "SCEGLI UNA CARTA: 1-%d (o clicca)",
  "ui.draft.title": "LIVELLO %d — scegli una carta",
+ "ui.draft.relic": "RELIQUIA TROVATA — scegline una",
  "ui.draft.evo": "POTENZIAMENTO: %s → %s",
  "ui.battle.title": "COMBATTIMENTO",
  "ui.battle.play_all": "Gioca tutto (P)",

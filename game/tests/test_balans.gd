@@ -290,6 +290,13 @@ func _play_nodes(run: Run, policy: String) -> void:
 			if not run.finished and node.kind == "boss" and not node.cleared:
 				run._resolve(node)
 				_svara_pa_kortval(run, policy != "slump")
+		# RELIKRUMMEN (VC-paritet 15/10) tas alltid: valet är gratis och relikerna är permanenta för
+		# körningen. Går de förbi mäter provet en spelare som inte läser sin egen karta.
+		for node in floor_nodes:
+			if run.finished or node.cleared or node.kind != "relic":
+				continue
+			run._resolve(node)
+			_svara_pa_kortval(run, policy != "slump")
 		for node in floor_nodes:
 			if not run.finished and node.kind == "shovel" and not node.cleared:
 				run._resolve(node)
@@ -306,6 +313,23 @@ func _svara_pa_kortval(run: Run, kompetent: bool) -> void:
 	var vakt := 0
 	while not run.pending_draft().is_empty() and vakt < 64:
 		vakt += 1
+		# RELIKVALET SVARAS FÖRST (VC-paritet 15/10). En kompetent spelare väljer relik med avsikt —
+		# och Kedjestenen först av alla, för den är spelets skademotor (kedjan multiplicerar varje
+		# kort). Slumppolicyn väljer likformigt, precis som den gör bland korten: det är samma fråga
+		# ("går det att spela bra?") och samma svar ska gälla båda valen.
+		if run.pending_draft_relic():
+			var kandidater: Array = run.pending_relics().duplicate()
+			if kandidater.is_empty():
+				return
+			var valt := ""
+			if not kompetent:
+				valt = str(kandidater[policy_rng.randi_range(0, kandidater.size() - 1)])
+			else:
+				kandidater.sort_custom(func(a, b): return _relikvärde(str(a)) > _relikvärde(str(b)))
+				valt = str(kandidater[0])
+			if not run.pick_relic(valt):
+				return
+			continue
 		var val: Array = run.pending_draft().duplicate()
 		if not kompetent:
 			# Seedad slumpordning — `Array.shuffle()` använder den GLOBALA rng:n och gjorde provet
@@ -323,6 +347,30 @@ func _svara_pa_kortval(run: Run, kompetent: bool) -> void:
 				break
 		if not svarat:
 			return
+
+## Ett RELIKVALS värde för den kompetenta policyn. Kedjestenen först: den är spelets skademotor
+## (multiplikatorn gäller varje effektvärde), och referensens egen text säger samma sak — reliken är
+## det som gör kedjan till en belöning. Därefter efter hur många kort den rör: mana och hand varje tur,
+## sedan max-HP, rustning, skada, läkning, guld.
+func _relikvärde(id: String) -> float:
+	match id:
+		"combo_stack":
+			return 100.0
+		"ash_chalice":
+			return 40.0
+		"wide_hand":
+			return 35.0
+		"iron_heart":
+			return 30.0
+		"sharp_edge":
+			return 25.0
+		"banded_coat":
+			return 20.0
+		"field_kit":
+			return 15.0
+		"greedy_fist":
+			return 10.0
+	return 0.0
 
 ## Grov rangordning av ett kortval för autospelaren: skada först, sedan rustning, sedan mana.
 ## ETT KORT SOM STANNAR I SPEL ÄR VÄRT MER ÄN SIN ENGÅNGSSIFFRA (M119): det lägger sin effekt på bordet

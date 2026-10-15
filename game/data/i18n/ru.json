@@ -20,6 +20,7 @@
  "ui.hud.kort": "%d карт",
  "ui.draft.prompt": "ВЫБЕРИТЕ КАРТУ: 1-%d (или щёлкните)",
  "ui.draft.title": "УРОВЕНЬ %d — выберите карту",
+ "ui.draft.relic": "РЕЛИКВИЯ НАЙДЕНА — выберите одну",
  "ui.draft.evo": "УЛУЧШЕНИЕ: %s → %s",
  "ui.battle.title": "БОЙ",
  "ui.battle.play_all": "Сыграть всё (P)",

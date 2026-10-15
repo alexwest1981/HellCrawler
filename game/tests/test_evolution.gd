@@ -167,6 +167,10 @@ func _initialize() -> void:
 	run.play_out()
 	var erbjudna := []
 	for d in run.drafts:
+		# Relikvalen ligger i samma kö men bär RELIK-id:n, inte kort-id:n (VC-paritet 15/10) — de
+		# söks inte i kortdatat.
+		if bool(d.get("relic", false)):
+			continue
 		for id in d.choices:
 			if db[id].keywords.has(Evolution.KEYWORD):
 				erbjudna.append(id)
@@ -188,6 +192,13 @@ func _initialize() -> void:
 	var tagna := 0
 	var nekade := 0
 	while not run.drafts.is_empty():
+		# RELIKVALET (VC-paritet 15/10) svaras först: `pick_card` vägrar en relik, och utan den här
+		# grenen snurrar loopen evigt på ett val den aldrig kan svara på (mätt: exit 124, timeout).
+		if run.pending_draft_relic():
+			var rk: Array = run.pending_relics()
+			if rk.is_empty() or not run.pick_relic(str(rk[0])):
+				break
+			continue
 		var val: Array = run.pending_draft()
 		var evo_id := ""
 		for id in val:
@@ -225,6 +236,8 @@ func _initialize() -> void:
 	run_b.play_out()
 	var erbjudna_b := []
 	for d in run_b.drafts:
+		if bool(d.get("relic", false)):
+			continue                     # relikvalen bär relik-id:n, inte kort-id:n (VC-paritet 15/10)
 		for id in d.choices:
 			if db[id].keywords.has(Evolution.KEYWORD):
 				erbjudna_b.append(id)
