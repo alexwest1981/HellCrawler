@@ -160,6 +160,13 @@ static func från_event(e: Dictionary) -> Dictionary:
 			return {"titel": Tr.t("card." + id, id.to_upper()), "ikon": ikon,
 				"text": ", ".join(delar), "färg": färg}
 		"chest":
+			# RELIKEN (M123) FÖRST: en relik ger varken guld eller HP, så den skulle falla på vakten
+			# nedanför ("ingenting att visa = ingen stund") — och då vore lagrets största ögonblick
+			# det enda som inte syntes. Namnet och texten kommer ur datan, som kortens.
+			if vad == "relik":
+				return {"titel": Tr.t("ui.reward.relic", "RELIK"), "ikon": "relik",
+					"text": "%s — %s" % [str(e.get("namn", "")), str(e.get("text", ""))],
+					"färg": Color(0.82, 0.58, 0.98)}
 			# Ingenting att visa = ingen stund. En kista som ger 0 guld och 0 hp (man stod redan på
 			# full hälsa) ska inte fira någonting: en stund för noll är en lögn om vad man fick.
 			if int(e.get("gold", 0)) <= 0 and int(e.get("hp", 0)) <= 0:
@@ -389,6 +396,16 @@ func _rita_ikon(ruta: CanvasItem, r: Rect2, alfa: float) -> void:
 			c + Vector2(-8.4, -1.0), c + Vector2(8.4, -1.0), c + Vector2(0.0, 10.0),
 		]), Color(0.80, 0.20, 0.22, alfa))
 		ruta.draw_rect(Rect2(c + Vector2(-3, -4), Vector2(2, 2)), Color(0.98, 0.72, 0.70, alfa))
+		return
+	if _ikon == "relik":
+		# AMULETTEN (M123): en ring med en sten i, för relikerna är det enda i spelet som är
+		# UPPSAMAT i stället för förbrukat. Färgen skiljer den från guld och mana på en bildruta.
+		ruta.draw_arc(c, 7.0, 0.0, TAU, 24, Color(0.86, 0.70, 0.42, alfa), 2.2)
+		ruta.draw_colored_polygon(PackedVector2Array([
+			c + Vector2(0, -4.4), c + Vector2(3.6, 0), c + Vector2(0, 4.4), c + Vector2(-3.6, 0),
+		]), Color(0.62, 0.34, 0.90, alfa))
+		ruta.draw_rect(Rect2(c + Vector2(-1.2, -1.6), Vector2(2.4, 2.4)),
+			Color(0.92, 0.80, 0.98, alfa))
 		return
 	if _ikon == "mana":
 		# Mana-droppen/kristallen: en romb i manablått med ljus kärna och glans

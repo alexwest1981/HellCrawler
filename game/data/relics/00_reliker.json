@@ -1,0 +1,33 @@
+[
+  {"id": "combo_stack", "name": "Kedjestenen",
+   "text": "Kedjan tar ett steg till: varje kort som fortsätter stiger två steg.",
+   "effekt": {"combo_extra": 1}},
+
+  {"id": "iron_heart", "name": "Järnhjärtat",
+   "text": "+15 max-HP.",
+   "effekt": {"max_hp": 15}},
+
+  {"id": "ash_chalice", "name": "Askbägaren",
+   "text": "+1 mana när turen börjar.",
+   "effekt": {"mana": 1}},
+
+  {"id": "wide_hand", "name": "Den breda handen",
+   "text": "+1 kort i handen.",
+   "effekt": {"hand": 1}},
+
+  {"id": "banded_coat", "name": "Nitade kappan",
+   "text": "+2 rustning när striden börjar.",
+   "effekt": {"armor": 2}},
+
+  {"id": "field_kit", "name": "Fältväskan",
+   "text": "+3 HP helas efter varje strid.",
+   "effekt": {"recovery": 3}},
+
+  {"id": "greedy_fist", "name": "Den giriga näven",
+   "text": "+20 % guld ur kistor och lik.",
+   "effekt": {"gold": 0.2}},
+
+  {"id": "sharp_edge", "name": "Den vässade eggen",
+   "text": "+4 skada på varje attack.",
+   "effekt": {"damage": 4}}
+]

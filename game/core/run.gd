@@ -43,6 +43,18 @@ var damage_per_room := 0.04
 ## strypas förrän ratt B (kedjan som belöning) ger spelaren något annat att vara bra på.
 var xp_per_extra := 1.0
 var recovery := 3.0                ## helas så här mycket efter varje strid
+## RELIKERNA (M123). Körningens EGNA uppgraderingar — till skillnad från metans, som är permanenta.
+## De bor i `data/relics/` och rör bara rattar som redan finns; `Relics.RATTAR` är listan, och en
+## ratt ingen kod läser skriver `Relics.load_all` ut som fel i stället för att tiga.
+var relics: Array = []             ## id:n, i den ordning de hittades
+var relic_mana := 0
+var relic_hand := 0
+var relic_armor := 0
+var relic_damage := 0.0
+var relic_recovery := 0.0
+var relic_gold := 0.0
+var combo_bonus := 0               ## Kedjestenen: extra steg varje gång kedjan fortsätter
+
 var enemies_per_encounter := [1, 3]
 ## LEDET (M100): hur en strid ställer upp sig. EN källa för striden (raderna i `begin_fight`) och vyn
 ## (`_stage_fight`) — annars slåss två fiender i främre raden medan bara en syns, eller tvärtom.
@@ -275,11 +287,35 @@ func curse_scale() -> float:
 	var steg := meta.steg_fiende_faktor(stage.id) if meta != null else 1.0
 	return steg * (1.0 + (meta.stat("curse") if meta != null else 0.0))
 
+## Plocka upp en relik: svarar med beskrivningen, eller null om id:t är okänt eller redan taget.
+## Samma relik två gånger gör ingenting — annars vore en kista med en dubblett en strafflott.
+func add_relic(id: String) -> Relics.RelicDef:
+	var db := Relics.load_all()
+	if not db.has(id) or relics.has(id):
+		return null
+	var r: Relics.RelicDef = db[id]
+	relics.append(id)
+	for nyckel in r.effect:
+		var v := float(r.effect[nyckel])
+		match str(nyckel):
+			"combo_extra": combo_bonus += int(v)
+			"max_hp":
+				max_hp += v
+				hp += v
+			"mana": relic_mana += int(v)
+			"hand": relic_hand += int(v)
+			"armor": relic_armor += int(v)
+			"recovery": relic_recovery += v
+			"gold": relic_gold += v
+			"damage": relic_damage += v
+	return r
+
+
 func gold_bonus() -> float:
 	# `gold` är ren vinst; `curse` är byteshandeln (tåligare fiender mot mer guld). Två nycklar, för
 	# de är två olika köp i trädet. Trappans steg ligger utanpå båda (önskemål 24, punkt 4).
 	var steg := meta.steg_guld_faktor(stage.id) if meta != null else 1.0
-	return steg * (1.0 + stage.gold_bonus
+	return steg * (1.0 + stage.gold_bonus + relic_gold
 		+ ((meta.stat("curse") + meta.stat("gold")) if meta != null else 0.0))
 
 ## En nyckel ur trädet som heltal, 0 utan meta. Raden finns för att de sju nya noderna annars hade
@@ -380,6 +416,23 @@ func _open_chest(node: Dungeon.FloorNode) -> Dictionary:
 	var sp := Meta.kista_splitter(floor_index + 1)
 	shards += sp
 	var slag := (seed_value + node.pos.x * 31 + node.pos.y * 17) % 100
+	# RELIKEN (M123): ett EGET, smalare fönster än ädelstenen — en relik ska vara en händelse man
+	# minns, inte något man räknar med varannan kista. Slaget är detsamma som guld/läkning/sten
+	# (seedat), så samma kista ger samma sak varje gång, och en relik som redan plockats upp
+	# lämnas tillbaka till högen i stället för att bli en dubblett.
+	if slag < 4:
+		var lediga := []
+		for rid in Relics.load_all():
+			if not relics.has(rid):
+				lediga.append(rid)
+		if not lediga.is_empty():
+			var rng := RandomNumberGenerator.new()
+			rng.seed = seed_value + node.pos.x * 6151 + node.pos.y * 104729
+			var r: Relics.RelicDef = add_relic(str(lediga[rng.randi_range(0, lediga.size() - 1)]))
+			if r != null:
+				events.append({"type": "relic", "id": r.id, "name": r.name, "text": r.text})
+				return {"type": "chest", "vad": "relik", "relik": r.id, "namn": r.name,
+					"text": r.text, "shards": sp}
 	# Två trädnoder flyttar FÖNSTREN i samma seedade slag: girigheten ger fler stenfönster (gem_find)
 	# och färre läkefönster (chest_luck). Slaget är detsamma — bara gränserna rör sig.
 	var sten_fönster := 15 + stat_int("gem_find") * 10
@@ -459,7 +512,11 @@ func rum_svarighet(node: Dungeon.FloorNode, is_boss: bool = false) -> int:
 		return 1
 	if explore == null:
 		return 1
-	return Dungeon.rum_svarighet(explore.floor_ref, node.pos, seed_value)
+	# RELIKERNA GÖR DJUPET FARLIGARE (M123). En relik är kraft man BÄR, och kraft ska kosta — annars
+	# är den ren uppsida. Mätt: utan motvikt lyfte relikerna slumpen från 5 till 10 av 90 och sänkte
+	# kvoten skicklighet/slump från 3,0x till 1,9x, alltså gjorde spelet TURLIGARE (samma läxa som
+	# blandade pack gav). Varje relik höjer rummets svårighetsgrad ett steg, upp till taket.
+	return mini(4, Dungeon.rum_svarighet(explore.floor_ref, node.pos, seed_value) + relics.size())
 
 ## Bygg striden för en nod — men spela den inte. UI och tester äger speltiden.
 func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
@@ -508,6 +565,13 @@ func begin_fight(node: Dungeon.FloorNode, is_boss: bool) -> Combat:
 	# RUSTNINGEN (M75): poolen lämnas till striden och hämtas tillbaka i `finish_fight`. Är poolen
 	# mindre än grunden ur metan får man grunden — annars började en körning med 0 hur mycket rustning
 	# man än köpt för splitter.
+	# RELIKERNA (M123) läggs på EFTER metan: de är körningens egna, inte permanenta, och de rör bara
+	# rattar som redan fanns (mana, hand, rustning, skada på attacken).
+	combat.relic_damage = relic_damage
+	combat.combo_bonus = combo_bonus
+	combat.base_mana += relic_mana
+	combat.base_hand += relic_hand
+	combat.armor_stat += relic_armor
 	armor_stat = combat.armor_stat
 	armor = maxf(armor, float(armor_stat))
 	armor_tak = maxf(armor_tak, maxf(armor, float(armor_stat)))
@@ -543,7 +607,7 @@ func finish_fight(node: Dungeon.FloorNode, combat: Combat) -> void:
 		# är tre gånger så många kort (mätt: `fiender=3` gav slumppolicyn +20 procentenheter).
 		xp += int(round(float(def.xp) * (1.0 + float(antal - 1) * xp_per_extra) * (1.0 + stage.xp_bonus)))
 		# Märg i såret (recovery) läker per STRID; benskäraren (heal_kill) läker per DRÄPT fiende.
-		hp = min(max_hp, hp + recovery + float(stat_int("heal_kill") * antal))
+		hp = min(max_hp, hp + recovery + relic_recovery + float(stat_int("heal_kill") * antal))
 		# BOSSEN FÖRST (M45): *"När bossen dör skall ett minigame ge en 3 kort att välja mellan"* —
 		# bytet är det som hör till bossens död, och nivåuppgången (som bossens xp gav) kommer efter.
 		# Låg nivåvalet först visade panelen "NIVÅ 2 — välj ett kort" i samma sekund som bossen föll,

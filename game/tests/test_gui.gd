@@ -299,6 +299,28 @@ func _initialize() -> void:
 		check(_hugg_kvadar(main).is_empty(), "och bågen städar sig själv efter svepet",
 			"%d kvar" % _hugg_kvadar(main).size())
 
+	## SKAKET PÅ TRÄFFEN (M122): den STARKARE av två träffar vinner, styrkan dör ut, och när den gjort
+	## det står kameran EXAKT tillbaka — en kvarglömd offset är en sned bild för alltid. Att kamerans
+	## egna position inte rörs är hela poängen: den ägs av kamera-tweenen, och två skribenter på samma
+	## egenskap är buggklassen repot varnar för. Skaket bor därför i `h_offset`/`v_offset`.
+	print("")
+	print("— skaket på träffen —")
+	main._skak = 0.0
+	main.skaka(0.3)
+	main.skaka(0.1)
+	check(is_equal_approx(main._skak, 0.3), "den starkare av två träffar vinner", "%.2f" % main._skak)
+	main._skaka_vyn(0.05)
+	check(main.cam.h_offset != 0.0 or main.cam.v_offset != 0.0, "skaket flyttar kameran",
+		"%.4f / %.4f" % [main.cam.h_offset, main.cam.v_offset])
+	var kamera_före: Vector3 = main.cam.position
+	for i in 40:
+		main._skaka_vyn(0.05)     # 40 x 50 ms = 2 s: mer än avtaget behöver för att nå noll
+	check(is_equal_approx(main._skak, 0.0), "styrkan dör ut", "%.3f" % main._skak)
+	check(main.cam.h_offset == 0.0 and main.cam.v_offset == 0.0, "och kameran ställs exakt tillbaka",
+		"%.4f / %.4f" % [main.cam.h_offset, main.cam.v_offset])
+	check(main.cam.position.is_equal_approx(kamera_före), "utan att kamerans egen plats rörs",
+		str(main.cam.position))
+
 	## KORTETS EGNA EFFEKTER (M103): glansen vid hover och förbränningen när kortet spelas. Båda bor i
 	## EN överläggning ovanpå kortet (ui/kortfx.gdshader), för kortet är ett träd av Controls och en
 	## canvas-shader ritar per del — en brinnfläck hade hamnat olika på ramen, konsten och texten.

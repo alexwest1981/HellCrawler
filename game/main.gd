@@ -165,6 +165,8 @@ var _raddad_sjal := ""
 var _dagens := false
 var _enemies: Array = []        ## [{spr, bas, vick, fas, hp, läge, läge_t}] — figurerna i rummet, animerade i _process
 var _förvarningar: Array[Label3D] = []   ## telegrammets siffror (M121) — se `_förvarning_visa`
+var _skak := 0.0                          ## skakets styrka just nu (M122) — se `_skaka_vyn`
+var _skak_frö := RandomNumberGenerator.new()
 
 # Rutorna i fiendebilden (tools/gen_enemy_art.py), i den ordning de ligger i PNG:n. Siffrorna står
 # här och inte på sex ställen i koden: byter konsten ordning ska det vara en rad att ändra.
@@ -5341,6 +5343,35 @@ func _ruta_lager(l: Sprite3D, ruta: int) -> void:
 ## SMÅRÖRELSEN (idle) bor i `Vickning` och läggs ovanpå viloläget `bas`: en sinus per figur och
 ## bildruta, per typ (andar gungar i sidled, ben andas, djur trycker i höjd). Här nedan står bara
 ## VILKA som får röra sig — en död kropp och en träffad (som knuffas i Z av `_slag_kvitto`) står still.
+## SKAKET PÅ TRÄFFEN (M122). Kamerans POSITION och ROTATION ägs av `_animate_cam`/`_snap_cam` — två
+## skribenter på samma egenskap är den buggklass det här repot varnar för — så skaket läggs på
+## `h_offset`/`v_offset`, som ingen annan rör, och nollas i samma stund styrkan tagit slut.
+## En ruta i 480x270-vyn är ~0,0034 m på stridsavståndet; styrkan går i HELA rutor, inte i decimaler,
+## för det är så ett pixelspel skakar.
+const SKAK_PX := 0.0034          ## en spelpixel i världsmeter vid stridsavståndet
+const SKAK_AVTAG := 3.4          ## hur fort skaket dör, i styrka per sekund
+const SKAK_RUTOR := 4.0          ## största utslaget vid full styrka
+
+## Skaka vyn. Styrkan klipps till 0..1 (ett slag tar aldrig mer än hela rutan) och den STARKARE av
+## två träffar i samma bildruta vinner — annars skriver den andra över och slaget känns svagare.
+func skaka(styrka: float) -> void:
+	_skak = maxf(_skak, clampf(styrka, 0.0, 1.0))
+
+
+func _skaka_vyn(delta: float) -> void:
+	if cam == null:
+		return
+	if _skak <= 0.0:
+		if cam.h_offset != 0.0 or cam.v_offset != 0.0:
+			cam.h_offset = 0.0
+			cam.v_offset = 0.0
+		return
+	_skak = maxf(0.0, _skak - delta * SKAK_AVTAG)
+	var px := _skak * SKAK_PX * SKAK_RUTOR
+	cam.h_offset = _skak_frö.randf_range(-px, px)
+	cam.v_offset = _skak_frö.randf_range(-px, px)
+
+
 func _process(delta: float) -> void:
 	# Bildrutemätningen: snitt och SÄMSTA bildruta över hela körningen. Att läsa
 	# Engine.get_frames_per_second() vid ett enstaka tillfälle ger vad som helst (mätt: 36 fps med
@@ -5348,6 +5379,7 @@ func _process(delta: float) -> void:
 	_frame_sum += delta
 	_frame_n += 1
 	_frame_worst = maxf(_frame_worst, delta)
+	_skaka_vyn(delta)        # skaket dör av sig självt; nollan ställer kameran exakt tillbaka (M122)
 	_fladdra(delta)          # facklorna brinner även i ett tomt rum — och det är de som lyser upp det
 	_droppa(delta)           # takdroppet droppar, det rinner inte (se _droppa)
 	# SKYLTEN GUNGA UPP OCH NER (M109). Gungningen ligger i POSITIONEN, inte i rotationen: en billboard
@@ -5461,9 +5493,13 @@ func _enemy_reaktion(mult: int = 1) -> Sprite3D:
 			e["hp"] = hp                # första mätningen: ett kvitto, inte en träff
 			continue
 		var skada := förra - hp
+		# SKAKET FÖLJER SLAGET (M122): andelen av fiendens HP, och kedjan lägger på. Ett litet slag
+		# känns knappt, ett kritslag känns — och ett dråp skakar alltid, hur lite HP som än stod kvar.
+		var andel := clampf(skada / maxf(1.0, foes[i].max_hp), 0.12, 1.0)
 		if hp <= 0.0 and förra > 0.0:
 			_enemy_läge(e, ENEMY_DEAD, 9999.0)
 			_slag_kvitto(spr, skada, 3, true)    # ett dråp är alltid värt den stora siffran
+			skaka(maxf(0.7, andel * (0.7 + 0.15 * float(mult))))
 			# Ett dråp spiller alltid mer än en träff — men andelen styr hur mycket mer (Teardown:
 			# bitarna är en hälsodeklaration, och en död fiende har lämnat allt).
 			_pixelregn(spr, maxi(Fx.korn_efter_skada(skada, foes[i].max_hp, 3), 14))
@@ -5472,6 +5508,7 @@ func _enemy_reaktion(mult: int = 1) -> Sprite3D:
 		elif hp < förra:
 			_enemy_läge(e, ENEMY_HIT, 0.35)
 			_slag_kvitto(spr, skada, mult)
+			skaka(andel * (0.7 + 0.15 * float(mult)))
 			_pixelregn(spr, Fx.korn_efter_skada(skada, foes[i].max_hp, mult))
 			if träffad == null:
 				träffad = spr
@@ -8395,6 +8432,7 @@ func _snap_cam() -> void:
 	# skulle återställa tidsskalan ha dött (striden tog slut mitt i ett träffstopp) står spelet annars
 	# kvar i slow motion för alltid. En rad på den plats där vyn ändå nollas.
 	Engine.time_scale = 1.0
+	_skak = 0.0              # och skaket: en avbruten skakning får inte lämna kameran sned (M122)
 	if cam == null:
 		return
 	if _cam_tween != null and _cam_tween.is_valid():
@@ -10490,10 +10528,14 @@ func _flush_events() -> void:
 				_logga(Tr.t("ui.hud.logg.vaning", "ned till våning %d") % (run.floor_index + 1),
 					Palett.c(23))
 			"chest":
-				_sfx("coin")
+				_sfx("level_up" if str(e.get("vad", "")) == "relik" else "coin")
 				_visa_belöning(e)
 				var rad := ""
-				if str(e.get("vad", "")) == "sten":
+				if str(e.get("vad", "")) == "relik":
+					# RELIKEN (M123): lagrets största händelse ska stå i loggen med sitt namn —
+					# annars är det bara en kista till som spelade ett annat ljud.
+					rad = Tr.t("ui.hud.logg.relik", "relik: %s") % str(e.get("namn", ""))
+				elif str(e.get("vad", "")) == "sten":
 					rad = Tr.t("ui.hud.logg.sten", "kista: %s") % meta.gem_name(
 						str(e.get("fam", "")), int(e.get("grad", 0)))
 				elif str(e.get("vad", "")) == "läkning":

@@ -209,7 +209,7 @@ byggs.
 | # | Referensen | Vi (mätt) | Ändringen | Grinden som bevisar den | Status |
 |---|---|---|---|---|---|
 | A | Svårigheten bor **på kartan**: varje ruta får en svårighetsgrad ur en kurva (`CalculatePathDifficulties`), och mötet väljer fiender i ett spann kring den (`EncounterTemplate.EnemySelectionRule[,]` med `Min/MaxEnemyVariance`) | Per bana + per våning — varje rum i en våning hade samma form | En svårighetsgrad per rum, härledd ur avståndet från starten med spridning ur våningens frö; den styr antal fiender, HP och skada | Spridningen i tagen skada ökar *inom* en bana; slumpens andel faller utan att autospelarens gör det | **byggd** |
-| B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | **halvbyggd**: flaggan per kort finns och mäts; relicen som låser upp kedjan är kvar |
+| B | **Kedjan är en belöning**: combo kräver relicen Combo Stack, och `ReceivesComboMultiplier` sitter per kort | Multiplikatorn är alltid på (`Rules.combo_after` räknar upp vid varje stigande steg) | Flagga per kort eller en relic som slår på kedjan | Startlekens skada per tur faller mätbart tills kedjan låsts upp | **byggd som lager** (M123): flaggan per kort, och relik-lagret med Kedjestenen finns och mäts. Kvar: att LÅSA kedjan bakom reliken (en balansändring som kräver mätning) |
 | C | **Belöningarna är strypta**: `RewardProbability` per kort, `CardLimit` per kortgrupp, Reroll/Skip/Banish | Fler fiender = fler kort = **lättare**. Mätt: `fiender=3` gav slumpen **+20 pp** | Kortvalet på sannolikhet (under 1) och/eller trögare XP-kurva | Ny grindrad: "fler fiender får inte göra banan lättare" | **prövad, nedlagd** (se nedan) |
 | D | **Gratis är inte gratis**: 0-kostnadskort är Crawlers med Duration, eller wilds som förstörs | 18 kort på kostnad 0 ligger kvar; startleken har 4×`lash` (12 skada utan villkor) och **6 mana-positiva** kort (`ember_tome` 1→+2, `hourglass` 3→+5) | Duration/Destroy på gratiskorten (nyckelorden finns redan i 7 kort), eller mananeutrala tomtar | Gratiskortens andel av spelade kort faller; manan slutar gå plus | planerad |
 | E | Fienden **telegraferar**, spelaren väljer mål | Telegrammet och målvalet finns i maskinen (`inkommande()`, `play(i, mål)`, `_målval`), och målpolicyn är mätt. **Mätt: valet betyder inget än** — 11 mot 11, rad för rad identiskt, för bara främre raden slår | Radregeln: varje fiende telegraferar sitt EGET slag och slår oavsett rad (referensens modell) | Målvalet slår att inte välja mål (i dag enkelriktad: får inte bli sämre) | halvbyggd |
@@ -307,6 +307,29 @@ rad (referensens modell, där intents är per fiende). Då blir "döda den som s
 5" ett riktigt val, och först då kan den stränga grinden sättas. Det är en kärnregel i striden och
 ändrar spelets identitet — därför ett beslut, inte ett mått. Grinden står så länge enkelriktad
 ("målvalet gör det inte sämre").
+
+### M123: relik-lagret — den halva av B som saknades, och den största innehållsskillnaden
+
+Referensen har **67 reliker** och **52 arcanas** (räknat ur dess egen engelska strängtabell: `Relics_en`
+och `Arcanas_en`). Vi hade **noll** — ingen datamapp, ingen mekanism. Det är den enskilt största
+innehållsskillnaden mot referensen, större än kortens (342 mot våra 92), eftersom relikerna är det som
+gör att två körningar med samma lek spelas olika.
+
+Byggt (`game/core/relics.gd`, `game/data/relics/00_reliker.json`):
+
+- **En relik är data, inte kod.** Åtta rattar: `combo_extra`, `max_hp`, `mana`, `hand`, `armor`,
+  `recovery`, `gold`, `damage`. En ratt som ingen kod läser skriver `Relics.load_all` ut som **fel** i
+  stället för att tiga — den fällan (data som ser ut att göra något) är samma som `_sfx("select")` var.
+- **Leveransen är kistorna**, med ett eget smalare fönster (8 %) i samma seedade slag som guld,
+  läkning och ädelstenar: samma kista ger samma sak varje gång, och en relik man redan har lämnas
+  tillbaka till högen i stället för att bli en dubblett.
+- **Kedjestenen** (`combo_stack`) ger +1 steg varje gång kedjan FORTSÄTTER — aldrig en kedja ur tomma
+  luften: 1-2-3 blir 1-3-5 i stället för 1-2-3. Den är B:s mekanik i data, men den LÅSER ännu inte
+  kedjan: att stänga av multiplikatorn som förval är en balansändring som måste mätas (den breda
+  `receives_combo`-flaggan tog tidigare decken från 17 till 6 klarade körningar av 60).
+- **`tests/test_relik.gd`** (8 kontroller): datan laddas, varje ratt når spelet (Järnhjärtat 60 → 75
+  max-HP, Vässade eggen 12 → 16 på `lash`), samma relik kan inte tas två gånger, ett okänt id gör
+  ingenting, och kistorna delar ut reliker i spelade körningar (3 av 20 i provet).
 
 Ordningen de tas i är inte tabellordningen: **C** prövades först och lades ned, **A** är byggd, **B** är
 halvvägs (flaggan per kort är byggd och mätt, relicen som låser upp kedjan är kvar), sedan **D** (kortdata

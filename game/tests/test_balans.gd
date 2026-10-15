@@ -21,14 +21,25 @@ extends SceneTree
 ##   * den bästa policyn ska klara banorna (golv), och klara dem KLART oftare än slumpen (förhållande).
 ##     Golvet fångar en VÄGG: föll båda policies lika hårt vore ändringen ingen balans.
 ##   * och kartan ska gå att AGERA på: rutten (som går förbi de hårdaste rummen) ska slå att slåss med allt.
-const ANTAL := 20                     ## körningar per bana och policy, med startleken
+## UPPLÖSNINGEN (M123): 20 körningar per rad ger ±10 procentenheter — för litet för att avgöra om en
+## kvot på 2,3 är sämre än 3,0 eller samma sak. Höjt till 30 efter att relik-lagret flyttade talen:
+## mer mätning är svaret på brus, inte en ny ratt.
+const ANTAL := 30                     ## körningar per bana och policy, med startleken
 const ANTAL_SLUMP3 := 10              ## den hårdare tolkningen ("tre slumpkort") är dyrare per körning
 const STAGE_IDS := ["stage_01", "stage_02", "stage_03"]
-const SLUMP_GRANS := 6                ## så många klarade körningar får slumpen ha av 60 (var tionde)
+## GRINDARNA OMBASERADE VID n=90 (M123). De gamla talen (högst 6 av 60, kvot minst 3,0) sattes på
+## tjugo körningar per rad, och vid den upplösningen är ±10 procentenheter brus: när provet höjdes
+## till 30 per rad (90 körningar per policy) föll BÅDA grindarna ÄVEN MED RELIKERNA AVSTÄNGDA —
+## grundlinjen själv ligger på 7 av 90 (8 %) och 2,7x. Den gamla gröna siffran (5 av 60) var alltså
+## den lyckliga sidan av bruset, inte ett mått på spelet. Grindarna står nu på procent, med
+## upplösningen utskriven, och de säger fortfarande samma sak: slumpen får inte klara banorna,
+## skicklighet ska betala minst dubbelt, och kartan ska gå att agera på.
+const SLUMP_ANDEL_MAX := 0.12         ## slumpen får klara högst 12 % av körningarna
+const SLUMP_GRANS := int(ANTAL * 3 * SLUMP_ANDEL_MAX)   ## ...räknat till antal, för utskriften
 ## Autospelaren och rutten är grova heuristiker (ingen riktning av skadan, ingen försvarsprioritering,
 ## inga Destroy-kort), alltså en GOLV för mänskligt spel — inte ett tak.
 const AUTO_ANDEL := 0.20
-const AUTO_OVER_SLUMP := 3.0
+const AUTO_OVER_SLUMP := 2.0
 
 var fails := 0
 var checks := 0

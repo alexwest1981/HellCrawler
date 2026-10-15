@@ -52,6 +52,8 @@ var rng: RandomNumberGenerator
 var base_mana := 2                ## Mana-staten (Cooldown-PowerUp ger +1/rang, max +2)
 var base_hand := 3                ## Hand-staten (Speed-PowerUp ger +1/rang, max +2)
 var armor_stat := 0
+var relic_damage := 0.0           ## reliken "den vässade eggen" (M123): +N per skaderad kortet har
+var combo_bonus := 0              ## reliken "kedjestenen" (M123): extra steg när kedjan FORTSÄTTER
 var mana_bonus := 0               ## +N mana vid turstart (trädnoden "start_mana")
 var draw_bonus := 0               ## +N kort i öppningshanden (trädnoden "draw_first")
 var hp := 50.0
@@ -180,7 +182,13 @@ func play(index: int, target: Enemy = null) -> PlayResult:
 	for e in enemies:
 		if e.alive() and e.eyes_max > 0:
 			e.eyes_open += 1
+	var combo_före := combo
 	combo = Rules.combo_after(card.cost, last_cost, combo)
+	# KEDJESTENEN (M123): en relik gör varje stigande steg värt mer — men bara när kedjan FORTSÄTTER.
+	# En relik ska inte kunna starta en kedja ur tomma luften; då vore den inte en belöning för att
+	# spela korten i rätt ordning. (`combo > 1` = steget är en fortsättning, inte en nystart.)
+	if combo_bonus > 0 and combo > combo_före and combo > 1:
+		combo += combo_bonus
 	if not card.is_wild():
 		last_cost = card.cost
 	hand.remove_at(index)
@@ -495,7 +503,7 @@ func _apply_effects(card: Cards.Card, combo_used: int, target: Enemy, r: PlayRes
 			"damage":
 				var hits := float(effect.get("hits", 1)) + float(sten.get("qty", 0))
 				var base := float(effect.get("base_damage", 0.0))
-				var dmg := Rules.damage(float(effect.get("damage", 0.0)) + float(sten.get("damage", 0)),
+				var dmg := Rules.damage(float(effect.get("damage", 0.0)) + float(sten.get("damage", 0)) + relic_damage,
 					combo_used, base, hits, might, area, gems)
 				total += _deal(dmg, int(hits), target, r)
 			"armor":
