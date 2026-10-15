@@ -808,6 +808,35 @@ def main():
             tuple(round(v, 2) for v in ny.dimensions),
             ", %d fästen gömda" % len(fästen) if göm_fästen else ""))
 
+    ## ÄSSJAN: KARVA HÅLET I DEN YTTRE STENPLATTAN. Alex 15/10: "jag skulle vilja karva ett hål in här
+    ## ... för det e trots allt här de hettar upp stålet". Modellen är SCRIPT-GENERERAD — MÄTT: 1521 av
+    ## 1828 mesh-objekt har exakt 8 hörn (kuber ur en generator), noll modifierare kvar, namnen är
+    ## loop-genererade (Roof_TileL_1_5) — men .blend är RESULTATET: objekten är riktiga meshar, så en
+    ## boolean går bra. Forge_Fire_Outer är 0,82 x 0,16 x 0,72 m, alltså en tunn platta: hålet skär rakt
+    ## igenom och visar det mörka innandömet. Elden finns redan i scenen (Forge_PointLight, 160,0) och
+    ## lyser ut genom hålet. Skäraren tas bort efteråt — den ska inte med i exporten. MÄTT efter:
+    ## 6 ytor/8 hörn -> 12 ytor/16 hörn. Flaggan hal_karvat gör körningen idempotent (en andra körning
+    ## på samma fil skär inte en gång till).
+    ässja = bpy.data.objects.get("Forge_Fire_Outer")
+    if ässja is not None and not ässja.get("hal_karvat"):
+        h = [ässja.matrix_world @ Vector(c) for c in ässja.bound_box]
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=sum(h, Vector((0.0, 0.0, 0.0))) / 8.0)
+        skärare = bpy.context.active_object
+        skärare.name = "Hal_Skarare"
+        skärare.dimensions = (0.72, abs(ässja.dimensions.y) + 0.6, 0.72)
+        bpy.context.view_layer.update()
+        mod = ässja.modifiers.new("Hal", "BOOLEAN")
+        mod.operation = "DIFFERENCE"
+        mod.object = skärare
+        mod.solver = "EXACT"
+        bpy.context.view_layer.objects.active = ässja
+        bpy.ops.object.modifier_apply(modifier="Hal")
+        bpy.context.view_layer.update()
+        bpy.data.objects.remove(skärare, do_unlink=True)
+        ässja["hal_karvat"] = True
+        print("ässjan: hål karvat i %s (%d ytor, %d hörn) — Forge_PointLight lyser ut genom det" % (
+            ässja.name, len(ässja.data.polygons), len(ässja.data.vertices)))
+
     print("Save the .blend, then export to glTF (.glb) for Godot.")
 
 main()
