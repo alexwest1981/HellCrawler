@@ -835,3 +835,24 @@ och `Tiles` visade sig vara **färgade spelhallsplattor** — kryptan fick `Cobb
 färgade). De gamla var varma för att kompensera Alex' varma ark; med målade material *färgade* de om
 dem (gräset blev brunt). Mätt efter: vyns medel 0,301, mörkt 18 %, detalj 0,0156, p90 0,554 — inget
 utfrätt, och gräset är grönt i bild.
+
+---
+
+## 15. Rutnätet, reliefen — och en växel (15/10)
+
+Mätt i bild efter M134: *"samma blockmönster återkommer i kolumner/rutor, med tydliga vertikala och
+horisontella skarvar"* och *"överdriven bump"*. Orsaken är att varje block är 1x1 meter och visar
+**hela rutan**, och att MultiMesh delar material — UV-offset kan alltså inte varieras per block, så
+varenda ruta ser likadan ut och skarven mellan panelerna syns.
+
+**Triplanar i världsrymd** (`uv1_triplanar` + `uv1_world_triplanar`) gör texturen kontinuerlig över
+blocken i stället: vyns detalj gick från 0,0053 till 0,0113 och kanterna från 1,5 % till 3,2 %.
+
+**Reliefen ned från 4,0 till 2,0.** 4,0 sattes (M27) när Alex' egna albedon var mjuka och reliefen
+skulle komma från normalkartan; paketets kartor har redan relief, så 4,0 på dem blev brus. `upprepa`
+provat 2,0 mot 1,0 — ingen skillnad (0,3576 mot 0,3603), så 2,0 står kvar.
+
+**Tonerna och reliefen hänger ihop med vilken uppsättning ytor som ligger inne** (paketet 2-2,5 gånger
+ljusare albedo), så de kan inte bytas var för sig. `tools/ytor.sh egna|paket` växlar båda på en gång
+och importerar om — båda uppsättningarna finns i git, ingen lagerförs vid sidan av. Efter tre rundor av
+gissningar i bild är växeln svaret: Alex ser spelet, jag ser skärmdumpar.

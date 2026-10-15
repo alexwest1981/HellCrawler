@@ -6905,7 +6905,7 @@ func _add_boxes(tiles: Array, color: Color, y: float, size: Vector3, ruta: Strin
 		# 4,10,20,4`) ger vyns medel 0,120 → 0,107 → 0,099 och mörkt 67 % → 74 % → 77 %, medan
 		# ljuspölarna KRYMPER (p90 0,346 → 0,310 → 0,286). Den extra reliefen betalas alltså med det
 		# Alex vill ha kvar: ljuset på golvet. Mörkret tvättas inte bort — pölarna äts upp.
-		mat.normal_scale = 4.0
+		mat.normal_scale = 2.0
 	if orm != null:
 		mat.roughness_texture = orm
 		mat.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
@@ -6927,6 +6927,12 @@ func _add_boxes(tiles: Array, color: Color, y: float, size: Vector3, ruta: Strin
 	# Pixelart-look utan glans: matt yta, ingen spegling (se _add_boxes).
 	# 2 upprepningar per meter för 32x32-rutorna (64 px/m), 1 för 64x64-super-rutorna (samma täthet).
 	mat.uv1_scale = Vector3(upprepa, upprepa, 1)
+	# TRI PLANAR I VÄRLDSRYMD (M135): MultiMesh delar material, så UV-offset kan inte varieras per
+	# block — varje 1-metersblock visade samma ruta och skarvarna mellan panelerna syntes (mätt i bild:
+	# "samma blockmönster återkommer i kolumner/rutor, tydliga vertikala och horisontella skarvar").
+	# I världsrymd flyter texturen kontinuerligt över blocken i stället.
+	mat.uv1_triplanar = true
+	mat.uv1_world_triplanar = true
 	mesh.material = mat
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
