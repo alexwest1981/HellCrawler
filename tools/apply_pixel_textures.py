@@ -351,6 +351,15 @@ def trädplatta(obj):
 OVERRIDE = {
     "Road_Bed": "Cobblestone Grey",
     "Gate_Plaza_Bed": "Cobblestone Grey",
+    ## JUVELERARENS TOPPFONSTER: ramen ÄR rutan. Alex 15/10: "Sen heter det i det här fallet
+    ## Jeweler_Top_Win_frame som skall bytas ut mot fönster. Det ser inte bra ut med plankor som ruta."
+    ## MÄTT: Jeweler_Top_Win_Frame är en SOLID låda 0,88 x 1,01 m på y 0,71..0,85, och glaset ligger
+    ## BAKOM den på y 0,73..0,79 — ramens framsida skymmer glaset helt. Det man ser i öppningen är
+    ## alltså ramens egen PX_Ram-yta (mörk planka), och spröjsen (Bar_H/Bar_V, PX_Wood Beam) ligger
+    ## 3 cm framför. Plattan blir den fyrdelade fönsterrutan med varmt ljus — samma som sex av de andra
+    ## fönstren — och den bär sin egen ram, så öppningen läser som ett fönster. GLÖDER-regeln ger den
+    ## hela plattan över sin egen yta (annars visade den en 1-metersruta ur världen, se sätt_uv).
+    "Jeweler_Top_Win_Frame": "Window Warm",
     ## GLASET. MÄTT ur modellens EGNA material Window_Warm/Window_Bright: nio objekt, och i en
     ## texturerad fil bar ALLA nio en platt platta (sju PX_Ram = mörk skyltram, två PX_Ljus Varm = plat
     ## guld) — fönster utan spröjs och utan ljus. Materialvägen kan inte nå dem (frusen) och NAMNET kan

@@ -170,7 +170,7 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
 | `PX_Mörk Zon` | `mork_zon.png` | 1 | 6 | 742.2 |
 | `PX_Purple Roof` | `tak_lila.png` | 98 | 588 | 43.3 |
-| `PX_Ram` | `ram.png` | 26 | 162 | 36.0 |
+| `PX_Ram` | `ram.png` | 25 | 156 | 33.7 |
 | `PX_Sand Path` | `sand_path.png` | 0 | 0 | 0.0 |
 | `PX_Skylt` | `skylt.png` | 3 | 18 | 2.6 |
 | `PX_Skylt Board` | `skylt_balk.png` | 5 | 30 | 12.4 |
@@ -180,7 +180,7 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Terracotta Roof` | `tak_tegel.png` | 322 | 1932 | 131.9 |
 | `PX_Tudor Plaster` | `puts.png` | 71 | 426 | 862.9 |
 | `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
-| `PX_Window Warm` | `window_four_pane.png` | 7 | 42 | 18.4 |
+| `PX_Window Warm` | `window_four_pane.png` | 8 | 48 | 20.7 |
 | `PX_Wood` | `virke.png` | 98 | 652 | 506.0 |
 | `PX_Wood Beam` | `virke_balk.png` | 111 | 682 | 172.3 |
 | `Sign_Text` | `**ingen bild**` | 0 | 0 | 0.0 |
