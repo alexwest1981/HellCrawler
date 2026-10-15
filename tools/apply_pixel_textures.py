@@ -131,7 +131,10 @@ TEXTURES = {
 ## HELA PLATTAN ÖVER YTAN, UTAN ATT GLÖDA. GLÖDER styr både mappningen (sätt_uv) och
 ## emissionen (make_material). En fana ska ha hela plattan över sin egen yta men är tyg och
 ## ska inte sända ut ljus — därför en egen lista som bara mappningen läser.
-HELA_YTAN = GLÖDER + ("Baner Blå", "Baner Röd")
+## Vattnet hör också hit: klippan är 42,22 x 3,01 m och plattan är gjord i samma 14:1-format, så
+## hela plattan läggs över ytan utan en enda upprepning. Mätt tre gånger: en liten ruta ur en
+## strukturerad vattenyta kan inte kaklas 42 gånger utan att skarven eller spegelvändningen syns.
+HELA_YTAN = GLÖDER + ("Baner Blå", "Baner Röd", "Vatten")
 
 def load_texture(filename):
     path = os.path.join(TEXTURE_DIR, filename)
@@ -586,7 +589,12 @@ def sätt_uv(obj, category=None):
     ## så Tavern_Top_Win_Glass (0,85 m bred, på x -4,2, z 3,65) visade en 0,85 m-bildruta ur plattan och
     ## inte fönstret (Alex: "fönstret ovanför skylten är ännu fel" — det läste som plank). Rutorna är små
     ## och sitter på olika ställen i världen, så var och en måste få HELA plattan över sin egen yta.
-    if category in GLÖDER:
+    ##
+    ## MÄTT 15/10: raden läste GLÖDER, men HELA_YTAN skapades för att skilja mappningen från
+    ## emissionen — och bytet glömdes här. Följden var att varken vattnet eller fanorna fick hela
+    ## plattan: klippan kaklade sin 14:1-platta i världskoordinater (42 upprepningar) och fanorna
+    ## visade en 0,2 m-remsa ur sin. Emissionen ligger kvar på GLÖDER (make_material).
+    if category in HELA_YTAN:
         lo = Vector([min(p[i] for p in hörn) for i in range(3)])
         stor = [max(p[i] for p in hörn) - lo[i] for i in range(3)]
         for poly in mesh.polygons:
