@@ -22,7 +22,8 @@ from PIL import Image
 PAKET = os.path.expanduser("~/Downloads/Textures/Water")
 UT = "/home/alex/Projects/hellcrawlers/game/assets/by/tex/vatten.png"
 KALLA = "2/2.png"          # den mest kaklingsbara rutan i paketet (mätt)
-BREDD = 1536               # 14:1 mot ytans 42,22 x 3,01 m
+BREDD = 1536
+MATTNAD = 0.42      # hur mycket färgen dras mot sin egen ljushet (dov natt)               # 14:1 mot ytans 42,22 x 3,01 m
 
 def main():
     bild = Image.open(os.path.join(PAKET, KALLA)).convert("RGB")
@@ -38,13 +39,36 @@ def main():
     ## En rak faktor sänker medelvärdet men lämnar kammarna kvar (255 x 0,58 = 148, alltså ändå
     ## ljusast i byn, och renderingen dömde: "lyser starkt och sticker ut oproportionerligt").
     ## En gamma drar ner mitten och de ljusa mer än de mörka, faktorn sätter taket.
+    ## DEN MÖRKA KANTEN. MÄTT: bildens översta rader är mycket mörkare än resten (medel 22..26
+    ## mot 58 i mitten, max 36 mot 183) — en ram i paketets renderade bild. Lades den med blev det
+    ## ett svart band där klippans ytor möts; renderingen kallade det "en grov renderingsmiss".
+    ## Kanten hittas med mätning, inte med en gissad procentsats: skala bort rader så länge radens
+    ## medel ligger under halva bildens.
+    a0 = np.asarray(platta).astype(float)
+    mitt = a0.reshape(-1, 3).mean()
+    topp = 0
+    while topp < a0.shape[0] // 4 and a0[topp].mean() < mitt * 0.6:
+        topp += 1
+    if topp:
+        platta = platta.crop((0, topp, platta.width, platta.height))
+        print("  mörk kant bortskalad: %d rader i överkant" % topp)
     g, f = 1.45, 0.72
     a = np.asarray(platta).astype(float)
     m0, h0 = a.reshape(-1, 3).mean(), np.percentile(a, 99)
     platta = Image.fromarray(np.clip(255.0 * np.power(a / 255.0, g) * f, 0, 255).astype(np.uint8))
+    ## MÄTTNADEN. MÄTT: plattan höll 38,5 i mättnad (max-min per pixel) mot 24,7 i konceptbildens
+    ## vatten — den låg kvar som klarblå medan byn är dov, och renderingen dömde två gånger att
+    ## vattnet "lyser starkare" trots att medelvärdet var rätt. En dov natt drar därför ut färgen
+    ## mot sin egen ljushet.
+    b = np.asarray(platta).astype(float)
+    ljus = b @ np.array([0.299, 0.587, 0.114])
+    b = b * (1 - MATTNAD) + ljus[:, :, None] * MATTNAD
+    platta = Image.fromarray(np.clip(b, 0, 255).astype(np.uint8))
     b = np.asarray(platta).astype(float)
     print("  nattkurva gamma %.2f faktor %.2f:  medel %.0f -> %.0f   99-percentil %.0f -> %.0f" % (
         g, f, m0, b.reshape(-1, 3).mean(), h0, np.percentile(b, 99)))
+    print("  mättnad %.1f -> %.1f   (konceptbildens vatten 24,7)" % (
+        (a0.max(axis=2) - a0.min(axis=2)).mean(), (b.max(axis=2) - b.min(axis=2)).mean()))
     platta.save(UT)
     a = np.asarray(platta).astype(float)
     print("  plattan %dx%d  ton (%d,%d,%d)  variation %.2f" % (
