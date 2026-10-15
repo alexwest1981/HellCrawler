@@ -114,7 +114,18 @@ TEXTURES = {
     ## fysisk plopp". Egen kategori (inte "Ljus Varm") så att skyltbokstäverna inte tänds på köpet —
     ## samma bild, eget material. Emissionen kommer ur GLÖDER nedan.
     "Ljusglöd": "ljus_varm.png",
+    ## FANORNA UR KONCEPTBILDEN. Alex 15/10 och bilden: två fanor ovanför porten — röd till
+    ## vänster, blå med guldkant och gul lilja till höger. Rutorna mättes fram i byn.png
+    ## (blå x 1993..2030 y 433..552, röd x 1890..1942 y 458..532) och skärs av
+    ## tools/gen_banerplattor.py. Plattorna behåller fanans eget format; sätt_uv lägger hela
+    ## plattan över ytan, så inget sträcks.
+    "Baner Blå": "baner_bla.png",
+    "Baner Röd": "baner_rod.png",
 }
+## HELA PLATTAN ÖVER YTAN, UTAN ATT GLÖDA. GLÖDER styr både mappningen (sätt_uv) och
+## emissionen (make_material). En fana ska ha hela plattan över sin egen yta men är tyg och
+## ska inte sända ut ljus — därför en egen lista som bara mappningen läser.
+HELA_YTAN = GLÖDER + ("Baner Blå", "Baner Röd")
 
 def load_texture(filename):
     path = os.path.join(TEXTURE_DIR, filename)
@@ -390,6 +401,14 @@ OVERRIDE = {
     ## ut med.
     "Gate_Cornice_Lower": "Wood",
     "Gate_Cornice_Upper": "Wood",
+    ## FANORNA. MÄTT 15/10: Gate_Shield_Base (0,68 x 0,82 m) och Gate_Shield_Rim
+    ## (0,50 x 0,62 m) bar PX_Dark Stone — en grågrön stenruta på en sköld. Konceptbilden har
+    ## i stället två fanor. Rim = fanans fält (bilden, hela plattan över ytan), Base = bara
+    ## kanten runt om, alltså guld. Den röda är en kopia av paret, flyttad till vänster.
+    "Gate_Shield_Rim": "Baner Blå",
+    "Gate_Shield_Base": "Ljus Varm",
+    "Gate_Shield_L_Rim": "Baner Röd",
+    "Gate_Shield_L_Base": "Ram",
     "Tavern_Top_Win_Frame": "Window Warm",
     "BG_House_Left1_Win_Frame": "Window Warm",
     "BG_House_Left2_Win_Frame": "Window Warm",
@@ -650,6 +669,34 @@ def main():
     # Ensure Object Mode before processing.
     if bpy.context.object and bpy.context.object.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
+
+    ## FANORNA PÅ PORTEN — FÖRE KLASSNINGEN. Konceptbilden har två fanor, modellen ett par.
+    ## Paret kopieras och kopian flyttas till vänster om porten medan originalet flyttas till
+    ## höger, så de flankerar valvet som i bilden. MÅTT: låg kopian efter klassningsslingan
+    ## ärvde de nya objekten originalets plattor (PX_Ljus Varm + PX_Baner Blå) i stället för
+    ## sina egna OVERRIDE-värden — kopian gjordes efter det att main() redan gått igenom
+    ## scenen. Båda objekten i paret måste flyttas: först flyttades bara ramen, och då stod
+    ## den blå fanan delad i två halvor på olika x.
+    if bpy.data.objects.get("Gate_Shield_L_Base") is None:
+        bas = bpy.data.objects.get("Gate_Shield_Base")
+        rim = bpy.data.objects.get("Gate_Shield_Rim")
+        if bas and rim:
+            bpy.ops.object.select_all(action="DESELECT")
+            for o in (bas, rim):
+                o.select_set(True)
+            bpy.context.view_layer.objects.active = bas
+            bpy.ops.object.duplicate()
+            for kopia in bpy.context.selected_objects:
+                kopia.name = ("Gate_Shield_L_Base" if "Base" in kopia.name else "Gate_Shield_L_Rim")
+                m = kopia.matrix_world.copy()
+                m.translation.x = 0.95
+                kopia.matrix_world = m
+            for o in (bas, rim):
+                m = o.matrix_world.copy()
+                m.translation.x = 2.05
+                o.matrix_world = m
+            bpy.context.view_layer.update()
+            print("fanorna: paret kopierat till vänster, originalet flyttat till höger")
 
     counts = {}
     per_material = {}      # ursprungligt material -> antal objekt
@@ -1007,6 +1054,57 @@ def main():
         g.matrix_world = m
         g["glugg_indragen"] = True
         print("gluggen: %s flyttad in till y %.2f" % (g.name, g.matrix_world.translation.y))
+
+    ## FANORNA PÅ PORTEN. Konceptbilden har två, modellen ett par. Paret kopieras, kopian får
+    ## den röda plattan och flyttas till vänster om porten; originalet flyttas till höger, så
+    ## de flankerar valvet som i bilden. Sedan får båda paren fanans proportion (bilden är
+    ## 1:3,2 respektive 1:1,4 medan objekten är 1:1,24) — annars klämmer hela-ytan-mappningen
+    ## ihop bilden i sidled. Flaggan fana_matt gör att en andra körning inte skalar en gång till.
+    if bpy.data.objects.get("Gate_Shield_L_Base") is None:
+        bas = bpy.data.objects.get("Gate_Shield_Base")
+        rim = bpy.data.objects.get("Gate_Shield_Rim")
+        if bas and rim:
+            bpy.ops.object.select_all(action="DESELECT")
+            for o in (bas, rim):
+                o.select_set(True)
+            bpy.context.view_layer.objects.active = bas
+            bpy.ops.object.duplicate()
+            for kopia in bpy.context.selected_objects:
+                kopia.name = ("Gate_Shield_L_Base" if "Base" in kopia.name else "Gate_Shield_L_Rim")
+                m = kopia.matrix_world.copy()
+                m.translation.x = 0.95
+                kopia.matrix_world = m
+            m = bas.matrix_world.copy()
+            m.translation.x = 2.05
+            bas.matrix_world = m
+            print("fanorna: paret kopierat till vänster, originalet flyttat till höger")
+    ## förhållandet = bildens proportion delad med objektets nuvarande (0,50 x 0,62 m = 1:1,24)
+    for namn, falt, forhallande in (("Gate_Shield_Rim", (1993, 441, 2030, 546), 0.449),
+                                    ("Gate_Shield_Base", (1993, 441, 2030, 546), 0.449),
+                                    ("Gate_Shield_L_Rim", (1914, 458, 1944, 532), 0.512),
+                                    ("Gate_Shield_L_Base", (1914, 458, 1944, 532), 0.512)):
+        ob = bpy.data.objects.get(namn)
+        if ob is None or ob.get("fana_matt"):
+            continue
+        ob.dimensions.x *= forhallande
+        bpy.context.view_layer.update()
+        ob["fana_matt"] = True
+        print("  %-22s %5.2f x %5.2f m  (bilden %d x %d)" % (
+            namn, ob.dimensions.x, ob.dimensions.z, falt[2] - falt[0] + 1, falt[3] - falt[1] + 1))
+
+    ## FANORNAS PLATS. Absolut x, inte ett steg: då är körningen idempotent även när paret
+    ## redan är kopierat (kopieblocket ovan hoppas över då, och positionen skulle annars aldrig
+    ## rättas). MÄTT: efter första körningen stod den blå ramen på x 2,05 men fältet kvar på
+    ## 1,50 — fanan var delad i två halvor.
+    for namn, x in (("Gate_Shield_Base", 2.05), ("Gate_Shield_Rim", 2.05),
+                    ("Gate_Shield_L_Base", 0.95), ("Gate_Shield_L_Rim", 0.95)):
+        ob = bpy.data.objects.get(namn)
+        if ob is None:
+            continue
+        m = ob.matrix_world.copy()
+        m.translation.x = x
+        ob.matrix_world = m
+    bpy.context.view_layer.update()
 
     print("Save the .blend, then export to glTF (.glb) for Godot.")
 
