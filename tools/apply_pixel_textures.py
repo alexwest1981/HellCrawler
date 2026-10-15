@@ -780,8 +780,11 @@ def main():
         dörrar.append(("Tavern_Door_Door", [par[0], par[1]], par[2] - 0.32,
                        par[0].dimensions.z - 0.1, False))
     for namn, fästen, bredd, höjd, göm_fästen in dörrar:
-        gammal = bpy.data.objects.get(namn)
-        if gammal is not None:
+        ## Ta bort ALLA tidigare kopior med det namnförledet, inte bara den exakta träffen. MÄTT 15/10:
+        ## en kvarbliven "Smith_Door_Door.001" (PX_Wood.001, på x -14,61) låg kvar i scenen som en
+        ## dubbel dörr — Blender lägger på .001 när namnet redan är taget, och remove(get(namn)) såg
+        ## den aldrig.
+        for gammal in [o for o in bpy.data.objects if o.name == namn or o.name.startswith(namn + ".")]:
             bpy.data.objects.remove(gammal, do_unlink=True)
         ny = mall.copy()
         ny.data = mall.data.copy()
@@ -820,22 +823,52 @@ def main():
     ässja = bpy.data.objects.get("Forge_Fire_Outer")
     if ässja is not None and not ässja.get("hal_karvat"):
         h = [ässja.matrix_world @ Vector(c) for c in ässja.bound_box]
-        bpy.ops.mesh.primitive_cube_add(size=1.0, location=sum(h, Vector((0.0, 0.0, 0.0))) / 8.0)
+        mitt = sum(h, Vector((0.0, 0.0, 0.0))) / 8.0
+        ## SKÄRAREN MÅSTE GÅ DJUPT. Första versionen skar bara plattans egen tjocklek (0,16 m), och då
+        ## låg Forge_Arch_Frame 1 cm bakom — MÄTT: Alex såg "inte ett hål i väggen", bara en plan yta.
+        ## Skäraren går nu från y 0,30 till 1,80: genom plattan (0,64–0,80) OCH 1 m in i
+        ## Smith_Forge_Wing (0,80–3,00). Mätt djup efteråt: en stråle från framsidan stannar på y 1,80.
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=(mitt.x, 1.05, mitt.z))
         skärare = bpy.context.active_object
         skärare.name = "Hal_Skarare"
-        skärare.dimensions = (0.72, abs(ässja.dimensions.y) + 0.6, 0.72)
+        skärare.dimensions = (0.72, 1.5, 0.72)
         bpy.context.view_layer.update()
-        mod = ässja.modifiers.new("Hal", "BOOLEAN")
-        mod.operation = "DIFFERENCE"
-        mod.object = skärare
-        mod.solver = "EXACT"
-        bpy.context.view_layer.objects.active = ässja
-        bpy.ops.object.modifier_apply(modifier="Hal")
-        bpy.context.view_layer.update()
+        for mål in (ässja, bpy.data.objects.get("Forge_Arch_Frame"),
+                    bpy.data.objects.get("Smith_Forge_Wing"),
+                    bpy.data.objects.get("Forge_Fire_Core")):
+            if mål is None or mål.get("hal_karvat"):
+                continue
+            ## MARKERA OBJEKTET ORDENTLIGT. bpy.ops.object.modifier_apply arbetar på det AKTIVA objektet,
+            ## och om något annat står markerat kan den slå fel UTAN att säga till — MÄTT 15/10:
+            ## Forge_Arch_Frame (som ligger 1 cm bakom plattan och blockerade hela hålet) förblev
+            ## 6 ytor/8 hörn efter en boolean som borde gett 12/16, medan grannen direkt efter blev
+            ## rätt. Avmarkera allt, markera målet, sätt det aktivt — då tar operationen.
+            bpy.ops.object.select_all(action="DESELECT")
+            mål.select_set(True)
+            bpy.context.view_layer.objects.active = mål
+            mod = mål.modifiers.new("Hal", "BOOLEAN")
+            mod.operation = "DIFFERENCE"
+            mod.object = skärare
+            mod.solver = "EXACT"
+            bpy.ops.object.modifier_apply(modifier="Hal")
+            bpy.context.view_layer.update()
+            mål["hal_karvat"] = True
+            print("ässjan: hål karvat i %s (%d ytor, %d hörn)" % (
+                mål.name, len(mål.data.polygons), len(mål.data.vertices)))
         bpy.data.objects.remove(skärare, do_unlink=True)
-        ässja["hal_karvat"] = True
-        print("ässjan: hål karvat i %s (%d ytor, %d hörn) — Forge_PointLight lyser ut genom det" % (
-            ässja.name, len(ässja.data.polygons), len(ässja.data.vertices)))
+    ## ELDEN IN I HÄRDEN. Alex 15/10: hålet är till för att "lägga in eld i spelmotorn där". MÄTT:
+    ## Forge_PointLight stod på y 0,10 — 54 cm FRAMFÖR väggen (plattans framkant ligger på 0,64), så
+    ## den lyste på fasaden och hålet var svart och platt. Ljuset flyttas in i håligheten, mitt i den
+    ## och 0,33 m in, så härden glöder inifrån och skenet faller ut genom öppningen. Positionen sätts
+    ## varje körning (idempotent — samma tal varje gång) och styrkan rörs inte.
+    if ässja is not None and ässja.get("hal_karvat"):
+        lampa = bpy.data.objects.get("Forge_PointLight")
+        h = [ässja.matrix_world @ Vector(c) for c in ässja.bound_box]
+        mitt = sum(h, Vector((0.0, 0.0, 0.0))) / 8.0
+        if lampa is not None:
+            lampa.location = (mitt.x, mitt.y + 0.33, mitt.z)
+            print("ässjan: elden flyttad in i härden: %s (styrka %.1f)" % (
+                tuple(round(v, 2) for v in lampa.location), lampa.data.energy))
 
     print("Save the .blend, then export to glTF (.glb) for Godot.")
 
