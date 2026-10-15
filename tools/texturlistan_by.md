@@ -181,8 +181,8 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | `PX_Tudor Plaster` | `puts.png` | 71 | 426 | 862.9 |
 | `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
 | `PX_Window Warm` | `window_four_pane.png` | 8 | 48 | 20.7 |
-| `PX_Wood` | `virke.png` | 98 | 652 | 506.0 |
-| `PX_Wood Beam` | `virke_balk.png` | 111 | 682 | 172.3 |
+| `PX_Wood` | `virke.png` | 82 | 556 | 231.0 |
+| `PX_Wood Beam` | `virke_balk.png` | 127 | 778 | 447.3 |
 | `Sign_Text` | `**ingen bild**` | 0 | 0 | 0.0 |
 
 Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 33 material i filen står med.

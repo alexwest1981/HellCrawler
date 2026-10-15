@@ -450,6 +450,23 @@ def balkmått(obj):
         fiber_v[led[2][1]] = 1.0
         fiber_v[led[1][1]] = 1.0
         fiber_v.normalize()
+    ## TAKFALLEN. Alex 15/10: "Du har en som är liggande kant på taket, ta t.ex. Tavern_Slope_L ...
+    ## Lutningen är -39,428 grader. Den smala delen som går längs den lutningen har textur som går
+    ## rakt upp." MÄTT på Tavern_Slope_L: skivan är 3,09 x 3,60 x 0,12 m snedställd 39,4 grader.
+    ## TAKYTAN (11,1 m2) är sned och tog redan den sneda grenen -> V längs lutningen, rätt. Men
+    ## GAVELKANTEN (2,46 x 2,06 m, normal (0,1,0)) är AXELRÄT, hamnade i den raka grenen med a,b = (X, Z)
+    ## och fick därför V = världens Z: ådringen rakt upp, tvärs över lutningen. Lutningen räknas ur
+    ## objektets STÖRSTA ytas normal — V ska ligga i den ytans plan, i den riktning som stiger mest —
+    ## och sätt_uv låter takfall ta samma gren som sneda ytor, så kanten får V längs fallet i stället.
+    if "slope" in obj.name.lower():
+        inv = obj.matrix_world.to_3x3().inverted_safe().transposed()
+        störst = max(obj.data.polygons, key=lambda p: p.area)
+        nb = (inv @ störst.normal).normalized()
+        upp = Vector((0.0, 0.0, 1.0))
+        f = upp - nb * upp.dot(nb)
+        if f.length > 1e-6:
+            balk = True
+            fiber_v = f.normalized()
     return led, fiber, balk, fiber_v
 
 def sätt_uv(obj, category=None):
@@ -531,7 +548,7 @@ def sätt_uv(obj, category=None):
         ## inget att vrida; ett snedtak har ingen fiber (tak är inte balkar) och rörs inte.
         if balk and a == fiber:
             a, b = b, a
-        if max(abs(n.x), abs(n.y), abs(n.z)) <= 0.999:
+        if max(abs(n.x), abs(n.y), abs(n.z)) <= 0.999 or "slope" in obj.name.lower():
             # Sned yta: basen i ytans eget plan, annars sträcks mönstret.
             axel = min(range(3), key=lambda i: abs(n[i]))
             e = Vector((0.0, 0.0, 0.0))
