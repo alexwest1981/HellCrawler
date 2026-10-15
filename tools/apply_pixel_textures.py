@@ -726,6 +726,55 @@ def main():
             "roof_material_on_wall_plate": [t[0] for t in tak_pa_mur],
         }, f, indent=1, sort_keys=True)
     print("wrote %s" % RAPPORT)
+    ## LYKTORNA SER UT SOM STEN. Alex 15/10: "Gaten har 8 lyktor ... alla ser ut som sten, de kanske
+    ## behöver tas bort helt och sättas in som eld i spelmotorn istället." MÄTT: elden bär plattan
+    ## PX_Stone — Torch_Flame_* och Tavern_Lantern_* ligger på stenplattan, och sken är det ingen som
+    ## ser. Ljusen finns redan i motorn (Torch_Light_0..3 + Tavern_Warm_Glow), så mesherna göms precis
+    ## som svärden: de försvinner ur vyn och ur varje export, medan fackelhandtagen (PX_Wood Beam)
+    ## står kvar som fästen. Ett eld-paket finns inte i paketet (eld saknas helt, 10 objekt) — därför
+    ## eld i motorn och inte en platta.
+    släckta = []
+    for o in bpy.context.scene.objects:
+        if o.type != "MESH":
+            continue
+        n = o.name.lower()
+        if n.startswith("torch_flame") or n.startswith("tavern_lantern"):
+            o.hide_render = True
+            o.hide_set(True)
+            släckta.append(o.name)
+    if släckta:
+        print("gömda ljusalternativ (eld i motorn i stället): %d objekt, %s" % (
+            len(släckta), ", ".join(sorted(släckta)[:6])))
+
+    ## SMEDJANS DÖRR. Alex 15/10: "De bars jag menar hos smeden heter tydligen Smith_Sword_0 till 3, jag
+    ## hade hellre haft en dörr in till smedjan där." Modellen HAR dörren — Jeweler_Door, 0,68 x 1,82 m i
+    ## PX_Wood — så den lånas hit i stället för att bygga ny geometri (samma objekt, samma rotation,
+    ## flyttad till svärdens mitt på smedens framsida, y-värdet 0,02 utanför väggen: kameran tittar från
+    ## -y, så mindre y är närmare). Svärdens fyra järnbitar göms från rendering och därmed ur både vyn och
+    ## varje export. Idempotent: en tidigare kopia tas bort först, annars staplas dörrarna per körning.
+    mall = bpy.data.objects.get("Jeweler_Door")
+    svärd = [bpy.data.objects.get("Smith_Sword_%d" % i) for i in range(4)]
+    svärd = [o for o in svärd if o is not None]
+    if mall is not None and svärd:
+        gammal = bpy.data.objects.get("Smith_Door_Door")
+        if gammal is not None:
+            bpy.data.objects.remove(gammal, do_unlink=True)
+        ny = mall.copy()
+        ny.data = mall.data.copy()
+        ny.name = ny.data.name = "Smith_Door_Door"
+        bpy.context.scene.collection.objects.link(ny)
+        ny.matrix_world = mall.matrix_world.copy()
+        ny.matrix_world.translation = Vector((
+            sum(o.matrix_world.translation.x for o in svärd) / len(svärd),
+            svärd[0].matrix_world.translation.y - 0.02,
+            1.02))
+        sätt_uv(ny, "Wood")
+        for o in svärd:
+            o.hide_render = True
+            o.hide_set(True)
+        print("smedjans dörr: %s i %s, %s gömd(a)" % (
+            ny.name, tuple(round(v, 2) for v in ny.matrix_world.translation), len(svärd)))
+
     print("Save the .blend, then export to glTF (.glb) for Godot.")
 
 main()
