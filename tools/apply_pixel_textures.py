@@ -121,6 +121,12 @@ TEXTURES = {
     ## plattan över ytan, så inget sträcks.
     "Baner Blå": "baner_bla.png",
     "Baner Röd": "baner_rod.png",
+    ## VATTNET. Alex 15/10: "Cliff_Face, kan vi byta den mot en vattentextur". Ingen vattenplatta
+    ## fanns i projektet (atlasen har 44 plattor utan vatten, tiles-paketens *_vatten är
+    ## golvsprickor och mossväggar). Källan är hans eget vattenpaket i ~/Downloads/Textures/Water,
+    ## skuret av tools/gen_vattenplatta.py: den mest kaklingsbara rutan, kantblandad så fogen
+    ## försvinner (mätt 8,60/5,79 -> 0,1 innan den skrivs).
+    "Vatten": "vatten.png",
 }
 ## HELA PLATTAN ÖVER YTAN, UTAN ATT GLÖDA. GLÖDER styr både mappningen (sätt_uv) och
 ## emissionen (make_material). En fana ska ha hela plattan över sin egen yta men är tyg och
@@ -405,6 +411,9 @@ OVERRIDE = {
     ## (0,50 x 0,62 m) bar PX_Dark Stone — en grågrön stenruta på en sköld. Konceptbilden har
     ## i stället två fanor. Rim = fanans fält (bilden, hela plattan över ytan), Base = bara
     ## kanten runt om, alltså guld. Den röda är en kopia av paret, flyttad till vänster.
+    ## KLIPPVÄGGEN BLIR VATTEN. MÄTT 15/10: Cliff_Face är 42,22 x 5,40 x 3,01 m (x -21,11..21,11)
+    ## och bar PX_Mörk Zon. Ytan upprepas 42 gånger, därför måste plattan vara sömlös.
+    "Cliff_Face": "Vatten",
     "Gate_Shield_Rim": "Baner Blå",
     "Gate_Shield_Base": "Ljus Varm",
     "Gate_Shield_L_Rim": "Baner Röd",
