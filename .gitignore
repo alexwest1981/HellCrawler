@@ -65,3 +65,7 @@ game/assets/tredjepart/untied_super_pixel_effects/PNG/
 
 # 1244 item-ikoner (16x16): ingen licensfil, bara KÄLLA.txt — används i spelet, publiceras inte.
 game/assets/tredjepart/ikoner_1244/
+
+# Arbetsfilen Alex och jag jobbar mot: en .blend är 7 MB binär och hör inte i git.
+# Spelet läser game/assets/by/byn.glb; den här filen är källan vi redigerar.
+assets/*.blend*
