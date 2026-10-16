@@ -108,6 +108,9 @@ var musik: Jukebox                 ## spellistan (M54): låtarna i assets/music,
 var alt_panel: PanelContainer      ## ALTERNATIV: språk, CRT och musik
 var alt_label: Label
 var alt_rader: Array[Label] = []   ## raderna i alternativen (klickbara, som menyraderna)
+var hjältval: HjältVal             ## hjälten man väljer (M139), i ALTERNATIV-panelen
+var kuggknapp: Kugghjul            ## kugghjulet uppe till höger (M139): panelen nås var som helst
+var _alt_från_meny := false        ## öppnades panelen från menyn? ESC ska då tillbaka till menyn
 var alt_index := 0
 var credits_panel: PanelContainer  ## TACK TILL: paketen vi fått använda, ur data/credits.json
 var credits_rubrik: Label
@@ -3612,7 +3615,13 @@ func _kortvägg_prov() -> void:
 
 ## Rubrikerna i menyns ordning. Översatta av `Tr.t`, alltså samma texter i alla 13 språk (nycklarna
 ## ligger i tools/meny_i18n.py).
+## Vilket menyläge som är öppet: "" = huvudmenyn, `MENY_EDITOR` = undermenyn med editorerna.
+var _meny_läge := ""
+const MENY_EDITOR := "editor"
+
 func _meny_rubriker() -> Array:
+	if _meny_läge == MENY_EDITOR:
+		return EDITOR_RADER.duplicate()
 	# SPARA SPEL står före LADDA SPEL: de två hör ihop, och den som just spelat letar efter spara.
 	# TACK TILL ligger före AVSLUTA: krediteringen är ett uppslag man läser, och AVSLUTA ska fortsätta
 	# vara sista raden (samma ordning som referensens meny).
@@ -3620,11 +3629,10 @@ func _meny_rubriker() -> Array:
 		Tr.t("ui.meny.ladda", "LADDA SPEL"),
 		Tr.t("ui.meny.alternativ", "ALTERNATIV"), Tr.t("ui.meny.credits", "TACK TILL"),
 		Tr.t("ui.meny.avsluta", "AVSLUTA")]
-	# Redigerarna är utvecklarverktyg och otversatta med flit: raderna finns bara i debug-bygget, och
-	# deras filer filtreras bort ur exporten (export_presets.cfg). En köpare får sex menyrader.
+	# Editorn är ett utvecklarverktyg och otversatt med flit: raden finns bara i debug-bygget, och
+	# editorernas filer filtreras bort ur exporten (export_presets.cfg). En köpare får sex menyrader.
 	if OS.is_debug_build():
-		rader.append_array(["BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)",
-			"VÄRLDSKARTEDITOR (tillfällig)"])
+		rader.append("EDITOR")            # undermenyn med de fyra editorerna
 	return rader
 
 ## Bottenraden: tipset överst, version och copyright under. Finns en sparad körning står det i tipset
@@ -3632,6 +3640,8 @@ func _meny_rubriker() -> Array:
 func _meny_botten() -> String:
 	var version := str(ProjectSettings.get_setting("application/config/version", "0.1.0"))
 	var tips := Tr.t("ui.meny.hint", "W/S välj · Enter bekräfta")
+	if _meny_läge == MENY_EDITOR:
+		tips = "ESC = tillbaka"
 	if not _meny_meddelande.is_empty():
 		# Kvittensen från SPARA SPEL står kvar tills menyn göms: annars försvinner beviset för att
 		# trycket gjorde något.
@@ -3646,11 +3656,11 @@ func _visa_meny() -> void:
 	# gör det. Orsaken följer med in i raden, så en spärrad rad kan säga varför i stället för att bara
 	# vara tyst.
 	var spärrade := {}
-	if meta.korning.is_empty():
-		spärrade[2] = Tr.t("ui.meny.tom", "ingen sparad körning")
-	if run == null or run.finished:
-		spärrade[1] = Tr.t("ui.meny.inget", "ingen pågående körning")
-	meny.meta = meta
+	if _meny_läge != MENY_EDITOR:
+		if meta.korning.is_empty():
+			spärrade[2] = Tr.t("ui.meny.tom", "ingen sparad körning")
+		if run == null or run.finished:
+			spärrade[1] = Tr.t("ui.meny.inget", "ingen pågående körning")
 	meny.visa(_meny_rubriker(), spärrade, _meny_botten())
 	meny.visible = true
 	_placera_meny()
@@ -3658,6 +3668,7 @@ func _visa_meny() -> void:
 		musik.play()
 
 func _dölj_meny() -> void:
+	_meny_läge = ""       # menyn öppnas alltid på översta nivån nästa gång
 	meny.visible = false
 	alt_panel.visible = false
 	credits_panel.visible = false
@@ -3677,6 +3688,10 @@ func _placera_meny() -> void:
 
 func _meny_tangent(key: int) -> void:
 	if key == KEY_ESCAPE:
+		if _meny_läge == MENY_EDITOR:
+			_meny_läge = ""
+			_visa_meny()
+			return
 		# ESC stänger menyn och lämnar tillbaka till det som låg bakom: banan man kom ifrån, eller
 		# byn. Spelet stannade aldrig när menyn kom fram, så det räcker att gömma den.
 		_dölj_meny()
@@ -3690,7 +3705,43 @@ func _meny_tangent(key: int) -> void:
 
 ## Menyns val. Klicket och tangenten landar här båda två (`Huvudmeny.valt`), så de kan inte glida
 ## ifrån varandra.
+## Undermenyns rader: samma fyra vägar som de låg direkt i huvudmenyn förut.
+func _editor_val(i: int) -> void:
+	match i:
+		0:
+			# Editorn läser sina argument ur kommandoraden och har samma standard som tools/editor.sh
+			# (stage_01, våning 1), så en tom argumentlista startar rätt våning.
+			get_tree().change_scene_to_file("res://editor/editor.tscn")
+		1:
+			# Fiendeeditorn har samma standard som tools/fiendeeditor.sh: första fienden i listan.
+			get_tree().change_scene_to_file("res://editor/fiendeeditor.tscn")
+		2:
+			# Trädeditorn: plattan med noderna i, och S sparar data/trad_sockets.json.
+			get_tree().change_scene_to_file("res://editor/trad_editor.tscn")
+		3:
+			# VÄRLDSKARTEDITORN (M121). Alex: *"Kan vi skapa en world map editor istället, så jag kan
+			# flytta noderna själv?"* Kartan ÄR sin egen skärm, och editorn ett LÄGE i den (som
+			# byggläget F1 i en bana) — raden går in i kartan med läget på, så man slipper hitta E.
+			_dölj_meny()
+			_välj_skarm("karta")
+			karta_view.editor = true
+
+## Kugghjulets klick: ALTERNATIV-panelen (där hjälten väljs). Öppnas den härifrån ska ESC bara stänga
+## panelen — inte visa startmenyn över byn man står i.
+func _kugg_klick() -> void:
+	_alt_från_meny = false
+	_visa_alternativ()
+
+## Ett hjältval sparas direkt: figuren ligger i `Meta` (byn och kartan läser den), och nästa start ska
+## visa samma figur.
+func _hjälte_bytt(_id: String) -> void:
+	if not meta.save():
+		push_warning("hjältvalet kunde inte sparas: %s" % meta.last_error)
+
 func _meny_val(i: int) -> void:
+	if _meny_läge == MENY_EDITOR:
+		_editor_val(i)
+		return
 	match i:
 		0:
 			# NYTT SPEL: skalet (byn) — samma väg som spelet alltid startade i, men först nu.
@@ -3701,6 +3752,7 @@ func _meny_val(i: int) -> void:
 		2:
 			_fortsätt_körning()
 		3:
+			_alt_från_meny = true
 			_visa_alternativ()
 		4:
 			# TACK TILL (Alex 14/10): krediteringen till de andra utvecklarna. Panelen läggs ovanpå
@@ -3709,23 +3761,9 @@ func _meny_val(i: int) -> void:
 		5:
 			get_tree().quit()
 		6:
-			# Editorn läser sina argument ur kommandoraden och har samma standard som tools/editor.sh
-			# (stage_01, våning 1), så en tom argumentlista startar rätt våning.
-			get_tree().change_scene_to_file("res://editor/editor.tscn")
-		7:
-			# Fiendeeditorn har samma standard som tools/fiendeeditor.sh: första fienden i listan.
-			get_tree().change_scene_to_file("res://editor/fiendeeditor.tscn")
-		8:
-			# Trädeditorn: plattan med noderna i, och S sparar data/trad_sockets.json.
-			get_tree().change_scene_to_file("res://editor/trad_editor.tscn")
-		9:
-			# VÄRLDSKARTEDITORN (M121). Alex: *"Kan vi skapa en world map editor istället, så jag kan
-			# flytta noderna själv?"* Kartan ÄR sin egen skärm, och editorn ett LÄGE i den (som
-			# byggläget F1 i en bana) — raden går in i kartan med läget på, så man slipper hitta E.
-			_dölj_meny()
-			_välj_skarm("karta")
-			karta_view.editor = true
-			return
+			# UNDERMENYN med de fyra editorerna (M139). Bara i debug-bygget; en köpare har sex rader.
+			_meny_läge = MENY_EDITOR
+			_visa_meny()
 
 ## SPARA SPEL i menyn. Körningen sparar sig visserligen själv så fort något ändras (M39), men den som
 ## ska stänga spelet vill kunna VÄLJA att spara — och se att det blev gjort. `tvinga` skriver filen
@@ -3795,6 +3833,13 @@ func _spara_körning(tvinga := false) -> void:
 	if not meta.save():
 		push_warning("kunde inte spara körningen: %s" % meta.last_error)
 
+## MENYN HAR TVÅ LÄGEN (M139). Alex: *"Skapa en submeny i startmenyn där alla editorer läggs"* — fyra
+## editorrader i huvudmenyn gjorde den full (tio rader, vilket sköt bottenraden nedanför fönstret och
+## lämnade ingen plats för något annat). Undermenyn återanvänder SAMMA meny: raderna byts, valet,
+## klicket och märket är desamma, och ESC går tillbaka ett steg.
+const EDITOR_RADER := ["BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)",
+	"VÄRLDSKARTEDITOR (tillfällig)"]
+
 ## --- ALTERNATIV (M39) -------------------------------------------------------------------------
 
 func _visa_alternativ() -> void:
@@ -3849,7 +3894,8 @@ func _alt_byt(i: int) -> void:
 func _alternativ_tangent(key: int) -> void:
 	if key == KEY_ESCAPE:
 		alt_panel.visible = false
-		_visa_meny()               # tillbaka till menyn, med samma val som förut
+		if _alt_från_meny:
+			_visa_meny()           # tillbaka till menyn, med samma val som förut
 		return
 	if key == KEY_UP or key == KEY_W:
 		alt_index = wrapi(alt_index - 1, 0, alt_rader.size())
@@ -5389,6 +5435,16 @@ func _skaka_vyn(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	# KUGGHJULET (M139) syns när startmenyn INTE är framme, och följer fönstret: det ska gå att nå
+	# hjältvalet var som helst efter starten (Alex), och en knapp som ligger kvar i hörnet medan
+	# menyn är uppe vore en knapp ovanpå menyn.
+	if kuggknapp != null:
+		var visa: bool = not meny.visible
+		if kuggknapp.visible != visa:
+			kuggknapp.visible = visa
+		if visa:
+			var vp := get_viewport().get_visible_rect().size
+			kuggknapp.position = Vector2(vp.x - Kugghjul.PX - Kugghjul.MARGINAL, Kugghjul.MARGINAL)
 	# Bildrutemätningen: snitt och SÄMSTA bildruta över hela körningen. Att läsa
 	# Engine.get_frames_per_second() vid ett enstaka tillfälle ger vad som helst (mätt: 36 fps med
 	# skuggor och 1 fps utan, vilket bara säger att siffran togs efter ett väntande).
@@ -9255,7 +9311,24 @@ func _bygg_runt() -> void:
 		rad.gui_input.connect(_alt_klick.bind(i))
 		abox.add_child(rad)
 		alt_rader.append(rad)
+	# HJÄLTVALET (M139) ligger i ALTERNATIV-panelen, inte i startmenyn: Alex ville nå det var som helst
+	# efter starten, och panelen öppnas både från menyns rad och från kugghjulet. Raden får sin bredd av
+	# panelen och centrerar figurerna i den.
+	hjältval = HjältVal.new()
+	hjältval.name = "hjältval"
+	hjältval.custom_minimum_size = Vector2(0.0, HjältVal.PX + 12.0)
+	hjältval.bytt.connect(_hjälte_bytt)
+	abox.add_child(hjältval)
 	_runt.add_child(alt_panel)
+
+	# KUGGHJULET (M139) uppe till höger. Det är den ENDA vägen till panelen när startmenyn är borta,
+	# och det är därför det ligger i skalet och inte i en skärm: det ska finnas i byn, på kartan och i
+	# en bana. Placeringen och synligheten sätts i `_process` (panelen följer fönstret).
+	kuggknapp = Kugghjul.new()
+	kuggknapp.name = "kugg"
+	kuggknapp.klick.connect(_kugg_klick)
+	kuggknapp.visible = false
+	_runt.add_child(kuggknapp)
 
 	# TACK TILL (Alex 14/10): krediteringen. Byggd som ALTERNATIV — samma täta stil (ingen splash lyser
 	# igenom texten), samma väg tillbaka med ESC — och radantalet läses ur data/credits.json, så en ny

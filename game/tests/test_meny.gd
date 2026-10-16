@@ -71,9 +71,11 @@ func _initialize() -> void:
 	var texter := []
 	for r in main.meny.rader:
 		texter.append(r.text)
+	# EDITORSTYREN (M139) är EN rad i huvudmenyn: de fyra editorerna ligger i en undermeny (Alex:
+	# *"Skapa en submeny i startmenyn där alla editorer läggs"*). Fyra rader direkt i menyn gjorde den
+	# full — tio rader sköt bottenraden nedanför fönstret.
 	check(texter == ["NYTT SPEL", "SPARA SPEL", "LADDA SPEL", "ALTERNATIV", "TACK TILL", "AVSLUTA",
-			"BANEDITOR (tillfällig)", "FIENDEEDITOR (tillfällig)", "TRÄDEDITOR (tillfällig)",
-			"VÄRLDSKARTEDITOR (tillfällig)"],
+			"EDITOR"],
 		"valen står i referensens ordning", str(texter))
 	check(main.meny.splash != null and main.meny.splash.texture != null,
 		"splashbilden är laddad (%s)" % ("ja" if main.meny.splash.texture != null else "nej"))
@@ -82,36 +84,23 @@ func _initialize() -> void:
 
 	print("")
 	print("— märket följer valet —")
-	check(main.meny.valt_index == 0, "första valet är markerat från början")
-	# HJÄLTRADEN (M138). Alex: *"Hjältarna skall man kunna välja vilken man vill använda ... det skall
-	# inte tillföra mer än lite 'Jag har valt min egen karaktär i spelet'-känsla"*. Raden ligger under
-	# menyvalen, i den fria ytan ovanför bottenraden — den får inte ligga på en menyrad.
-	# FÖNSTRET SÄTTS TILL SPELETS EGEN STORLEK. Provets standardruta är lägre än 720 px, och hjältraden
-	# ligger strax ovanför bottenraden: i en låg ruta hamnar den utanför fönstret (mätt: y -52 i en
-	# 64 px hög ruta), och då mäter kontrollerna fel sak.
 	root.size = Vector2i(1896, 1018)
 	await process_frame
-	main._placera_meny()      # samma placering som spelet gör innan menyn syns: annars mäts
-	                          # radernas y ur en tidigare, mindre ruta än bottenradens (mätt: 438 mot 12)
-	var hjältrad: HjältVal = main.meny.hjältval
-	check(hjältrad != null and hjältrad.antal() == 12, "hjältvalet ligger i menyn med tolv figurer",
+	main._placera_meny()
+	check(main.meny.valt_index == 0, "första valet är markerat från början")
+	# HJÄLTVALET (M139) LIGGER I ALTERNATIV-PANELEN, inte i menyn. Alex: *"det kan ligga inne i byn,
+	# någonstans, eller om vi fixar en settingsikon uppe till höger på skärmen, som man kommer åt vart
+	# som helst efter startmenyn, att man kan välja karaktär där"*. Panelen är spelets egen (språk, CRT,
+	# musik), så en knapp räcker — och kugghjulet öppnar den var som helst efter starten.
+	var hjältrad: HjältVal = main.hjältval
+	check(hjältrad != null and hjältrad.antal() == 12, "hjältvalet har de tolv hjältarna",
 		"%d st" % (hjältrad.antal() if hjältrad != null else -1))
-	var rad_sist: Label = main.meny.rader[main.meny.rader.size() - 1]
-	# GLOBALA rutor: menyraderna och raden har olika ankare, så deras `position` är mätt i olika rum
-	# (mätt: en rads `position.y` 686 i ett 648 px högt fönster).
-	check(hjältrad.get_global_rect().position.y > rad_sist.get_global_rect().end.y,
-		"och raden ligger UNDER menyvalen",
-		"hjälten börjar på y %.0f, sista raden slutar på y %.0f"
-			% [hjältrad.get_global_rect().position.y, rad_sist.get_global_rect().end.y])
-	check(hjältrad.get_global_rect().end.y <= main.meny.botten.get_global_rect().position.y,
-		"och ovanför bottenraden (ingen rad hamnar på en annan)",
-		"hjälten slutar på y %.0f, bottenraden börjar på y %.0f"
-			% [hjältrad.get_global_rect().end.y, main.meny.botten.get_global_rect().position.y])
+	check(hjältrad != null and main.alt_panel.is_ancestor_of(hjältrad),
+		"och ligger i ALTERNATIV-panelen (inte i startmenyn)")
+	check(hjältrad.custom_minimum_size.y > 0.0, "raden har en höjd i panelen",
+		"%.0f px" % hjältrad.custom_minimum_size.y)
 	var r0: Rect2 = hjältrad.ruta(0)
 	var r_sist: Rect2 = hjältrad.ruta(hjältrad.antal() - 1)
-	check(absf((r0.position.x + r_sist.position.x + r_sist.size.x) * 0.5 - hjältrad.size.x * 0.5) <= 1.0,
-		"raden står mitt i fönstret", "mitten %.1f mot %.1f"
-			% [(r0.position.x + r_sist.position.x + r_sist.size.x) * 0.5, hjältrad.size.x * 0.5])
 	check(not r0.intersects(r_sist) or hjältrad.antal() == 1, "figurerna ligger inte på varandra",
 		"bredd %.0f px var" % r0.size.x)
 	# ETT KLICK BYTER FIGUR, och valet hamnar i sparfilen.
@@ -122,6 +111,43 @@ func _initialize() -> void:
 	check(str(main.meta.to_dict()["hjalte"]) == main.meta.hjalte,
 		"och hjälten följer med sparfilens innehåll")
 	main.meta.hjalte = förra
+	# KUGGHJULET: syns när startmenyn inte är framme, öppnar panelen, och ESC stänger bara panelen.
+	main._dölj_meny()
+	await process_frame
+	await process_frame
+	check(main.kuggknapp != null and main.kuggknapp.visible,
+		"kugghjulet syns när startmenyn är borta")
+	var vp := main.get_viewport().get_visible_rect().size
+	check(main.kuggknapp.position.x + Kugghjul.PX <= vp.x
+			and main.kuggknapp.position.x > vp.x * 0.5 and main.kuggknapp.position.y < vp.y * 0.5,
+		"och sitter uppe till höger",
+		"%.0f,%.0f i en ruta %.0fx%.0f" % [main.kuggknapp.position.x, main.kuggknapp.position.y, vp.x, vp.y])
+	main.kuggknapp.klick.emit()
+	check(main.alt_panel.visible, "ett klick på kugghjulet öppnar ALTERNATIV-panelen")
+	main._alternativ_tangent(KEY_ESCAPE)
+	check(not main.alt_panel.visible and not main.meny.visible,
+		"och ESC stänger panelen UTAN att visa startmenyn över byn man står i")
+	main._visa_meny()
+	await process_frame
+	check(not main.kuggknapp.visible, "kugghjulet göms medan startmenyn är framme")
+	# UNDERMENYN MED EDITORERNA: raden EDITOR öppnar den, och ESC går tillbaka ett steg.
+	main._visa_meny()
+	main._meny_val(6)
+	await process_frame
+	check(main._meny_rubriker().size() == 4 and main.meny.rader[0].text.begins_with("BANEDITOR"),
+		"EDITOR öppnar undermenyn med de fyra editorerna",
+		"%d rader, första \"%s\"" % [main._meny_rubriker().size(), main.meny.rader[0].text])
+	var synliga := 0
+	for r: Label in main.meny.rader:
+		if r.visible:
+			synliga += 1
+	check(synliga == 4 and main.meny.rader[3].text.begins_with("VÄRLDSKART"),
+		"och undermenyns sista rad är världskarteditorn (fyra synliga rader)",
+		"%d synliga, sista \"%s\"" % [synliga, main.meny.rader[3].text])
+	main._meny_tangent(KEY_ESCAPE)
+	await process_frame
+	check(main._meny_rubriker().size() == 7 and main.meny.rader[0].text == "NYTT SPEL",
+		"ESC går tillbaka till huvudmenyn", "%d rader" % main._meny_rubriker().size())
 	var rad0: Label = main.meny.rader[0]
 	var rad3: Label = main.meny.rader[3]
 	check(main.meny.markör.position.x + main.meny.markör.size.x <= rad0.position.x,

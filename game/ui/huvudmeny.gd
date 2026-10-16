@@ -28,10 +28,6 @@ var splash: TextureRect
 var rader: Array[Label] = []
 var markör: TextureRect
 var botten: Label
-## HJÄLTVALET (M138): raden med de tolv hjältarna under menyvalen.
-var hjältval: HjältVal
-## Sparfilen, satt av skalet (`main.gd`). Behövs för att ett hjältval ska överleva en omstart.
-var meta: Meta = null
 
 var valt_index := 0
 var spärrade := {}               ## index -> orsak: raden går inte att välja, och VARFÖR står i botten
@@ -60,11 +56,6 @@ func _bygg() -> void:
 
 	for i in VAL.size():
 		_skapa_rad(i)
-
-	hjältval = HjältVal.new()
-	hjältval.name = "hjältval"
-	hjältval.bytt.connect(_hjälte_bytt)
-	add_child(hjältval)
 
 	markör = TextureRect.new()
 	markör.name = "markor"
@@ -116,6 +107,9 @@ func visa(rubriker: Array, spärrade_rader: Dictionary, bottentext: String) -> v
 	botten.text = bottentext
 	for i in rader.size():
 		rader[i].text = str(rubriker[i]) if i < rubriker.size() else ""
+		# UNDERMENYN HAR FÄRRE RADER (M139): raderna byggs en gång och återanvänds, så de som inte
+		# används göms — annars låg det kvar tomma rader under editorlistan som tog klick.
+		rader[i].visible = i < rubriker.size()
 	valt_index = clampi(valt_index, 0, rader.size() - 1)
 	if spärrade.has(valt_index) and spärrade.size() < rader.size():
 		valt_index = _närmaste_valbara(valt_index, 1)
@@ -160,24 +154,6 @@ func _placera() -> void:
 	markör.visible = not spärrade.has(valt_index) or spärrade.size() == rader.size()
 	botten.size = Vector2(f.x, 44.0)
 	botten.position = Vector2(0.0, roundf(f.y - 52.0))
-	# HJÄLTRADEN (M138) ligger i den fria ytan OVANFÖR bottenraden, inte under menyvalen: ytan under
-	# raderna beror på fönstrets höjd (i ett 720 px högt fönster slutar sista raden på 586 och bottenraden
-	# börjar på 668), och en rad som hängdes på radblocket hamnade utanför ett lågt fönster (mätt i provet:
-	# raden på y 438 i ett 384 px högt fönster).
-	hjältval.size = Vector2(f.x, HjältVal.PX + 12.0)
-	# UNDER menyvalen när det finns plats, annars så långt ned som bottenraden tillåter. Antalet rader
-	# varierar (skalet lägger till redigeringsraderna): mätt 9 rader i en riktig spelarstart mot 6 i
-	# provet, och en fast plats hade lagt figuren ovanpå de nedersta raderna.
-	var under_raderna := topp + RAD_AVSTÅND * float(rader.size()) + 14.0
-	var över_botten := f.y - 52.0 - hjältval.size.y - 8.0
-	hjältval.position = Vector2(0.0, roundf(minf(under_raderna, över_botten)))
-
-## Ett hjältval är allt som händer: figuren ligger i `Meta` (byn och kartan läser den), och valet
-## sparas direkt så att nästa start visar samma figur.
-func _hjälte_bytt(_id: String) -> void:
-	if meta != null and not meta.save():
-		printerr("hjältvalet kunde inte sparas")
-
 func välj(i: int) -> void:
 	valt_index = wrapi(i, 0, rader.size())
 	_placera()
