@@ -163,7 +163,12 @@ func _init() -> void:
 	var byvy := VillageView.new()
 	byvy.size = Vector2(480, 270)
 	root.add_child(byvy)
+	# EN BILDRUTA MELLAN: vyn bygger sin 3D-scen först när den sitter i trädet (MÄTT: utan
+	# väntan fanns ingen `byn`-nod än, och gruppen såg ut att saknas — den fanns, scenen var inte byggd).
+	await process_frame
 	byvy.visa(Meta.load_or_new(TEST_META), 1)
+	await process_frame
+	await process_frame
 	var nod: By3D = byvy.by3d()
 	var under_byn: Node = null if nod == null or nod.by == null else nod.by.get_node_or_null("bybor")
 	check(under_byn != null, "by-vyns By3D bär byborna under `byn` (byn/bybor)")

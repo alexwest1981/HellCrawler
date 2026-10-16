@@ -204,16 +204,20 @@ func gångaren() -> Gångare:
 		_gångare = Gångare.new()
 	return _gångare
 
+## VAR FIGUREN STÅR (M141). Alex 16/10: *"Sen vill jag att ens karaktär står på gatan, och inte
+## menyn"*. Figuren hör till GATAN, inte till menyraden: den står på sin egen fläck i byns mitt och
+## rör sig inte när man växlar plats. Vilken plats man valt visas av plattan, glöden och pilen på
+## huset — förut flyttades figuren till varje valt hus, och då var karaktären en avbildning av menyn
+## i stället för en figur i byn.
+const GÅNGAR_ANDEL := 40.0        ## andel av konstens bredd: krogens mitt, där gatan är som bredast
+
 ## VAR FIGUREN GÅR (M126): på gatulinjen, framför huset — i VYNS px, vid husets EGET mitt. SAMMA ruta
 ## som klicket använder, så figuren står på det hus man ser och inte på en panorering som inte ritar
 ## något. `y` är gatulinjen (`gata_y`).
-func gångpunkt(i: int) -> Vector2:
-	if i < 0 or i >= PLATSER.size():
-		return Vector2.ZERO
-	var r := byggnad_rect(i)
-	if r.size.x >= 2.0:
-		return Vector2(r.get_center().x, gata_y())
-	return Vector2(_plats_x(i) - _pan, marklinje())
+func ståplats() -> Vector2:
+	var bild := byscen()
+	var art := float(bild.get_width()) if bild != null else 3232.0
+	return Vector2(art * GÅNGAR_ANDEL / 100.0 - _pan, gata_y())
 
 ## GATULINJEN I VYN. Med 3D-byn är den världens y = 0 projicerad — husens fot. Den gamla 2D-scenen
 ## lade gatan på 78 % av vyns höjd, vilket är en ANNAN linje än husens fot (M126); figuren och
@@ -234,7 +238,7 @@ func _plats_konst_x(i: int) -> float:
 ## själva promenaden mellan, låt den snappa fram och tillbaka när man växlar"*), så det här är den ENDA
 ## vägen figuren flyttas: den står på sin plats, direkt.
 func _ställ_gångaren() -> void:
-	gångaren().starta(gångpunkt(_vald), gångpunkt(_vald))
+	gångaren().starta(ståplats(), ståplats())
 
 ## GÅ TILL EN PLATS OCH IN I DEN. Platsen öppnas DIREKT (M138): ingen promenad, ingen väntan på att
 ## figuren ska komma fram — markören står på platsen i samma ögonblick man trycker.
@@ -655,11 +659,6 @@ func _process(delta: float) -> void:
 	if ram != _ram:
 		_ram = ram
 		queue_redraw()
-	# GÅNGAREN: ett steg per bildruta medan den går. Kommer den fram sänder den `framme`, och då
-	# öppnar `_framme` platsen — det är därför den ritas om varje bildruta och inte bara vid rambytet.
-	if gångaren().går():
-		gångaren().steg(delta)
-		queue_redraw()
 	# Panoreringen glider mot målet. Glider den klart ritas vyn om en sista gång och sedan inte mer:
 	# en stillastående bild ska kosta ingenting.
 	if absf(_pan_mål - _pan) > 0.05:
@@ -668,6 +667,9 @@ func _process(delta: float) -> void:
 			_pan = _pan_mål
 		if _scen3d != null:
 			_scen3d.sätt_pan(_pan)      # husen och bakgrunden flyttas i 3D-rymden, inte på skärmen
+		# KARAKTÄREN FÖLJER GATAN (M141): han står på en fast fläck i byn, så när panoreringen glider
+		# flyttar han med världen i stället för att stå kvar mot en gata som rör sig under honom.
+		_ställ_gångaren()
 		queue_redraw()
 	_sätt_figur()
 	# Orden sätts HÄR, inte i `_draw`: lagret ligger i fönstret och måste ha raderna innan bildrutan

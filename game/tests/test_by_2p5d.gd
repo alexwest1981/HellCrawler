@@ -226,7 +226,9 @@ func _initialize() -> void:
 	# panoreringen, marklinjen på 78 % av vyns höjd): panoreringen flyttar inget i 3D-byn, och MÄTT
 	# låg den 14 px fel i sidled och 90 px fel i höjd mot husets egen fot — provet mätte alltså
 	# avståndet till ett ankare som inte längre finns i vyn, inte till huset.
-	var punkt := by.gångpunkt(0)
+	# KARAKTÄREN HAR SIN EGEN FLÄCK PÅ GATAN (M141) — han står inte längre vid det valda huset — så
+	# avståndet mäts mot HANS punkt: klicket ska ta på husets kropp, långt ifrån honom.
+	var punkt := by.ståplats()
 	var avstånd := högt.distance_to(punkt)
 	mål.clear()
 	_klick(by, högt)
@@ -325,22 +327,20 @@ func _initialize() -> void:
 	by2.vald.connect(func(skepp: String): öppnade.append(skepp))
 	var g: Gångare = by2.gångaren()
 	check(g != null, "byn har en gångare", "Gångare (ui/gangare.gd)")
-	var till: Vector2 = by2.gångpunkt(3)
-	check(by2.gå_till(3), "man kan skicka figuren till en plats (porten, plats 3)")
-	# INGEN PROMENAD (M138). Alex 16/10: *"ta för den delen även bort själva 'promenaden' mellan, låt
-	# den snappa fram och tillbaka när man växlar"*. Alltså: figuren står på platsen i samma ögonblick
-	# man trycker, och ingen panel väntar på en ankomst.
-	check(not g.går(), "figuren GÅR inte — den snappar", "går=%s" % str(g.går()))
-	check(g.pos().distance_to(till) < 0.5, "och står PÅ platsen direkt",
-		"%.2f px från målet" % g.pos().distance_to(till))
+	var ställe: Vector2 = by2.ståplats()
+	check(by2.gå_till(3), "man kan öppna en plats (porten, plats 3)")
+	# KARAKTÄREN STÅR PÅ GATAN (M141). Alex 16/10: *"Sen vill jag att ens karaktär står på gatan, och
+	# inte menyn"* — han har sin egen fläck i byn, promenerar inte (M138) och flyttas INTE av menyraden.
+	check(not g.går(), "figuren GÅR inte — han står stilla", "går=%s" % str(g.går()))
+	check(g.pos().distance_to(ställe) < 0.5, "och står kvar på sin fläck på gatan",
+		"%.2f px från fläcken" % g.pos().distance_to(ställe))
 	check(öppnade == ["karta"], "platsen öppnas i samma anrop", str(öppnade))
-	# VÄXLINGEN snappar också: flytta markeringen ett steg till och mät att figuren redan står där.
+	# VÄXLINGEN flyttar honom inte: platsen man valt visas av plattan, glöden och pilen på huset.
 	öppnade.clear()
 	by2.flytta(Vector2i(1, 0))
-	var nästa: Vector2 = by2.gångpunkt(4)
-	check(not g.går() and g.pos().distance_to(nästa) < 0.5,
-		"och att växla plats snappar figuren dit, utan mellanläge",
-		"går=%s avstånd %.2f px" % [str(g.går()), g.pos().distance_to(nästa)])
+	check(not g.går() and g.pos().distance_to(ställe) < 0.5,
+		"och att växla plats flyttar honom inte",
+		"går=%s avstånd %.2f px" % [str(g.går()), g.pos().distance_to(ställe)])
 	check(öppnade.is_empty(), "ett steg i sidled öppnar ingenting", str(öppnade))
 	by2.free()
 

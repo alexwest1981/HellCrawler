@@ -21,10 +21,12 @@ extends Node3D
 const DATA := "res://assets/by/bybor.json"
 ## Mappen filerna i `bybor.json`s `bild`-fält ligger i.
 const MAPP := "res://assets/by/"
-## Celler i höjd per modell. `Voxel.DETALJ` (2) mångdubblar den, och taket är källkonstens egen höjd
-## i px: en bybo på 100 px blir 32 celler = 3 px per cell, vilket räcker gott — vyn ritar hela byn i
-## 313x270 px, så en bybo är ett tiotal skärmpixlar hög. Se `tests/test_bybor.gd` för byggtiden.
-const SIDOR := 8
+## Celler i höjd per modell. `Voxel.DETALJ` (2) mångdubblar den: 16 ger 32 celler över figuren, alltså
+## 4 px av källkonsten per cell. ALEX 16/10: *"Folket i byn är ALLDELES för lågupplösta, de är bara
+## simpla pixlar, omöjliga att urskilja"* — vid 8 (16 celler) blev varje cell 3 skärmpixlar bred i
+## vyn, och en bybo lästes som en färgfläck. MÄTT med 16: 23 586 celler och 315 ms för alla 21 bybor
+## (taket är 60 000 celler och 600 ms i `Voxel`), alltså dubbla upplösningen till samma budget.
+const SIDOR := 16
 
 ## SKUGGAN under varje bybo: samma recept som fiendernas golvfläck i `main.gd` (samma textur, samma färg,
 ## alfa och form) — byn och striden ska skugga likadant, och en figur utan fläck svävar i stället för att

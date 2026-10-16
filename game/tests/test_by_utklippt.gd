@@ -292,11 +292,13 @@ func _initialize() -> void:
 	by3.gå_till(3)
 	_gå_klart(g)
 	await process_frame
-	var punkt: Vector2 = by3.gångpunkt(3)
+	var punkt: Vector2 = by3.ståplats()
 	var hus3: Rect2 = by3.byggnad_rect(3)
-	check(punkt.x > hus3.position.x and punkt.x < hus3.end.x,
-		"gångpunkten ligger i husets eget mitt (hon går till rätt byggnad)",
-		"x %.0f i rutan %.0f-%.0f" % [punkt.x, hus3.position.x, hus3.end.x])
+	# HAN STÅR PÅ GATAN, INTE VID HUSET MAN VALDE (M141): platsen markeras av plattan och glöden på
+	# huset — figuren var förut en avbildning av menyraden.
+	check(punkt.x < hus3.position.x or punkt.x > hus3.end.x,
+		"figuren står på sin egen fläck, inte vid det valda huset",
+		"x %.0f mot husets ruta %.0f-%.0f" % [punkt.x, hus3.position.x, hus3.end.x])
 	check(absf(punkt.y - by3.gata_y()) < 0.01,
 		"och står på gatulinjen — husens fot i 3D-byn",
 		"y %.2f mot gatulinjen %.2f" % [punkt.y, by3.gata_y()])
