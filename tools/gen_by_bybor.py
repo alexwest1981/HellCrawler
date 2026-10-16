@@ -156,6 +156,52 @@ def falt(mask: np.ndarray) -> list[tuple[int, int, int, int, int]]:
     return ut
 
 
+def bakgrund(patch: np.ndarray, bg: np.ndarray, tol: float) -> np.ndarray:
+    """BAKGRUNDEN: de pixlar inom `tol` från arkets hörnfärg som hänger ihop med RUTANS KANT.
+    En GLOBAL tröskel duger inte: fårets ljusa ull ligger inom 0,12 från vitt, så tröskeln åt
+    genomskinliga HÅL inuti figuren (MÄTT 15/10: 6 775 px = 15,1 % av fåret, medelfärg 250,239,230 —
+    Alex: *"lammen har hål i pälsen"*), och det var också därför pälsen lästes som grå: de LJUSASTE
+    ullpixlarna försvann. Bara det som når kanten är bakgrund; det som är instängt inuti figuren
+    behålls, hur ljust det än är."""
+    h, b = patch.shape[:2]
+    vit = np.abs(patch - bg).max(axis=2) <= tol
+    bak = np.zeros((h, b), dtype=bool)
+    kö: deque[tuple[int, int]] = deque()
+
+    def put(y: int, x: int) -> None:
+        if vit[y, x] and not bak[y, x]:
+            bak[y, x] = True
+            kö.append((y, x))
+
+    for x in range(b):
+        put(0, x)
+        put(h - 1, x)
+    for y in range(h):
+        put(y, 0)
+        put(y, b - 1)
+    while kö:
+        y, x = kö.popleft()
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            ny, nx = y + dy, x + dx
+            if 0 <= ny < h and 0 <= nx < b and vit[ny, nx] and not bak[ny, nx]:
+                bak[ny, nx] = True
+                kö.append((ny, nx))
+    return bak
+
+
+## Bakgrunden räknas EN gång per ARK (flodfyllning över hela arket) och återanvänds för varje ruta:
+## fyllningen kostar mest av allt i den här filen, och en figur i rad 3 sitter i samma bakgrund som
+## en i rad 0 (mätt: 77 s för hela tabellen när varje radband fylldes för sig).
+_BAKGRUND: dict[str, np.ndarray] = {}
+
+
+def bakgrund_ark(namn: str) -> np.ndarray:
+    if namn not in _BAKGRUND:
+        a, bg = ark_bild(namn)
+        _BAKGRUND[namn] = bakgrund(a, bg, BAKGRUND_TOL)
+    return _BAKGRUND[namn]
+
+
 def figur_ruta(namn: str, rad: int, nr: int, val: int | None) -> tuple[int, int, int, int]:
     """Figurens ruta i arket, MÄTT: radbandet delas upp i sammanhängande fält, etikettens bokstäver
     (i bandets nederkant) och rekvisitan (små fält — smedens städ och ässja) faller bort, och det som
@@ -168,7 +214,7 @@ def figur_ruta(namn: str, rad: int, nr: int, val: int | None) -> tuple[int, int,
     h, b = a.shape[:2]
     ch = h / rader
     y0, y1 = int(round(rad * ch)), int(round((rad + 1) * ch))
-    mask = np.abs(a[y0:y1] - bg).max(axis=2) > BAKGRUND_TOL
+    mask = ~bakgrund_ark(namn)[y0:y1]
     fält = [f for f in falt(mask) if f[0] >= FALT_MIN and f[2] < ETIKETT_TOPP * (y1 - y0)]
     if not fält:
         raise SystemExit(f"FEL: inga figurer i {namn} rad {rad}")
@@ -220,7 +266,7 @@ def klipp(post: tuple) -> dict:
     a, bg = ark_bild(ark)
     rx0, ry0, rx1, ry1 = figur_ruta(ark, rad, nr, val)
     ruta = a[ry0:ry1, rx0:rx1]
-    alfa = np.where(np.abs(ruta - bg).max(axis=2) > BAKGRUND_TOL, 255, 0).astype(np.uint8)
+    alfa = np.where(~bakgrund_ark(ark)[ry0:ry1, rx0:rx1], 255, 0).astype(np.uint8)
     bild = Image.fromarray(np.dstack([(ruta * 255).astype(np.uint8), alfa]), mode="RGBA")
     bild = skala(bild)
     bild.save(UT / f"{id}.png")
@@ -271,6 +317,36 @@ def avtryck(p: Path) -> str:
     return hashlib.md5(p.read_bytes()).hexdigest()[:12]
 
 
+def hål_i(bild: Image.Image) -> int:
+    """Genomskinliga pixlar som är INSTÄNGDA i figuren (når inte bildens kant) — en päls med hål i.
+    MÄTT före fixen: 6 775 px = 15,1 % av fåret. Grinden kräver att de är borta."""
+    a = np.asarray(bild)
+    tom = a[..., 3] == 0
+    h, b = tom.shape
+    sedd = np.zeros((h, b), dtype=bool)
+    kö: deque[tuple[int, int]] = deque()
+
+    def put(y: int, x: int) -> None:
+        if tom[y, x] and not sedd[y, x]:
+            sedd[y, x] = True
+            kö.append((y, x))
+
+    for x in range(b):
+        put(0, x)
+        put(h - 1, x)
+    for y in range(h):
+        put(y, 0)
+        put(y, b - 1)
+    while kö:
+        y, x = kö.popleft()
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            ny, nx = y + dy, x + dx
+            if 0 <= ny < h and 0 <= nx < b and tom[ny, nx] and not sedd[ny, nx]:
+                sedd[ny, nx] = True
+                kö.append((ny, nx))
+    return int((tom & ~sedd).sum())
+
+
 def checka(poster: list[dict]) -> int:
     fel = 0
 
@@ -302,12 +378,16 @@ def checka(poster: list[dict]) -> int:
         # genomskinliga pixlar svarta (Pillow premultiplicerar om alfakanalen), och de pixlarna syns
         # aldrig i spelet. Medelvärdet över figuren är däremot oförändrat av nedskalningen.
         källa = a[y0:y1, x0:x1] * 255.0
-        källa_figur = np.abs(a[y0:y1, x0:x1] - bg).max(axis=2) > BAKGRUND_TOL
+        källa_figur = ~bakgrund_ark(p["ark"])[y0:y1, x0:x1]
         avvikelse = float(np.abs(arr[..., :3][alfa > 0].mean(axis=0)
                                  - källa[källa_figur].mean(axis=0)).max())
         krav(avvikelse < 4.0, f'{p["id"]}: figurens medelfärg är arkets ({avvikelse:.2f} steg från källan)')
         kvar = float((alfa > 0).mean())
         krav(0.10 < kvar < 0.95, f'{p["id"]}: figuren fyller rutan, inte bakgrunden ({kvar * 100:.0f} %)')
+        # HÅL I FIGUREN: genomskinliga pixlar som inte når rutans kant. Det var felet som gav fåret
+        # en päls med hål (mätt: 6 775 px = 15,1 %) — en grind, för felet syntes bara i spelet.
+        hål = hål_i(bild)
+        krav(hål < 0.01 * int((alfa > 0).sum()), f'{p["id"]}: inga hål i figuren ({hål} px av {(alfa > 0).sum()})')
         # FOTEN I NEDERKANT och hjässan i överkant: annars står modellen och svävar, eller så bar
         # rutan med sig mark över figuren.
         rader = np.nonzero((alfa > 0).any(axis=1))[0]
