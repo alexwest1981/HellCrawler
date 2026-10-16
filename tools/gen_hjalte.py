@@ -37,13 +37,12 @@ UT = ROOT / "game" / "assets" / "ui" / "hjalte"
 DATA = ROOT / "game" / "assets" / "ui" / "hjalte.json"
 KONTAKT = UT / "_kontaktkarta.png"
 
-RADER, KOLONNER = 2, 5
-## Botten (arket har 0,90 av sin höjd över figuren, resten är namnraden).
-BAKGRUND_TOL = 0.015
+RADER, KOLONNER = 3, 4
+## Hur nära hörnfärgen en pixel får ligga för att räknas som botten (JPEG-bruset i grått gör
+## steg på upp till 4/255 = 0,016, så 0,015 blockerade fyllningen helt).
+BAKGRUND_TOL = 0.05
 ## Fält mindre än så är etikettbokstäver och glödflagor, inte figuren.
 FALT_MIN = 800
-## Namnraden ligger i rutans nederkant. MÄTT: bokstäverna börjar på 0,90 av rutans höjd.
-ETIKETT_TOPP = 0.88
 ## Målhöjd i px: 48 px ritas i vyn i skalan 1,0 och blir då lika hög som den gamla 23x21-markören
 ## ritades (46 px mot husens ~250 vy-px) — en människa mot ett tvåvåningshus, inte en prick.
 MÅL_PX = 48
@@ -51,8 +50,8 @@ MÅL_PX = 48
 ## Namnen ur arket, i ordning (rad för rad). De står under varje figur i arket och sparas i json:en,
 ## så spelet kan visa hjältens namn utan att någon skriver av bilden för hand.
 NAMN = [
-    "AURIC PALADIN", "SYLVAN RANGER", "RUNIC GUARDIAN", "ARCANE MAGE", "SHADOWBLADE ROGUE",
-    "CLERIC OF LIGHT", "FURY BARBARIAN", "AEON GUARDIAN", "DRUIDIC SAGE", "SOLAR SERAPH",
+    "VALERIUS", "ELARA", "GREGOR", "SYLVIA", "RAGNAR", "SERAPHINA",
+    "KAEL", "ARTHUR", "LYRA", "BRUTUS", "ZOLTAR", "ISABEL",
 ]
 ## Filnamnen blir id:n i json:en (gemener, understreck).
 ID = [n.lower().replace(" ", "_") for n in NAMN]
@@ -65,14 +64,20 @@ def ark() -> np.ndarray:
 
 
 def bakgrund(patch: np.ndarray, tol: float) -> np.ndarray:
-    """Flodfyllning från rutans kant: en pixel blir botten om den ligger inom `tol` från sin GRANNE och
-    hänger ihop med kanten. Figurens inre når inte kanten och rörs därför inte."""
+    """Bakgrunden: de pixlar inom `tol` från rutans HÖRNFÄRG som hänger ihop med rutans kant.
+    Arkets botten är NUMERA en platt grå yta (Alex genererade om arket 15/10), så hörnregeln räcker —
+    och den måste vara rymlig: arket är JPEG, och bruset i grått gör steg på upp till 4/255 = 0,016
+    mellan två grannpixlar. Den gamla lokala kontinuitetsregeln vid 0,015 stannade därför vid första
+    steget och fyllde NOLL pixlar (mätt: hela rutan lästes som figur). Kantregeln behålls ändå: en
+    grå ficka inuti en figur (t.ex. en grå ärm) får inte bli genomskinlig."""
     h, b = patch.shape[:2]
+    hörn = np.median(np.concatenate([patch[:4, :4].reshape(-1, 3), patch[:4, -4:].reshape(-1, 3)]), axis=0)
+    nära = np.abs(patch - hörn).max(axis=2) <= tol
     m = np.zeros((h, b), dtype=bool)
     kö: deque[tuple[int, int]] = deque()
 
     def put(y: int, x: int) -> None:
-        if not m[y, x]:
+        if nära[y, x] and not m[y, x]:
             m[y, x] = True
             kö.append((y, x))
 
@@ -84,10 +89,9 @@ def bakgrund(patch: np.ndarray, tol: float) -> np.ndarray:
         put(y, b - 1)
     while kö:
         y, x = kö.popleft()
-        c = patch[y, x]
         for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             ny, nx = y + dy, x + dx
-            if 0 <= ny < h and 0 <= nx < b and not m[ny, nx] and np.abs(patch[ny, nx] - c).max() < tol:
+            if 0 <= ny < h and 0 <= nx < b and nära[ny, nx] and not m[ny, nx]:
                 m[ny, nx] = True
                 kö.append((ny, nx))
     return m
@@ -119,16 +123,39 @@ def största(mask: np.ndarray) -> tuple[int, int, int, int, int]:
     return bäst
 
 
+def radband(a: np.ndarray) -> list[tuple[int, int]]:
+    """Radbanden MÄTS: arket är inte jämnt delat i höjdled (MÄTT 15/10: figurerna börjar på y 80, 720
+    och 1 380 i ett ark som är 2 400 högt, med 500 px tom botten — en jämn delning på tre skar Brutus,
+    Lyra, Zoltar och Isabel mitt i kroppen och gav fyra benpar). Ett band är sammanhängande rader med
+    figur, och ett gap på minst 30 tomma rader skiljer två band."""
+    grå = np.abs(a - np.median(np.concatenate([a[:4, :4].reshape(-1, 3), a[:4, -4:].reshape(-1, 3)]), axis=0)).max(axis=2) <= BAKGRUND_TOL
+    rader = (~grå).mean(axis=1) > 0.01
+    band: list[tuple[int, int]] = []
+    y = 0
+    while y < len(rader):
+        if rader[y]:
+            slut = y
+            tom = 0
+            while slut + 1 < len(rader) and tom < 30:
+                slut += 1
+                tom = tom + 1 if not rader[slut] else 0
+            band.append((y, slut - tom + 1))
+            y = slut
+        else:
+            y += 1
+    return band
+
+
 def ruta(a: np.ndarray, rad: int, kol: int) -> tuple[int, int, int, int]:
-    """Figurens ruta i arket: rutan ur rutnätet, botten bort, och den största figuren blir hjälten."""
+    """Figurens ruta i arket: kolumnen ur rutnätet, raden ur det MÄTTA radbandet, och den största
+    sammanhängande figuren i den rutan blir hjälten (bokstäverna i namnraden är små och faller på
+    `FALT_MIN` — därför behövs ingen egen etikettgräns)."""
     h, b = a.shape[:2]
-    ch, cw = h / RADER, b / KOLONNER
-    x0, y0 = int(round(kol * cw)), int(round(rad * ch))
-    x1, y1 = int(round((kol + 1) * cw)), int(round((rad + 1) * ch))
+    cw = b / KOLONNER
+    x0, x1 = int(round(kol * cw)), int(round((kol + 1) * cw))
+    y0, y1 = radband(a)[rad]
     patch = a[y0:y1, x0:x1]
     m = ~bakgrund(patch, BAKGRUND_TOL)
-    # Namnraden är inte figuren.
-    m[int((y1 - y0) * ETIKETT_TOPP):] = False
     n, xs0, ys0, xs1, ys1 = största(m)
     if n < FALT_MIN:
         raise SystemExit(f"FEL: ingen figur i {ARK.name} rad {rad} kol {kol} ({n} px)")

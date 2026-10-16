@@ -45,6 +45,12 @@ var gem_in: Dictionary = {}
 var ranks: Dictionary = {}        ## id -> rang
 var relics: Array = []
 var language := Tr.DEFAULT        ## språkvalet sparas: en gång valt ska det gälla nästa gång
+## VALD HJÄLTE (M138): id:t i `assets/ui/hjalte/` (klippta ur Alex' hjälteark av `tools/gen_hjalte.py`).
+## Figuren är bara en MARKÖR i byn och på kartan — valet ska ge känslan av en egen karaktär, inte mer.
+## ETT GLOBALT VAL (static, som `PATH`): en spelare har en hjälte, och både byn och kartan frågar
+## klassen direkt (`Meta.hjalte_bild()`) — annars kunde de två visa olika figurer.
+static var hjalte := "gregor"
+
 var unlocked: Array = [FIRST_STAGE]   ## upplåsta banor. En lista, inte ett träd: banorna låses upp
                                       ## i svårighetsordning, så nästa bana är alltid nästa i listan.
 var best_floor: Dictionary = {}   ## bana -> högsta våning man nått (1-baserat, 0 = aldrig varit där)
@@ -104,6 +110,8 @@ static func load_or_new(path: String = PATH) -> Meta:
 	m.gold = int(parsed.get("gold", 0))
 	m.relics = parsed.get("relics", [])
 	m.language = str(parsed.get("language", Tr.DEFAULT))
+	hjalte = str(parsed.get("hjalte", "gregor"))
+
 	# Upplåsningen kom i version 2. En version 1-fil har spelat klart banor utan att någon skrev
 	# ner det, så den får behålla sitt guld och sina ranger men börjar med bara första banan öppen
 	# — alternativet vore att gissa vilka banor spelaren klarat, och en gissning som ger fel bana
@@ -1092,11 +1100,18 @@ func tree_lines(branch: String) -> Array:
 		})
 	return out
 
+## Var hjältefiguren ligger. EN väg för byn och kartan, så de inte kan visa olika figurer: båda
+## använder `Meta.hjalte_bild()`. Finns filen inte (t.ex. en gammal sparfil med ett id som klipptes
+## bort när arket gjordes om) faller den tillbaka på förvalet i stället för att rita ingenting.
+static func hjalte_bild() -> String:
+	var väg := "res://assets/ui/hjalte/%s.png" % hjalte
+	return väg if ResourceLoader.exists(väg) else "res://assets/ui/hjalte/gregor.png"
+
 ## --- sparfilen ---------------------------------------------------------------
 
 func to_dict() -> Dictionary:
 	return {"save_version": SAVE_VERSION, "gold": gold, "ranks": ranks.duplicate(),
-		"relics": relics.duplicate(), "language": language, "unlocked": unlocked.duplicate(),
+		"relics": relics.duplicate(), "language": language, "hjalte": hjalte, "unlocked": unlocked.duplicate(),
 		"best_floor": best_floor.duplicate(), "runs": runs, "hired": hired.duplicate(),
 		"samling": samling.duplicate(),
 		"shards": shards, "souls": souls, "gems": gems.duplicate(true), "gem_slots": gem_slots.duplicate(),

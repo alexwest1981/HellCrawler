@@ -1,29 +1,14 @@
 {
   "hjalte": [
     {
-      "id": "auric_paladin",
-      "namn": "AURIC PALADIN",
-      "bild": "hjalte/auric_paladin.png",
+      "id": "valerius",
+      "namn": "VALERIUS",
+      "bild": "hjalte/valerius.png",
       "ark_ruta": [
-        55,
-        159,
-        448,
-        644
-      ],
-      "px": [
-        39,
-        48
-      ]
-    },
-    {
-      "id": "sylvan_ranger",
-      "namn": "SYLVAN RANGER",
-      "bild": "hjalte/sylvan_ranger.png",
-      "ark_ruta": [
-        691,
-        183,
-        1103,
-        624
+        67,
+        84,
+        406,
+        444
       ],
       "px": [
         45,
@@ -31,29 +16,89 @@
       ]
     },
     {
-      "id": "runic_guardian",
-      "namn": "RUNIC GUARDIAN",
-      "bild": "hjalte/runic_guardian.png",
+      "id": "elara",
+      "namn": "ELARA",
+      "bild": "hjalte/elara.png",
       "ark_ruta": [
-        1163,
-        152,
-        1620,
-        500
+        559,
+        131,
+        814,
+        444
       ],
       "px": [
-        63,
+        39,
         48
       ]
     },
     {
-      "id": "arcane_mage",
-      "namn": "ARCANE MAGE",
-      "bild": "hjalte/arcane_mage.png",
+      "id": "gregor",
+      "namn": "GREGOR",
+      "bild": "hjalte/gregor.png",
       "ark_ruta": [
-        1786,
-        145,
-        2207,
-        643
+        925,
+        116,
+        1267,
+        443
+      ],
+      "px": [
+        50,
+        48
+      ]
+    },
+    {
+      "id": "sylvia",
+      "namn": "SYLVIA",
+      "bild": "hjalte/sylvia.png",
+      "ark_ruta": [
+        1385,
+        121,
+        1691,
+        444
+      ],
+      "px": [
+        45,
+        48
+      ]
+    },
+    {
+      "id": "ragnar",
+      "namn": "RAGNAR",
+      "bild": "hjalte/ragnar.png",
+      "ark_ruta": [
+        136,
+        727,
+        448,
+        1081
+      ],
+      "px": [
+        42,
+        48
+      ]
+    },
+    {
+      "id": "seraphina",
+      "namn": "SERAPHINA",
+      "bild": "hjalte/seraphina.png",
+      "ark_ruta": [
+        516,
+        754,
+        841,
+        1081
+      ],
+      "px": [
+        48,
+        48
+      ]
+    },
+    {
+      "id": "kael",
+      "namn": "KAEL",
+      "bild": "hjalte/kael.png",
+      "ark_ruta": [
+        969,
+        745,
+        1255,
+        1081
       ],
       "px": [
         41,
@@ -61,74 +106,14 @@
       ]
     },
     {
-      "id": "shadowblade_rogue",
-      "namn": "SHADOWBLADE ROGUE",
-      "bild": "hjalte/shadowblade_rogue.png",
+      "id": "arthur",
+      "namn": "ARTHUR",
+      "bild": "hjalte/arthur.png",
       "ark_ruta": [
-        2398,
-        194,
-        2528,
-        404
-      ],
-      "px": [
-        30,
-        48
-      ]
-    },
-    {
-      "id": "cleric_of_light",
-      "namn": "CLERIC OF LIGHT",
-      "bild": "hjalte/cleric_of_light.png",
-      "ark_ruta": [
-        118,
-        832,
-        464,
-        1287
-      ],
-      "px": [
-        37,
-        48
-      ]
-    },
-    {
-      "id": "fury_barbarian",
-      "namn": "FURY BARBARIAN",
-      "bild": "hjalte/fury_barbarian.png",
-      "ark_ruta": [
-        732,
-        881,
-        1103,
-        1124
-      ],
-      "px": [
-        73,
-        48
-      ]
-    },
-    {
-      "id": "aeon_guardian",
-      "namn": "AEON GUARDIAN",
-      "bild": "hjalte/aeon_guardian.png",
-      "ark_ruta": [
-        1214,
-        808,
-        1655,
-        1258
-      ],
-      "px": [
-        47,
-        48
-      ]
-    },
-    {
-      "id": "druidic_sage",
-      "namn": "DRUIDIC SAGE",
-      "bild": "hjalte/druidic_sage.png",
-      "ark_ruta": [
-        1822,
-        823,
-        2118,
-        1114
+        1344,
+        725,
+        1707,
+        1081
       ],
       "px": [
         49,
@@ -136,17 +121,62 @@
       ]
     },
     {
-      "id": "solar_seraph",
-      "namn": "SOLAR SERAPH",
-      "bild": "hjalte/solar_seraph.png",
+      "id": "lyra",
+      "namn": "LYRA",
+      "bild": "hjalte/lyra.png",
       "ark_ruta": [
-        2284,
-        789,
-        2759,
-        1308
+        156,
+        1381,
+        399,
+        1701
       ],
       "px": [
-        44,
+        36,
+        48
+      ]
+    },
+    {
+      "id": "brutus",
+      "namn": "BRUTUS",
+      "bild": "hjalte/brutus.png",
+      "ark_ruta": [
+        501,
+        1359,
+        873,
+        1701
+      ],
+      "px": [
+        52,
+        48
+      ]
+    },
+    {
+      "id": "zoltar",
+      "namn": "ZOLTAR",
+      "bild": "hjalte/zoltar.png",
+      "ark_ruta": [
+        908,
+        1352,
+        1268,
+        1701
+      ],
+      "px": [
+        50,
+        48
+      ]
+    },
+    {
+      "id": "isabel",
+      "namn": "ISABEL",
+      "bild": "hjalte/isabel.png",
+      "ark_ruta": [
+        1452,
+        1383,
+        1656,
+        1700
+      ],
+      "px": [
+        31,
         48
       ]
     }

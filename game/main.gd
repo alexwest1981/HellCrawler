@@ -3650,6 +3650,7 @@ func _visa_meny() -> void:
 		spärrade[2] = Tr.t("ui.meny.tom", "ingen sparad körning")
 	if run == null or run.finished:
 		spärrade[1] = Tr.t("ui.meny.inget", "ingen pågående körning")
+	meny.meta = meta
 	meny.visa(_meny_rubriker(), spärrade, _meny_botten())
 	meny.visible = true
 	_placera_meny()

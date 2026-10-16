@@ -83,6 +83,45 @@ func _initialize() -> void:
 	print("")
 	print("— märket följer valet —")
 	check(main.meny.valt_index == 0, "första valet är markerat från början")
+	# HJÄLTRADEN (M138). Alex: *"Hjältarna skall man kunna välja vilken man vill använda ... det skall
+	# inte tillföra mer än lite 'Jag har valt min egen karaktär i spelet'-känsla"*. Raden ligger under
+	# menyvalen, i den fria ytan ovanför bottenraden — den får inte ligga på en menyrad.
+	# FÖNSTRET SÄTTS TILL SPELETS EGEN STORLEK. Provets standardruta är lägre än 720 px, och hjältraden
+	# ligger strax ovanför bottenraden: i en låg ruta hamnar den utanför fönstret (mätt: y -52 i en
+	# 64 px hög ruta), och då mäter kontrollerna fel sak.
+	root.size = Vector2i(1896, 1018)
+	await process_frame
+	main._placera_meny()      # samma placering som spelet gör innan menyn syns: annars mäts
+	                          # radernas y ur en tidigare, mindre ruta än bottenradens (mätt: 438 mot 12)
+	var hjältrad: HjältVal = main.meny.hjältval
+	check(hjältrad != null and hjältrad.antal() == 12, "hjältvalet ligger i menyn med tolv figurer",
+		"%d st" % (hjältrad.antal() if hjältrad != null else -1))
+	var rad_sist: Label = main.meny.rader[main.meny.rader.size() - 1]
+	# GLOBALA rutor: menyraderna och raden har olika ankare, så deras `position` är mätt i olika rum
+	# (mätt: en rads `position.y` 686 i ett 648 px högt fönster).
+	check(hjältrad.get_global_rect().position.y > rad_sist.get_global_rect().end.y,
+		"och raden ligger UNDER menyvalen",
+		"hjälten börjar på y %.0f, sista raden slutar på y %.0f"
+			% [hjältrad.get_global_rect().position.y, rad_sist.get_global_rect().end.y])
+	check(hjältrad.get_global_rect().end.y <= main.meny.botten.get_global_rect().position.y,
+		"och ovanför bottenraden (ingen rad hamnar på en annan)",
+		"hjälten slutar på y %.0f, bottenraden börjar på y %.0f"
+			% [hjältrad.get_global_rect().end.y, main.meny.botten.get_global_rect().position.y])
+	var r0: Rect2 = hjältrad.ruta(0)
+	var r_sist: Rect2 = hjältrad.ruta(hjältrad.antal() - 1)
+	check(absf((r0.position.x + r_sist.position.x + r_sist.size.x) * 0.5 - hjältrad.size.x * 0.5) <= 1.0,
+		"raden står mitt i fönstret", "mitten %.1f mot %.1f"
+			% [(r0.position.x + r_sist.position.x + r_sist.size.x) * 0.5, hjältrad.size.x * 0.5])
+	check(not r0.intersects(r_sist) or hjältrad.antal() == 1, "figurerna ligger inte på varandra",
+		"bredd %.0f px var" % r0.size.x)
+	# ETT KLICK BYTER FIGUR, och valet hamnar i sparfilen.
+	var förra: String = main.meta.hjalte
+	hjältrad.välj(4 if hjältrad.vald != 4 else 5)
+	check(main.meta.hjalte == hjältrad.id[hjältrad.vald],
+		"ett val i raden sätter hjälten i sparfilen", "%s -> %s" % [förra, main.meta.hjalte])
+	check(str(main.meta.to_dict()["hjalte"]) == main.meta.hjalte,
+		"och hjälten följer med sparfilens innehåll")
+	main.meta.hjalte = förra
 	var rad0: Label = main.meny.rader[0]
 	var rad3: Label = main.meny.rader[3]
 	check(main.meny.markör.position.x + main.meny.markör.size.x <= rad0.position.x,

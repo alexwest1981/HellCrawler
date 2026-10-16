@@ -62,10 +62,9 @@ signal vald(skepp: String)
 const BILD := "res://assets/ui/byn.png"
 ## Figuren som går i byn (och på kartan): en av HJÄLTARNA ur Alex' hjälteark (`game/images/heroes.jpeg`,
 ## klippta av `tools/gen_hjalte.py`, som också sparar namnen i `assets/ui/hjalte.json`).
-## Byt hjälte genom att peka den här raden på en annan fil i `assets/ui/hjalte/` — de tio är
-## auric_paladin, sylvan_ranger, runic_guardian, arcane_mage, shadowblade_rogue, cleric_of_light,
-## fury_barbarian, aeon_guardian, druidic_sage, solar_seraph.
-const FIGUR := "res://assets/ui/hjalte/auric_paladin.png"
+## HJÄLTEN MAN VALDE (M138): figuren är en MARKÖR, och valet (i huvudmenyn) styr både byn och kartan.
+## Här finns ingen konstant att byta — `Meta.hjalte` är källan. De tolv är valerius, elara, gregor,
+## sylvia, ragnar, seraphina, kael, arthur, lyra, brutus, zoltar och isabel.
 ## Hur stor figuren ritas i vyns px. Hjälten är klippt till 48 px höjd och ritas i skalan 1,0 —
 ## samma höjd som den gamla 23x21-markören ritades (46 px), alltså en människa mot ett tvåvåningshus
 ## (husen är ~250 vyn-px höga), inte en prick.
@@ -142,8 +141,6 @@ var _hover := -1
 ## GÅNGAREN (M122): EN figur som går mellan platserna i byn — samma komponent som på världskartan.
 ## Den står vid den valda platsen, går dit man väljer, och FÖRST NÄR DEN ÄR FRAMME öppnas platsen.
 var _gångare: Gångare = null
-## Platsen man väntar på: gångaren är på väg dit, och `_process` går in när den kommer fram. -1 = nej.
-var _väntar := -1
 ## Figurens bild, läst en gång (samma markörfigur som huvudmenyn använder).
 var _figur: Texture2D = null
 ## Bildens vänsterkant i vyns koordinater (logiska px). Panoreringen är en förflyttning och inte en
@@ -199,13 +196,12 @@ func _släpp_hovring() -> void:
 		_om_markering()
 		queue_redraw()
 
-## Gångaren. Provet mäter vägen, tiden och att platsen öppnas först när figuren är framme.
+## Gångaren: håller reda på VAR markören står. Ingen promenad kopplas hit (M138).
 func gångaren() -> Gångare:
 	# Skapas på begäran: ett prov gör en `VillageView.new()` utan träd, och då körs aldrig `_ready`.
 	# Att kräva en färdig gångare hade gjort `flytta` till en krasch i varje sådant prov.
 	if _gångare == null:
 		_gångare = Gångare.new()
-		_gångare.framme.connect(_framme)
 	return _gångare
 
 ## VAR FIGUREN GÅR (M126): på gatulinjen, framför huset — i VYNS px, vid husets EGET mitt. SAMMA ruta
@@ -234,14 +230,14 @@ func _plats_konst_x(i: int) -> float:
 	var art := float(bild.get_width()) if bild != null else 3232.0
 	return art * float(PLATSER[i]["x"]) / 100.0
 
-## Ställ figuren vid den valda platsen, utan att gå. Anropas när vyn visas och när _vald flyttas utan
-## en promenad (t.ex. att vyn kommer tillbaka efter en körning).
+## Ställ figuren vid den valda platsen. Figuren GÅR inte (M138, Alex 16/10: *"ta för den delen även bort
+## själva promenaden mellan, låt den snappa fram och tillbaka när man växlar"*), så det här är den ENDA
+## vägen figuren flyttas: den står på sin plats, direkt.
 func _ställ_gångaren() -> void:
 	gångaren().starta(gångpunkt(_vald), gångpunkt(_vald))
 
-## GÅ TILL EN PLATS OCH IN I DEN (M122). Alex: *"välj en plats, figuren går dit ... och först när
-## figuren är framme går man in."* GÅNGEN börjar här; `_framme` öppnar platsen när figuren är framme,
-## och står den redan där blir det ingen väntan alls.
+## GÅ TILL EN PLATS OCH IN I DEN. Platsen öppnas DIREKT (M138): ingen promenad, ingen väntan på att
+## figuren ska komma fram — markören står på platsen i samma ögonblick man trycker.
 func gå_till(i: int = -1) -> bool:
 	if i < 0:
 		i = _vald
@@ -250,21 +246,10 @@ func gå_till(i: int = -1) -> bool:
 	_vald = i
 	_pan_mål = _mål_pan(_vald)
 	_om_markering()
-	_väntar = i
-	gångaren().starta(gångaren().pos(), gångpunkt(i))
-	if not gångaren().går():
-		_framme()
+	_ställ_gångaren()
 	queue_redraw()
+	gå_in(i)
 	return true
-
-## Figuren är framme. Platsen öppnas HÄR och inte vid tangenttrycket — det är hela poängen med
-## gångaren, och `_väntar` nollas först så en andra ankomst inte öppnar två gånger.
-func _framme() -> void:
-	queue_redraw()
-	var i := _väntar
-	_väntar = -1
-	if i >= 0:
-		gå_in(i)
 
 ## Byns bild. Saknas filen ritas en mörk platta i stället: en by utan bild ska synas som en tom scen,
 ## inte som en krasch — och husen går fortfarande att välja.
@@ -601,10 +586,10 @@ func flytta(dir: Vector2i) -> bool:
 	_vald = nästa
 	_pan_mål = _mål_pan(_vald)
 	_om_markering()
-	# Figuren GÅR dit markeringen flyttas: man ska se den vandra mellan punkterna. Att bara FLYTTA
-	# markeringen öppnar ingenting — det gör `gå_till` (Enter/klick). Är figuren redan på väg får den
-	# ett nytt mål från där den står, annars hade den vridit runt och gått tillbaka först.
-	gångaren().starta(gångaren().pos(), gångpunkt(_vald))
+	# FIGUREN SNAPPAR TILL PLATSEN (M138). Alex 16/10: *"ta för den delen även bort själva promenaden
+	# mellan, låt den snappa fram och tillbaka när man växlar"*. Att bara FLYTTA markeringen öppnar
+	# ingenting — det gör `gå_till` (Enter/klick).
+	_ställ_gångaren()
 	queue_redraw()
 	return true
 
@@ -808,9 +793,21 @@ func _hus(i: int) -> void:
 
 ## Figuren (M126). Hon ritas i VYN (`_gångare_ritning`) — 2D-scenen som bar henne förut ritas inte
 ## längre, och en figur ingen ser är ingen gångare. Här laddas bara texturen, en gång.
+var _figur_väg := ""
+
+## Filen markören ritar. Provet jämför den med kartans: samma hjälte på båda ställena (M138).
+func figur_väg() -> String:
+	return _figur_väg
+
 func _sätt_figur() -> void:
-	if _figur == null and ResourceLoader.exists(FIGUR):
-		_figur = load(FIGUR)
+	# TEXTUREN BYTS NÄR VALET BYTS: provet och spelet kan välja hjälte medan vyn lever, och en markör
+	# som visar den förra hjälten vore en lögn om vad man valt.
+	var väg := Meta.hjalte_bild()
+	if _figur_väg != väg:
+		_figur_väg = väg
+		_figur = null
+		if ResourceLoader.exists(väg):
+			_figur = load(väg)
 
 ## GÅNGAREN: figuren står på gatulinjen framför huset och ritas i HUSENS px (samma ruta som klicket och
 ## glöden), centrerad i sidled på sin punkt med fötterna på den. Vickningen följer med.

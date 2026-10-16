@@ -81,11 +81,15 @@ var _ritade_vägar: Array = []
 ## lägger till i SAMMA scen — samma skäl som `crt=0` för CRT-lagret.
 var vägar_av := false
 ## GÅNGAREN (M122): EN figur som går mellan platserna — samma komponent som i byn (`ui/gangare.gd`).
+## Ingen promenad kopplas hit längre (M138): markören snappar till platsen man valt.
 ## Den går i KARTANS px (före kameran), så den står kvar på sin plats på kartan medan kameran glider.
 var _gångare: Gångare = null
-## Platsen figuren är på väg till, eller -1: panelen öppnas först när den är framme.
-var _väntar := -1
 var _figur: Texture2D = null
+var _figur_väg := ""
+
+## Filen markören ritar (jämförs med byns i provet — samma hjälte på båda ställena, M138).
+func figur_väg() -> String:
+	return _figur_väg
 var _t := 0.0
 var _ram := 0
 var _tex: Texture2D = null
@@ -116,7 +120,6 @@ func _ready() -> void:
 func gångaren() -> Gångare:
 	if _gångare == null:
 		_gångare = Gångare.new()
-		_gångare.framme.connect(_framme)
 	return _gångare
 
 ## VAR FIGUREN GÅR: nodens plats i KARTANS px (`_fort`, alltså före kameran). Kameran glider mot den
@@ -126,18 +129,8 @@ func gångpunkt(i: int) -> Vector2:
 		return Vector2.ZERO
 	return _fort(_bild_px(i))
 
-## Figuren är framme: öppna platsen man var på väg till. `_väntar` nollas först, så en andra ankomst
-## inte öppnar två gånger.
-func _framme() -> void:
-	queue_redraw()
-	var i := _väntar
-	_väntar = -1
-	if i >= 0:
-		försök_gå_in(i)
-
-## GÅ TILL PLATSEN OCH ÖPPNA DEN (M122). Är figuren redan framme är det ett vanligt `försök_gå_in`;
-## annars går den först — och panelen öppnas när den kommer fram, aldrig i samma ögonblick man
-## trycker. Svarar "går" medan den går, så skalet vet att det bara ska vänta.
+## GÅ TILL PLATSEN OCH ÖPPNA DEN. Ingen promenad och ingen väntan (M138): markören står på platsen
+## direkt och panelen öppnas i samma anrop — skalet har inget "går"-läge att vänta på längre.
 func gå_till_och_in(i: int = -1) -> Dictionary:
 	if i < 0:
 		i = _vald
@@ -145,17 +138,13 @@ func gå_till_och_in(i: int = -1) -> Dictionary:
 		return försök_gå_in(i)
 	if i != _vald:
 		gå_till(i)
-		gångaren().starta(gångaren().pos(), gångpunkt(i))
-		if gångaren().går():
-			_väntar = i
-			queue_redraw()
-			return {"ok": false, "reason": "går", "stage_id": "", "text": "", "krav": "", "index": i}
+		_ställ_gångaren(i)
+		queue_redraw()
 	return försök_gå_in(i)
 
-## Skicka figuren till den valda platsen (efter att markeringen flyttats). Att GÅ är inte att öppna:
-## panelen hör till `gå_till_och_in`.
+## Markören står på den valda platsen (M138: inget gående — den snappar).
 func _låt_gångaren_gå(i: int) -> void:
-	gångaren().starta(gångaren().pos(), gångpunkt(i))
+	_ställ_gångaren(i)
 
 ## Ställ figuren vid en plats utan att gå (när vyn visas).
 func _ställ_gångaren(i: int) -> void:
@@ -875,8 +864,12 @@ func _ord() -> void:
 func _figur_rita() -> void:
 	if karta == null:
 		return
-	if _figur == null and ResourceLoader.exists(VillageView.FIGUR):
-		_figur = load(VillageView.FIGUR)
+	var väg := Meta.hjalte_bild()
+	if _figur_väg != väg:
+		_figur_väg = väg
+		_figur = null
+		if ResourceLoader.exists(väg):
+			_figur = load(väg)
 	if _figur == null:
 		return
 	var p := gångaren().pos() - _kamera + fokus()

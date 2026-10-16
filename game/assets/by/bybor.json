@@ -38,13 +38,13 @@
       "källa": "townfolks2.jpeg rad 0 figur 0",
       "ark": "bybor2",
       "ark_ruta": [
-        177,
-        47,
-        619,
-        599
+        60,
+        23,
+        361,
+        309
       ],
       "px": [
-        102,
+        135,
         128
       ]
     },
@@ -110,10 +110,10 @@
       "källa": "townfolks2.jpeg rad 0 figur 2",
       "ark": "bybor2",
       "ark_ruta": [
-        1567,
-        79,
-        1992,
-        622
+        784,
+        40,
+        996,
+        311
       ],
       "px": [
         100,
@@ -230,13 +230,13 @@
       "källa": "townfolks2.jpeg rad 0 figur 1",
       "ark": "bybor2",
       "ark_ruta": [
-        903,
-        49,
-        1320,
-        623
+        451,
+        25,
+        661,
+        312
       ],
       "px": [
-        93,
+        94,
         128
       ]
     },
@@ -254,10 +254,10 @@
       "källa": "townfolks2.jpeg rad 0 figur 3",
       "ark": "bybor2",
       "ark_ruta": [
-        2263,
-        81,
-        2607,
-        624
+        1131,
+        40,
+        1304,
+        312
       ],
       "px": [
         81,
@@ -278,13 +278,13 @@
       "källa": "townfolks2.jpeg rad 1 figur 0",
       "ark": "bybor2",
       "ark_ruta": [
-        178,
-        939,
-        650,
-        1372
+        89,
+        469,
+        325,
+        687
       ],
       "px": [
-        140,
+        139,
         128
       ]
     },
@@ -302,13 +302,13 @@
       "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
       "ark": "bybor2",
       "ark_ruta": [
-        2127,
-        1069,
-        2404,
-        1325
+        1063,
+        533,
+        1202,
+        663
       ],
       "px": [
-        138,
+        137,
         128
       ]
     },
@@ -326,13 +326,13 @@
       "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
       "ark": "bybor2",
       "ark_ruta": [
-        2127,
-        1069,
-        2404,
-        1325
+        1063,
+        533,
+        1202,
+        663
       ],
       "px": [
-        138,
+        137,
         128
       ]
     },
@@ -350,13 +350,13 @@
       "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
       "ark": "bybor2",
       "ark_ruta": [
-        2127,
-        1069,
-        2404,
-        1325
+        1063,
+        533,
+        1202,
+        663
       ],
       "px": [
-        138,
+        137,
         128
       ]
     },
@@ -374,10 +374,10 @@
       "källa": "townfolks2.jpeg rad 1 figur 2",
       "ark": "bybor2",
       "ark_ruta": [
-        1469,
-        798,
-        2004,
-        1375
+        734,
+        399,
+        1003,
+        688
       ],
       "px": [
         119,
@@ -398,13 +398,13 @@
       "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
       "ark": "bybor2",
       "ark_ruta": [
-        2127,
-        1069,
-        2404,
-        1325
+        1063,
+        533,
+        1202,
+        663
       ],
       "px": [
-        138,
+        137,
         128
       ]
     },
@@ -422,10 +422,10 @@
       "källa": "townfolks2.jpeg rad 1 figur 1",
       "ark": "bybor2",
       "ark_ruta": [
-        844,
-        797,
-        1320,
-        1372
+        422,
+        398,
+        661,
+        686
       ],
       "px": [
         106,
@@ -446,13 +446,13 @@
       "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
       "ark": "bybor2",
       "ark_ruta": [
-        2127,
-        1069,
-        2404,
-        1325
+        1063,
+        533,
+        1202,
+        663
       ],
       "px": [
-        138,
+        137,
         128
       ]
     },
@@ -470,13 +470,13 @@
       "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
       "ark": "bybor2",
       "ark_ruta": [
-        2127,
-        1069,
-        2404,
-        1325
+        1063,
+        533,
+        1202,
+        663
       ],
       "px": [
-        138,
+        137,
         128
       ]
     },
@@ -494,13 +494,13 @@
       "källa": "townfolks2.jpeg rad 1 figur 3, halva 0",
       "ark": "bybor2",
       "ark_ruta": [
-        2127,
-        1069,
-        2404,
-        1325
+        1063,
+        533,
+        1202,
+        663
       ],
       "px": [
-        138,
+        137,
         128
       ]
     }

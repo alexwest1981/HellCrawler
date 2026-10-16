@@ -325,39 +325,67 @@ func _initialize() -> void:
 	by2.vald.connect(func(skepp: String): öppnade.append(skepp))
 	var g: Gångare = by2.gångaren()
 	check(g != null, "byn har en gångare", "Gångare (ui/gangare.gd)")
-	var från: Vector2 = by2.gångpunkt(0)
 	var till: Vector2 = by2.gångpunkt(3)
 	check(by2.gå_till(3), "man kan skicka figuren till en plats (porten, plats 3)")
-	check(g.går(), "och då GÅR den")
-	var väntad_sträcka: float = från.distance_to(till)
-	check(absf(g.sträcka() - väntad_sträcka) < 0.01,
-		"sträckan är avståndet mellan de två punkterna",
-		"%.1f px mot %.1f" % [g.sträcka(), väntad_sträcka])
-	check(absf(g.tid() - väntad_sträcka / Gångare.FART) < 0.01,
-		"gångtiden är sträckan delat med farten",
-		"%.2f s = %.1f px / %.0f px/s" % [g.tid(), väntad_sträcka, Gångare.FART])
-	# INGENTING ÖPPNAS MEDAN DEN GÅR. Det är hela poängen med gångaren.
-	g.steg(0.1)
-	check(öppnade.is_empty() and g.går(), "ingenting öppnas medan figuren går",
-		"efter 0,1 s: %s" % str(öppnade))
-	var res := _gå_klart(g)
-	check(öppnade == ["karta"], "och när den är framme öppnas platsen man gick till", str(öppnade))
-	check(g.pos().distance_to(till) < 0.5, "figuren står PÅ målpunkten",
+	# INGEN PROMENAD (M138). Alex 16/10: *"ta för den delen även bort själva 'promenaden' mellan, låt
+	# den snappa fram och tillbaka när man växlar"*. Alltså: figuren står på platsen i samma ögonblick
+	# man trycker, och ingen panel väntar på en ankomst.
+	check(not g.går(), "figuren GÅR inte — den snappar", "går=%s" % str(g.går()))
+	check(g.pos().distance_to(till) < 0.5, "och står PÅ platsen direkt",
 		"%.2f px från målet" % g.pos().distance_to(till))
-	check(absf(float(res["tid"]) - väntad_sträcka / Gångare.FART) < 0.11,
-		"och gångtiden stämmer med sträckan",
-		"%.2f s mätt mot %.2f s väntat" % [float(res["tid"]), väntad_sträcka / Gångare.FART])
-	# Att gå till SAMMA plats man står på väntar inte: ingen väg, ingen fördröjning.
+	check(öppnade == ["karta"], "platsen öppnas i samma anrop", str(öppnade))
+	# VÄXLINGEN snappar också: flytta markeringen ett steg till och mät att figuren redan står där.
 	öppnade.clear()
-	by2.gå_till(3)
-	check(öppnade == ["karta"], "står figuren redan där går man in direkt", str(öppnade))
+	by2.flytta(Vector2i(1, 0))
+	var nästa: Vector2 = by2.gångpunkt(4)
+	check(not g.går() and g.pos().distance_to(nästa) < 0.5,
+		"och att växla plats snappar figuren dit, utan mellanläge",
+		"går=%s avstånd %.2f px" % [str(g.går()), g.pos().distance_to(nästa)])
+	check(öppnade.is_empty(), "ett steg i sidled öppnar ingenting", str(öppnade))
 	by2.free()
 
-	# SAMMA KOMPONENT PÅ KARTAN. Klassens identitet är beviset: två kopior hade varit två saker som
-	# glider isär, och Alex bad om EN karaktär som går på båda ställena.
+	# HJÄLTEN MAN VALDE RITAR BÅDE BYN OCH KARTAN (M138). Samma fil på båda ställena — det är hela
+	# poängen med en markör: man ska känna igen sin figur var man än är.
+	var vald_före: String = Meta.hjalte
+	by2 = VillageView.new()
+	by2.size = VY
+	by2.visa(meta, order.size())
+	by2._sätt_figur()
+	var byväg_före: String = by2.figur_väg()
+	var väljaren := HjältVal.new()
+	väljaren.size = Vector2(941.0, HjältVal.PX + 12.0)
+	check(väljaren.antal() == 12, "hjältvalet har de tolv hjältarna ur arket",
+		"%d st" % väljaren.antal())
+	# Fångas i en LISTA, inte i en vanlig variabel: en lambda tar sina lokala variabler med VÄRDE, så
+	# en tilldelning inifrån lambda:n syns inte utanför (mätt: `bytt_till` förblev tom).
+	var fångat: Array[String] = []
+	väljaren.bytt.connect(func(h: String) -> void: fångat.append(h))
+	väljaren.välj(1)
+	check(Meta.hjalte == väljaren.id[1], "och ett klick sätter valet i Meta",
+		"%s -> %s" % [väljaren.id[1], Meta.hjalte])
+	check(fångat == [väljaren.id[1]], "valet sänds vidare (så skalet kan spara det)", str(fångat))
+	by2._sätt_figur()
+	check(by2.figur_väg() != byväg_före and by2.figur_väg().ends_with("%s.png" % Meta.hjalte),
+		"byn byter figur när valet byts", by2.figur_väg())
 	var kvy := WorldMapView.new()
 	kvy.karta = Karta.ladda()
 	kvy.visa(stages, order, meta)
+	kvy._figur_rita()
+	check(kvy.figur_väg() == by2.figur_väg(), "och kartan ritar SAMMA figur", kvy.figur_väg())
+	# VALET ÖVERLEVER EN OMSTART: det ligger i sparfilen, inte bara i minnet.
+	var provfil := "user://prov_hjalte.json"
+	var m2 := Meta.new()
+	m2.save(provfil)
+	var laddad := Meta.load_or_new(provfil)
+	check(laddad != null and laddad.to_dict()["hjalte"] == Meta.hjalte,
+		"hjälten sparas i sparfilen", str(Meta.hjalte))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(provfil))
+	Meta.hjalte = vald_före
+	by2.free()
+	väljaren.free()
+
+	# SAMMA KOMPONENT PÅ KARTAN. Klassens identitet är beviset: två kopior hade varit två saker som
+	# glider isär, och Alex bad om EN karaktär som går på båda ställena.
 	check(kvy.gångaren() != null and kvy.gångaren() is Gångare,
 		"kartan har samma Gångare-klass som byn — inte en egen kopia",
 		"%s" % ("Gångare" if kvy.gångaren() is Gångare else "annat"))
@@ -371,25 +399,17 @@ func _initialize() -> void:
 	if mål_nod < 0:
 		mål_nod = mini(1, kvy.antal() - 1)
 	var kg: Gångare = kvy.gångaren()
-	var kfrån: Vector2 = kvy.gångpunkt(0)
 	var ktill: Vector2 = kvy.gångpunkt(mål_nod)
 	var svar := kvy.gå_till_och_in(mål_nod)
-	check(str(svar["reason"]) == "går", "Enter på en annan plats skickar figuren dit först",
-		str(svar["reason"]))
-	check(kg.går() and not kvy.panel_öppen() and kvy.besked() == "",
-		"och ingenting har öppnats medan den går",
-		"går=%s panel=%s besked='%s'" % [str(kg.går()), str(kvy.panel_öppen()), kvy.besked()])
-	check(absf(kg.sträcka() - kfrån.distance_to(ktill)) < 0.01,
-		"kartans väg är avståndet mellan de två noderna",
-		"%.1f px" % kg.sträcka())
-	var kres := _gå_klart(kg)
-	check(kg.pos().distance_to(ktill) < 0.5, "figuren stannar på NODEN",
-		"%.2f px från noden" % kg.pos().distance_to(ktill))
-	# Framme: antingen öppnas nivåpanelen (öppen plats) eller så kommer beskedet (låst) — men FÖRST
-	# nu, aldrig under gången.
+	# INGET GÅNG-LÄGE (M138): svaret är inte "går", för det finns ingenting att vänta på.
+	check(str(svar["reason"]) != "går", "Enter öppnar platsen direkt — inget gångläge att vänta på",
+		"reason=%s" % str(svar["reason"]))
+	check(not kg.går() and kg.pos().distance_to(ktill) < 0.5,
+		"och figuren står på NODEN i samma anrop",
+		"går=%s, %.2f px från noden" % [str(kg.går()), kg.pos().distance_to(ktill)])
 	check(kvy.panel_öppen() or not kvy.besked().is_empty(),
-		"och först framme öppnas platsen (eller dess besked)",
-		"panel=%s besked='%s', %.2f s" % [str(kvy.panel_öppen()), kvy.besked(), float(kres["tid"])])
+		"panelen (eller beskedet) är uppe direkt",
+		"panel=%s besked='%s'" % [str(kvy.panel_öppen()), kvy.besked()])
 	kvy.free()
 
 	# ---------------------------------------------------------------- 4. 2.5D: paralax och distansblur
