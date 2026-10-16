@@ -20,6 +20,18 @@
 ##      använder (M126), så klickytan kan inte glida ifrån huset man ser.
 ##   3. SLÄCKER de två riktningsljus i glb:n som scenens egna `sol`/`fyllnad` ersätter.
 ##
+## HIMMEL, DIMMA OCH VOLYMETRISKT LJUS (M142) bor i `res://scenes/by.tscn`s Environment (`miljö`).
+## Alex 16/10: *"Kan vi lägga in volumetric lighting, kanske lite dimma, någon skybox ... så det inte
+## ser så tråkigt ut?"*. Förut var bakgrunden en PLATT FÄRG (background_mode 1, samma gråblå som
+## ambienten) — en tom vägg bakom husen — och ingen dimma alls. Nu: en ProceduralSkyMaterial i
+## nattpalett (vald mot månljuset 0,62/0,72/0,98 och facklornas varma fönster), dimma med
+## `fog_sun_scatter` så att månljuset glöder i den, och volymetrisk dimma med anisotropi 0,32 som
+## samlar ljusskärven framåt så att strålarna syns i stället för en grå matta.
+## LJUSET ÄR ORÖRT (sol 0,25, fyllnad 0,08, måne 0,15): dimman läggs ovanpå i stället för att
+## skruva upp ljuset, så byn inte krockar med den pågående ljusändringen i den andra sessionen.
+## Godots .tscn-format tillåter inga kommentarer (mätt: en `#`-rad gav "Parse Error: Expected '['"
+## och hela scenen föll), och därför står motiveringen här i stället.
+##
 ## KAMERAN (M127): ortografisk, tippad nedåt så att gatan, taken och marken syns. MÄTT i vyns px:
 ## 480x270 → 313x339 vid Alex' 941x1018 (SubViewportContainer, heltalsskala 3). Läget står i
 ## `res://scenes/by.tscn` tillsammans med motiveringen — ett prov (tests/test_by_kamera.gd) fäller om

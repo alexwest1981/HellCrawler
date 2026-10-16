@@ -75,7 +75,12 @@ func fyll() -> void:
 		var höjd := float(p.get("höjd_m", 1.0))
 		# Alfa-redan-utklippt ark (byborna) hoppar över flodfyllningen: deras bakgrund ÄR alfan, och
 		# fyllningen kostade 5/6 av byggtiden (MÄTT: 1 250 ms mot 250 ms för 21 bybor).
-		var v := Voxel.ur_ark(tex, 0, 1, höjd, SIDOR, 2, false)
+		# DJUPET (M142). Alex 16/10: *"se till att alla invånarna är voxlar så de kan ha skugga (de ser
+		# otroligt platta ut idag)"*. Två celler gav en pappersfigur som ljuset bara träffade framifrån;
+		# fyra ger kroppen en sida som skuggas och tar emot månljuset. MÄTT: 25 002 -> 50 004 celler och
+		# 262 -> 300 ms för alla 21 (taket är 60 000 celler och 600 ms, så fyra celler är det djup som
+		# ryms — mer djup kräver att celler sparas någon annanstans).
+		var v := Voxel.ur_ark(tex, 0, 1, höjd, SIDOR, 4, false)
 		if v.antal_celler() == 0:
 			push_warning("bybor: %s gav en tom modell" % str(p.get("id", "?")))
 			continue
@@ -83,12 +88,16 @@ func fyll() -> void:
 		mi.name = str(p.get("id", "bybo"))
 		mi.mesh = v.mesh()
 		mi.material_override = Voxel.material()
+		# VARJE BYBO VRIDEN LITE OLIKA (M142). Alex: *"de ser otroligt platta ut"*. En rad figurer som
+		# står EXAKT vända mot kameran läses som urklippta kort; några grader åt var sitt håll visar
+		# figurens sida, alltså djupet. Vinkeln bestäms av id:t, så samma bybo står likadant varje gång.
+		mi.rotation.y = (float(absi(str(p.get("id", "bybo")).hash())) / 2147483647.0 - 0.5) * 0.70
 		# MODELLEN ÄR CENTRERAD KRING SITT ORIGO (`Voxel._förskjutning`), så fötterna står på
 		# markens y när noden ligger ett halvt höjd-mått över den.
 		var pos: Array = p.get("pos", [0.0, 0.0, 0.0])
 		mi.position = Vector3(float(pos[0]), float(pos[1]) + höjd * 0.5, float(pos[2]))
-		# Modellens EGEN plan ligger i xy med djupet i z, alltså mot kameran (byn ses från +z) —
-		# ingen vridning behövs, och inställningen är densamma i editorn som i spelet.
+		# Modellens EGEN plan ligger i xy med djupet i z, alltså mot kameran (byn ses från +z);
+		# vridningen ovan är bara några grader och gäller lika i editorn som i spelet.
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		mi.set_meta("bybo", p)
 		mi.set_meta("celler", v.antal_celler())

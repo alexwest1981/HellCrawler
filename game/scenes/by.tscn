@@ -1,19 +1,44 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dq88kspdo3n4f"]
 
-[ext_resource type="Script" path="res://ui/by_3d.gd" id="1_fgbt6"]
-[ext_resource type="PackedScene" path="res://assets/by/byn.glb" id="2_iiaxr"]
+[ext_resource type="Script" uid="uid://c7thbeqdehyvh" path="res://ui/by_3d.gd" id="1_fgbt6"]
+[ext_resource type="PackedScene" uid="uid://df4bfi3tnc2v0" path="res://assets/by/byn.glb" id="2_iiaxr"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_natt"]
+sky_top_color = Color(0.02745098, 0.043137256, 0.09803922, 1)
+sky_horizon_color = Color(0.12941177, 0.15686275, 0.23921569, 1)
+sky_curve = 0.08
+ground_bottom_color = Color(0.019607844, 0.02745098, 0.047058824, 1)
+ground_horizon_color = Color(0.101960786, 0.11764706, 0.16862746, 1)
+ground_curve = 0.05
+sun_angle_max = 16.0
+
+[sub_resource type="Sky" id="Sky_natt"]
+radiance_size = 3
+sky_material = SubResource("ProceduralSkyMaterial_natt")
 
 [sub_resource type="Environment" id="Environment_ki1di"]
-background_mode = 1
-background_color = Color(0.28235295, 0.36078432, 0.40784314, 1)
+background_mode = 2
+sky = SubResource("Sky_natt")
 ambient_light_source = 2
 ambient_light_color = Color(0.28235295, 0.36078432, 0.40784314, 1)
 ambient_light_energy = 0.55
 tonemap_mode = 4
+fog_enabled = true
+fog_light_color = Color(0.36078432, 0.42352942, 0.54901963, 1)
+fog_light_energy = 1.0
+fog_sun_scatter = 0.35
+fog_density = 0.012
+fog_aerial_perspective = 0.25
+fog_sky_affect = 0.4
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.02
+volumetric_fog_albedo = Color(0.6392157, 0.7019608, 0.81960785, 1)
+volumetric_fog_anisotropy = 0.32
+volumetric_fog_length = 96.0
 
 [sub_resource type="Gradient" id="Gradient_c7udj"]
-offsets = PackedFloat32Array(0, 1, 0.55)
-colors = PackedColorArray(0.72, 0.74, 0.78, 0.85, 0.72, 0.74, 0.78, 0, 0.72, 0.74, 0.78, 0.5)
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0.72, 0.74, 0.78, 0.85, 0.72, 0.74, 0.78, 0.5, 0.72, 0.74, 0.78, 0)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_uqk78"]
 gradient = SubResource("Gradient_c7udj")
@@ -46,10 +71,10 @@ size = Vector2(0.45, 0.45)
 [node name="By" type="Node3D" unique_id=1595544826]
 script = ExtResource("1_fgbt6")
 
-[node name="byn" type="Node3D" parent="." unique_id=637678542 instance=ExtResource("2_iiaxr")]
+[node name="byn" parent="." unique_id=637678542 instance=ExtResource("2_iiaxr")]
 
 [node name="kamera" type="Camera3D" parent="." unique_id=745322354]
-transform = Transform3D(1, 0, 0, 0, 0.8660254, 0.5, 0, -0.5, 0.8660254, -1.3, 15.3919, 8)
+transform = Transform3D(1, 0, 0, 0, 0.9688425, 0.24767773, 0, -0.24767773, 0.9688425, -1.3, 8.463437, 8)
 keep_aspect = 0
 projection = 1
 current = true
@@ -69,7 +94,7 @@ directional_shadow_max_distance = 60.0
 [node name="fyllnad" type="DirectionalLight3D" parent="." unique_id=583052616]
 transform = Transform3D(1, 0, 0, 0, 0.97780246, 0.20952909, 0, -0.20952909, 0.97780246, 0, 0, 0)
 light_color = Color(0.75, 0.88, 1, 1)
-light_energy = 0.08
+light_energy = 1.68
 
 [node name="måne" type="DirectionalLight3D" parent="." unique_id=565722949]
 transform = Transform3D(-0.8944272, -0.27770323, 0.35054377, 0, 0.7838397, 0.6209633, -0.4472136, 0.55540645, -0.70108753, 0, 0, 0)
@@ -89,3 +114,33 @@ seed = 20261014
 visibility_aabb = AABB(-3, -1, -1.5, 6, 9, 3)
 process_material = SubResource("ParticleProcessMaterial_umkuo")
 draw_pass_1 = SubResource("QuadMesh_5gko2")
+
+[node name="fackla_smed" type="OmniLight3D" parent="." unique_id=1904557311]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 2.0, 0.9)
+light_color = Color(1, 0.7411765, 0.4509804, 1)
+light_energy = 1.6
+light_specular = 0.4
+shadow_enabled = true
+shadow_bias = 0.06
+omni_range = 9.0
+omni_attenuation = 1.2
+
+[node name="fackla_krog" type="OmniLight3D" parent="." unique_id=1904557312]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.45, 2.0, 0.9)
+light_color = Color(1, 0.7411765, 0.4509804, 1)
+light_energy = 1.6
+light_specular = 0.4
+shadow_enabled = true
+shadow_bias = 0.06
+omni_range = 10.0
+omni_attenuation = 1.2
+
+[node name="fackla_juvelerare" type="OmniLight3D" parent="." unique_id=1904557313]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.0, 2.0, 0.9)
+light_color = Color(1, 0.7411765, 0.4509804, 1)
+light_energy = 1.6
+light_specular = 0.4
+shadow_enabled = true
+shadow_bias = 0.06
+omni_range = 9.0
+omni_attenuation = 1.2
