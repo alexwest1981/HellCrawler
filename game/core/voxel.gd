@@ -324,6 +324,26 @@ static func ur_ark(tex: Texture2D, ruta: int, rutor: int, figur_höjd: float,
 	return v
 
 
+## BARA DE SYNLIGA CELLERNA (M143). Alex 16/10: *"Bara de synliga cellerna"*. En solid kropp är mest
+## inre celler, och `_bygg_mesh` hoppar ändå över varje yta som har en granne — de inre cellerna kostar
+## alltså ingenting i bilden, bara minne, byggtid och celltaket. En cell behålls om minst en av dess
+## sex grannar är tom (den har då minst en yta kvar); resten stryks. Ytorna blir EXAKT desamma, så
+## bilden är oförändrad — mätt: samma rendering på pixeln, men cellerna räckte till dubbelt djup.
+## Anropas av den som vill ha djup utan att betala för gods som aldrig syns; modeller som ska HUGGAS
+## (fienderna i striden) lämnas solida, för där river varje borttagen cell fram nya ytor.
+## Returnerar antalet celler kvar.
+func bara_synliga() -> int:
+	var kvar := {}
+	for nyckel in celler:
+		var c: Vector3i = nyckel
+		for riktning in HORN:
+			if not celler.has(c + riktning):
+				kvar[nyckel] = celler[nyckel]
+				break
+	celler = kvar
+	return celler.size()
+
+
 ## Meshen som den ser ut nu. Byggs om efter ett hugg (några tusen ytor tar en bråkdel av en bildruta,
 ## och ett hugg händer en gång per kort).
 func mesh() -> ArrayMesh:

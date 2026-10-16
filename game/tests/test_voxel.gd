@@ -157,6 +157,44 @@ func _init() -> void:
 	check(våning_tri <= TAK_TRIANGULAR,
 		"våningsstarten %d trianglar (tak %d)" % [våning_tri, TAK_TRIANGULAR])
 
+	# SKALET (M143). Alex 16/10: *"Bara de synliga cellerna"*. Byborna byggs med `bara_synliga()`,
+	# som stryker varje cell vars sex grannar är fyllda — de bidrog inte med en enda yta. Provet mäter
+	# det som ska vara sant: YTORNA är exakt desamma som för en solid kropp, cellerna färre, och en
+	# cell intill en grop behålls (annars faller väggen in i hålet — silhuetten vore inte kvar).
+	var block := Voxel.new()
+	for x in 5:
+		for y in 5:
+			for z in 5:
+				block.celler[Vector3i(x, y, z)] = Color(0.5, 0.5, 0.5)
+	var ytor_solid := block.antal_ytor()
+	var ram_solid := block.mesh().get_aabb()
+	var celler_solid := block.antal_celler()
+	var skal := Voxel.new()
+	skal.celler = block.celler.duplicate()
+	var celler_skal := skal.bara_synliga()
+	check(celler_skal == 98, "skalet av ett 5x5x5-block är 98 celler (125 - 27), mätt %d" % celler_skal)
+	check(celler_skal < celler_solid, "skalet har färre celler än den solida kroppen (%d mot %d)"
+		% [celler_skal, celler_solid])
+	# YTORNA BLIR INTE FÄRRE — men de kan bli fler: när en inre cell stryks blottas grannens yta mot
+	# den, och den ytan ligger inuti kroppen där ingen kamera ser den. Mätt: blocket 300 -> 408
+	# trianglar, medan en bybo (smeden, djup 4) gav 3 848 båda vägarna — samma bild, samma ytor.
+	check(skal.antal_ytor() >= ytor_solid,
+		"skalet har inte färre ytor än den solida kroppen (%d mot %d)" % [skal.antal_ytor(), ytor_solid])
+	var ram_skal := skal.mesh().get_aabb()
+	check(ram_skal.is_equal_approx(ram_solid),
+		"och ramen är oförändrad, alltså är konturen kvar (%s mot %s)" % [str(ram_skal.size), str(ram_solid.size)])
+	var rör := Voxel.new()
+	for x in 3:
+		for y in 3:
+			for z in 3:
+				if x == 1 and y == 1:
+					continue                  # en pipa rätt igenom: cellerna runt den har en tom granne
+				rör.celler[Vector3i(x, y, z)] = Color(0.5, 0.5, 0.5)
+	rör.bara_synliga()
+	check(rör.celler.has(Vector3i(0, 1, 1)) and rör.celler.has(Vector3i(1, 0, 1)) \
+			and rör.celler.has(Vector3i(2, 1, 1)) and rör.celler.has(Vector3i(1, 2, 1)),
+		"cellerna intill pipan behålls (annars blir hålet igen)")
+
 	print("  fiender: %d modeller, %d av dem är typen (en byggs per fiende i striden), tyngst %d celler / %d trianglar, %.0f ms för alla"
 		% [fiender.size(), fiender.size(), fiende_celler, fiende_tri, fiende_ms])
 	print("  våningsstart (kista, spade, boss, 4 markdekor, 3 rekvisiter): %d celler, %d trianglar, %.0f ms"

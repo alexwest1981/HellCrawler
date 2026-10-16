@@ -75,12 +75,14 @@ func fyll() -> void:
 		var höjd := float(p.get("höjd_m", 1.0))
 		# Alfa-redan-utklippt ark (byborna) hoppar över flodfyllningen: deras bakgrund ÄR alfan, och
 		# fyllningen kostade 5/6 av byggtiden (MÄTT: 1 250 ms mot 250 ms för 21 bybor).
-		# DJUPET (M142). Alex 16/10: *"se till att alla invånarna är voxlar så de kan ha skugga (de ser
-		# otroligt platta ut idag)"*. Två celler gav en pappersfigur som ljuset bara träffade framifrån;
-		# fyra ger kroppen en sida som skuggas och tar emot månljuset. MÄTT: 25 002 -> 50 004 celler och
-		# 262 -> 300 ms för alla 21 (taket är 60 000 celler och 600 ms, så fyra celler är det djup som
-		# ryms — mer djup kräver att celler sparas någon annanstans).
-		var v := Voxel.ur_ark(tex, 0, 1, höjd, SIDOR, 4, false)
+		# DJUPET (M142/M143). Alex 16/10: *"se till att alla invånarna är voxlar så de kan ha skugga (de
+		# ser otroligt platta ut idag)"* — och på frågan om djupet: *"Bara de synliga cellerna"*.
+		# `bara_synliga()` stryker godset inuti kroppen (det bidrog inte med en enda yta), så celltaket
+		# räcker till SEX celler i stället för fyra: 35 270 celler och 338 ms för alla 21, mot 50 004 och
+		# 300 ms för fyra solida. Sex är också taket för vad reliefen tål — provet kräver djup under 25 %
+		# av höjden (6/32 = 19 %), och åtta celler föll det provet 21 gånger.
+		var v := Voxel.ur_ark(tex, 0, 1, höjd, SIDOR, 6, false)
+		v.bara_synliga()      # bara de synliga cellerna, se `Voxel.bara_synliga`
 		if v.antal_celler() == 0:
 			push_warning("bybor: %s gav en tom modell" % str(p.get("id", "?")))
 			continue
