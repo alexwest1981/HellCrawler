@@ -948,8 +948,13 @@ func etiketter() -> Array:
 		rader.append(UiText.rad(hnamn, Vector2(hx, hy),
 			UiText.storlek_som_ryms([hnamn], bredd - 6.0, 10, 14, HORIZONTAL_ALIGNMENT_CENTER),
 			Palett.c(14), bredd, HORIZONTAL_ALIGNMENT_CENTER, "hovring", Palett.c(1)))
+	# LEDTRÅDEN LIGGER OVANFÖR LISTEN. Alex 16/10: *"listningen över var man befinner sig, och att det
+	# ligger text mitt mellan dem, det ser förjävligt ut"*. Baslinjen var hårdkodad till 264, alltså
+	# INNE i listen (som går från `bar_topp()` = 85 % av höjden och 40 px ner, till vyns botten), och
+	# därmed rakt över platsernas statusrader. Nu 6 px ovanför listen i stället, med luft kvar till
+	# hovringsetiketten (som högst når 14 px ovanför).
 	var hint := Tr.t("ui.by.hint", "← → välj plats · Enter = gå in · L = språk · Q = avsluta")
-	rader.append(UiText.rad(hint, Vector2(0.0, 264.0),
+	rader.append(UiText.rad(hint, Vector2(0.0, bar_topp() - 6.0),
 		UiText.storlek_som_ryms([hint], vp.x - 8.0, 9, 12, HORIZONTAL_ALIGNMENT_CENTER),
 		Palett.c(7), vp.x, HORIZONTAL_ALIGNMENT_CENTER, "hint", Palett.c(1)))
 	return rader

@@ -261,6 +261,17 @@ func _initialize() -> void:
 	by.släpp_hovring()
 	check(by.hovrad() == -1, "och hovringen släpps när pekaren lämnar")
 	check(by.glod_rect() == Rect2(), "och då ritas ingen glöd alls", str(by.glod_rect()))
+	# LEDTRÅDEN SKA LIGGA OVANFÖR LISTEN (M144). Den låg på baslinje 264, inne i listen (85 % av höjden
+	# till botten), och skrevs rakt över platsernas statusrader. Provet mäter att HELA raden hamnar
+	# ovanför listen, med luft: baslinjen minst 4 px över `bar_topp()`.
+	var hint_rad := {}
+	for rad in by.etiketter():
+		if str(rad.get("grupp", "")) == "hint":
+			hint_rad = rad
+	var hint_y: float = float(hint_rad["pos"].y) if not hint_rad.is_empty() else 999.0
+	check(not hint_rad.is_empty() and hint_y <= by.bar_topp() - 4.0,
+		"ledtråden ligger ovanför listen, inte över platsernas rader",
+		"baslinje %.1f mot listen %.1f" % [hint_y, by.bar_topp()])
 	by.free()
 	vp1.queue_free()
 
