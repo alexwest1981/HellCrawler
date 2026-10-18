@@ -223,7 +223,12 @@ def gräs(b: Bygge) -> None:
 
     Stråna är tre smalnande stycken (1,8 → 1,4 → 1,0 px) med luft mellan sig. Första försöket hade
     2,4 px breda blad utan glipor, och då blev tuvan en grön kub — en tuva känns igen på att man ser
-    MELLAN bladen. Den torra toppen är BONE, som i arket.
+    MELLAN bladen.
+
+    TOPPEN ÄR DIRT OCH INTE BONE (M151). Alex: "Gräs skall inte avge ljus". Ingen yta i gräset lyser
+    (modellen har ett enda material), men BONE (156,146,124) brände ut till VITT vid en fackla tre
+    meter bort och läste som en glödande kristall. DIRT (96,68,44) når aldrig taket, och torrt gräs
+    är brunt.
     """
     b.låda((8, 6, 0.6), (16, 12, 1.2), INK)
     b.låda((8, 6, 3.4), (12, 9.0, 4.8), MOSS)
@@ -241,10 +246,10 @@ def gräs(b: Bygge) -> None:
             hh = h * andel
             m = Matrix.Rotation(lut * (0.4 + z / 26.0), 3, "Y")
             b.låda((x + math.sin(lut) * (z - 8.0) * 0.6, y, z + hh / 2.0),
-                   (bredd, djup, hh + 0.2), BONE if andel == 0.17 else MOSS, m)
+                   (bredd, djup, hh + 0.2), DIRT if andel == 0.17 else MOSS, m)
             z += hh
     for x, y, a in ((3.0, 9.4, 74.0), (13.0, 9.0, -68.0)):        # två torra strån på marken
-        b.låda((x, y, 1.8), (5.0, 1.0, 1.0), BONE, Matrix.Rotation(math.radians(a), 3, "Y"))
+        b.låda((x, y, 1.8), (5.0, 1.0, 1.0), DIRT, Matrix.Rotation(math.radians(a), 3, "Y"))
 
 
 def rot(b: Bygge) -> None:

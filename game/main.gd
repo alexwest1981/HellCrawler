@@ -6937,6 +6937,36 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	nod.multimesh = mm
 	nod.layers = LAGER_REKVISIT              # sin egen lampa lyser inte på sig själv (M149)
 	world.add_child(nod)
+	# MARKSKUGGAN (M151). Alex: "Gräs skall inte avge ljus, däremot skall de kasta skugga." Rekvisiten
+	# (namnet har INTE `dekor_`-prefixet: `dekor=0` och proven räknar allt som börjar på `dekor_`.)
+	# hade ingen skugga alls — bara figurer och spadar bar en fläck. Lyktans skuggkarta räcker inte:
+	# den slås av med `skugga=0` och kostar fps (M17), så dekoren får samma platta fläck som fienderna
+	# (`_skuggtextur`), en per instans, i SAMMA MultiMesh-grepp: en quad liggande på golvet.
+	var sknod := MultiMeshInstance3D.new()
+	sknod.name = "markskugga_" + art
+	var skmm := MultiMesh.new()
+	skmm.transform_format = MultiMesh.TRANSFORM_3D
+	var kvad := QuadMesh.new()
+	kvad.size = Vector2(1.0, 1.0)
+	var skmat := StandardMaterial3D.new()
+	skmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	skmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	skmat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	skmat.albedo_texture = _skuggtextur()
+	skmat.albedo_color = Color(SKUGGA_FÄRG, SKUGGA_FÄRG * 0.68, SKUGGA_FÄRG * 0.5, SKUGGA_ALFA)
+	kvad.material = skmat
+	skmm.mesh = kvad
+	skmm.instance_count = platser.size()
+	var flat := Basis(Vector3.RIGHT, -PI * 0.5)
+	for i in platser.size():
+		var t: Transform3D = mm.get_instance_transform(i)
+		var s := t.basis.get_scale().y
+		var bredd := maxf(0.12, höjd * 0.62 * s)      # fläcken är bredare än figuren, som fiendernas
+		skmm.set_instance_transform(i, Transform3D(
+			flat.scaled(Vector3(bredd, 1.0, bredd * 0.55)), Vector3(t.origin.x, SKUGGA_HÖJD, t.origin.z)))
+	sknod.multimesh = skmm
+	sknod.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(sknod)
 	return platser.size()
 
 

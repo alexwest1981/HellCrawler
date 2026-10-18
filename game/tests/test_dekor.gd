@@ -133,10 +133,56 @@ func _init() -> void:
 				check(inte_låga == 0,
 					"%s: lågytan bär bara lågfärger (%d av %d utanför)" % [art, inte_låga, färger.size()])
 		check(utanför == 0, "%s: alla hörn har palettfärg (%d utanför)" % [art, utanför])
+		# MARKSKUGGAN (M151): Alex: "de skall kasta skugga". Varje dekorart som FAKTISKT har instanser
+		# i kartan får en egen MultiMesh med en platt fläck per instans — saknas den syns ingen skugga.
+		var vanlig := main.world.get_node_or_null("dekor_" + art) as MultiMeshInstance3D
+		var sknod := main.world.get_node_or_null("markskugga_" + art) as MultiMeshInstance3D
+		if vanlig == null:
+			continue                      # arten finns inte i den här kartan: då ska ingen skugga finnas
+		if vanlig.multimesh != null:
+			check(sknod != null and sknod.multimesh != null, "%s: markskuggan finns" % art)
+			if sknod != null and sknod.multimesh != null:
+				check(sknod.multimesh.instance_count == vanlig.multimesh.instance_count,
+					"%s: en skugga per instans (%d mot %d)" %
+					[art, sknod.multimesh.instance_count, vanlig.multimesh.instance_count])
+				check(sknod.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF,
+					"%s: skuggan kastar ingen egen skugga" % art)
 		var mått: AABB = m.get_aabb()
 		check(mått.size.y > 0.03, "%s är %.3f m hög" % [art, mått.size.y])
 		check(mått.size.z >= 0.25 * mått.size.x,
 			"%s har djup %.3f m mot bredden %.3f (inte en platt skylt)" % [art, mått.size.z, mått.size.x])
+
+	# HANDPLACERAD REKVISITA (M150). Karteditorn skriver `Floor.rekvisita`; här mäts att den blir
+	# exakt en plats per ruta, i rutans mitt, med skala 1 (ingen jitter, ingen storleksslump: det man
+	# ritade är det som ställs ut) — och att en post i en vägg inte blir en osynlig sak i våningen.
+	var kartan := MapIo.blank("stage_01", 0, 17, 17)
+	kartan.rekvisita = [{"art": "trälåda", "pos": Vector2i(3, 4)},
+		{"art": "småsten", "pos": Vector2i(9, 12)},
+		{"art": "bur", "pos": Vector2i(0, 0)}]
+	var hand: Dictionary = main.handlagd_rekvisita(kartan)
+	check(hand.size() == 2, "två av tre poster blev rekvisita (väggposten hoppas över), %d arter" % hand.size())
+	var t: Transform3D = hand["trälåda"][0]
+	check(t.origin.is_equal_approx(Vector3(3.5, 0.0, 4.5)), "platsen är rutans mitt %s" % str(t.origin))
+	check(t.basis.get_scale().is_equal_approx(Vector3.ONE), "skala 1 — ingen storleksslump %s"
+		% str(t.basis.get_scale()))
+	# Noden hamnar i världen (funktionen svarar med antalet platser den ritade), så provet mäter att
+	# rekvisitan NÅR fram: en plats in, en instans i en MultiMesh i `world`.
+	var förut: int = main.world.get_child_count()
+	var antal: int = main._dekor_nod("trälåda", hand["trälåda"])
+	check(antal == 1, "rekvisitan ritades som en plats (%d av 1)" % antal)
+	# `_dekor_nod` kan lägga fler än en nod (ljus till en glödande art), så provet summerar alla nya
+	# MeshInstance3D i stället för att anta att den sista är den rätta.
+	var instanser := 0
+	var noder := 0
+	for i in range(förut, main.world.get_child_count()):
+		var c: Node = main.world.get_child(i)
+		# MultiMeshInstance3D ärver GeometryInstance3D, inte MeshInstance3D — en `is MeshInstance3D`
+		# här svarar false och provet mätte 0 noder trots att noden fanns.
+		if c is MultiMeshInstance3D and (c as MultiMeshInstance3D).multimesh != null:
+			noder += 1
+			instanser += (c as MultiMeshInstance3D).multimesh.instance_count
+	check(instanser == 1, "en instans per plats i världen (%d instanser i %d noder)"
+		% [instanser, noder])
 
 	print("= %d kontroller, %d fel" % [kontroller, fel])
 	# Noden lades aldrig i trädet (provets hela poäng), så den städas för hand — annars gnäller Godot om
