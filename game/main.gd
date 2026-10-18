@@ -102,7 +102,10 @@ var world: Node3D
 var _ras_nod: Node3D
 var cam: Camera3D
 var hud: CanvasLayer               ## lagret INNE i spelvyn (480x270): byn, kartan, panelerna, FX
-var _vy: SubViewport               ## spelvyns ruta: 3D:n ritas i 480x270 och skalas upp med heltal
+var _vy: SubViewport               ## spelvyns ruta: 3D:n ritas i FÖNSTRETS upplösning (M151)
+## Skärmpixlar per spelpixel (M151). Världen ritas 1:1 med fönstret, så innehållet i vyn räknar
+## fortfarande i logiska 480x270-rutor och delas med den här när något ska bli skärmpixlar.
+var _skala := 1.0
 var _vy_korg: SubViewportContainer ## ... och dess plats i fönstret (centrerad, NEAREST)
 var _vy_lager: CanvasLayer         ## lagret spelvyn ligger i (en Control under en Node3D ritas inte)
 var _runt: CanvasLayer             ## HUD:en i ytan RUNT vyn, i fönstrets upplösning (skarp text)
@@ -9004,6 +9007,7 @@ func _placera_vy() -> void:
 	# VÄRLDEN I FÖNSTRETS UPPLÖSNING (M151): vyn ritas i samma pixlar som fönstret (skala 1), så
 	# inget skalas upp och inget blir grötigt. HUD:en ligger i logiska 480x270-rutor och skalas med
 	# `skala` — den behåller sin storlek och sin kantiga stil.
+	_skala = skala
 	_vy.size = Vector2i(int(bredd), int(höjd))
 	_vy_korg.size = Vector2(bredd, höjd)
 	_vy_korg.scale = Vector2.ONE
@@ -9026,7 +9030,10 @@ func _placera_vy() -> void:
 	# inramad ut (Alex: "inte en by i helskärm").
 	for v in [by_view, karta_view, trad_view]:
 		if v != null:
-			v.size = Vector2(bredd, höjd)
+			# LOGISKA rutor: de ligger i `hud`, som är skalat med `skala`. Gavs de fönstermått blev
+			# byn 4x för stor och föll utanför rutan (M151: "det går inte att se mer än lite av de
+			# pyramidliknande skiten i bakgrunden").
+			v.size = Vector2(bredd, höjd) / skala
 			v.queue_redraw()
 	# KARTAN FÖRE GUI:N (M113): barens högerzon — loggen och manaklotet — mäts mot kartans EGEN ruta.
 	# Kördes `_placera_gui` först hamnade de efter förra layoutens karta (samma fälla som M51).
@@ -9042,7 +9049,9 @@ func _placera_vy() -> void:
 func _vy_mått() -> Vector2:
 	if _vy == null:
 		return Vector2(VY)
-	return Vector2(_vy.size)
+	# LOGISKA rutor (M151): vyn ritas i fönstrets upplösning, men allt som placeras i den räknar
+	# fortfarande i 480x270-rutor. Utan divisionen blev korten, panelerna och byn 4x för stora.
+	return Vector2(_vy.size) / maxf(1.0, _skala)
 
 ## Barens ruta (M113): allt under spelvyn, i fönstrets fulla bredd. Höjden är den höjd som blir kvar
 ## när vyn ligger i överkanten — och eftersom skalan väljs med BAR_HOJD i nämnaren är den minst 68
@@ -9079,7 +9088,7 @@ func _karta_ruta() -> Rect2:
 ## innehållet med baren i stället för att lämna något kvar i den gamla marginalen.
 func _placera_gui(f: Vector2) -> void:
 	var b := _bar(f)
-	var skala := maxi(1, int(round(_vy_korg.scale.x)))       # vyns heltalsskala: klotens pixelkonst
+	var skala := maxi(1, int(round(_skala)))       # vyns heltalsskala: klotens pixelkonst
 	# SKALET (byn, kartan, menyerna): REMSAN FINNS INTE (M113), så barens ruta är tom och de
 	# barberoende positionerna nedan skulle hamna utanför fönstret. Skalets egen rad — valutan —
 	# läggs i stället som ett TUNT ÖVERLÄGG i nederkanten, på scenen: Alex: *"Menyvalen läggs som
@@ -9244,7 +9253,7 @@ func _placera_högarna() -> void:
 ## isär med dem (samma regel som M51). Två högar delar bandet på mitten: den ena växer vänsterut, den
 ## andra högerut.
 func _hög_geometri(antal: int = 1) -> Dictionary:
-	var skala := maxf(1.0, roundf(_vy_korg.scale.x))
+	var skala := maxf(1.0, roundf(_skala))
 	var air := 6.0 * skala
 	var b := _bar(Vector2(get_viewport().get_visible_rect().size))
 	# BANDET: från statusblockets högerkant (eller barens vänsterkant) till loggens vänsterkant
@@ -11314,7 +11323,7 @@ func _show_draft() -> bool:
 	if run.pending_draft_relic():
 		draft_label.text = Tr.t("ui.draft.relic", "RELIK FUNNEN — välj en")
 		var alla: Dictionary = Relics.load_all()
-		var kk: float = maxf(1.0, _vy_korg.scale.x)
+		var kk: float = maxf(1.0, _skala)
 		var bredd: float = minf((_vy_mått().x - 30.0) * kk, 420.0 * kk)
 		for i in choices.size():
 			var rd: Relics.RelicDef = alla.get(str(choices[i]))
@@ -11360,7 +11369,7 @@ func _show_draft() -> bool:
 	# idag." Panelen ligger nu i `_runt` och räknar i FÖNSTERPIXLAR — samma ruta på skärmen som förut,
 	# men varje pixel ritas där den hamnar. `k` är vyns skalning, så ytan blir exakt vyns på skärmen.
 	var f := Vector2(get_viewport().get_visible_rect().size)
-	var k: float = maxf(1.0, _vy_korg.scale.x)      # vyns skalning (M113): fönstret delat med vyns mått
+	var k: float = maxf(1.0, _skala)      # vyns skalning (M151): fönsterpixlar per spelpixel
 	var yta := _vy_mått() * k
 	# Skalan är fortfarande räknad i vyns mått (taket sätts av vyns bredd och höjd) men multipliceras
 	# med `k`: korten står på samma plats och i samma storlek på skärmen som förut — bara rastret blir
