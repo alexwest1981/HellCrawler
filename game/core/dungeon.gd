@@ -120,6 +120,10 @@ class Floor extends RefCounted:
 	## Generatorn gör bossrummet öppet: en våning slutar under öppen himmel, och en handritad karta kan
 	## sätta flaggan själv senare utan att något annat ändras.
 	var öppna: Array = []
+	## Handplacerad rekvisita: [{"art": String, "pos": Vector2i}] — en per ruta, samma lager som
+	## dekoren (ingen kollision, inget att krocka med). Tomt = `_bygg_dekor` fyller våningen som förut.
+	## Ritas av `handlagd_rekvisita` i main.gd: det man ritade är exakt det som ställs ut, utan jitter.
+	var rekvisita: Array = []
 	var start := Vector2i.ZERO
 	var boss_pos := Vector2i.ZERO
 	var shovel_pos := Vector2i.ZERO

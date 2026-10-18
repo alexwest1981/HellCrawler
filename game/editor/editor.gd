@@ -60,6 +60,8 @@ var nod_kind := "encounter"
 var ruta_mark := Dungeon.FLOOR
 var yta_material := ""
 var material_lista: Array = []
+var rekvisita_arter: Array = []      ## arterna i assets/props (namngivna och de som arken gav dem)
+var rekvisit_art := ""               ## vald rekvisit i paletten
 
 ## Kartans mått. `zoom` är en faktor ovanpå den inpassning som ryms i vyn, så fönsterbytet behåller
 ## den zoom man valt; `pan` är panoreringen i px och behålls likaså.
@@ -116,6 +118,7 @@ func _ready() -> void:
 	stages = Stages.load_all()
 	bestiary = Enemies.load_all()
 	material_lista = _materiallista()
+	rekvisita_arter = _rekvisitalista()
 	var args := OS.get_cmdline_user_args()
 	var stage_id: String = args[0] if args.size() > 0 else "stage_01"
 	floor_index = int(args[1]) if args.size() > 1 else 0
@@ -161,6 +164,39 @@ func load_or_generate() -> void:
 	_layout_duk()
 
 
+## Arterna man kan ställa ut: samma mapp som spelets dekor läser (`assets/props`), så en ny rekvisit
+## blir valbar samma dag den klipps — ingen lista i koden att glida ifrån. Nodbilderna (kista, spade,
+## boss, fackla) hoppas över: de är nodtyper i kartan, inte lös rekvisita man strör ut.
+const NODBILDER := ["chest", "shovel", "boss", "fackla", "benhög"]
+
+func _rekvisitalista() -> Array:
+	var ut := []
+	for fil in DirAccess.get_files_at("res://assets/props"):
+		if not fil.ends_with(".png") or fil.begins_with("_"):
+			continue
+		var art := fil.get_basename()
+		if NODBILDER.has(art):
+			continue
+		ut.append(art)
+	# NAMNGIVNA FÖRST. Alex' ark blev också 60 namnlösa snitt (`pwa97m_07`); de är lika giltiga
+	# rekvisita, men paletten ska börja med det man kan läsa: bur, kranium, trälåda.
+	ut.sort_custom(func(a, b):
+		var an := _namngiven(str(a))
+		var bn := _namngiven(str(b))
+		if an != bn:
+			return an
+		return str(a) < str(b))
+	return ut
+
+
+## Har arten ett namn (bur, trälåda) eller är den ett snitt ur ett ark (pwa97m_07)?
+func _namngiven(art: String) -> bool:
+	for c in art:
+		if c >= "0" and c <= "9":
+			return false
+	return true
+
+
 ## Materialen man kan måla med: samma filer som byggläget läser, ur mappen i stället för en tabell.
 func _materiallista() -> Array:
 	var ut := []
@@ -192,6 +228,18 @@ func _material_tex(id: String) -> Texture2D:
 		return _tex[key]
 	var tex: Texture2D = null
 	var p := "res://assets/tiles/%s.png" % id
+	if ResourceLoader.exists(p):
+		tex = load(p)
+	_tex[key] = tex
+	return tex
+
+
+func _prop_tex(art: String) -> Texture2D:
+	var key := "rekvisit/%s" % art
+	if _tex.has(key):
+		return _tex[key]
+	var tex: Texture2D = null
+	var p := "res://assets/props/%s.png" % art
 	if ResourceLoader.exists(p):
 		tex = load(p)
 	_tex[key] = tex
@@ -239,6 +287,10 @@ func _place(p: Vector2i) -> String:
 				floor.ytor.erase("%d,%d" % [p.x, p.y])
 			else:
 				floor.ytor["%d,%d" % [p.x, p.y]] = yta_material
+		"rekvisita":
+			var fr := MapIo.sätt_rekvisita(floor, rekvisit_art, p)
+			if not fr.is_empty():
+				return fr
 		"nod":
 			var f := MapIo.placera(floor, nod_kind, p, stage, bestiary, vald_fiende)
 			if not f.is_empty():
@@ -540,6 +592,22 @@ func _bygg_palett() -> void:
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.custom_minimum_size = Vector2(30, 30)
 		b.add_theme_constant_override("icon_max_width", 22)
+	# REKVISITAN (M150): det man strör ut — stenar, grus, tunnor, burar, svampar. Samma ikonrutnät som
+	# materialen, ur mappen spelets dekor läser, med artnamnet som hovringstext: 94 arter får inte bli
+	# 94 rader text.
+	_verktygs_rubrik("REKVISITA  (%d)" % rekvisita_arter.size())
+	var prylar := GridContainer.new()
+	prylar.columns = 4
+	prylar.add_theme_constant_override("h_separation", 3)
+	prylar.add_theme_constant_override("v_separation", 3)
+	palett_box.add_child(prylar)
+	for art in rekvisita_arter:
+		var b := _palett_knapp(_knapp("", str(art), _sätt_verktyg.bind("rekvisita", art)), prylar)
+		b.icon = _prop_tex(str(art))
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.custom_minimum_size = Vector2(34, 34)
+		b.add_theme_constant_override("icon_max_width", 26)
 	var tips := _etikett("S spara · L läs om · N ny · P spela · B spara banan\n" \
 		+ "T/Y tema · K plan/textur · [ ] våning · ,/. bana\n" \
 		+ "+/- storlek · M meny · Q avsluta", 11, FÄRG_DIM)
@@ -611,25 +679,41 @@ func _sätt_verktyg(typ: String, vad := "") -> void:
 			nod_kind = vad
 		"material":
 			yta_material = vad
+		"rekvisita":
+			rekvisit_art = vad
 	_markera_verktyg()
 	_stämpla()
 	if duk != null:
 		duk.queue_redraw()
 
 
+## Knapparnas turordning i `_palett_knappar`, på ETT ställe: valj, golv, vägg, noderna, temats ruta,
+## materialen, rekvisitan. Nya sektioner läggs i paletten och räknas här.
+func _palett_index() -> Dictionary:
+	var i_nod := 3
+	var i_mat_tema := i_nod + NODE_TOOLS.size()
+	var i_mat := i_mat_tema + 1
+	var i_rekv := i_mat + material_lista.size()
+	return {"valj": 0, "golv": 1, "vagg": 2, "nod": i_nod, "mat_tema": i_mat_tema,
+		"mat": i_mat, "rekv": i_rekv}
+
+
 func _markera_verktyg() -> void:
-	# Knapparnas turordning i `_palett_knappar`: valj, golv, vägg, 6 noder, tema, material...
+	var ix := _palett_index()
 	var index := -1
 	if verktyg == "valj":
-		index = 0
+		index = int(ix["valj"])
 	elif verktyg == "ruta":
-		index = 1 if ruta_mark == Dungeon.FLOOR else 2
+		index = int(ix["golv"]) if ruta_mark == Dungeon.FLOOR else int(ix["vagg"])
 	elif verktyg == "nod":
 		for i in NODE_TOOLS.size():
 			if NODE_TOOLS[i]["kind"] == nod_kind:
-				index = 3 + i
+				index = int(ix["nod"]) + i
 	elif verktyg == "material":
-		index = 3 + NODE_TOOLS.size() + (0 if yta_material.is_empty() else 1 + material_lista.find(yta_material))
+		index = int(ix["mat_tema"]) if yta_material.is_empty() \
+			else int(ix["mat"]) + material_lista.find(yta_material)
+	elif verktyg == "rekvisita":
+		index = int(ix["rekv"]) + rekvisita_arter.find(rekvisit_art)
 	# alla av först: en knappgrupp släpper inte en knapp som tryckts med set_pressed_no_signal
 	for b in _palett_knappar:
 		(b as Button).set_pressed_no_signal(false)
@@ -677,6 +761,7 @@ func _rita_duk(c: Control) -> void:
 		_rita_rutor(c)
 	else:
 		_rita_plan(c)
+	_rita_rekvisita(c)
 	_rita_kant(c)
 	# rutnätet ovanpå rytorna: tunna linjer, en per ruta
 	var linje := Color(0, 0, 0, 0.35)
@@ -762,6 +847,43 @@ func _rita_rutor(c: Control) -> void:
 			if egen != null:
 				# en överstyrd ruta får en hake i hörnet, så man ser att den inte följer temat
 				c.draw_rect(Rect2(r.position + Vector2(2, 2), Vector2(4, 4)), FÄRG_ACC)
+
+
+## BILDENS ANVÄNDA DEL. Arken har luft runt figuren (128 px ruta, figuren ~60 px), så ritas hela rutan
+## blir en tunna 15 px bred i en 37 px ruta. `get_used_rect` ger figurens egen yta, och då fyller
+## rekvisitan sin ruta — det är den skillnaden mellan "en fläck" och "en tunna".
+func _prop_yta(art: String) -> Rect2:
+	var key := "rekvisit_yta/%s" % art
+	if _tex.has(key):
+		return _tex[key]
+	var tex := _prop_tex(art)
+	var yta := Rect2()
+	if tex != null:
+		var img := tex.get_image()
+		if img != null:
+			yta = Rect2(img.get_used_rect())
+	_tex[key] = yta
+	return yta
+
+
+## Rekvisitan ritas som sin EGEN bild i rutan — man känner igen en tunna på tunnan, inte på en bokstav.
+## Figuren skalas in i rutan med bevarat förhållande och står på rutans nederkant, som regeln i spelet.
+func _rita_rekvisita(c: Control) -> void:
+	for r in floor.rekvisita:
+		var p: Vector2i = r.get("pos", Vector2i(-1, -1))
+		var rr := _ruta_rect(p)
+		var art := str(r.get("art", ""))
+		var tex := _prop_tex(art)
+		if tex == null:
+			c.draw_circle(rr.get_center(), cell * 0.16, FÄRG_ACC)
+			continue
+		var källa := _prop_yta(art)
+		if källa.size.x <= 0.0 or källa.size.y <= 0.0:
+			continue
+		var skala := minf(rr.size.x * 0.9 / källa.size.x, rr.size.y * 0.9 / källa.size.y)
+		var storlek := källa.size * skala
+		var övre := Vector2(rr.position.x + (rr.size.x - storlek.x) * 0.5, rr.end.y - storlek.y - rr.size.y * 0.03)
+		c.draw_texture_rect_region(tex, Rect2(övre, storlek), källa)
 
 
 ## KANTEN runt varje golvyta. Det är den som gör vyn läsbar: i texturvyn kan temats golv och vägg vara
@@ -946,6 +1068,8 @@ func _höger(p: Vector2i) -> void:
 	if _nod_vid(p) != null:
 		_remove_node_at(p)
 		status = "nod borttagen på (%d,%d)" % [p.x, p.y]
+	elif MapIo.ta_bort_rekvisita(floor, p):
+		status = "rekvisitan borttagen på (%d,%d)" % [p.x, p.y]
 	elif floor.ytor.has("%d,%d" % [p.x, p.y]):
 		floor.ytor.erase("%d,%d" % [p.x, p.y])
 		status = "temats ruta igen på (%d,%d)" % [p.x, p.y]
@@ -966,6 +1090,8 @@ func _måla(p: Vector2i) -> void:
 		status = "%s på (%d,%d)" % ["golv" if ruta_mark == Dungeon.FLOOR else "vägg", p.x, p.y]
 	elif verktyg == "material":
 		status = "%s på (%d,%d)" % [yta_material if not yta_material.is_empty() else "temats ruta", p.x, p.y]
+	elif verktyg == "rekvisita":
+		status = "%s på (%d,%d)" % [rekvisit_art, p.x, p.y]
 	_stämpla()
 	duk.queue_redraw()
 
@@ -1203,8 +1329,9 @@ func _räknare_rad() -> void:
 		if not n.enemy_id.is_empty():
 			fiender[n.enemy_id] = true
 	var andel := 100.0 * float(golv) / maxf(1.0, float(floor.w * floor.h))
-	var l := _etikett("objekt %d · strider %d · facklor %d · fiender %d · golv %d %%"
-		% [floor.nodes.size(), strider, facklor, fiender.size(), int(round(andel))], 11, FÄRG_DIM)
+	var l := _etikett("objekt %d · strider %d · facklor %d · fiender %d · golv %d %% · rekvisita %d"
+		% [floor.nodes.size(), strider, facklor, fiender.size(), int(round(andel)), floor.rekvisita.size()],
+		11, FÄRG_DIM)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	insp_box.add_child(l)
 
@@ -1329,6 +1456,9 @@ func _stämpla() -> void:
 		var vad := "golv" if floor.is_floor_at(hover) else "vägg"
 		if n != null:
 			vad = n.kind if n.enemy_id.is_empty() else "%s %s" % [n.kind, n.enemy_id]
+		var r := MapIo.rekvisita_vid(floor, hover)
+		if not r.is_empty():
+			vad += " + %s" % r.get("art", "")
 		bitar.append("(%d,%d) %s" % [hover.x, hover.y, vad])
 	bitar.append(status)
 	status_rad.text = "  ·  ".join(bitar)
@@ -1342,6 +1472,8 @@ func _pensel_text() -> String:
 			return "pensel: %s" % nod_kind
 		"material":
 			return "pensel: %s" % (yta_material if not yta_material.is_empty() else "temats ruta")
+		"rekvisita":
+			return "pensel: %s" % (rekvisit_art if not rekvisit_art.is_empty() else "ingen rekvisit vald")
 	return "verktyg: välj / flytta"
 
 

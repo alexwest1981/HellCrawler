@@ -87,6 +87,17 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 			f.öppna.append(r)
 	for k in d.get("ytor", {}):
 		f.ytor[str(k)] = str(d["ytor"][k])
+	# Handplacerad rekvisita (M150). Ett fält till betyder en rad i BÅDA riktningarna — skrivs det i
+	# `to_dict` men läses inte här ser filen rätt ut och spelet ignorerar den.
+	for r in d.get("rekvisita", []):
+		if typeof(r) != TYPE_DICTIONARY:
+			continue
+		var art := str(r.get("art", ""))
+		var pos: Array = r.get("pos", [])
+		if art.is_empty() or pos.size() != 2:
+			push_error("kartan %s_%d: rekvisita utan art eller pos" % [stage_id, floor_index])
+			continue
+		f.rekvisita.append({"art": art, "pos": Vector2i(int(pos[0]), int(pos[1]))})
 	for nd in d.get("nodes", []):
 		var pos: Array = nd.get("pos", [])
 		if pos.size() != 2:
@@ -133,6 +144,12 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 			var rr: Rect2i = r
 			rum.append([rr.position.x, rr.position.y, rr.size.x, rr.size.y])
 		d["öppna"] = rum
+	if not f.rekvisita.is_empty():
+		var prylar := []
+		for r in f.rekvisita:
+			var p: Vector2i = r.get("pos", Vector2i(-1, -1))
+			prylar.append({"art": str(r.get("art", "")), "pos": [p.x, p.y]})
+		d["rekvisita"] = prylar
 	return d
 
 
@@ -188,6 +205,19 @@ static func validate(f: Dungeon.Floor) -> Array:
 	for n in Dungeon.unreachable_nodes(f):
 		if n.kind in ["boss", "shovel", "encounter"]:
 			fel.append("%s går inte att nå (%d,%d)" % [n.kind, n.pos.x, n.pos.y])
+	# Rekvisitan: arten måste finnas som ark (annars står det en osynlig sak i våningen) och rutan
+	# måste vara golv. En per ruta — två saker i samma ruta går inte att skilja från en bugg.
+	var rekvisita_rutor := {}
+	for r in f.rekvisita:
+		var art := str(r.get("art", ""))
+		var p: Vector2i = r.get("pos", Vector2i(-1, -1))
+		if art.is_empty() or not ResourceLoader.exists("assets/props/%s.png" % art):
+			fel.append("okänd rekvisita: %s" % art)
+		if not f.is_floor_at(p):
+			fel.append("rekvisitan %s står i en vägg (%d,%d)" % [art, p.x, p.y])
+		if rekvisita_rutor.has(p):
+			fel.append("två rekvisiter på samma ruta (%d,%d)" % [p.x, p.y])
+		rekvisita_rutor[p] = true
 	return fel
 
 
@@ -346,6 +376,48 @@ static func kopiera(f: Dungeon.Floor, n: Dungeon.FloorNode, till: Vector2i) -> S
 	ny.xp = n.xp
 	f.nodes.append(ny)
 	return ""
+
+
+## --- rekvisita på en ruta: reglerna på ETT ställe ------------------------------------------------
+##
+## Rekvisitan är samma lager som dekoren i `main._bygg_dekor`: ingen kollision, ingen nod — men den
+## handplacerade varianten får inte hamna under den slumpade. En per ruta, som noderna.
+
+## Rekvisitan på rutan, eller {} om där inte står någon.
+static func rekvisita_vid(f: Dungeon.Floor, p: Vector2i) -> Dictionary:
+	for r in f.rekvisita:
+		if Vector2i(r.get("pos", Vector2i(-1, -1))) == p:
+			return r
+	return {}
+
+
+## Ställer en rekvisit på rutan. Svarar "" om det gick, annars orsaken i klartext.
+static func sätt_rekvisita(f: Dungeon.Floor, art: String, p: Vector2i) -> String:
+	if art.is_empty():
+		return "ingen rekvisit vald"
+	if not ResourceLoader.exists("assets/props/%s.png" % art):
+		return "okänd rekvisit: %s" % art
+	if not f.is_floor_at(p):
+		return "rekvisitan måste stå på golv"
+	for r in f.rekvisita:
+		if Vector2i(r.get("pos", Vector2i(-1, -1))) == p:
+			r["art"] = art
+			return ""
+	f.rekvisita.append({"art": art, "pos": p})
+	return ""
+
+
+## Tar bort rekvisitan på rutan. Svarar true om något togs bort.
+static func ta_bort_rekvisita(f: Dungeon.Floor, p: Vector2i) -> bool:
+	var kvar := []
+	var bort := false
+	for r in f.rekvisita:
+		if Vector2i(r.get("pos", Vector2i(-1, -1))) == p:
+			bort = true
+		else:
+			kvar.append(r)
+	f.rekvisita = kvar
+	return bort
 
 
 ## Strider utan fiende får en ur banans pool, deterministiskt ur sin egen position — samma karta

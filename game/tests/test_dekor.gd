@@ -170,19 +170,16 @@ func _init() -> void:
 	var förut: int = main.world.get_child_count()
 	var antal: int = main._dekor_nod("trälåda", hand["trälåda"])
 	check(antal == 1, "rekvisitan ritades som en plats (%d av 1)" % antal)
-	# `_dekor_nod` kan lägga fler än en nod (ljus till en glödande art), så provet summerar alla nya
-	# MeshInstance3D i stället för att anta att den sista är den rätta.
-	var instanser := 0
-	var noder := 0
-	for i in range(förut, main.world.get_child_count()):
-		var c: Node = main.world.get_child(i)
-		# MultiMeshInstance3D ärver GeometryInstance3D, inte MeshInstance3D — en `is MeshInstance3D`
-		# här svarar false och provet mätte 0 noder trots att noden fanns.
-		if c is MultiMeshInstance3D and (c as MultiMeshInstance3D).multimesh != null:
-			noder += 1
-			instanser += (c as MultiMeshInstance3D).multimesh.instance_count
-	check(instanser == 1, "en instans per plats i världen (%d instanser i %d noder)"
-		% [instanser, noder])
+	# `_dekor_nod` lägger TVÅ noder per art sedan M151: figuren (`dekor_<art>`) och markskuggan
+	# (`markskugga_<art>`, en fläck per instans). Provet mäter figurens nod — och att skuggan kom med.
+	var figur := main.world.get_node_or_null("dekor_trälåda") as MultiMeshInstance3D
+	check(figur != null and figur.multimesh != null and figur.multimesh.instance_count == 1,
+		"en instans per plats i världen (%d)" % (0 if figur == null or figur.multimesh == null
+			else figur.multimesh.instance_count))
+	var skugga := main.world.get_node_or_null("markskugga_trälåda") as MultiMeshInstance3D
+	check(skugga != null and skugga.multimesh != null and skugga.multimesh.instance_count == 1,
+		"och markskuggan följer med den handplacerade (%d)" % (0 if skugga == null
+			or skugga.multimesh == null else skugga.multimesh.instance_count))
 
 	print("= %d kontroller, %d fel" % [kontroller, fel])
 	# Noden lades aldrig i trädet (provets hela poäng), så den städas för hand — annars gnäller Godot om

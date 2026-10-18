@@ -6654,6 +6654,13 @@ func _bygg_dekor(golv: Array) -> void:
 		return
 	if _dekor_shader == null:
 		_dekor_shader = load("res://ui/dekor.gdshader")
+	var f := run.explore.floor_ref
+	# HANDPLACERAD REKVISITA (M150): det Alex ritat i karteditorn. Den vinner över den slumpade
+	# fyllningen på sin ruta — annars står det två saker i samma ruta och man ser inte vad man byggt.
+	var handlagda := handlagd_rekvisita(f)
+	var upptagna := {}
+	for r in f.rekvisita:
+		upptagna[Vector2i(r.get("pos", Vector2i(-1, -1)))] = true
 	# Våningen byggs om mellan striderna: de förra rekvisiternas ljus och material får inte ligga kvar
 	# i fladdret (en frigjord nod där hade kraschat `_fladdra` varje bildruta).
 	_låg_ljus.clear()
@@ -6664,6 +6671,8 @@ func _bygg_dekor(golv: Array) -> void:
 	var antal_föremål := 0
 	var antal_hängande := 0            ## hur många av dem som hänger i taket (krona, bur)
 	for p in golv:
+		if upptagna.has(p):
+			continue                 # rutan har en handplacerad rekvisit: se `handlagd_rekvisita`
 		# MARKDEKOR OCH FÖREMÅL ÄR TVÅ URVAL UR SAMMA HASH, och då ligger föremålen ovanpå marken: allt
 		# som är under 1/20 är också under 1/4. Föremålens urval får därför ett eget salt, så de hamnar
 		# i TOMRUMMEN i stället — annars hade våningen inte fått fler saker att titta på, bara tätare
@@ -6689,12 +6698,24 @@ func _bygg_dekor(golv: Array) -> void:
 			if not lysande.has(art):
 				lysande[art] = []
 			(lysande[art] as Array).append(t)
+	# HANDPLACERADE (M150): in i samma listor som de slumpade, men utan jitter och utan storleksslump —
+	# det man ritade är exakt det som ställs ut. Lysande rekvisiter får sitt ljus som alla andra.
+	var handplacerade := 0
+	for art in handlagda:
+		if not per_art.has(art):
+			per_art[art] = []
+		for t in handlagda[art]:
+			(per_art[art] as Array).append(t)
+			handplacerade += 1
+			if REKVISIT_LYSER.has(art):
+				if not lysande.has(art):
+					lysande[art] = []
+				(lysande[art] as Array).append(t)
 	# TOMRUMMEN FYLLS (M117). Alex: *"alla rum som är tomma på kartan måste fyllas ut lite"*. Ett rum
 	# som hashen inte lade en enda rekvisit i är en tom yta att gå genom, och på kartan är det en ruta
 	# utan något i. Det får en KANDELABER: något att SE och ett ljus (samma låg-glöd som de andra, se
 	# REKVISIT_LYSER) — och ingen ny konst. Rummen kommer ur generatorn (`Floor.rum`), så en handritad
 	# våning har inga rum här och får vara precis som Alex ritade den.
-	var f := run.explore.floor_ref
 	var per_rum := _rekvisiter_per_rum(f, _dekor_täthet)
 	var fyllnad := 0
 	for i in f.rum.size():
@@ -6721,6 +6742,7 @@ func _bygg_dekor(golv: Array) -> void:
 	print("  dekor: %d st på %d golvrutor (var %d:e ruta)" % [antal, golv.size(), _dekor_täthet])
 	print("  rekvisiter: %d st i rummet (var %d:e golvruta, %d av dem hänger i taket)" % [
 		antal_föremål, REKVISIT_TÄTHET, antal_hängande])
+	print("  rekvisiter: %d handplacerade ur kartan" % handplacerade)
 	# Siffran för tomrummen: 0 betyder att varje rum på våningen har något att se (eller att våningen är
 	# handritad och inte har några rum att fylla).
 	print("  rum: %d av %d var tomma på rekvisiter och fick en kandelaber" % [fyllnad, f.rum.size()])
@@ -6754,6 +6776,41 @@ func _bygg_dekor(golv: Array) -> void:
 			_låg_mat.append(_låg_material.get(art))
 			ljus += 1
 	print("  rekvisiter: %d av dem lyser (tak %d)" % [ljus, REKVISIT_LJUS_MAX])
+
+
+## HANDPLACERADE 2D-ARTAR I MÄNNISKOMÅTT (M150). 84 av de 93 arterna finns bara som bild, och arket är
+## ritat i 128 px = 1 m. En ädelsten blir då 0,99 m och en vattenpöl 0,69 m HÖG — pölen ska ligga på
+## golvet, stenen vara något man plockar upp. Tabellen rör bara de arterna; allt som är möblemang
+## (trälåda 0,99 m, gruvvagn 0,94 m, stenblock 0,62 m) behåller arkets egen skala, för den är rätt.
+## En rad per art — lätt att rätta när Alex sett en art i spelet.
+const REKVISIT_SKALA := {
+	"ädelsten_blå": 0.22, "ädelsten_röd": 0.22, "malm_guld": 0.30,
+	"kristall_lila": 0.30, "kristall_turkos": 0.30,
+	"kranium": 0.30, "hornskalle": 0.34, "fladdermus": 0.25,
+	"svamp_lysande": 0.35, "hacka": 0.85,
+	"vattenpöl": 0.04, "spindelnät": 0.06, "stengolv": 0.04,
+}
+
+
+## HANDPLACERAD REKVISITA (M150): det som står i kartfilens `rekvisita`-lista, i samma form som den
+## slumpade fyllningen — art -> [Transform3D]. Ren funktion (inget `world`, ingen `run`), så provet kan
+## mäta den utan att bygga en våning: en plats per ruta, mitten på rutan, skala 1 och ingen
+## slumpförskjutning. Det man ritade är exakt det som ställs ut; en jittrad tunna hamnar utanför den
+## ruta man pekade på och då är kartan inte längre en ritning.
+static func handlagd_rekvisita(f: Dungeon.Floor) -> Dictionary:
+	var ut := {}
+	if f == null:
+		return ut
+	for r in f.rekvisita:
+		var art := str(r.get("art", ""))
+		var p: Vector2i = r.get("pos", Vector2i(-1, -1))
+		if art.is_empty() or not f.is_floor_at(p):
+			continue
+		if not ut.has(art):
+			ut[art] = []
+		(ut[art] as Array).append(Transform3D(Basis(),
+			Vector3(float(p.x) + 0.5, 0.0, float(p.y) + 0.5)))
+	return ut
 
 
 ## Slår upp en art ur en vikt-tabell ([[namn, vikt], ...], summerande till 1,0) med ett tal i [0,1).
@@ -6870,8 +6927,17 @@ func _dekor_nod(art: String, platser: Array) -> int:
 		return 0
 	# HÖJDEN kommer ur modellen när den finns: `_dekor_y` sätter nederkanten på golvet och överkanten
 	# i taket, och det är modellens egen höjd som gäller (kedjan på en krona slutar i taket).
-	var höjd: float = (modell.get_aabb().size.y if modell != null
-		else float(tex.get_height()) * DEKOR_PIXEL)
+	# 2D-ARKET HAR LUFT RUNT FIGUREN, och `ur_ark` skalar FIGUREN till den höjd den får. Mätt med hela
+	# arkets höjd blev en trälåda 1,01 m (en dörr) och en kraniumskalle 0,80 m — för 84 av de 93
+	# rekvisitarterna finns ingen modell, så det var alla handplacerade stenar, lådor och tunnor.
+	# Figurens egen alpha-yta gånger DEKOR_PIXEL ger samma höjd som konsten är ritad i.
+	var höjd: float
+	if modell != null:
+		höjd = modell.get_aabb().size.y
+	else:
+		var img := tex.get_image()
+		var yta := img.get_used_rect() if img != null else Rect2i(0, 0, tex.get_width(), tex.get_height())
+		höjd = float(maxi(1, yta.size.y)) * DEKOR_PIXEL * float(REKVISIT_SKALA.get(art, 1.0))
 	# FLORAN BLIR OCKSÅ VOXLAR (M108). Alex: "Kör även voxlar av all interiör med." MultiMesen behålls:
 	# den bär transformarna (plats, storlek, takhänget) och ritar hela våningens gräs i EN ritning, som
 	# en nod per tuva inte hade gjort. Det som byts är MESHEN inuti den — en quad mot en voxelmodell ur
@@ -8921,6 +8987,8 @@ func _bygg_vy() -> void:
 	# Allt som hör till SPELVYN läggs in här: världen, ljuset, kameralagret, minikartan, panelerna
 	# och korten i den gamla storleken. De räknar därför mot 480x270 precis som förut.
 	hud = CanvasLayer.new()
+	# HUD:en är byggd i 480x270-rutor (all layout i spelet räknar i dem) men ritas i den 4x tätare
+	# vyn: lagret skalas upp i stället för att tusen konstanter skrivs om.
 	_vy.add_child(hud)
 	_vy_korg = SubViewportContainer.new()
 	# Vyn måste vara korgen:s BARN: det är barnet korgen letar upp och ritar. Låg vyn vid sidan om
