@@ -290,6 +290,64 @@ static func ta_bort(f: Dungeon.Floor, p: Vector2i) -> int:
 	f.nodes = kvar
 	return bort
 
+## Flyttar ett urval noder lika långt (M146: drag och piltangenter i karteditorn). Reglerna är
+## desamma som för `placera`: en nod måste stå på golv, två noder får inte dela ruta, och pekarna
+## start/boss/nedstigning följer med sin nod. Allt-eller-inget — ett halvt flyttat urval är ett
+## urval man inte kan lita på, och en flyttad start som pekar på sin gamla ruta går inte att spela.
+static func flytta(f: Dungeon.Floor, noder: Array, delta: Vector2i) -> String:
+	if delta == Vector2i.ZERO:
+		return ""
+	if noder.is_empty():
+		return "inget valt"
+	var med := {}
+	for n in noder:
+		med[n] = true
+	var mål := {}
+	for n in noder:
+		var p: Vector2i = n.pos + delta
+		if not f.is_floor_at(p):
+			return "rutan (%d,%d) är inte golv" % [p.x, p.y]
+		mål[p] = true
+		for annan in f.nodes:
+			if med.has(annan):
+				continue
+			if annan.pos == p:
+				return "rutan (%d,%d) är upptagen av %s" % [p.x, p.y, annan.kind]
+	if mål.size() != noder.size():
+		return "två noder skulle hamna på samma ruta"
+	for n in noder:
+		n.pos += delta
+		if n.kind == "start":
+			f.start = n.pos
+		elif n.kind == "boss":
+			f.boss_pos = n.pos
+		elif n.kind == "shovel":
+			f.shovel_pos = n.pos
+	return ""
+
+
+## En kopia av en nod på en annan ruta. start/boss/nedstigning får INTE kopieras: `validate` kräver
+## exakt en av varje, så kopian vore en våning som inte går att spara.
+static func kopiera(f: Dungeon.Floor, n: Dungeon.FloorNode, till: Vector2i) -> String:
+	if n == null:
+		return "inget valt"
+	if n.kind in ["start", "boss", "shovel"]:
+		return "%s får det bara finnas en av" % n.kind
+	if not f.is_floor_at(till):
+		return "rutan (%d,%d) är inte golv" % [till.x, till.y]
+	for annan in f.nodes:
+		if annan.pos == till:
+			return "rutan (%d,%d) är upptagen" % [till.x, till.y]
+	var ny := Dungeon.FloorNode.new()
+	ny.kind = n.kind
+	ny.pos = till
+	ny.enemy_id = n.enemy_id
+	ny.gold = n.gold
+	ny.xp = n.xp
+	f.nodes.append(ny)
+	return ""
+
+
 ## Strider utan fiende får en ur banans pool, deterministiskt ur sin egen position — samma karta
 ## spelar alltså likadant varje gång, men tål att fiendelistan ändras.
 static func _fill_enemies(f: Dungeon.Floor, stage, bestiary: Dictionary) -> void:

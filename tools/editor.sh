@@ -4,7 +4,8 @@
 #   tools/editor.sh                 # stage_01, våning 1
 #   tools/editor.sh stage_05 2      # bana och våning — våningen räknas som du gör: 1 = första
 #
-# Tangenterna står i panelen: 1-6 nod, G/V mark, S spara, L läs, N ny, P spela, [ ] byt våning.
+# Tangenterna står i panelen: 1-6 nod, G golv, X vägg, S spara, L läs, N ny, P spela, [ ] byt våning.
+# Musen gör resten: klick väljer, drag flyttar, dra tom yta = box, hjul zoomar, Del/Ctrl+D.
 set -euo pipefail
 cd "$(dirname "$0")/../game"
 BANA="${1:-stage_01}"
