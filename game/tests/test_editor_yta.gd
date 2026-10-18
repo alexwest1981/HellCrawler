@@ -47,8 +47,12 @@ func _init() -> void:
 		check(karta.size.x >= fall.x * 0.45, "kartan äger minst 45 %% av bredden", vad)
 		check(karta.size.y >= fall.y * 0.55, "kartan äger minst 55 %% av höjden", vad)
 		check(editor.cell >= 10.0, "en ruta är minst 10 px (34x34-våning)", vad)
-		check(karta.position.x >= 240.0, "paletten ligger till vänster om kartan", vad)
-		check(karta.end.x <= fall.x - 290.0, "egenskapspanelen ligger till höger om kartan", vad)
+		# Panelerna mäts mot sin EGEN yta, inte mot ett magiskt tal: paletten är så bred som dess
+		# innehåll kräver, och en ny radgrupp får flytta kartan utan att larmet går.
+		var palett: Rect2 = editor.palett_box.get_global_rect()
+		var panel: Rect2 = editor.insp_box.get_global_rect()
+		check(karta.position.x > palett.position.x, "kartan ligger till höger om paletten", vad)
+		check(karta.end.x < panel.end.x, "egenskapspanelen ligger till höger om kartan", vad)
 		check(int(editor.theme.default_font_size) >= 11, "texten går att läsa",
 			"%d px" % int(editor.theme.default_font_size))
 

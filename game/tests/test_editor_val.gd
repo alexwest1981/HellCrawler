@@ -203,6 +203,21 @@ func _init() -> void:
 		"banans fält hölls inom sina gränser",
 		"svårighet %d, våningar %d" % [editor.stage.difficulty, editor.stage.floors])
 
+	# --- 13. PLANVYN: de två värdena får aldrig ligga nära varandra, och inget material får läsas som
+	# vägg. Bilden är beviset på att det SYNS (mätt i skottet: golv 87,7 mot vägg 23,0 = 64,7 nivåer);
+	# den här kontrollen vaktar konstanterna, så en justering av färgerna inte tystar skillnaden.
+	var ljusa: float = editor.FÄRG_GOLV.get_luminance()
+	var mörka: float = editor.FÄRG_VÄGG.get_luminance()
+	check(ljusa - mörka >= 0.15, "planvyns golv är minst 38 nivåer ljusare än väggen",
+		"%.0f nivåer" % ((ljusa - mörka) * 255.0))
+	editor.vy = "plan"
+	var för_mörka := []
+	for id in editor.material_lista:
+		var f: Color = editor._material_färg(str(id))
+		if f.get_luminance() < mörka + 0.12:
+			för_mörka.append(str(id))
+	check(för_mörka.is_empty(), "inget material läses som vägg i planvyn", str(för_mörka))
+
 	print("")
 	print("=== %d kontroller, %d fel ===" % [checks, fails])
 	quit(1 if fails > 0 else 0)

@@ -55,6 +55,7 @@ var ändrad := false
 ## Penseln: "valj" väljer och flyttar, "nod" sätter en nod, "ruta" målar golv/vägg,
 ## "material" lägger ett material på rutan ("" = temats egen ruta).
 var verktyg := "valj"
+var vy := "plan"                     ## "plan" (golv ljust, vägg mörkt) eller "textur" (temats rutor)
 var nod_kind := "encounter"
 var ruta_mark := Dungeon.FLOOR
 var yta_material := ""
@@ -94,6 +95,8 @@ var outliner_rubrik: Label = null
 var _outliner_noder: Array = []
 var _palett_knappar: Array = []
 var _grupp: ButtonGroup = null
+var _vy_grupp: ButtonGroup = null
+var _vy_knappar := {}
 var _storlek_knappar := {}
 var _tema_knappar := {}
 var _räknare: Dictionary = {}
@@ -503,6 +506,7 @@ func _bygg_palett() -> void:
 	_verktygs_rubrik("VÄLJ")
 	_palett_knapp(_knapp("Välj / flytta   (V)", "klick väljer, drag flyttar, dra tom yta = box",
 		_sätt_verktyg.bind("valj")))
+	_vy_rad()
 	_verktygs_rubrik("RUTOR")
 	var golv := _palett_knapp(_knapp("Golv   (G)", "måla golv", _sätt_verktyg.bind("ruta", "golv")))
 	golv.icon = _tema_tex(floor.theme if floor != null else "", "floor")
@@ -537,10 +541,46 @@ func _bygg_palett() -> void:
 		b.custom_minimum_size = Vector2(30, 30)
 		b.add_theme_constant_override("icon_max_width", 22)
 	var tips := _etikett("S spara · L läs om · N ny · P spela · B spara banan\n" \
-		+ "T/Y tema · [ ] våning · ,/. bana · +/- storlek · M meny · Q avsluta", 11, FÄRG_DIM)
+		+ "T/Y tema · K plan/textur · [ ] våning · ,/. bana\n" \
+		+ "+/- storlek · M meny · Q avsluta", 11, FÄRG_DIM)
 	tips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	palett_box.add_child(tips)
 	_markera_verktyg()
+
+
+## Vyn man ritar i: PLAN (rent papper) eller TEXTUR (temats rutor). Två knappar i stället för en
+## växel, så man ser vilket läge man är i utan att gissa — och `K` gör samma sak från tangentbordet.
+func _vy_rad() -> void:
+	_verktygs_rubrik("VY")
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 3)
+	palett_box.add_child(h)
+	_vy_grupp = ButtonGroup.new()
+	_vy_knappar = {}
+	for par in [["plan", "Plan", "golv ljust, vägg mörkt — så läser man en planlösning"],
+			["textur", "Textur", "temats egna rutor och materialen, som spelet visar dem"]]:
+		var b := _knapp(str(par[1]), str(par[2]), _sätt_vy.bind(str(par[0])))
+		b.toggle_mode = true
+		b.button_group = _vy_grupp
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.custom_minimum_size.y = 24
+		h.add_child(b)
+		_vy_knappar[str(par[0])] = b
+	_markera_vy()
+
+
+func _sätt_vy(v: String) -> void:
+	vy = v
+	_markera_vy()
+	_stämpla()
+	if duk != null:
+		duk.queue_redraw()
+
+
+func _markera_vy() -> void:
+	for nyckel in _vy_knappar:
+		(_vy_knappar[nyckel] as Button).set_pressed_no_signal(nyckel == vy)
 
 
 func _verktygs_rubrik(text: String) -> void:
@@ -623,28 +663,21 @@ func _ruta_rect(p: Vector2i) -> Rect2:
 	return Rect2(anka + Vector2(p) * cell, Vector2(cell, cell))
 
 
+## Kartan ritas i två vyer. PLAN (standard) ritar ett rent papper: golv ljust, vägg mörkt, och en
+## ljus kant runt varje golvyta. Det är inte en genväg — det är nödvändigt, för temats egna rutor kan
+## vara IDENTISKA: `bro/floor.png` och `bro/wall.png` har samma md5 (mätt), så en karta över stage_01
+## ritad med temats texturer har noll skillnad mellan golv och vägg. TEXTUR (`K`) visar temats rutor
+## och materialen som de ser ut i spelet; kanten mellan golv och vägg ritas i båda vyerna, så gränsen
+## syns även när texturerna inte skiljer sig.
 func _rita_duk(c: Control) -> void:
 	c.draw_rect(Rect2(Vector2.ZERO, c.size), FÄRG_BAK)
 	if floor == null:
 		return
-	var vägg_tex := _tema_tex(floor.theme, "wall")
-	var golv_tex := _tema_tex(floor.theme, "floor")
-	for y in floor.h:
-		for x in floor.w:
-			var p := Vector2i(x, y)
-			var r := _ruta_rect(p)
-			var golv: bool = floor.tiles[y][x] == Dungeon.FLOOR
-			var egen := _material_tex(str(floor.ytor.get("%d,%d" % [x, y], "")))
-			var tex: Texture2D = egen
-			if tex == null:
-				tex = golv_tex if golv else vägg_tex
-			if tex != null:
-				c.draw_texture_rect(tex, r, false)
-			else:
-				c.draw_rect(r, Color(0.3, 0.29, 0.33) if golv else Color(0.12, 0.12, 0.15))
-			if egen != null:
-				# en överstyrd ruta får en hake i hörnet, så man ser att den inte följer temat
-				c.draw_rect(Rect2(r.position + Vector2(2, 2), Vector2(4, 4)), FÄRG_ACC)
+	if vy == "textur":
+		_rita_rutor(c)
+	else:
+		_rita_plan(c)
+	_rita_kant(c)
 	# rutnätet ovanpå rytorna: tunna linjer, en per ruta
 	var linje := Color(0, 0, 0, 0.35)
 	for x in floor.w + 1:
@@ -687,8 +720,111 @@ func _rita_duk(c: Control) -> void:
 		c.draw_rect(box, FÄRG_ACC, false, 1.0)
 
 
-# --- mus ----------------------------------------------------------------------------------------
+## PLANVYN: väggarna är den mörka massan, golven är ljusa fält. Två värden med ~55 nivåers skillnad
+## (0,09 mot 0,30) — ögat skiljer dem på en blick, och det gör det inte mellan temats två rutor.
+const FÄRG_GOLV := Color(0.31, 0.33, 0.39)
+const FÄRG_VÄGG := Color(0.085, 0.09, 0.11)
+const FÄRG_GOLVKANT := Color(0.66, 0.73, 0.86)
 
+func _rita_plan(c: Control) -> void:
+	for y in floor.h:
+		for x in floor.w:
+			var p := Vector2i(x, y)
+			var golv: bool = floor.tiles[y][x] == Dungeon.FLOOR
+			var id := str(floor.ytor.get("%d,%d" % [x, y], ""))
+			var r := _ruta_rect(p)
+			var färg := FÄRG_GOLV if golv else FÄRG_VÄGG
+			if not id.is_empty():
+				# materialet syns som sin EGEN färg: en överstyrd ruta ska gå att känna igen utan
+				# att man byter till texturvyn
+				färg = _material_färg(id)
+				if not golv:
+					färg = färg.darkened(0.55)
+			c.draw_rect(r, färg)
+
+
+func _rita_rutor(c: Control) -> void:
+	var vägg_tex := _tema_tex(floor.theme, "wall")
+	var golv_tex := _tema_tex(floor.theme, "floor")
+	for y in floor.h:
+		for x in floor.w:
+			var p := Vector2i(x, y)
+			var r := _ruta_rect(p)
+			var golv: bool = floor.tiles[y][x] == Dungeon.FLOOR
+			var egen := _material_tex(str(floor.ytor.get("%d,%d" % [x, y], "")))
+			var tex: Texture2D = egen
+			if tex == null:
+				tex = golv_tex if golv else vägg_tex
+			if tex != null:
+				c.draw_texture_rect(tex, r, false)
+			else:
+				c.draw_rect(r, Color(0.3, 0.29, 0.33) if golv else Color(0.12, 0.12, 0.15))
+			if egen != null:
+				# en överstyrd ruta får en hake i hörnet, så man ser att den inte följer temat
+				c.draw_rect(Rect2(r.position + Vector2(2, 2), Vector2(4, 4)), FÄRG_ACC)
+
+
+## KANTEN runt varje golvyta. Det är den som gör vyn läsbar: i texturvyn kan temats golv och vägg vara
+## samma bild, och då är kanten den enda skillnaden som finns. Ritas bara mot vägg/utanför, alltså
+## rummets kontur och inte ett rutnät till.
+func _rita_kant(c: Control) -> void:
+	var bredd := maxf(1.0, cell * 0.06)
+	var k := FÄRG_GOLVKANT
+	k.a = 0.9
+	for y in floor.h:
+		for x in floor.w:
+			if floor.tiles[y][x] != Dungeon.FLOOR:
+				continue
+			var r := _ruta_rect(Vector2i(x, y))
+			if y == 0 or floor.tiles[y - 1][x] != Dungeon.FLOOR:
+				c.draw_line(r.position, Vector2(r.end.x, r.position.y), k, bredd)
+			if y == floor.h - 1 or floor.tiles[y + 1][x] != Dungeon.FLOOR:
+				c.draw_line(Vector2(r.position.x, r.end.y), r.end, k, bredd)
+			if x == 0 or floor.tiles[y][x - 1] != Dungeon.FLOOR:
+				c.draw_line(r.position, Vector2(r.position.x, r.end.y), k, bredd)
+			if x == floor.w - 1 or floor.tiles[y][x + 1] != Dungeon.FLOOR:
+				c.draw_line(Vector2(r.end.x, r.position.y), r.end, k, bredd)
+
+
+## Ett materials medelfärg, samplad ur arket och lyft/sänkt till golvets värdeområde — ett kolsvart
+## ark (obsidian) får inte läsas som vägg i planvyn.
+var _yta_färg := {}
+
+func _material_färg(id: String) -> Color:
+	if _yta_färg.has(id):
+		return _yta_färg[id]
+	var ut := FÄRG_GOLV
+	var tex := _material_tex(id)
+	if tex != null:
+		var img := tex.get_image()
+		if img != null:
+			# importerade PNG:er kan vara packade: get_pixel på ett packat format läser skräp (mätt i
+			# fiendeeditorn), så konvertera först
+			img.convert(Image.FORMAT_RGBA8)
+			var summa := Vector3.ZERO
+			var n := 0
+			var steg := maxi(1, img.get_width() / 8)
+			var y := 0
+			while y < img.get_height():
+				var x := 0
+				while x < img.get_width():
+					var px := img.get_pixel(x, y)
+					if px.a > 0.5:
+						summa += Vector3(px.r, px.g, px.b)
+						n += 1
+					x += steg
+				y += steg
+			if n > 0:
+				ut = Color(summa.x / n, summa.y / n, summa.z / n)
+	var l := ut.get_luminance()
+	if l > 0.02:
+		var f := clampf(0.5 / l, 0.8, 1.9)
+		ut = Color(clampf(ut.r * f, 0.0, 1.0), clampf(ut.g * f, 0.0, 1.0), clampf(ut.b * f, 0.0, 1.0))
+	_yta_färg[id] = ut
+	return ut
+
+
+# --- mus ----------------------------------------------------------------------------------------
 func _duk_input(e: InputEvent) -> void:
 	if floor == null:
 		return
@@ -925,6 +1061,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		_kopiera_vald()
 	elif key == KEY_F:
 		_rama_in()
+	elif key == KEY_K:
+		_sätt_vy("textur" if vy == "plan" else "plan")
 	elif key == KEY_LEFT:
 		_putta(Vector2i(-1, 0))
 	elif key == KEY_RIGHT:
@@ -1185,7 +1323,7 @@ func _stämpla() -> void:
 		_l_läge.add_theme_color_override("font_color", Color(0.95, 0.75, 0.35) if ändrad else FÄRG_DIM)
 	if status_rad == null:
 		return
-	var bitar: Array = [_pensel_text()]
+	var bitar: Array = ["vy: %s" % ("plan" if vy == "plan" else "textur"), _pensel_text()]
 	if hover.x >= 0:
 		var n := _nod_vid(hover)
 		var vad := "golv" if floor.is_floor_at(hover) else "vägg"
