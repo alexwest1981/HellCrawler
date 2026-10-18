@@ -319,51 +319,73 @@ def småsten(b: Bygge) -> None:
 
 
 def bur(b: Bygge) -> None:
-    """En bur med skelett, hängande i taket (68x48x100 px).
+    """En bur med skelett, hängande i taket (30x24x88 px).
 
-    Buren är RUND — banden är 16-hörningar, stängerna sitter på en ellips — för en bur med raka
-    hörn läses som en låda. Kedjelänkarna växlar plan, som en riktig kedja.
+    BREDDEN ÄR BURENS, INTE KANVASENS (M150). Arket är 68 px brett men själva buren bara 39 px —
+    marginalerna runt om är tomma. Första modellen byggdes till kanvasen och blev 68 px bred, alltså
+    58 % för vid: i spel såg den ut som en tunna och skelettet simmade omkring inuti. Alex: *"De är
+    alldeles för vida, de behöver vara MYCKET smalare, så skelettet får trängas."* Nu är buren 30 px
+    (0,24 m) och skelettet 13 px över revbenen mot 13,3 px innanför stängerna — det tar i, och det är
+    meningen.
+
+    Kontrasten bär läsbarheten på 480x270: stängerna är MÖRK metall (IRON_MÖRK med IRON som kant) och
+    benen ljusa (BONE_L), annars går skelettet i ett med buren. Kedjan är sju länkar i växlande plan —
+    fem korta läses som ett pärlband.
     """
-    cx, cy = 34.0, 24.0
-    ellips = Matrix.Diagonal((1.0, 0.706, 1.0)).to_3x3()
-    b.låda((cx, cy, 99.4), (3.2, 3.2, 1.2), IRON)
-    b.ring((cx, cy, 97.6), 7.4, 4.4, 3.0, IRON, 12)
-    b.prisma((cx, cy, 97.6), 4.4, 3.0, IRON_MÖRK, 8)
-    for i, z in enumerate((91.0, 85.0, 79.0, 73.0)):
+    cx, cy = 16.0, 12.0
+    ellips = Matrix.Diagonal((1.0, 0.75, 1.0)).to_3x3()
+    # Hake och kedja: sju länkar, varannan vriden ett kvarts varv.
+    b.låda((cx, cy, 92.0), (2.2, 2.2, 2.4), IRON_MÖRK)
+    b.ring((cx, cy, 90.0), 3.4, 1.8, 1.8, IRON, 10)
+    for i in range(6):
+        z = 88.0 - i * 4.0
         m = Matrix.Rotation(math.radians(90), 3, "X" if i % 2 == 0 else "Y")
-        m = m @ Matrix.Diagonal((1.0, 1.0, 1.3)).to_3x3()
-        b.ring((cx, cy, z), 5.6, 2.6, 2.4, IRON_MÖRK if i % 2 else IRON, 10, m)
-    for z in (64.0, 3.0):
-        b.ring((cx, cy, z), 34.0, 30.0, 4.0, IRON, 16, ellips)
-        b.ring((cx, cy, z + 2.2), 34.0, 30.4, 1.0, EDGE_L, 16, ellips)
-        b.ring((cx, cy, z - 2.2), 34.0, 30.4, 1.0, IRON_MÖRK, 16, ellips)
-    b.prisma((cx, cy, 3.0), 30.0, 1.6, IRON_MÖRK, 16, ellips)
-    for i in range(8):
-        a = 2.0 * math.pi * i / 8.0
-        x, y = cx + math.cos(a) * 31.6, cy + math.sin(a) * 31.6 * 0.706
-        b.rör((x, y, 5.0), (x, y, 62.0), 2.0, IRON if i % 2 == 0 else IRON_MÖRK, 8)
-    for i in range(3):
-        a = math.radians(-60.0 + 120.0 * i)
-        x, y = cx + math.cos(a) * 21.0, cy + math.sin(a) * 21.0 * 0.706
-        b.rör((x, y, 6.0), (x, y, 61.0), 1.2, IRON_MÖRK, 6)
-    # Skelettet, en bit fram i buren så att revbenen syns mellan stängerna.
-    sy = cy - 2.0
-    b.låda((cx, sy, 50.5), (9.0, 8.0, 8.0), BONE)
-    b.låda((cx, sy, 53.9), (8.0, 7.0, 1.0), BONE_L)
-    b.låda((cx, sy + 0.6, 46.0), (7.6, 7.0, 3.0), BONE_L)
-    for dx in (-2.4, 2.4):
-        b.låda((cx + dx, sy - 3.8, 51.6), (2.1, 1.2, 2.6), INK)
-    b.låda((cx, sy - 3.9, 48.6), (1.4, 1.0, 1.4), INK)
-    b.rör((cx, sy, 33.0), (cx, sy, 44.5), 1.5, BONE_L, 6)
-    for z, r in ((43.0, 6.6), (39.0, 7.1), (35.0, 6.2)):
-        b.revben((cx, sy, z), r, BONE_L, 5, 1.9)
-    for dx in (-3.2, 3.2):
-        b.låda((cx + dx, sy, 32.0), (3.2, 3.6, 2.8), BONE)
+        m = m @ Matrix.Diagonal((1.0, 1.0, 1.5)).to_3x3()
+        b.ring((cx, cy, z), 3.2, 1.6, 1.3, IRON if i % 2 else IRON_MÖRK, 8, m)
+    # Kupolen: trappsteg som smalnar uppåt, med sex ribbor över — en plan skiva läses som ett lock.
+    for z, r in ((67.2, 12.2), (68.8, 9.4), (70.2, 6.4)):
+        b.prisma((cx, cy, z), r, 1.6, IRON_MÖRK, 14, ellips)
+    b.prisma((cx, cy, 71.6), 2.6, 2.0, IRON, 8)                    # knoppen överst
+    b.prisma((cx, cy, 65.8), 14.8, 2.2, IRON_MÖRK, 16, ellips)
+    b.ring((cx, cy, 66.8), 15.0, 12.6, 1.0, IRON, 16, ellips)
+    for i in range(6):
+        a = 2.0 * math.pi * i / 6.0
+        x, y = cx + math.cos(a) * 11.0, cy + math.sin(a) * 11.0 * 0.75
+        b.rör((x * 0.35 + cx * 0.65, y * 0.35 + cy * 0.65, 71.2), (x, y, 66.6), 1.2, IRON, 6)
+    # Stängerna: sex, mörk metall — de ska rama in skelettet, inte smälta in i det.
+    for i in range(6):
+        a = 2.0 * math.pi * i / 6.0 + math.pi / 6.0
+        x, y = cx + math.cos(a) * 14.0, cy + math.sin(a) * 14.0 * 0.75
+        b.rör((x, y, 9.0), (x, y, 64.6), 1.4, IRON_MÖRK, 8)
+    for z, h in ((40.0, 2.0), (10.0, 2.2)):
+        b.ring((cx, cy, z), 15.0, 13.2, h, IRON_MÖRK, 14, ellips)
+        b.ring((cx, cy, z + h / 2.0), 15.1, 13.3, 0.8, IRON, 14, ellips)
+    b.prisma((cx, cy, 6.2), 12.4, 2.4, IRON_MÖRK, 14, ellips)
+    b.ring((cx, cy, 8.0), 14.4, 12.2, 1.2, IRON, 14, ellips)
+    # SKELETTET: 13 px över revbenen mot 13,3 px innanför stängerna. Skallen nära taket, armarna upp
+    # (hänger), ena benet böjt — en spikrak figur med plats omkring sig läses som en docka.
+    sy = cy - 1.0
+    b.låda((cx, sy, 56.0), (8.4, 7.0, 8.0), BONE)
+    b.låda((cx, sy + 0.2, 59.8), (7.4, 6.2, 1.4), BONE_L)
+    b.låda((cx, sy + 0.4, 51.8), (7.0, 6.0, 2.4), BONE_L)          # käken
+    for dx in (-2.2, 2.2):
+        b.låda((cx + dx, sy - 3.6, 57.6), (2.0, 1.2, 2.4), INK)    # ögonhålorna
+    b.låda((cx, sy - 3.7, 54.6), (1.4, 1.0, 1.4), INK)
+    b.rör((cx, sy, 39.4), (cx, sy, 50.0), 1.8, BONE_L, 6)          # ryggraden
+    # Revbenen som TVÄRGÅENDE band (se `revben`: bågen passar benhögen på golvet, inte en bur sedd
+    # framifrån). 12,6 px breda mot 13,3 px innanför stängerna — de tar i, och det är meningen.
+    for z, bredd in ((49.2, 9.0), (47.2, 11.4), (45.2, 12.6), (43.2, 12.6), (41.2, 11.8), (39.2, 10.4)):
+        b.låda((cx, sy, z), (bredd, 4.6, 1.3), BONE_L)
+    b.låda((cx, sy - 2.4, 44.2), (2.0, 1.4, 10.4), BONE)           # bröstbenet
+    for dx in (-3.0, 3.0):
+        b.låda((cx + dx, sy, 34.6), (3.2, 3.6, 3.0), BONE)         # bäckenet
     for dx in (-1, 1):
-        b.rör((cx + dx * 4.2, sy, 47.5), (cx + dx * 9.4, sy, 60.0), 1.4, BONE_L, 6)
-        b.låda((cx + dx * 9.4, sy, 61.2), (3.2, 2.8, 2.8), BONE)
-        b.rör((cx + dx * 3.2, sy, 31.0), (cx + dx * 6.2, sy, 8.0), 1.4, BONE_L, 6)
-    b.låda((cx, sy, 15.0), (6.2, 4.2, 3.0), BONE, Matrix.Rotation(math.radians(14), 3, "Y"))
+        b.rör((cx + dx * 4.0, sy, 49.6), (cx + dx * 5.4, sy, 61.0), 1.6, BONE_L, 6)
+        b.låda((cx + dx * 5.4, sy, 62.4), (3.0, 2.6, 2.8), BONE)   # händerna ovanför huvudet
+    b.rör((cx - 2.6, sy, 33.0), (cx - 3.6, sy, 12.0), 1.6, BONE_L, 6)
+    b.rör((cx + 2.6, sy, 33.0), (cx + 4.2, sy + 0.4, 20.0), 1.6, BONE_L, 6)   # ena benet böjt
+    b.låda((cx - 3.8, sy - 0.6, 10.0), (3.2, 2.4, 2.4), BONE, Matrix.Rotation(math.radians(16), 3, "Y"))
+    b.låda((cx + 4.6, sy + 0.8, 18.4), (3.0, 2.4, 2.4), BONE)
 
 
 def kandelaber(b: Bygge) -> None:
@@ -531,7 +553,7 @@ PROPS = {
     "rot": (26, 14, 10, rot),
     "mossa": (18, 12, 8, mossa),
     "småsten": (12, 8, 7, småsten),
-    "bur": (68, 48, 100, bur),
+    "bur": (30, 24, 88, bur),   # 30 px bred (kanvasen är 68), 88 = det bygget spänner
     "kandelaber": (80, 80, 52, kandelaber),
     "spricka_eld": (64, 64, 14, spricka_eld),
     "shovel": (24, 6, 64, spade),

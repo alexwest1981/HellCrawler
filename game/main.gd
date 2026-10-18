@@ -1094,9 +1094,19 @@ func _ready() -> void:
 # skarm=by|butik|vardshus|smed|karta startar direkt på den skärmen. Utan den gick bara HELA
 	# skalet att fotografera (`-- skarmar`), och en enskild skärm fick man leta upp med tangenterna.
 	var skarm := ""
+	# rekvisitprov=<art>[,<avstånd>] fotograferar EN rekvisit på den storlek och i det ljus den har i
+	# spel (M150). Utan den gick det bara att döma en modell på en Blender-rendering i studio-ljus,
+	# alltså en bild som spelet aldrig visar.
+	var rekvisitprov := ""
+	var rekvisitavstånd := 2.0
 	for f in flags:
 		if f.begins_with("nodprov="):
 			nodprov = f.substr(8)
+		elif f.begins_with("rekvisitprov="):
+			var delar := f.substr(13).split(",")
+			rekvisitprov = delar[0]
+			if delar.size() > 1:
+				rekvisitavstånd = float(delar[1])
 		elif f.begins_with("skarm="):
 			skarm = f.substr(6)
 		elif f.begins_with("kartprov="):
@@ -1143,7 +1153,7 @@ func _ready() -> void:
 		or flags.has("flisprov") or flags.has("genomsynprov") or flags.has("flissynprov")
 		or flags.has("voxelprov") or flags.has("voxelhund") or flags.has("dödsprov")
 		or flags.has("ljuskallprov")
-		or not nodprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
+		or not nodprov.is_empty() or not rekvisitprov.is_empty()) and not flags.has("skarmar") and skarm.is_empty()
 	if not kör:
 		# Vanlig start (eller en enskild skärms skärmbildsläge): byn först. Ingen körning finns än,
 		# så vyn är tom bakom panelerna — en kvarglömd korridor bakom byn vore en lögn om var man är.
@@ -1239,6 +1249,9 @@ func _ready() -> void:
 		return
 	if flags.has("stegprov"):
 		await _steg_prov()
+	if not rekvisitprov.is_empty():
+		await _rekvisit_prov(rekvisitprov, rekvisitavstånd)
+		return
 	if not nodprov.is_empty():
 		# Dropp-provet väntar längre: en droppe är i luften nästan jämnt, men inte i varje bildruta.
 		await _demo_node(nodprov, nodprov, 45 if nodprov == "dropp" else 2)
@@ -1713,6 +1726,88 @@ func _steg_prov() -> void:
 ## kistan eller facklan för att använda den). Står man på den har man den inne i kameran, och då mäter
 ## bilden ingenting. `fackelprov` är samma prov för facklan, som behöver längre väntan (lågan byggs
 ## upp över en halv sekund).
+## REKVISITPROVET (M150): en rekvisit, i spelrummet, på den storlek den har när spelaren ser den.
+##
+## Varför: en Blender-rendering i studioljus säger ingenting om en modell som är 30 px bred i en
+## 480x270-vy mot en mörk vägg. Det här provet ritar modellen med spelets eget material och spelets
+## eget ljus, sparar SUBVIEWPORTEN (alltså 1:1-pixlar, inte den uppskalade fönsterbilden) och skriver
+## hur många pixlar den täcker — så "den syns" och "den är 31 px bred" är samma mätning.
+func _rekvisit_prov(art: String, avstånd: float = 1.5) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var m := _prop_mesh(art)
+	if m == null or world == null or cam == null:
+		print("rekvisitprov: ingen modell för %s (world %s, kamera %s)"
+			% [art, str(world != null), str(cam != null)])
+		get_tree().quit(1)
+		return
+	# STUDION: en plan yta bakom modellen så bakgrunden inte är en slumpad korridor. Silhuetten och
+	# kontrasten är det som ska dömas, inte vilken vägg spelaren råkade titta på.
+	var bak := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(4.0, 4.0)
+	var bmat := StandardMaterial3D.new()
+	bmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	bmat.albedo_color = Color(0.42, 0.40, 0.38)
+	q.material = bmat
+	bak.mesh = q
+	world.add_child(bak)
+	# STUDION LIGGER UNDER VÅNINGEN (y = -20), inte framför spelaren: en korridorvägg kan stå 1,5 m
+	# bort och då fotograferade provet väggen i stället för modellen (mätt: första försöket gav en
+	# korridor och "modellen täcker 183 446 px" — hela rutan). Kameran flyttas dit, inget annat bor där.
+	var botten := Vector3(0.0, -20.0, 0.0)
+	cam.global_transform = Transform3D(Basis(), botten)
+	bak.global_position = botten + Vector3(0.0, 0.0, -avstånd - 0.7)
+	# ETT ljus, KALIBRERAT mot rummets fackla (energi 0,75, räckvidd 6,5, dämpning 1,6) — inte två
+	# starka: med 2 x 0,55 blev järnet (110,102,84) gräddvitt i provet och modellen dömdes fel.
+	for i in 1:
+		var l := OmniLight3D.new()
+		l.light_energy = 0.5
+		l.omni_range = 6.5
+		l.omni_attenuation = 1.6
+		world.add_child(l)
+		l.global_position = botten + Vector3(0.0, 0.25, -1.1)
+	_sätt_rekvisit_material(m, art)
+	var mi := MeshInstance3D.new()
+	mi.name = "prov_" + art
+	mi.mesh = m
+	world.add_child(mi)
+	mi.global_position = botten + Vector3(0.0, 0.0, -avstånd)
+	for i in 3:
+		await get_tree().process_frame
+	var väg := "user://shots/rekvisit_%s.png" % art
+	if not _spara_bild(väg, _vy):
+		get_tree().quit(1)
+		return
+	# MÄT VAD BILDEN VISAR: samma ruta en gång till, utan modellen, och räkna skillnaden. En tröskel
+	# mot bakgrundens färg dög inte — vinjetten och dimman gör bilden ojämn, och då blev "hela rutan"
+	# modellens area (mätt: 183 446 px för en 30 px bred bur).
+	var med := _vy.get_texture().get_image()
+	mi.visible = false
+	await get_tree().process_frame
+	var utan := _vy.get_texture().get_image()
+	mi.visible = true
+	var minsta := Vector2i(med.get_width(), med.get_height())
+	var största := Vector2i.ZERO
+	var antal := 0
+	var ljusast := 0.0
+	for y in med.get_height():
+		for x in med.get_width():
+			var a: Color = med.get_pixel(x, y)
+			var b: Color = utan.get_pixel(x, y)
+			if absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b) < 0.06:
+				continue
+			antal += 1
+			minsta = Vector2i(mini(minsta.x, x), mini(minsta.y, y))
+			största = Vector2i(maxi(största.x, x), maxi(största.y, y))
+			ljusast = maxf(ljusast, maxf(a.r, maxf(a.g, a.b)))
+	var ruta := Vector2i(maxi(0, största.x - minsta.x + 1), maxi(0, största.y - minsta.y + 1))
+	print("rekvisitprov: %s på %.1f m → %s (%dx%d px)" % [art, avstånd,
+		ProjectSettings.globalize_path(väg), _vy.size.x, _vy.size.y])
+	print("  modellen täcker %d px, ruta %dx%d, ljusaste kanal %.2f" % [antal, ruta.x, ruta.y, ljusast])
+	get_tree().quit()
+
+
 func _demo_node(kind: String, filnamn: String, vänta: int) -> void:
 	var mål := Vector2i.ZERO
 	if kind == "dropp":
@@ -6743,6 +6838,23 @@ func _laga_shader() -> Shader:
 	return _laga_shader_res
 
 
+## Materialet en rekvisitmodell ritas med: yta 0 är FAST (vertexfärg) och yta 1 är LÅGAN (glöd-shadern).
+## EN källa — spelet och `-- rekvisitprov` får inte kunna visa olika saker.
+func _sätt_rekvisit_material(mesh: Mesh, art: String) -> Material:
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.9
+	if mesh.get_surface_count() > 0:
+		mesh.surface_set_material(0, mat)
+	if mesh.get_surface_count() > 1:
+		var sm := ShaderMaterial.new()
+		sm.shader = _laga_shader()
+		sm.set_shader_parameter("glod", LAGA_GLÖD * _ljus_f)
+		mesh.surface_set_material(1, sm)
+		_låg_material[art] = sm
+	return mat
+
+
 func _dekor_nod(art: String, platser: Array) -> int:
 	var tex := _prop(art)
 	var modell := _prop_mesh(art)
@@ -6763,17 +6875,25 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	# cannot be assigned to a variable of type StandardMaterial3D" (mätt: main.gd gick inte att ladda,
 	# provet skrev "1 Parse Error" och ingen bild). Egenskaperna nedan sätts dynamiskt i stället.
 	var mat = StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true         # färgen sitter i hörnen (COLOR_0), ur paletten
+	mat.roughness = 0.9                            # matt yta, som fienderna (M59)
 	if modell != null:
 		# 3D-MODELLEN UR rekvisita.glb (M148). Multimeshen behålls — den bär platserna — men meshen
 		# är modellens egen och `höjd` är modellens mått.
 		mesh = modell
-		mat.vertex_color_use_as_albedo = true     # färgen sitter i hörnen (COLOR_0), ur paletten
-		mat.roughness = 0.9                        # matt yta, som fienderna (M59)
+		mat = _sätt_rekvisit_material(mesh, art)  # yta 0 fast, yta 1 låga (M149)
 	elif VOXLAR:
 		var vx := Voxel.ur_ark(tex, 0, 1, höjd, VOXEL_SIDOR, VOXEL_DJUP)
 		mesh = vx.mesh()
-		mat.vertex_color_use_as_albedo = true     # färgen sitter i hörnen, ur arkets egna pixlar
-		mat.roughness = 0.9                        # matt yta, som fienderna (M59)
+		# Fallbacken har ingen lågyta: en lysande rekvisit får glöd-shadern över hela ytan, som före
+		# M149 (färgregeln i shadern släpper då bara igenom lågans celler).
+		if REKVISIT_LYSER.has(art):
+			var sm := ShaderMaterial.new()
+			sm.shader = _laga_shader()
+			sm.set_shader_parameter("glod", LAGA_GLÖD * _ljus_f)
+			mat = sm
+			_låg_material[art] = mat
+		mesh.surface_set_material(0, mat)
 	else:
 		var quad := QuadMesh.new()
 		quad.size = Vector2(float(tex.get_width()), float(tex.get_height())) * DEKOR_PIXEL
@@ -6787,14 +6907,8 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	# hela staken. Alex: *"Vi måste kunna justera vad som är ljus och inte på en ljusstake."* Nu avgör
 	# BYGGET: `tools/rekvisita3d.py` lägger lågorna i ett eget material, glTF gör det till en egen yta,
 	# och bara den ytan får glöd-shadern. Metall, kedja, skål och vax är fast material — alltid.
-	if not (mesh is QuadMesh):
-		mesh.surface_set_material(0, mat)
-		if mesh.get_surface_count() > 1:
-			var sm := ShaderMaterial.new()
-			sm.shader = _laga_shader()
-			sm.set_shader_parameter("glod", LAGA_GLÖD * _ljus_f)
-			mesh.surface_set_material(1, sm)
-			_låg_material[art] = sm
+	if mesh is QuadMesh:
+		pass                                      # quadden bär sitt material själv (satt ovan)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
