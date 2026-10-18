@@ -53,6 +53,11 @@ var run: Run
 ## och korten i den gamla storleken) ligger i den rutan, medan HUD:en runt omkring ligger i
 ## fönstret och därför ritas i fönstrets upplösning. Det var hela skillnaden: förut skalades
 ## HUD-texten upp tillsammans med vyn och blev grötig.
+## PIXELDENSITETEN (M151). Vyn ritades i 480x270 och skalades upp — på en 1080p-skärm blev varje
+## spelpixel 4x4 rutor och allt såg ut som en 270p-skärm från 1998. Alex: "vi kan inte släppa ett spel
+## som ser ut så där idag". VY är kvar som LAYOUTENS ruta (480x270 rutor): HUD:en räknar i den, och
+## skalas med `skala` till fönstret. Världen ritas i fönstrets EGEN upplösning (se `_placera_vy`), så
+## varje spelpixel blir 1 skärmpixel i stället för 2-4.
 const VY := Vector2i(480, 270)
 ## Handens kort i fönstret. 1,6 var den gamla 480x270-storleken; Alex: "Korten behöver bli lite
 ## större" — 1,75 är knappt en tiondel större och räcker för att namnet ska läsas i solfjädern.
@@ -8955,30 +8960,35 @@ func _placera_vy() -> void:
 	# Golvet är 160 spelpixlar och inte VY.x = 480: med 480 som golv blev vyn 480*3 = 1440 px bred i ett
 	# 941 px fönster (mätt: P -250, alltså 250 px utanför vänsterkanten). 160 räcker för att vyn ska
 	# ha en form alls, och taket (2,6 x) håller fiskögat borta.
-	var bredd := clampf(floorf(f.x / skala), 160.0, float(VY.x) * 2.6)
+	var bredd := clampf(floorf(f.x), 160.0 * skala, float(VY.x) * 2.6 * skala)
 	# AVUNDAS UPPÅT: görs det nedåt blir remsan 1 px högre än taket (mätt: 1018 - 289*3 = 151 px i
 	# 1896x1018 med 150 px som tak). Uppåt blir vyn 290 spelpixlar och remsan 148 px, alltså inom taket.
-	var höjd := maxf(float(VY.y), floorf((f.y - barh) / skala))
+	var höjd := maxf(float(VY.y) * skala, floorf(f.y - barh))
 	# TAKET PÅ REMSAN: golvningen kunde ge 1 px över 150 (mätt: 1018 - 289*3 = 151), och då avrundas
 	# höjden uppåt i stället (remsan blir 148 px). UTAN remsa (skalet) golvas den: vyn får aldrig bli
 	# STÖRRE än fönstret (mätt: 1020 px i ett 1018 px fönster, alltså 2 px klippta i nederkanten).
-	if barh > 0.0 and f.y - höjd * skala > BAR_MAX:
-		höjd = maxf(float(VY.y), ceilf((f.y - barh) / skala))
+	if barh > 0.0 and f.y - höjd > BAR_MAX:
+		höjd = maxf(float(VY.y) * skala, ceilf(f.y - barh))
 	# Vyn och korgen: samma mått. SubViewporten ritar 3D:n i den här storleken, och korgen skalas
 	# upp med heltalet — hårda pixlar, ingen halvskalning.
+	# VÄRLDEN I FÖNSTRETS UPPLÖSNING (M151): vyn ritas i samma pixlar som fönstret (skala 1), så
+	# inget skalas upp och inget blir grötigt. HUD:en ligger i logiska 480x270-rutor och skalas med
+	# `skala` — den behåller sin storlek och sin kantiga stil.
 	_vy.size = Vector2i(int(bredd), int(höjd))
 	_vy_korg.size = Vector2(bredd, höjd)
-	_vy_korg.scale = Vector2(skala, skala)
+	_vy_korg.scale = Vector2.ONE
+	if hud != null:
+		hud.transform = Transform2D(0.0, Vector2(skala, skala), 0.0, Vector2.ZERO)
 	# VYN I ÖVERKANTEN (M113). Det som blir över i sidled (högst skala-1 px, alltså 0-2 px) delas
 	# lika: en pixel bakgrund på vardera sidan syns inte, och vyn ligger kvar i mitten.
-	_vy_korg.position = Vector2(floorf((f.x - bredd * skala) * 0.5), 0.0)
+	_vy_korg.position = Vector2(floorf((f.x - bredd) * 0.5), 0.0)
 	# Ramen ritar banden runtom vyn — baren är dess golvband (`hud_ram.band`): plåtarna i baren är
 	# alltså ingen egen kontroll, utan samma bakgrund som förut fast bara nedanför vyn. Sidokolumnerna
 	# (om breddtaket tog i) målas i bakgrundsfärgen, inte i plåt (M113).
 	if hud_ram != null:
 		hud_ram.sätt_sten_mjuk(_sten_mjuk)
 		hud_ram.sätt_bar_syns(i_körning)
-		hud_ram.sätt_vy(Rect2(_vy_korg.position, Vector2(bredd, höjd) * skala), int(skala))
+		hud_ram.sätt_vy(Rect2(_vy_korg.position, Vector2(bredd, höjd)), int(skala))
 	# SKALETS VYER (M113): byn, kartan och trädet ritar sig själva i sin EGEN ruta (`_vy()` = size),
 	# så de måste få vyns ruta — annars ritar de i 480x270 mitt i ett större fönster och scenen ser
 	# inramad ut (Alex: "inte en by i helskärm").
