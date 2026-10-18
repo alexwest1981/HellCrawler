@@ -96,8 +96,12 @@ func _init() -> void:
 	check(not main._låg_material.has("bur"), "en rekvisit som inte lyser får ingen glöd")
 
 	# 7) ALLA REKVISITER HAR EN MODELL (M148). Kontraktet är namnet: spelet slår upp meshen på arten,
-	# och en art utan modell faller tillbaka på en voxelrad — tyst. Provet kräver modell, EN yta (en
-	# MultiMesh-ritning per art), vertexfärger ur paletten och DJUP (en platt skylt är felet M108 lagade).
+	# och en art utan modell faller tillbaka på en voxelrad — tyst. Provet kräver modell, vertexfärger
+	# ur paletten och DJUP (en platt skylt är felet M108 lagade).
+	#
+	# LÅGYTAN (M149): en lysande rekvisit har TVÅ ytor — den fasta (0) och lågan (1) — och bara lågan
+	# får glöd-shadern. Provet kräver att yta 1 FINNS för de arterna och att den bara bär lågfärger,
+	# alltså att glöden sitter i bygget och inte i en gissning om vilka färger som är varma.
 	var arter: Array = []
 	for rad in main.DEKOR_VIKT:
 		arter.append(str(rad[0]))
@@ -109,15 +113,26 @@ func _init() -> void:
 		check(m != null, "%s har en modell i rekvisita.glb" % art)
 		if m == null:
 			continue
-		check(m.get_surface_count() == 1, "%s är EN yta (fick %d)" % [art, m.get_surface_count()])
-		var arr: Array = m.surface_get_arrays(0)
-		var färger: PackedColorArray = arr[Mesh.ARRAY_COLOR]
-		check(färger.size() > 0, "%s bär vertexfärger (%d hörn)" % [art, färger.size()])
+		var lyser: bool = main.REKVISIT_LYSER.has(art)
+		var antal := 2 if lyser else 1
+		check(m.get_surface_count() == antal,
+			"%s har %d ytor (%s)" % [art, m.get_surface_count(), "fast + låga" if lyser else "bara fast"])
 		var utanför := 0
-		for f in färger:
-			if not _i_paletten(f):
-				utanför += 1
-		check(utanför == 0, "%s: alla hörn har palettfärg (%d av %d utanför)" % [art, utanför, färger.size()])
+		for yta in m.get_surface_count():
+			var färger: PackedColorArray = m.surface_get_arrays(yta)[Mesh.ARRAY_COLOR]
+			if yta == 0:
+				check(färger.size() > 0, "%s bär vertexfärger (%d hörn)" % [art, färger.size()])
+			for f in färger:
+				if not _i_paletten(f):
+					utanför += 1
+			if yta == 1:
+				var inte_låga := 0
+				for f in färger:
+					if not _i_låga(f):
+						inte_låga += 1
+				check(inte_låga == 0,
+					"%s: lågytan bär bara lågfärger (%d av %d utanför)" % [art, inte_låga, färger.size()])
+		check(utanför == 0, "%s: alla hörn har palettfärg (%d utanför)" % [art, utanför])
 		var mått: AABB = m.get_aabb()
 		check(mått.size.y > 0.03, "%s är %.3f m hög" % [art, mått.size.y])
 		check(mått.size.z >= 0.25 * mått.size.x,
@@ -134,6 +149,15 @@ func _init() -> void:
 ## `Color8` i Palett.c), så en modell får inte bära en färg någonstans ifrån.
 func _i_paletten(f: Color) -> bool:
 	for i in Palett.antal():
+		var p := Palett.c(i)
+		if is_equal_approx(f.r, p.r) and is_equal_approx(f.g, p.g) and is_equal_approx(f.b, p.b):
+			return true
+	return false
+
+
+## Är färgen en LÅGFÄRG? Palettens 12/13/14 (EMBER, FLAME, GLOW) är de enda som får glöda.
+func _i_låga(f: Color) -> bool:
+	for i in [12, 13, 14]:
 		var p := Palett.c(i)
 		if is_equal_approx(f.r, p.r) and is_equal_approx(f.g, p.g) and is_equal_approx(f.b, p.b):
 			return true

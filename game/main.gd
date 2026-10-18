@@ -336,6 +336,11 @@ const REKVISIT_LYSER := ["kandelaber", "spricka_eld"]
 ## hänga enligt sin egen generator ("någonstans i taket skall en sån där bur med ett skelett hänga")
 ## men stod på golvet sedan den kom in. Sprickan i golvet är den enda som hör till golvet.
 const REKVISIT_HÄNGER := ["kandelaber", "bur"]
+## REKVISITENS LJUSSKIKT (M149). En krona bär sin egen lampa alldeles under geometrin, och den lampan
+## gjorde hela staken gräddvit — metall, skål och vax lyste fast det bara är lågorna som ska lysa.
+## Rekvisiten ligger därför på skikt 2, och bara rekvisitens EGEN lampa undantar skiktet; rummets ljus
+## (facklor, lyktan) lyser dem som förut.
+const LAGER_REKVISIT := 2
 const REKVISIT_LJUS_MAX := 24         ## flest glödande rekvisiter per våning (varje ljus kostar)
 const REKVISIT_LJUS_RACKVIDD := 4.5   ## kortare än facklan (6,5): en glimt, inte en rumshörnsten
 ## REKVISITEN SOM 3D-MODELLER (M148). `tools/rekvisita3d.py` bygger nio meshar i Blender och skriver
@@ -6630,6 +6635,7 @@ func _bygg_dekor(golv: Array) -> void:
 			l.omni_range = REKVISIT_LJUS_RACKVIDD
 			l.omni_attenuation = 1.6
 			l.shadow_enabled = false
+			l.light_cull_mask = ~LAGER_REKVISIT   # en lykta lyser rummet, inte sig själv
 			# LJUSETS HÖJD (M148): strax UNDER modellens nederkant. Det låg på 0,4 av dukens höjd under
 			# kronans mitt — med en riktig modell hamnade lampan uppe mellan armarna i stället för under
 			# lågorna. Nu lyser den rummet nedanför kronan, som en hängande lykta gör.
@@ -6776,21 +6782,19 @@ func _dekor_nod(art: String, platser: Array) -> int:
 		mat.set_shader_parameter("glod", GLÖD.get(art, 0.0))
 		mesh = quad
 		(mesh as QuadMesh).material = mat         # en quad bär sin textur själv
-	# SVAG GLÖD PÅ DE LYSANDE REKVISITEN (M110/M148). Kommentaren här sa en gång att modellen INTE
-	# fick någon emission, och det var rätt så länge den var KONSTANT: ett fast lager över hela kroppen
-	# läses som en vit kopia (Alex om tak-kronan: "är helvit typ"). Men då står elden still — ljuset
-	# fladdrar och modellen gör det inte. Alex: "hade varut häftigt om själva 'elden' på ljusen brann".
-	# Därför en MYCKET svag emission som `_fladdra` rör med SAMMA faktor som ljuset.
-	#
-	# BARA LÅGORNA LYSR (M115): emissionen satt på HELA modellen förut — ett material för alla celler,
-	# så metall, kedja och armar glödde med (Alex: *"lyser hela kandelabern i taket, inte toppen på
-	# ljusen"*). Shadern släpper bara igenom celler som är lågans färg (palettens 12/13/14).
-	if REKVISIT_LYSER.has(art) and not (mesh is QuadMesh):
-		var sm := ShaderMaterial.new()
-		sm.shader = _laga_shader()
-		sm.set_shader_parameter("glod", LAGA_GLÖD * _ljus_f)
-		mat = sm
-		_låg_material[art] = mat
+	# LÅGYTAN ÄR ETT EGET MATERIAL (M149). Här satt en färgregel förut: shadern släppte igenom allt
+	# som var "varmt och ljust", och på en modell med vax, mässing och glöd i samma färgskala small
+	# hela staken. Alex: *"Vi måste kunna justera vad som är ljus och inte på en ljusstake."* Nu avgör
+	# BYGGET: `tools/rekvisita3d.py` lägger lågorna i ett eget material, glTF gör det till en egen yta,
+	# och bara den ytan får glöd-shadern. Metall, kedja, skål och vax är fast material — alltid.
+	if not (mesh is QuadMesh):
+		mesh.surface_set_material(0, mat)
+		if mesh.get_surface_count() > 1:
+			var sm := ShaderMaterial.new()
+			sm.shader = _laga_shader()
+			sm.set_shader_parameter("glod", LAGA_GLÖD * _ljus_f)
+			mesh.surface_set_material(1, sm)
+			_låg_material[art] = sm
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
@@ -6812,8 +6816,7 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	var nod := MultiMeshInstance3D.new()
 	nod.name = "dekor_" + art
 	nod.multimesh = mm
-	if not (mesh is QuadMesh):
-		nod.material_override = mat               # en mesh har ingen materialplats — den sätts på noden
+	nod.layers = LAGER_REKVISIT              # sin egen lampa lyser inte på sig själv (M149)
 	world.add_child(nod)
 	return platser.size()
 

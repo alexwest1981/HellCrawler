@@ -73,6 +73,9 @@ class Bygge:
         self.ytor: list[tuple[int, ...]] = []
         self.färger: list[int] = []
         self.rutor = 0
+        ## Ytintervall som är LÅGA (M149). Glöden sitter i ett EGET material i stället för i en
+        ## färgregel: då är det bygget — inte en gissning om paletten — som avgör vad som lyser.
+        self.lågor: list[tuple[int, int]] = []
 
     # ---------------------------------------------------------------- primitiver
 
@@ -185,11 +188,13 @@ class Bygge:
         Tre lika tjocka klumpar läses som en orange hatt på ljuset; det är spetsen som gör lågan.
         """
         z = mitt[2]
+        först = len(self.ytor)
         for andel, radie, färg_i in ((0.38, 0.52, EMBER), (0.30, 0.38, FLAME),
                                      (0.20, 0.24, FLAME), (0.12, 0.10, GLOW)):
             h = höjd * andel
             self.prisma((mitt[0], mitt[1], z + h / 2.0), bredd * radie, h, färg_i, 6)
             z += h
+        self.lågor.append((först, len(self.ytor)))
 
     def revben(self, mitt, radie: float, färg: int, antal: int = 5, vid: float = 2.0) -> None:
         """En båge av små klossar i XY-planet — ett revben, inte en bjälke."""
@@ -380,7 +385,7 @@ def kandelaber(b: Bygge) -> None:
     b.prisma((cx, cy, 30.0), 9.5, 6.0, IRON, 12)
     b.prisma((cx, cy, 33.4), 8.2, 1.0, EDGE_L, 12)
     b.prisma((cx, cy, 26.6), 7.0, 1.0, IRON_MÖRK, 12)
-    b.prisma((cx, cy, 30.0), 3.2, 3.0, PALE, 8)
+    b.prisma((cx, cy, 30.0), 3.2, 3.0, EDGE_L, 8)   # knoppen: metall, inte vax (M149)
     b.rör((cx, cy, 6.0), (cx, cy, 27.0), 1.6, IRON, 8)
     b.prisma((cx, cy, 4.0), 3.6, 4.0, IRON, 10)
     b.prisma((cx, cy, 1.0), 2.2, 2.0, IRON_MÖRK, 8)
@@ -400,7 +405,7 @@ def kandelaber(b: Bygge) -> None:
         b.prisma((ex, ey, 21.8), 5.6, 1.2, EDGE_L, 12)               # droppskålen
         b.låda((ex, ey, 26.6), (5.0, 5.0, 9.0), PALE)                # ljuset
         b.låda((ex + 1.8, ey, 26.6), (1.2, 5.0, 8.6), DIRT_D)
-        b.låga((ex, ey, 31.1), 8.0, 7.0)
+        b.låga((ex, ey, 31.1), 5.5, 6.0)      # SMÅ lågor (M149): toppen, inte hela staken
 
 
 def spricka_eld(b: Bygge) -> None:
@@ -534,12 +539,19 @@ PROPS = {
 }
 
 
+## Vilka rekvisiter som LYSer (M149). Bara de får en lågyta, och bara lågytan lyser i spelet —
+## allt annat på modellen är fast material, hur varm färgen än är.
+LYSER = {"kandelaber", "spricka_eld"}
+
 # ------------------------------------------------------------------ mesh och material
 
 
-def material() -> "bpy.types.Material":
-    """ETT material för alla rekvisit: färgen bor i hörnen (COLOR_0), inte i materialet."""
-    namn = "rekvisita"
+def material(namn: str = "rekvisita") -> "bpy.types.Material":
+    """Materialet för en rekvisit: färgen bor i hörnen (COLOR_0), inte i materialet.
+
+    `låga` är det ENDA som skiljer: samma vertexfärg, men med emission, så `--bild` visar samma
+    glöd som spelet ritar. I Godot byts ytan mot glöd-shadern (se `Main._dekor_nod`).
+    """
     mat = bpy.data.materials.get(namn)
     if mat is not None:
         return mat
@@ -552,6 +564,9 @@ def material() -> "bpy.types.Material":
     mat.node_tree.links.new(attribut.outputs["Color"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = 0.9
     bsdf.inputs["Metallic"].default_value = 0.0
+    if namn == "låga":
+        mat.node_tree.links.new(attribut.outputs["Color"], bsdf.inputs["Emission Color"])
+        bsdf.inputs["Emission Strength"].default_value = 0.6
     return mat
 
 
@@ -566,8 +581,13 @@ def gör_objekt(art: str, b: Bygge, pal: list) -> "bpy.types.Object":
     mesh.from_pydata(hörn, [], b.ytor)
     mesh.validate()
     mesh.materials.append(material())
+    if b.lågor:
+        mesh.materials.append(material("låga"))
     col = mesh.color_attributes.new(name="Col", type="FLOAT_COLOR", domain="CORNER")
-    for poly, färg_i in zip(mesh.polygons, b.färger):
+    lågindex = {i for a, b_ in b.lågor for i in range(a, b_)}
+    for i, (poly, färg_i) in enumerate(zip(mesh.polygons, b.färger)):
+        if i in lågindex:
+            poly.material_index = 1
         r, g, bl = färg8(pal, färg_i)
         for li in poly.loop_indices:
             col.data[li].color = (r / 255.0, g / 255.0, bl / 255.0, 1.0)
@@ -619,6 +639,26 @@ def kolla(ut: dict, pal: list) -> list[str]:
             fel.append("%s: %d färger utanför paletten (%s)" % (art, len(utanför), list(utanför)[:2]))
         if len(färger) < 3:
             fel.append("%s: bara %d färger — ingen skuggning" % (art, len(färger)))
+        # LÅGYTAN (M149): en lysande rekvisit har TVÅ material (fast + låga), och lågan är LITEN.
+        # En glöd som brer ut sig över staken är precis felet Alex såg; provet sätter en gräns.
+        antal_material = len(obj.data.materials)
+        if art in LYSER:
+            if antal_material != 2:
+                fel.append("%s: lyser men har %d material (ska vara 2: fast + låga)" % (art, antal_material))
+                continue
+            # ANDEL AV AREAN, inte av ytantalet: en låga är en sexkantig stapel med många små ytor,
+            # så ytantalet säger ingenting om hur mycket den syns. Arean gör det.
+            area_låga = sum(poly.area for poly in obj.data.polygons if poly.material_index == 1)
+            area_all = sum(poly.area for poly in obj.data.polygons)
+            andel = area_låga / max(1e-9, area_all)
+            if area_låga <= 0.0:
+                fel.append("%s: ingen lågyta" % art)
+            elif andel > 0.30:
+                # Taket är mätt, inte gissat: kronans fyra lågor (5,5 px breda på en 80 px krona) är
+                # 25 % av arean — modellens smala järn har många men små ytor. Över 30 % är inte en låga.
+                fel.append("%s: lågan är %.0f %% av arean (taket är 30 %%)" % (art, andel * 100.0))
+        elif antal_material != 1:
+            fel.append("%s: lyser inte men har %d material" % (art, antal_material))
     return fel
 
 
@@ -699,14 +739,17 @@ def main():
     ut = bygg_alla(pal, samling)
 
     print("REKVISITEN I 3D — %d arter ur %s" % (len(ut), PALETT.relative_to(ROOT)))
-    print("  %-12s %5s %6s %8s %8s %8s %6s %s" %
-          ("art", "rutor", "ytor", "bredd", "djup", "höjd", "färger", "djup/bredd"))
+    print("  %-12s %5s %6s %8s %8s %8s %6s %9s %s" %
+          ("art", "rutor", "ytor", "bredd", "djup", "höjd", "färger", "djup/bredd", "låga"))
     for art, (obj, mått, rutor) in ut.items():
         n_färger = len({tuple(round(c, 4) for c in obj.data.color_attributes[0].data[i].color[:3])
                         for i in range(len(obj.data.color_attributes[0].data))})
-        print("  %-12s %5d %6d %7.3f %8.3f %8.3f %6d %9.2f" %
+        area_låga = sum(poly.area for poly in obj.data.polygons if poly.material_index == 1)
+        area_all = sum(poly.area for poly in obj.data.polygons)
+        print("  %-12s %5d %6d %7.3f %8.3f %8.3f %6d %9.2f %9s" %
               (art, rutor, len(obj.data.polygons), mått[0], mått[1], mått[2], n_färger,
-               mått[1] / mått[0]))
+               mått[1] / mått[0],
+               ("%.0f %% area" % (100.0 * area_låga / area_all)) if area_låga else "-"))
     fel = kolla(ut, pal)
     if fel:
         raise SystemExit("FEL: " + " · ".join(fel))
@@ -719,6 +762,14 @@ def main():
     saknas = [art for art in PROPS if noder.get(art) is None]
     if saknas:
         raise SystemExit("FEL: glb saknar noder för %s (fick %s)" % (saknas, sorted(noder)))
+    # LÅGYTAN I FILEN (M149): glTF gör ett material per yta till en primitiv, så en lysande rekvisit
+    # ska ha TVÅ primitiver — den fasta och lågan. Ett svar på papperet är inte ett svar i filen.
+    meshar = glb.get("meshes", [])
+    for art in LYSER:
+        index = noder.get(art)
+        antal = len(meshar[index].get("primitives", [])) if index is not None else 0
+        if antal != 2:
+            raise SystemExit("FEL: %s har %d primitiver i glb (ska vara 2: fast + låga)" % (art, antal))
     print("  glb: %s (%d byte, %d mesh-noder, %d material)" %
           (GLB.relative_to(ROOT), storlek, len(noder), len(glb.get("materials", []))))
 
