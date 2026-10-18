@@ -354,38 +354,38 @@ def bur(b: Bygge) -> None:
         b.rör((x * 0.35 + cx * 0.65, y * 0.35 + cy * 0.65, 71.2), (x, y, 66.6), 1.2, IRON, 6)
     # Stängerna: sex, mörk metall — de ska rama in skelettet, inte smälta in i det.
     for i in range(6):
-        a = 2.0 * math.pi * i / 6.0 + math.pi / 6.0
+        a = 2.0 * math.pi * i / 6.0
         x, y = cx + math.cos(a) * 14.0, cy + math.sin(a) * 14.0 * 0.75
         b.rör((x, y, 9.0), (x, y, 64.6), 1.4, IRON_MÖRK, 8)
-    for z, h in ((40.0, 2.0), (10.0, 2.2)):
+    for z, h in ((10.0, 2.2),):   # inget band på mitten: det skar rakt genom revbenen (M150)
         b.ring((cx, cy, z), 15.0, 13.2, h, IRON_MÖRK, 14, ellips)
         b.ring((cx, cy, z + h / 2.0), 15.1, 13.3, 0.8, IRON, 14, ellips)
     b.prisma((cx, cy, 6.2), 12.4, 2.4, IRON_MÖRK, 14, ellips)
     b.ring((cx, cy, 8.0), 14.4, 12.2, 1.2, IRON, 14, ellips)
-    # SKELETTET: 13 px över revbenen mot 13,3 px innanför stängerna. Skallen nära taket, armarna upp
-    # (hänger), ena benet böjt — en spikrak figur med plats omkring sig läses som en docka.
+    # SKELETTET: 22 px över revbenen mot 26,6 px innanför stängerna (radie 14 minus stav 0,7).
+    # Räkna i BREDD, inte i radie — första försöket satte 12,6 px revben och kallade det trångt; det
+    # var halva buren. Skallen nära taket, armarna upp (hänger), ena benet böjt.
     sy = cy - 1.0
-    b.låda((cx, sy, 56.0), (8.4, 7.0, 8.0), BONE)
-    b.låda((cx, sy + 0.2, 59.8), (7.4, 6.2, 1.4), BONE_L)
-    b.låda((cx, sy + 0.4, 51.8), (7.0, 6.0, 2.4), BONE_L)          # käken
-    for dx in (-2.2, 2.2):
-        b.låda((cx + dx, sy - 3.6, 57.6), (2.0, 1.2, 2.4), INK)    # ögonhålorna
-    b.låda((cx, sy - 3.7, 54.6), (1.4, 1.0, 1.4), INK)
-    b.rör((cx, sy, 39.4), (cx, sy, 50.0), 1.8, BONE_L, 6)          # ryggraden
+    b.låda((cx, sy, 54.6), (10.0, 7.0, 8.8), BONE_L)               # skallen: ljusast i buren
+    b.låda((cx, sy + 0.2, 50.2), (8.4, 6.0, 2.4), BONE)            # käken
+    for dx in (-2.5, 2.5):
+        b.låda((cx + dx, sy - 3.6, 56.2), (2.4, 1.2, 3.0), INK)    # ögonhålorna
+    b.låda((cx, sy - 3.7, 52.8), (1.6, 1.0, 1.4), INK)
+    b.rör((cx, sy, 38.0), (cx, sy, 49.4), 2.0, BONE_L, 6)          # ryggraden
     # Revbenen som TVÄRGÅENDE band (se `revben`: bågen passar benhögen på golvet, inte en bur sedd
-    # framifrån). 12,6 px breda mot 13,3 px innanför stängerna — de tar i, och det är meningen.
-    for z, bredd in ((49.2, 9.0), (47.2, 11.4), (45.2, 12.6), (43.2, 12.6), (41.2, 11.8), (39.2, 10.4)):
-        b.låda((cx, sy, z), (bredd, 4.6, 1.3), BONE_L)
-    b.låda((cx, sy - 2.4, 44.2), (2.0, 1.4, 10.4), BONE)           # bröstbenet
-    for dx in (-3.0, 3.0):
-        b.låda((cx + dx, sy, 34.6), (3.2, 3.6, 3.0), BONE)         # bäckenet
+    # framifrån). 22 px breda = 2 px luft mot stängerna på var sida.
+    for z, bredd in ((48.6, 17.0), (46.4, 21.0), (44.2, 22.0), (42.0, 22.0), (39.8, 20.4), (37.6, 17.6)):
+        b.låda((cx, sy, z), (bredd, 5.0, 1.5), BONE_L)
+    b.låda((cx, sy - 2.6, 43.0), (2.4, 1.4, 11.6), BONE)           # bröstbenet
+    for dx in (-3.6, 3.6):
+        b.låda((cx + dx, sy, 33.0), (4.0, 4.0, 3.4), BONE)         # bäckenet
     for dx in (-1, 1):
-        b.rör((cx + dx * 4.0, sy, 49.6), (cx + dx * 5.4, sy, 61.0), 1.6, BONE_L, 6)
-        b.låda((cx + dx * 5.4, sy, 62.4), (3.0, 2.6, 2.8), BONE)   # händerna ovanför huvudet
-    b.rör((cx - 2.6, sy, 33.0), (cx - 3.6, sy, 12.0), 1.6, BONE_L, 6)
-    b.rör((cx + 2.6, sy, 33.0), (cx + 4.2, sy + 0.4, 20.0), 1.6, BONE_L, 6)   # ena benet böjt
-    b.låda((cx - 3.8, sy - 0.6, 10.0), (3.2, 2.4, 2.4), BONE, Matrix.Rotation(math.radians(16), 3, "Y"))
-    b.låda((cx + 4.6, sy + 0.8, 18.4), (3.0, 2.4, 2.4), BONE)
+        b.rör((cx + dx * 5.2, sy, 49.0), (cx + dx * 6.4, sy, 61.0), 1.8, BONE_L, 6)
+        b.låda((cx + dx * 6.4, sy, 62.4), (3.2, 2.8, 3.0), BONE)   # händerna ovanför huvudet
+    b.rör((cx - 3.2, sy, 31.4), (cx - 4.2, sy, 11.0), 1.8, BONE_L, 6)
+    b.rör((cx + 3.2, sy, 31.4), (cx + 5.2, sy + 0.4, 19.0), 1.8, BONE_L, 6)   # ena benet böjt
+    b.låda((cx - 4.6, sy - 0.6, 9.0), (3.6, 2.6, 2.6), BONE, Matrix.Rotation(math.radians(16), 3, "Y"))
+    b.låda((cx + 6.0, sy + 0.8, 17.2), (3.4, 2.6, 2.6), BONE)
 
 
 def kandelaber(b: Bygge) -> None:
