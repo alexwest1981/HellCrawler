@@ -288,7 +288,7 @@ var gräv_slöja: ColorRect       ## mörkret under en grävning (M44): bilden s
 ## DOOM-skärmen till just den övergången). Rutan läser SCREEN_TEXTURE, så den behöver ingen egen yta.
 var dödsmälta: ColorRect
 var _spade_nod: Dungeon.FloorNode   ## spaden på våningen: den ENDA saken som klickas
-var _spade_sprite: Sprite3D         ## dess sprite, så klicket kan räkna ut var den står
+var _spade_sprite: Node3D           ## dess nod (modell eller sprite), så klicket kan räkna ut var den står
 var _spade_skylt: Label3D           ## skylten som gungar ovanför spaden när den syns (se `_spade_skylt_bygg`)
 var _spade_skylt_bas := 0.0         ## skyltens viloläge i höjd: sinusen i `_process` gungar kring den
 var _gunga := 0.0                   ## tiden för skyltens gungning, nollställs när skylten göms
@@ -338,10 +338,18 @@ const REKVISIT_LYSER := ["kandelaber", "spricka_eld"]
 const REKVISIT_HÄNGER := ["kandelaber", "bur"]
 const REKVISIT_LJUS_MAX := 24         ## flest glödande rekvisiter per våning (varje ljus kostar)
 const REKVISIT_LJUS_RACKVIDD := 4.5   ## kortare än facklan (6,5): en glimt, inte en rumshörnsten
+## REKVISITEN SOM 3D-MODELLER (M148). `tools/rekvisita3d.py` bygger nio meshar i Blender och skriver
+## dem som EN glb: en nod per art, namngiven som arten. Modellen ersätter voxelreliefen ur arkets
+## bild (M108) — samma plats, samma storlek i meter, men med riktigt djup: en rund bur, en krona med
+## fyra armar, ett spadblad med skål. Färgen sitter i hörnen (COLOR_0) ur palette.json, alltså samma
+## regel som fienderna, och glöden går genom samma shader (`ui/voxel_rekvisit.gdshader`).
+## Saknas filen faller `_dekor_nod` och `_add_markör` tillbaka på voxeln/quadden som förut.
+const PROPS3D := "res://assets/props/rekvisita.glb"
 ## GLÖDEN i duken för de arter som är eld. Ett värde över 1 syns på håll i mörkret; markdekoren står
 ## inte med här och får alltså 0.0 (albedo, ingen emission — samma regel som förut).
 const GLÖD := {"kandelaber": 2.6, "spricka_eld": 4.0}
 var _dekor_shader: Shader = null
+var _props3d := {}                   ## art -> Mesh ur rekvisita.glb (eller null), läst en gång
 var _dekor_täthet := DEKOR_TÄTHET     ## `-- dekor=<n>` rattar tätheten, `-- dekor=0` stänger av
 var _mask_cache := {}
 var _shader_cache := {}              ## per-fiende-shaders (önskemål 13), läses i `_fiende_shader`
@@ -6477,6 +6485,25 @@ func _build_world() -> void:
 ## saknad bild ska ge en ful markör, inte en osynlig nod — men den är ingen bild: Alex såg den på
 ## golvet och frågade vad den föreställde, och svaret var "en schackruta".
 func _add_markör(n: Dungeon.FloorNode, namn: String) -> void:
+	# 3D-MODELLEN FÖRST (M148): kistan har egen geometri (`_kista_geometri`), men spaden och
+	# bossens benhög är rekvisiter som får Blender-modellen. Platsen och golvregeln är de samma som
+	# spritens: modellen är centrerad kring sitt origo, så mitten hamnar på halva höjden.
+	var modell := _prop_mesh(namn)
+	if modell != null:
+		var mi := MeshInstance3D.new()
+		mi.name = "rekvisit_" + namn
+		mi.mesh = modell
+		var mat := StandardMaterial3D.new()
+		mat.vertex_color_use_as_albedo = true
+		mat.roughness = 0.9
+		mi.material_override = mat
+		mi.position = Vector3(n.pos.x + 0.5, modell.get_aabb().size.y * 0.5, n.pos.y + 0.5)
+		world.add_child(mi)
+		if namn == "shovel":
+			_spade_nod = n
+			_spade_sprite = mi
+			_spade_skylt_bygg(n)
+		return
 	var spr := Sprite3D.new()
 	spr.texture = _prop(namn)
 	if spr.texture == null:
@@ -6593,8 +6620,7 @@ func _bygg_dekor(golv: Array) -> void:
 	# mörkret en rytm att gå mellan (som referensen), inte bära rummet. Facklorna bär skuggorna.
 	var ljus := 0
 	for art in lysande:
-		var tex := _prop(art)
-		var duk_h := (float(tex.get_height()) * DEKOR_PIXEL) if tex != null else 0.4
+		var duk_h := _prop_höjd(art)
 		for t in lysande[art]:
 			if ljus >= REKVISIT_LJUS_MAX:
 				break
@@ -6604,12 +6630,13 @@ func _bygg_dekor(golv: Array) -> void:
 			l.omni_range = REKVISIT_LJUS_RACKVIDD
 			l.omni_attenuation = 1.6
 			l.shadow_enabled = false
-			# LJUSETS HÖJD: ett föremål på golvet lyser strax över sin egen fot (0,5 m, som förut), men en
-			# HÄNGANDE krona lyser NEDÅT — 0,5 m över dess mitt hamnade inne i taket och glöden försvann
-			# upp i mörkret. Vid lågorna = 0,4 av dukens höjd under kronans mitt.
+			# LJUSETS HÖJD (M148): strax UNDER modellens nederkant. Det låg på 0,4 av dukens höjd under
+			# kronans mitt — med en riktig modell hamnade lampan uppe mellan armarna i stället för under
+			# lågorna. Nu lyser den rummet nedanför kronan, som en hängande lykta gör.
 			var y := 0.5
 			if REKVISIT_HÄNGER.has(art):
-				y = _dekor_y(art, duk_h, (t as Transform3D).basis.get_scale().y) - duk_h * 0.4
+				y = _dekor_y(art, duk_h, (t as Transform3D).basis.get_scale().y) \
+					- duk_h * 0.5 * (t as Transform3D).basis.get_scale().y - 0.06
 			l.position = (t as Transform3D).origin + Vector3(0.0, y, 0.0)
 			world.add_child(l)
 			# Ljuset och modellens material hålls i SAMMA ordning: fladdret rör båda med samma faktor
@@ -6712,9 +6739,13 @@ func _laga_shader() -> Shader:
 
 func _dekor_nod(art: String, platser: Array) -> int:
 	var tex := _prop(art)
-	if tex == null or platser.is_empty() or not world:
+	var modell := _prop_mesh(art)
+	if (tex == null and modell == null) or platser.is_empty() or not world:
 		return 0
-	var duk := Vector2(float(tex.get_width()), float(tex.get_height())) * DEKOR_PIXEL
+	# HÖJDEN kommer ur modellen när den finns: `_dekor_y` sätter nederkanten på golvet och överkanten
+	# i taket, och det är modellens egen höjd som gäller (kedjan på en krona slutar i taket).
+	var höjd: float = (modell.get_aabb().size.y if modell != null
+		else float(tex.get_height()) * DEKOR_PIXEL)
 	# FLORAN BLIR OCKSÅ VOXLAR (M108). Alex: "Kör även voxlar av all interiör med." MultiMesen behålls:
 	# den bär transformarna (plats, storlek, takhänget) och ritar hela våningens gräs i EN ritning, som
 	# en nod per tuva inte hade gjort. Det som byts är MESHEN inuti den — en quad mot en voxelmodell ur
@@ -6726,36 +6757,40 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	# cannot be assigned to a variable of type StandardMaterial3D" (mätt: main.gd gick inte att ladda,
 	# provet skrev "1 Parse Error" och ingen bild). Egenskaperna nedan sätts dynamiskt i stället.
 	var mat = StandardMaterial3D.new()
-	if VOXLAR:
-		var vx := Voxel.ur_ark(tex, 0, 1, duk.y, VOXEL_SIDOR, VOXEL_DJUP)
+	if modell != null:
+		# 3D-MODELLEN UR rekvisita.glb (M148). Multimeshen behålls — den bär platserna — men meshen
+		# är modellens egen och `höjd` är modellens mått.
+		mesh = modell
+		mat.vertex_color_use_as_albedo = true     # färgen sitter i hörnen (COLOR_0), ur paletten
+		mat.roughness = 0.9                        # matt yta, som fienderna (M59)
+	elif VOXLAR:
+		var vx := Voxel.ur_ark(tex, 0, 1, höjd, VOXEL_SIDOR, VOXEL_DJUP)
 		mesh = vx.mesh()
 		mat.vertex_color_use_as_albedo = true     # färgen sitter i hörnen, ur arkets egna pixlar
 		mat.roughness = 0.9                        # matt yta, som fienderna (M59)
-		# SVAG GLÖD PÅ DE LYSANDE REKVISITEN (M110). Kommentaren här sa att modellen INTE fick någon
-		# emission, och det var rätt så länge den var KONSTANT: ett fast lager över hela kroppen läses
-		# som en vit kopia (Alex om tak-kronan: "är helvit typ"). Men då står elden still — ljuset
-		# fladdrar och modellen gör det inte. Alex: "hade varut häftigt om själva 'elden' på ljusen
-		# brann". Därför en MYCKET svag emission som `_fladdra` rör med SAMMA faktor som ljuset:
-		# elden pulserar, men modellen behåller sina egna färger. Bara de rekvisiter som REDAN lyser
-		# (REKVISIT_LYSER) får den — glöden hör till deras ljus, inte till modellen.
-		if REKVISIT_LYSER.has(art):
-			# BARA LÅGORNA LYSR (M115). Emissionen satt på HELA modellen förut — ett material för alla
-			# celler, så metall, kedja och armar glödde med. Alex: *"dessutom 'lyser' hela kandelabern i
-			# taket, inte toppen på ljusen som jag bad om"*. Shadern släpper bara igenom celler som är
-			# lågans färg (palettens 12/13/14), och `glod` rörs av `_fladdra` precis som förut.
-			var sm := ShaderMaterial.new()
-			sm.shader = _laga_shader()
-			sm.set_shader_parameter("glod", LAGA_GLÖD * _ljus_f)
-			mat = sm
-			_låg_material[art] = mat
 	else:
 		var quad := QuadMesh.new()
-		quad.size = duk
+		quad.size = Vector2(float(tex.get_width()), float(tex.get_height())) * DEKOR_PIXEL
 		mat.shader = _dekor_shader
 		mat.set_shader_parameter("textur", tex)
 		mat.set_shader_parameter("glod", GLÖD.get(art, 0.0))
 		mesh = quad
 		(mesh as QuadMesh).material = mat         # en quad bär sin textur själv
+	# SVAG GLÖD PÅ DE LYSANDE REKVISITEN (M110/M148). Kommentaren här sa en gång att modellen INTE
+	# fick någon emission, och det var rätt så länge den var KONSTANT: ett fast lager över hela kroppen
+	# läses som en vit kopia (Alex om tak-kronan: "är helvit typ"). Men då står elden still — ljuset
+	# fladdrar och modellen gör det inte. Alex: "hade varut häftigt om själva 'elden' på ljusen brann".
+	# Därför en MYCKET svag emission som `_fladdra` rör med SAMMA faktor som ljuset.
+	#
+	# BARA LÅGORNA LYSR (M115): emissionen satt på HELA modellen förut — ett material för alla celler,
+	# så metall, kedja och armar glödde med (Alex: *"lyser hela kandelabern i taket, inte toppen på
+	# ljusen"*). Shadern släpper bara igenom celler som är lågans färg (palettens 12/13/14).
+	if REKVISIT_LYSER.has(art) and not (mesh is QuadMesh):
+		var sm := ShaderMaterial.new()
+		sm.shader = _laga_shader()
+		sm.set_shader_parameter("glod", LAGA_GLÖD * _ljus_f)
+		mat = sm
+		_låg_material[art] = mat
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
@@ -6763,7 +6798,7 @@ func _dekor_nod(art: String, platser: Array) -> int:
 	for i in platser.size():
 		var t: Transform3D = platser[i]
 		var s := t.basis.get_scale().y
-		t.origin.y = _dekor_y(art, duk.y, s)
+		t.origin.y = _dekor_y(art, höjd, s)
 		mm.set_instance_transform(i, t)
 	# HÖJDEN LÄSES TILLBAKA ur MultiMesh, inte ur beräkningen: det är den siffran renderaren ritar, och
 	# i huvudlöst läge svarar den 0,00 (dummyns lagring är tom) — alltså ett prov som säger sanningen om
@@ -6773,7 +6808,7 @@ func _dekor_nod(art: String, platser: Array) -> int:
 		var s0 := t0.basis.get_scale().y          # varje instans har sin egen storlek (0,8-1,2)
 		var mitten := t0.origin.y
 		print("  dekor: %s hänger — mitten %+.2f m (underkant %+.2f, överkant %+.2f, tak %.2f)" % [
-			art, mitten, mitten - duk.y * 0.5 * s0, mitten + duk.y * 0.5 * s0, TAK_HÖJD])
+			art, mitten, mitten - höjd * 0.5 * s0, mitten + höjd * 0.5 * s0, TAK_HÖJD])
 	var nod := MultiMeshInstance3D.new()
 	nod.name = "dekor_" + art
 	nod.multimesh = mm
@@ -6792,6 +6827,36 @@ func _prop(namn: String) -> Texture2D:
 	var tex: Texture2D = load(p) if ResourceLoader.exists(p) else null
 	_prop_cache[namn] = tex
 	return tex
+
+
+## 3D-modellen för en art ur rekvisita.glb (tools/rekvisita3d.py). Null när filen saknas eller arten
+## inte finns i den — anroparen faller då tillbaka på voxeln/quadden, som förut.
+func _prop_mesh(namn: String) -> Mesh:
+	if _props3d.has(namn):
+		return _props3d[namn]
+	var m: Mesh = null
+	if ResourceLoader.exists(PROPS3D):
+		var paket := load(PROPS3D) as PackedScene
+		if paket != null:
+			var scen := paket.instantiate()
+			# Sökningen är REKURSIV: importören lägger meshnoderna under glb-filens rotnod.
+			var nod := scen.find_child(namn, true, false)
+			if nod is MeshInstance3D:
+				m = (nod as MeshInstance3D).mesh
+			scen.free()          # noden läggs aldrig i trädet: bara meshen behövs
+	_props3d[namn] = m
+	return m
+
+
+## Rekvisitens HÖJD i meter — ur modellen när den finns, annars ur arkets duk. Både golvregeln
+## (`_dekor_y`) och ljusets höjd räknas ur den, så modellen och ljuset inte kan säga olika saker.
+func _prop_höjd(art: String) -> float:
+	var m := _prop_mesh(art)
+	if m != null:
+		return m.get_aabb().size.y
+	var tex := _prop(art)
+	return (float(tex.get_height()) * DEKOR_PIXEL) if tex != null else 0.4
+
 
 ## Spridningen: var n:te ruta (i genomsnitt) får en detalj. Hashen gör mönstret stabilt per våning i
 ## stället för att hoppa varje gång vyn byggs om.

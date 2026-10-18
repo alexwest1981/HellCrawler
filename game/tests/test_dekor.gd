@@ -23,7 +23,7 @@ func _init() -> void:
 	main.world = Node3D.new()
 	main.add_child(main.world)
 
-	# 1) En tuva blir EN instans, och quadden är dukens pixelstorlek gånger DEKOR_PIXEL.
+	# 1) En tuva blir EN instans, och meshen är 3D-MODELLEN ur rekvisita.glb (M148).
 	var tex: Texture2D = load("res://assets/props/gräs.png")
 	check(tex != null, "gräs.png laddar")
 	var n: int = main._dekor_nod("gräs", [Transform3D(Basis(), Vector3(1.5, 0.0, 2.5))])
@@ -32,12 +32,13 @@ func _init() -> void:
 	check(nod != null, "noden dekor_gräs finns i världen")
 	if nod != null:
 		check(nod.multimesh.instance_count == 1, "instansantalet är 1")
-		# M108: meshen är en voxelmodell, inte en quad — den har ingen `size`. HÖJDEN är den siffra som
-		# betyder något (den blir modellens höjd i meter), så det är den som mäts. Bredden följer figurens
-		# eget förhållande och ska inte vara arkets.
+		# HÖJDEN är den siffra som betyder något (den blir modellens höjd i meter): nederkanten ställs på
+		# golvet och överkanten i taket. Modellens egen höjd är sanningen — inte arkets duk.
 		var mått: AABB = (nod.multimesh.mesh as Mesh).get_aabb()
-		var väntad: Vector2 = Vector2(float(tex.get_width()), float(tex.get_height())) * float(main.DEKOR_PIXEL)
-		check(is_equal_approx(mått.size.y, väntad.y), "modellen är %.3f m hög, väntade %.3f" % [mått.size.y, väntad.y])
+		check((nod.multimesh.mesh as Mesh) == main._prop_mesh("gräs"),
+			"gräset ritas av 3D-modellen ur rekvisita.glb, inte av en voxelrad")
+		check(is_equal_approx(mått.size.y, main._prop_höjd("gräs")),
+			"modellen är %.3f m hög och ljuset räknar samma höjd" % mått.size.y)
 		# 2) LÖFTET: ingen kollision. Ingen kropp, ingen form — och det går inte att glömma, för ingen
 		#    skapas. Provet letar efter dem i stället för att lita på att de inte finns.
 		check(_antal_kroppar(nod) == 0, "ingen fysikkropp under dekor_gräs")
@@ -94,11 +95,49 @@ func _init() -> void:
 	main._dekor_nod("bur", [Transform3D(Basis(), Vector3(1.5, 0.0, 2.5))])
 	check(not main._låg_material.has("bur"), "en rekvisit som inte lyser får ingen glöd")
 
+	# 7) ALLA REKVISITER HAR EN MODELL (M148). Kontraktet är namnet: spelet slår upp meshen på arten,
+	# och en art utan modell faller tillbaka på en voxelrad — tyst. Provet kräver modell, EN yta (en
+	# MultiMesh-ritning per art), vertexfärger ur paletten och DJUP (en platt skylt är felet M108 lagade).
+	var arter: Array = []
+	for rad in main.DEKOR_VIKT:
+		arter.append(str(rad[0]))
+	for rad in main.REKVISIT_VIKT:
+		arter.append(str(rad[0]))
+	arter += ["shovel", "boss"]
+	for art in arter:
+		var m: Mesh = main._prop_mesh(art)
+		check(m != null, "%s har en modell i rekvisita.glb" % art)
+		if m == null:
+			continue
+		check(m.get_surface_count() == 1, "%s är EN yta (fick %d)" % [art, m.get_surface_count()])
+		var arr: Array = m.surface_get_arrays(0)
+		var färger: PackedColorArray = arr[Mesh.ARRAY_COLOR]
+		check(färger.size() > 0, "%s bär vertexfärger (%d hörn)" % [art, färger.size()])
+		var utanför := 0
+		for f in färger:
+			if not _i_paletten(f):
+				utanför += 1
+		check(utanför == 0, "%s: alla hörn har palettfärg (%d av %d utanför)" % [art, utanför, färger.size()])
+		var mått: AABB = m.get_aabb()
+		check(mått.size.y > 0.03, "%s är %.3f m hög" % [art, mått.size.y])
+		check(mått.size.z >= 0.25 * mått.size.x,
+			"%s har djup %.3f m mot bredden %.3f (inte en platt skylt)" % [art, mått.size.z, mått.size.x])
+
 	print("= %d kontroller, %d fel" % [kontroller, fel])
 	# Noden lades aldrig i trädet (provets hela poäng), så den städas för hand — annars gnäller Godot om
 	# resurser "still in use at exit" och det ser ut som ett fel i ett grönt prov.
 	main.free()
 	quit(1 if fel > 0 else 0)
+
+
+## Är färgen en av palettens? Vertexfärgen skrivs ur palette.json i Blender (samma 8-bitstal som
+## `Color8` i Palett.c), så en modell får inte bära en färg någonstans ifrån.
+func _i_paletten(f: Color) -> bool:
+	for i in Palett.antal():
+		var p := Palett.c(i)
+		if is_equal_approx(f.r, p.r) and is_equal_approx(f.g, p.g) and is_equal_approx(f.b, p.b):
+			return true
+	return false
 
 
 func _antal_kroppar(n: Node) -> int:

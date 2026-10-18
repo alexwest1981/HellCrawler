@@ -1453,7 +1453,7 @@ func _initialize() -> void:
 	main._after_state_change()
 	await process_frame
 	await process_frame
-	var spr: Sprite3D = main._spade_sprite
+	var spr: Node3D = main._spade_sprite
 	check(spr != null and is_instance_valid(spr) and spr.get_parent() == main.world,
 		"efter striden är spaden byggd och står i världen")
 	check(spr != null and spr.visible and spr.is_visible_in_tree(),
