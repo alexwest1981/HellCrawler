@@ -8979,6 +8979,8 @@ func _placera_vy() -> void:
 	_vy_korg.scale = Vector2.ONE
 	if hud != null:
 		hud.transform = Transform2D(0.0, Vector2(skala, skala), 0.0, Vector2.ZERO)
+		if crt != null:
+			crt.sätt_radhojd(skala)
 	# VYN I ÖVERKANTEN (M113). Det som blir över i sidled (högst skala-1 px, alltså 0-2 px) delas
 	# lika: en pixel bakgrund på vardera sidan syns inte, och vyn ligger kvar i mitten.
 	_vy_korg.position = Vector2(floorf((f.x - bredd) * 0.5), 0.0)

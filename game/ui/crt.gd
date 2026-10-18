@@ -50,6 +50,13 @@ func sätt_styrka(v: float) -> void:
 ## CRT-kurvaturen/svart i hörnen/sträckningen i sidled"*. Skanlinjerna och vinjetten var inte
 ## klagomålet, men kanten buktade (svarta hörn där uv hamnade utanför bilden) och färgerna delades i
 ## sidled. Uniformerna finns redan i shadern — ingen ny shader, ingen ny ruta.
+## Skanlinjernas tjocklek (M151): två gånger antalet skärmpixlar per spelpixel. Utan den blev
+## skanlinjerna 540 hårfina rader på 1080p — filmkorn i stället för CRT.
+func sätt_radhojd(px: float) -> void:
+	if material is ShaderMaterial:
+		(material as ShaderMaterial).set_shader_parameter("radhojd", maxf(2.0, px * 2.0))
+
+
 func sätt_rak(på: bool) -> void:
 	if material is ShaderMaterial:
 		(material as ShaderMaterial).set_shader_parameter("valvning", 0.0 if på else VÄLVNING)

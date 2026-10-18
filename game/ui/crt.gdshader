@@ -42,6 +42,11 @@ uniform float skanlinje : hint_range(0.0, 1.0) = 0.22;  // how much every other 
 uniform float vinjett : hint_range(0.0, 2.0) = 0.60;    // how dark the corners get
 uniform float valvning : hint_range(0.0, 0.2) = 0.018;  // how much the CORNERS bulge (see r2 * r2)
 uniform float kroma : hint_range(0.0, 3.0) = 0.5;       // colour shift in px between red and blue
+// THE SCANLINE PERIOD FOLLOWS THE GAME PIXEL (M151). It used to be two WINDOW rows, which was right
+// while the view was 480x270 blown up; at 1920x1080 it is 540 hair-thin lines per screen -- measured
+// in `chest.png` as film grain over the whole picture. `radhojd` is set to twice the screen pixels
+// per game pixel, so a line stays as thick as it looked before the density went up.
+uniform float radhojd : hint_range(2.0, 16.0) = 2.0;
 
 void fragment() {
 	// The bulge: uv is pulled out from the centre, but the strength grows with the FOURTH power of
@@ -61,8 +66,8 @@ void fragment() {
 		f.g = texture(skarm, uv).g;
 		f.b = texture(skarm, vec2(uv.x - px, uv.y)).b;
 
-		// The scanlines: every other row in the WINDOW, half strength.
-		float rad = mod(FRAGCOORD.y, 2.0);
+		// The scanlines: every other row of a GAME pixel, half strength.
+		float rad = mod(FRAGCOORD.y, radhojd);
 		f *= 1.0 - skanlinje * step(1.0, rad);
 
 		// The vignette: darkens towards the corners, measured as distance from the centre.
