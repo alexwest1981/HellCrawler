@@ -3604,6 +3604,12 @@ func _shot_skarm(skarm: String) -> void:
 			await get_tree().process_frame
 		_placera_vy()
 	await get_tree().create_timer(0.6).timeout
+	# NIVÅRADERNA SYNS BARA MED PANELEN ÖPPEN (M151). Alex: "menyerna funkar inte" — raderna i
+	# nivåpanelen var tomma rutor. Bilden av kartan ska visa panelen, annars bevisar den ingenting om
+	# den texten.
+	if skarm == "karta" and karta_view != null:
+		karta_view.försök_gå_in()
+		await get_tree().create_timer(0.3).timeout
 	# MÄTRADEN PER LÄGE (M113): remsan hör till körningen, och den frågan ska besvaras av en siffra —
 	# inte av en bild man tolkar. `i baren` = remsans ruta, `syns` = hud_ram ritar den, `scen` = hur
 	# stor del av fönstrets höjd vyn (scenen) tar. MÅL: scenen ~100 % i byn och på kartan.

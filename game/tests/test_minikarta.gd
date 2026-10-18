@@ -105,8 +105,10 @@ func _initialize() -> void:
 	main.get_viewport().size = Vector2i(mål)
 	main._placera_vy()
 	await process_frame
-	var mål_skala: float = main._vy_korg.scale.x
-	var vy := Rect2(main._vy_korg.position, main._vy_korg.size * mål_skala)
+	# M151: vyn ritas i fönstrets upplösning och `_vy_korg.scale` är 1; fönsterpixlar per spelpixel
+	# ligger i `main._skala`.
+	var mål_skala: float = main._skala
+	var vy := Rect2(main._vy_korg.position, Vector2(main._vy.size))
 	var bar: Rect2 = main._bar(mål)
 	var karta := Rect2(main.map_view.position, main.MapView.MAP_SIZE * main.map_view.scale)
 	print("  mål-fönstret %.0fx%.0f: vyn %.0fx%.0f @ %.0f,%.0f, remsan %.0f px, kartan %.0fx%.0f @ %.0f,%.0f"
