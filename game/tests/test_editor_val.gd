@@ -181,6 +181,28 @@ func _init() -> void:
 	check(editor.floor.tiles[7][10] == Dungeon.WALL and editor.floor.tiles[2][2] == Dungeon.WALL,
 		"båda ändarna är målade")
 
+	# --- 12. panelen byggs om MITT I ett klick: varje radknapp (◀ ▶) trycks, och panelen ska komma
+	# tillbaka hel. Det är den vägen som kraschar om `_tom` frigör knappen som äger signalen.
+	_tom()
+	var tryckta := 0
+	for varv in 2:
+		var knappar := []
+		for c in editor.insp_box.get_children():
+			for b in c.get_children():
+				if b is Button and (b as Button).text in ["◀", "▶"]:
+					knappar.append(b)
+		for b in knappar:
+			(b as Button).emit_signal("pressed")
+			tryckta += 1
+	check(tryckta > 20, "radknapparna går att trycka", "%d tryck" % tryckta)
+	check(editor.floor != null and editor.stage != null and editor.insp_box.get_child_count() > 4,
+		"panelen står kvar hel efter trycken",
+		"%d rader" % editor.insp_box.get_child_count())
+	check(editor.stage.difficulty >= 1 and editor.stage.difficulty <= 9
+		and editor.stage.floors >= 1 and editor.stage.floors <= 8,
+		"banans fält hölls inom sina gränser",
+		"svårighet %d, våningar %d" % [editor.stage.difficulty, editor.stage.floors])
+
 	print("")
 	print("=== %d kontroller, %d fel ===" % [checks, fails])
 	quit(1 if fails > 0 else 0)
