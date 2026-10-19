@@ -5964,6 +5964,10 @@ class MapView extends Control:
 		for y in f.h:
 			for x in f.w:
 				var p := Vector2i(x, y)
+				# FOG OF WAR (M162): bara det man SETT ritas. Bakom en låst dörr ligger rummet kvar i
+				# mörkret tills man öppnat och gått in — annars hade kartan skvallrat om bossen.
+				if not run.explore.sedd(p):
+					continue
 				var col := Color(0.15, 0.15, 0.20) if f.is_floor_at(p) else Color(0.42, 0.45, 0.56)
 				draw_rect(Rect2(origin + Vector2(x, y) * cell, Vector2(cell, cell)), col)
 		# VÄGARNA MELLAN RUMMEN (M119): en linje längs varje koppling i våningsdatan, ritad UNDER
@@ -5982,7 +5986,19 @@ class MapView extends Control:
 				continue
 			if n.cleared and n.kind != "torch":
 				continue
+			if not run.explore.sedd(n.pos):
+				continue                      # fog: en nod i ett rum man inte sett syns inte
 			_märke(n.kind, origin + Vector2(n.pos) * cell, cell)
+		# DÖRRARNA på kartan (M162): en tvärslå i dörrtypens färg, och en ljus ring när koden är löst —
+		# samma språk som i editorn, så man känner igen en dörr i båda vyerna.
+		for d in f.dörrar:
+			var dp: Vector2i = d["pos"]
+			if not run.explore.sedd(dp):
+				continue
+			var dr := Rect2(origin + Vector2(dp) * cell, Vector2(cell, cell))
+			var låst: bool = run.explore.dörr_låst(dp)
+			var dfärg: Color = DÖRR_FÄRG.get(str(d.get("typ", "")), Color(0.6, 0.6, 0.6))
+			draw_rect(dr.grow(-cell * 0.2), dfärg if låst else dfärg.lightened(0.45))
 		var dirs: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]
 		var d: Vector2i = dirs[run.explore.facing % 4]
 		var me := origin + Vector2(run.explore.pos) * cell + Vector2(cell, cell) / 2.0
@@ -6022,6 +6038,9 @@ class MapView extends Control:
 			for i in range(väg.size() - 1):
 				var a: Vector2i = väg[i]
 				var b: Vector2i = väg[i + 1]
+				# Fog: en väg ritas bara där man sett båda ändarna.
+				if not (run.explore.sedd(a) and run.explore.sedd(b)):
+					continue
 				ut.append([origin + (Vector2(a) + Vector2(0.5, 0.5)) * cell,
 					origin + (Vector2(b) + Vector2(0.5, 0.5)) * cell])
 		return ut

@@ -15,18 +15,26 @@ var pos: Vector2i
 var facing: int = NORTH
 var steps_taken := 0
 var turns_taken := 0
+## FOG OF WAR (M162). Alex: *"Skulle vilja utöka med fog of war på kartan ... Där kan bossen gömma
+## sig."* Rutorna man SETT. Rutan man står på, rutan man tittar på och de fyra grannarna — inte hela
+## rummet, för då hade en dörr avslöjat vad som ligger bakom den innan man öppnat. Minikartan ritar
+## bara det som finns här; resten är mörkt.
+var sedda: Dictionary = {}
 
 func _init(p_floor: Dungeon.Floor) -> void:
 	floor_ref = p_floor
 	pos = p_floor.start
+	_se()
 
 func turn_left() -> void:
 	facing = (facing + 3) % 4
 	turns_taken += 1
+	_se()
 
 func turn_right() -> void:
 	facing = (facing + 1) % 4
 	turns_taken += 1
+	_se()
 
 ## Kamerans vinkel för en riktning. Den enda platsen där `facing` blir en vinkel: förut räknades
 ## den på tre ställen i main.gd, och när kameran började glida mellan stegen märktes det.
@@ -42,6 +50,21 @@ static func närmaste_vinkel(nu: float, mål: float) -> float:
 
 
 ## Ett steg framåt. Returnerar "" vid lyckat steg, annars orsaken ("vaggen").
+## Vad man ser just nu: rutan man står på, rutan framför och de fyra grannarna. Bara golv (en vägg
+## avslöjar inget rum bakom sig) — utom rutan framför, som får vara vägg: man ser dörren man står vid.
+func _se() -> void:
+	sedda[pos] = true
+	sedda[pos + STEP[facing]] = true
+	for d in STEP:
+		var p: Vector2i = pos + d
+		if floor_ref.is_floor_at(p):
+			sedda[p] = true
+
+
+func sedd(p: Vector2i) -> bool:
+	return sedda.has(p)
+
+
 func forward() -> String:
 	var target: Vector2i = pos + STEP[facing]
 	if not floor_ref.is_floor_at(target):
@@ -50,6 +73,7 @@ func forward() -> String:
 		return "låst"
 	pos = target
 	steps_taken += 1
+	_se()
 	return ""
 
 ## Ett steg BAKLÄNGES (S). Samma ruta som `forward()` prövar, men åt andra hållet: blicken är kvar i
@@ -63,6 +87,7 @@ func backward() -> String:
 		return "låst"
 	pos = target
 	steps_taken += 1
+	_se()
 	return ""
 
 ## DÖRRARNA (M161): en dörr är en ruta man inte kommer igenom förrän koden den lyssnar på är löst.
