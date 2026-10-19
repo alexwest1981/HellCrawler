@@ -1,0 +1,41 @@
+{
+ "namn": "krypta",
+ "w": 7,
+ "h": 5,
+ "tiles": [
+  "#######",
+  "#..#..#",
+  "#.....#",
+  "#..#..#",
+  "#######"
+ ],
+ "ytor": {
+  "1,1": "chiseled_marble",
+  "2,1": "chiseled_marble",
+  "4,3": "corroded_metal",
+  "5,3": "corroded_metal"
+ },
+ "rekvisita": [
+  {
+   "art": "kranium",
+   "pos": [
+    3,
+    2
+   ]
+  },
+  {
+   "art": "bur",
+   "pos": [
+    5,
+    1
+   ]
+  },
+  {
+   "art": "trälåda",
+   "pos": [
+    1,
+    3
+   ]
+  }
+ ]
+}

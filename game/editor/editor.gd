@@ -608,7 +608,7 @@ func _bygg_palett() -> void:
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		b.custom_minimum_size = Vector2(34, 34)
 		b.add_theme_constant_override("icon_max_width", 26)
-	var tips := _etikett("S spara · L läs om · N ny · P spela · B spara banan\n" \
+	var tips := _etikett("S spara · O spara som block · L läs om · N ny · P spela · B spara banan\n" \
 		+ "T/Y tema · K plan/textur · [ ] våning · ,/. bana\n" \
 		+ "+/- storlek · M meny · Q avsluta", 11, FÄRG_DIM)
 	tips.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1169,6 +1169,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		_nasta_tema(-1)
 	elif key == KEY_B:
 		save_stage()
+	elif key == KEY_O:
+		save_block()
 	elif key == KEY_COMMA:
 		nasta_bana(-1)
 	elif key == KEY_PERIOD:
@@ -1523,6 +1525,31 @@ func save_stage() -> void:
 		status = "kunde inte spara banan"
 		print("  bana: %s" % stage.id)
 	_stämpla()
+
+
+## SPARA SOM BLOCK (M153): våningen man ritat blir en bit som generatorn kan lägga in i ett rum.
+## Samma filformat som en karta, egen mapp — och start/boss/nedstigning TAS BORT, för de rutor ägs av
+## den våning blocket hamnar i. Ett block med en start hade flyttat spelaren till en slumpad plats.
+func save_block() -> void:
+	var d: Dictionary = MapIo.to_dict(floor)
+	d.erase("start")
+	d.erase("boss")
+	d.erase("shovel")
+	# INGA NODER I ETT BLOCK (M153): kistor, facklor och strider räknas av generatorn, och ett block
+	# som la dit en egen fackla sprängde facklornas tak. /rapportera/ att de togs bort, så man ser det.
+	var bort := (d.get("nodes", []) as Array).size()
+	d["nodes"] = []
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(Blockar.MAPP))
+	var sökväg := "%s/%s_%d.json" % [Blockar.MAPP, floor.stage_id, floor.index]
+	var fil := FileAccess.open(sökväg, FileAccess.WRITE)
+	if fil == null:
+		status = "kunde inte skriva blocket: %s" % sökväg.get_file()
+		return
+	fil.store_string(JSON.stringify(d, " ", false))
+	fil.close()
+	status = "block sparat: %s (%d×%d, %d noder togs bort)" % [
+		sökväg.get_file(), floor.w, floor.h, bort]
+	print("block sparat: %s" % ProjectSettings.globalize_path(sökväg))
 
 
 func nasta_bana(steg: int) -> void:

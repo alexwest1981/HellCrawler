@@ -154,6 +154,9 @@ var base_hand := 4
 var events: Array = []
 var finished := false
 var outcome := ""                  ## "reaped" (dödad av slutet, som i referensen) | "cleared" | "dead"
+## Striden körningen är på väg mot (M153): den ligger kvar tills den är klar, så boten inte vänder
+## mellan två lika nära mål. Nollställs när våningen byts (noden finns då inte i nya våningens lista).
+var _mål: Dungeon.FloorNode = null
 var fights_won := 0
 ## Dödade fiender i körningen. Slutskärmen svarar på Alex' fråga "hur många man dödat" — antalet
 ## fiender i striden, inte antalet strider (en strid kan ha fyra stycken).
@@ -437,18 +440,29 @@ func advance() -> void:
 
 ## Målet just nu: alla strider, sedan bossen, sist shoveln (nedstigningen).
 ## Avklarade noder hoppas över — annars slåss man mot bossen i evighet.
+##
+## STRIDEN VÄLJS PÅ GÅNGAVSTÅND, INTE FÅGELVÄG (M153), och det valda målet ligger kvar tills det är
+## klart. Manhattan-avståndet räckte inte sedan blocken kunde bygga väggar inuti ett rum: två strider
+## på ömse sidor om en pelare bytte plats som "närmast" vid varje steg, och körningen gick fram och
+## tillbaka mellan två rutor tills stegvakten slog till (mätt: frö 20260919, 39 av 46 strider, 4 109
+## steg i stället för 269). BFS-avståndet är den väg man faktiskt går.
 func _next_objective() -> Dungeon.FloorNode:
 	var f := explore.floor_ref
+	if _mål != null and not _mål.cleared and f.nodes.has(_mål):
+		return _mål
 	var best: Dungeon.FloorNode = null
 	var best_dist := 1 << 30
 	for n in f.nodes:
 		if n.cleared or n.kind != "encounter":
 			continue
-		var d: int = abs(n.pos.x - explore.pos.x) + abs(n.pos.y - explore.pos.y)
-		if d < best_dist:
-			best_dist = d
+		var väg := explore.path_to(n.pos)
+		if väg.is_empty():
+			continue                     # ingen gång dit: den striden kan inte bli målet
+		if väg.size() < best_dist:
+			best_dist = väg.size()
 			best = n
 	if best != null:
+		_mål = best
 		return best
 	# Kistan: värd en omväg, men EFTER fienden — den som är svag ska inte lockas dit först.
 	for n in f.nodes:

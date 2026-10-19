@@ -124,6 +124,9 @@ class Floor extends RefCounted:
 	## dekoren (ingen kollision, inget att krocka med). Tomt = `_bygg_dekor` fyller våningen som förut.
 	## Ritas av `handlagd_rekvisita` i main.gd: det man ritade är exakt det som ställs ut, utan jitter.
 	var rekvisita: Array = []
+	## Vilka block som stämplades in och var (M153): [{id, pos, varv, ...}]. Tomt = inga block rymdes
+	## eller mappen `data/blocks` är tom — våningen är då precis som förut.
+	var blockar: Array = []
 	var start := Vector2i.ZERO
 	var boss_pos := Vector2i.ZERO
 	var shovel_pos := Vector2i.ZERO
@@ -183,6 +186,31 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 	f.rum = rooms                      # rummen följer med våningen: påfyllningen och proven läser dem
 	for r in rooms:
 		_carve_room(f, r)
+	# BLOCKEN (M153). Alex: *"kartorna skall kunna genereras slumpmässigt, så jag vill hellre kunna
+	# skapa separata block som motorn läser in."* Rummen är redan uthuggna till golv och korridorerna
+	# grävs EFTERÅT, så ett block får bygga hur mycket vägg som helst inuti ett rum — våningen är
+	# fortfarande sammanhängande. Startrummet hoppas över: starten står i dess mitt.
+	var block: Array = Blockar.ladda_alla()
+	var stämplade: Array = []
+	for i in range(1, rooms.size()):
+		var kandidater: Array = []
+		for b in block:
+			if Blockar.passar(b, rooms[i]):
+				kandidater.append(b)
+		if kandidater.is_empty():
+			continue                     # inget block ryms: rummet blir som förut, inget att välja
+		var valt: Dictionary = kandidater[rng.randi_range(0, kandidater.size() - 1)]
+		var varv := rng.randi_range(0, 3)
+		var ut: Dictionary = Blockar.stämpla(f, valt, rooms[i], varv)
+		if not ut.is_empty():
+			stämplade.append(ut)
+	f.blockar = stämplade
+	# MITTEN AV VARJE RUM ÄR GOLV. Starten, bossen och nedstigningen ställs på rumsmitten, och ett
+	# block får inte göra den rutan till vägg — då finns starten i en vägg och våningen går inte att
+	# spela. En ruta, mitt i rummet, kostar ingenting i ett block som är byggt som ett rum.
+	for r in rooms:
+		var c := _center(r)
+		f.tiles[c.y][c.x] = FLOOR
 	# RYGGGRADEN: ETT MINIMALT SPÄNNANDE TRÄD (VC-paritet 15/10). Referensen bygger korridorerna som
 	# Delaunay + minimum spanning tree och lägger sedan medvetet till extra kanter
 	# (`PathMinimumSpanningTreeGenerationLayer`, `_maxExtraEdgeSelectionChance`, `_maximumLength`).
@@ -246,6 +274,14 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 	# av `MapIo.from_dict` (nyckeln "öppna"), så ett slagfält under himmel är ett val man gör per våning.
 	f.shovel_pos = f.boss_pos        # shoveln får man av bossen på våningen
 
+	# STÄNGDA FICKOR (M153). Ett block kan bygga in en golvfläck som ingen gång når — en strid som
+	# ställs där finns bara i listan och syns aldrig, och våningen går inte att spela. Efter ALLA
+	# gångar är grävda: flood fill från starten, och golv som inte nås blir vägg. Kostar en 17x17-runda
+	# och gör "varje nod går att nå" sant per konstruktion i stället för ett hopp.
+	var fickor := _stäng_fickor(f)
+	if fickor > 0:
+		print("  block: %d st, %d stängda fickor fylldes igen" % [f.blockar.size(), fickor])
+
 	var start_node := FloorNode.new()
 	start_node.kind = "start"
 	start_node.pos = f.start
@@ -281,7 +317,7 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 		# Start- och bossrutan hoppas över: bossen står nu i ett rum som kan få egna strider, och två
 		# noder på samma ruta är en nod som skymmer den andra (kartan ritar dem ovanpå varandra).
 		var rum: Array = []
-		for p in _spots(rng, rooms[i]):
+		for p in _spots(f, rng, rooms[i]):
 			if p != f.boss_pos and p != f.start:
 				rum.append(p)
 		platser.append(rum)
@@ -504,12 +540,42 @@ static func _room_in(rng: RandomNumberGenerator, rect: Rect2i) -> Rect2i:
 	var y: int = rect.position.y + max(0, (rect.size.y - h) / 2)
 	return Rect2i(x, y, w, h)
 
-## Golvytor i ett rum, i slumpad ordning men deterministiskt, utan att ligga i väggkanten.
-static func _spots(rng: RandomNumberGenerator, room: Rect2i) -> Array:
+## Allt golv som inte nås från starten blir vägg. Se anropet i `generate`: ett block kan bygga in en
+## fläck, och en nod som ställs där går inte att nå.
+static func _stäng_fickor(f: Floor) -> int:
+	if not f.is_floor_at(f.start):
+		return 0
+	var sedda := {f.start: true}
+	var kö: Array = [f.start]
+	while not kö.is_empty():
+		var p: Vector2i = kö.pop_back()
+		for d in GRANNAR:
+			var q: Vector2i = p + d
+			if q.x < 0 or q.y < 0 or q.x >= f.w or q.y >= f.h:
+				continue
+			if sedda.has(q) or not f.is_floor_at(q):
+				continue
+			sedda[q] = true
+			kö.append(q)
+	var stängda := 0
+	for y in f.h:
+		for x in f.w:
+			var p := Vector2i(x, y)
+			if f.is_floor_at(p) and not sedda.has(p):
+				f.tiles[y][x] = WALL
+				stängda += 1
+	return stängda
+
+
+## Rutor i rummet man får ställa saker på: bara GOLV. Ett block (M153) bygger väggar inuti rummet, och
+## en strid som ställs på en väggruta syns inte alls — den finns bara i listan. Ordningen är slumpad men
+## deterministisk (sorterad på ett slumptal per ruta), så samma frö ger samma våning.
+static func _spots(f: Dungeon.Floor, rng: RandomNumberGenerator, room: Rect2i) -> Array:
 	var all := []
 	for y in range(room.position.y + 1, room.position.y + room.size.y - 1):
 		for x in range(room.position.x + 1, room.position.x + room.size.x - 1):
-			all.append(Vector2i(x, y))
+			if f.is_floor_at(Vector2i(x, y)):
+				all.append(Vector2i(x, y))
 	# deterministisk blandning: sortera på ett slumptal per ruta
 	var keys := {}
 	for p in all:

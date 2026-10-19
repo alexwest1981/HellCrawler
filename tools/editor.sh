@@ -5,6 +5,7 @@
 #   tools/editor.sh stage_05 2      # bana och våning — våningen räknas som du gör: 1 = första
 #
 # Tangenterna står i panelen: 1-6 nod, G golv, X vägg, S spara, L läs, N ny, P spela, [ ] byt våning.
+# O sparar våningen som BLOCK i data/blocks/ — generatorn lägger in det i ett rum som har plats.
 # Musen gör resten: klick väljer, drag flyttar, dra tom yta = box, hjul zoomar, Del/Ctrl+D.
 set -euo pipefail
 cd "$(dirname "$0")/../game"
