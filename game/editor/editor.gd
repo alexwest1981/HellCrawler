@@ -1130,11 +1130,13 @@ func _bygg_3d() -> void:
 				m.size = Vector3(0.97, 0.14, 0.97)
 				b.position = Vector3(x + 0.5, -0.07, y + 0.5)
 			elif floor.tiles[y][x] == Dungeon.HALVVÄGG:
-				m.size = Vector3(1.0, 0.62, 1.0)
-				b.position = Vector3(x + 0.5, 0.31, y + 0.5)
+				m.size = Vector3(1.0, HALVVÄGG_HÖJD, 1.0)
+				b.position = Vector3(x + 0.5, HALVVÄGG_HÖJD * 0.5, y + 0.5)
 			else:
-				m.size = Vector3(1.0, 1.0, 1.0)
-				b.position = Vector3(x + 0.5, 0.5, y + 0.5)
+				# Väggen ritas i spelets takhöjd (1,3 m), inte 1,0: annars ser halvväggen ut att vara
+				# nästan lika hög som väggen i förhandsvisningen (mätt: 0,62 mot 1,0 läste som samma).
+				m.size = Vector3(1.0, TAK_HÖJD, 1.0)
+				b.position = Vector3(x + 0.5, TAK_HÖJD * 0.5, y + 0.5)
 			b.mesh = m
 			b.material_override = _vy3d_material(tex)
 			vy3d_värld.add_child(b)
@@ -1385,6 +1387,8 @@ const FÄRG_HALVVÄGG := Color(0.30, 0.33, 0.42)
 const GRÄS_MESH := "res://assets/by/quaternius/Grass_Common_Tall.gltf"
 const GRÄS_TEX := "res://assets/by/quaternius/Grass_pixel.png"
 const GRÄS_SKALA := 0.18
+const TAK_HÖJD := 1.3               ## spelets takhöjd (`main.gd` TAK_HÖJD) — väggarna ritas i samma höjd
+const HALVVÄGG_HÖJD := 0.62         ## knähög: man ser över den (spelets egen halvvägg)
 const FÄRG_GOLVKANT := Color(0.66, 0.73, 0.86)
 
 func _rita_plan(c: Control) -> void:
