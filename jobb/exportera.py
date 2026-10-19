@@ -29,7 +29,7 @@ GLB = os.path.join(ROOT, "game", "assets", "by", "byn.glb")
 LJUS_DELARE = 2000.0
 
 # scenery that belongs to the renders, not to the game
-RENDER_ONLY = ("Cloud", "Grass_Tuft", "Grass_Kit_Source")
+RENDER_ONLY = ("Cloud", "Grass_Tuft", "Grass_Kit_Source", "Moon", "Star_", "Sky_Backdrop")
 
 
 def render_only(obj) -> bool:

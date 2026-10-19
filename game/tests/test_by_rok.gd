@@ -145,7 +145,21 @@ func _initialize() -> void:
 	for n in _alla(råt):
 		if n is MeshInstance3D:
 			meshar.append(n)
-	check(meshar.size() > 1800, "byn finns kvar i filen", "%d mesh-noder" % meshar.size())
+	## MÄTT EFTER OM-MODELLERINGEN 19/10: 22 modellerade träd ersätter 126 trädbitar, så antalet
+	## mesh-NODER föll från 1824 till 1717 utan att byn blev mindre — en tröskel på nodantal mäter
+	## objektindelningen, inte innehållet. Provets avsikt är "byn finns kvar", och det mäts på ytor:
+	## glb:n bär 48 938 trianglar. Båda talen kontrolleras, med marginal nedåt.
+	check(meshar.size() > 1600, "byn finns kvar i filen", "%d mesh-noder" % meshar.size())
+	var tri := 0
+	for n in meshar:
+		var mi := n as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for yta in mi.mesh.get_surface_count():
+			var arr: Array = mi.mesh.surface_get_arrays(yta)
+			if arr.size() > Mesh.ARRAY_INDEX and arr[Mesh.ARRAY_INDEX] != null:
+				tri += (arr[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
+	check(tri > 40000, "byns geometri finns kvar (trianglar)", "%d trianglar" % tri)
 	råt.queue_free()
 	await process_frame
 
