@@ -90,6 +90,24 @@ func _init() -> void:
 	check(str(f2b.dörrar[0]["namn"]) == "dörr 1", "och dörren har fått ett namn",
 		str(f2b.dörrar[0]["namn"]))
 
+	# 4c. RIKTNINGEN: dörren står tvärs gången, och ett manuellt val vinner över gissningen.
+	var fx := _bana()
+	for x in range(1, 8):
+		fx.tiles[1][x] = Dungeon.WALL
+		fx.tiles[3][x] = Dungeon.WALL         # gången går öst-väst
+	MapIo.sätt_dörr(fx, "trä", Vector2i(3, 2), "spak 1")
+	check(MapIo.dörr_riktning(fx, fx.dörrar[0]) == "z", "i en öst-västlig gång står plattan bred i z")
+	fx.dörrar[0]["riktning"] = "x"
+	check(MapIo.dörr_riktning(fx, fx.dörrar[0]) == "x", "men ett manuellt val vinner")
+	fx.dörrar[0]["riktning"] = ""
+	for y in range(1, 5):
+		fx.tiles[y][1] = Dungeon.FLOOR
+		fx.tiles[y][2] = Dungeon.FLOOR
+		fx.tiles[y][3] = Dungeon.FLOOR
+		fx.tiles[y][4] = Dungeon.WALL
+		fx.tiles[y][0] = Dungeon.WALL
+	check(MapIo.dörr_riktning(fx, fx.dörrar[0]) == "x", "i en nord-sydlig gång står den bred i x")
+
 	# 5. KÖRNINGEN: nyckeln på rutan löser koden, spaken likaså.
 	var stage: Stages.StageDef = Stages.load_all().values()[0]
 	var bestiary := Enemies.load_all()

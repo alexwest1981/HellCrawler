@@ -1035,7 +1035,9 @@ func _bygg_3d() -> void:
 	for d in floor.dörrar:
 		var db := MeshInstance3D.new()
 		var dm := BoxMesh.new()
-		dm.size = Vector3(0.96, 1.0, 0.28)
+		# Tvärs gången: bred åt det håll man inte går (se MapIo.dörr_riktning).
+		dm.size = (Vector3(0.96, 1.0, 0.28) if MapIo.dörr_riktning(floor, d) == "x"
+			else Vector3(0.28, 1.0, 0.96))
 		db.mesh = dm
 		var dp: Vector2i = d["pos"]
 		db.position = Vector3(dp.x + 0.5, 0.5, dp.y + 0.5)
@@ -1305,9 +1307,16 @@ func _rita_dörrar(c: Control) -> void:
 		var rr := _ruta_rect(p)
 		var färg: Color = DÖRR_FÄRG.get(str(d.get("typ", "")), Color(0.6, 0.6, 0.6))
 		var ijock := maxf(2.0, cell * 0.16)
-		c.draw_rect(Rect2(rr.position.x, rr.get_center().y - ijock * 0.5, rr.size.x, ijock), färg)
-		c.draw_rect(Rect2(rr.get_center().x - ijock * 0.5, rr.position.y, ijock, rr.size.y),
-			färg.darkened(0.35))
+		# Plattan ritas i den ledd den står (samma regel som 3D-vyn), plus en tunn markering av
+		# öppningen tvärs — man ser vilken väg dörren sitter i.
+		if MapIo.dörr_riktning(floor, d) == "x":
+			c.draw_rect(Rect2(rr.position.x, rr.get_center().y - ijock * 0.5, rr.size.x, ijock), färg)
+			c.draw_rect(Rect2(rr.get_center().x - ijock * 0.25, rr.position.y, ijock * 0.5,
+				rr.size.y), färg.darkened(0.45))
+		else:
+			c.draw_rect(Rect2(rr.get_center().x - ijock * 0.5, rr.position.y, ijock, rr.size.y), färg)
+			c.draw_rect(Rect2(rr.position.x, rr.get_center().y - ijock * 0.25, rr.size.x,
+				ijock * 0.5), färg.darkened(0.45))
 		# Bindningen skrivs på dörren ("spak 1"), inte en siffra: det är namnet man binder till.
 		var bindning := str(d.get("kod", ""))
 		var text := bindning if not bindning.is_empty() else "—"
@@ -1689,6 +1698,22 @@ func _unhandled_input(e: InputEvent) -> void:
 		_kopiera_vald()
 	elif key == KEY_F:
 		_rama_in()
+	elif key == KEY_R and verktyg == "dörr":
+		# VRID DÖRREN (M164): Alex hittade ingen vändning. R växlar riktning på dörren under pekaren
+		# (eller den senast placerade): auto → x → z → auto. Auto är gissningen ur väggarna intill.
+		var d: Dictionary = MapIo.dörr_vid(floor, hover) if hover.x >= 0 else {}
+		if d.is_empty():
+			status = "håll pekaren över en dörr och tryck R för att vrida den"
+		else:
+			_ångra_punkt()
+			var nu := str(d.get("riktning", ""))
+			d["riktning"] = {"": "x", "x": "z", "z": ""}.get(nu, "")
+			ändrad = true
+			status = "%s står nu %s" % [str(d.get("namn", "dörren")),
+				"automatiskt (efter väggarna)" if str(d["riktning"]).is_empty()
+				else ("tvärs gången öst-väst" if str(d["riktning"]) == "z" else "tvärs gången nord-syd")]
+			_stämpla()
+			_uppdatera()
 	elif key == KEY_F4:
 		_växla_3d()
 	elif key == KEY_K:
@@ -2074,7 +2099,7 @@ func _pensel_text() -> String:
 		"fiende":
 			return "pensel: strid med %s" % (fiende_art if not fiende_art.is_empty() else "slumpad fiende")
 		"dörr":
-			return "pensel: dörr (%s) — klicka på en dörr igen för att binda den till nästa spak/nyckel (Skift = bakåt)" % dörr_typ
+			return "pensel: dörr (%s) — klick binder om den, R vrider den" % dörr_typ
 	return "verktyg: välj / flytta"
 
 

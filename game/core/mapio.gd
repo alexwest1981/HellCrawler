@@ -57,6 +57,28 @@ static func sätt_dörr(f: Dungeon.Floor, typ: String, p: Vector2i, kod: String 
 	return ""
 
 
+## VILKEN VÄG DÖRREN STÅR (M164). Alex: *"Sen måste den kunna avgöra om det finns väggar nära, och
+## isåfall vända dörren så den står mot väggen ... men trädörren är vänd på fel ledd, och jag kan inte
+## hitta hur jag vänder den."*
+##
+## En dörr står TVÄRS gången den sitter i: plattan är bred åt det håll gången inte går. Finns väggar
+## både norr och söder om rutan går gången öst-väst, och då är plattan bred i z ("z"). Finns väggarna
+## öster och väster blir den bred i x ("x"). `riktning` i dörren är ett MANUELLT val som vinner över
+## gissningen — annars vore en dörr i en korsning omöjlig att få rätt.
+static func dörr_riktning(f: Dungeon.Floor, d: Dictionary) -> String:
+	var vald := str(d.get("riktning", ""))
+	if vald == "x" or vald == "z":
+		return vald
+	var p: Vector2i = d.get("pos", Vector2i(-1, -1))
+	var ns := not f.is_floor_at(p + Vector2i(0, -1)) and not f.is_floor_at(p + Vector2i(0, 1))
+	var öv := not f.is_floor_at(p + Vector2i(-1, 0)) and not f.is_floor_at(p + Vector2i(1, 0))
+	if ns and not öv:
+		return "z"
+	if öv and not ns:
+		return "x"
+	return "x"
+
+
 static func ta_bort_dörr(f: Dungeon.Floor, p: Vector2i) -> bool:
 	for i in f.dörrar.size():
 		if f.dörrar[i]["pos"] == p:
@@ -154,7 +176,8 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 			push_error("kartan %s_%d: dörr utan pos" % [stage_id, floor_index])
 			continue
 		f.dörrar.append({"pos": Vector2i(int(pos[0]), int(pos[1])), "typ": str(r.get("typ", "")),
-			"namn": str(r.get("namn", "")), "kod": str(r.get("kod", ""))})
+			"namn": str(r.get("namn", "")), "kod": str(r.get("kod", "")),
+			"riktning": str(r.get("riktning", ""))})
 	for nd in d.get("nodes", []):
 		var pos: Array = nd.get("pos", [])
 		if pos.size() != 2:
@@ -209,7 +232,8 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 		for r in f.dörrar:
 			var p: Vector2i = r.get("pos", Vector2i(-1, -1))
 			dörrlista.append({"typ": str(r.get("typ", "")), "kod": str(r.get("kod", "")),
-				"namn": str(r.get("namn", "")), "pos": [p.x, p.y]})
+				"namn": str(r.get("namn", "")), "riktning": str(r.get("riktning", "")),
+				"pos": [p.x, p.y]})
 		d["dörrar"] = dörrlista
 	if not f.rekvisita.is_empty():
 		var prylar := []
@@ -282,6 +306,9 @@ static func validate(f: Dungeon.Floor) -> Array:
 			fel.append("dörren ligger utanför kartan (%d,%d)" % [p.x, p.y])
 		elif not f.is_floor_at(p):
 			fel.append("dörren står i en vägg (%d,%d)" % [p.x, p.y])
+		if not ["", "x", "z"].has(str(r.get("riktning", ""))):
+			fel.append("dörren %s har okänd riktning: %s" % [str(r.get("namn", "?")),
+				str(r.get("riktning", ""))])
 		if str(r.get("kod", "")).strip_edges().is_empty():
 			fel.append("dörren %s (%d,%d) är inte bunden till någon spak eller nyckel"
 				% [str(r.get("namn", "?")), p.x, p.y])

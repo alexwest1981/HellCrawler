@@ -120,6 +120,26 @@ func _init() -> void:
 	check(str(MapIo.dörr_vid(editor.floor, g[5]).get("kod", "")) == spak,
 		"Skift gick bakåt igen")
 
+	# 6b. R VRIDER DÖRREN (M164): auto → x → z → auto, på dörren under pekaren.
+	editor._sätt_verktyg("dörr", "trä")
+	editor._måla(g[2])
+	editor.hover = g[2]
+	var d1: Dictionary = MapIo.dörr_vid(editor.floor, g[2])
+	check(str(d1.get("riktning", "")) == "", "dörren följer väggarna tills man vrider den")
+	var auto := MapIo.dörr_riktning(editor.floor, d1)
+	check(auto == "x" or auto == "z", "och gissningen ger en riktning", auto)
+	for väntad in [auto, "x" if auto == "z" else "z", ""]:
+		var e := InputEventKey.new()
+		e.keycode = KEY_R
+		e.pressed = true
+		editor._unhandled_input(e)
+		if väntad.is_empty():
+			check(str(MapIo.dörr_vid(editor.floor, g[2]).get("riktning", "")) == "",
+				"R går runt: tillbaka till auto", editor.status)
+		else:
+			check(str(MapIo.dörr_vid(editor.floor, g[2]).get("riktning", "")) == väntad,
+				"R vrider dörren (%s)" % väntad, editor.status)
+
 	# 7. Filen: dörren överlever en tur genom JSON.
 	var d := MapIo.to_dict(editor.floor)
 	var tillbaka := MapIo.from_dict(d, editor.floor.stage_id, editor.floor.index)

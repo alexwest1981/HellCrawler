@@ -6548,15 +6548,22 @@ func _build_world() -> void:
 	# DÖRRARNA (M161): en låst dörr är en platta i rutans mitt, i dörrtypens färg — annars ser en
 	# blockerad gång ut som en osynlig vägg. När koden är löst (nyckel upplockad eller spak dragen)
 	# byggs världen om och plattan är borta: gången är öppen.
+	# Plattan står TVÄRS gången (M164): bredden följer `MapIo.dörr_riktning`, som läser väggarna intill
+	# och faller tillbaka på dörrens eget val när rutan ligger i en korsning.
 	for typ in MapIo.DÖRRAR:
-		var låsta: Array = []
-		for d in f.dörrar:
-			if str(d.get("typ", "")) == typ and run.explore.dörr_låst(d["pos"]):
+		for riktning in ["x", "z"]:
+			var låsta: Array = []
+			for d in f.dörrar:
+				if str(d.get("typ", "")) != typ or not run.explore.dörr_låst(d["pos"]):
+					continue
+				if MapIo.dörr_riktning(f, d) != riktning:
+					continue
 				låsta.append(d["pos"])
-		if låsta.is_empty():
-			continue
-		_add_boxes_ytor(låsta, DÖRR_FÄRG[typ], TAK_HÖJD * 0.5, Vector3(1, TAK_HÖJD, 0.16),
-			"dörr_%s" % typ, 53, 1.0, Color(0.85, 0.85, 0.85))
+			if låsta.is_empty():
+				continue
+			var mått := Vector3(1, TAK_HÖJD, 0.16) if riktning == "x" else Vector3(0.16, TAK_HÖJD, 1)
+			_add_boxes_ytor(låsta, DÖRR_FÄRG[typ], TAK_HÖJD * 0.5, mått,
+				"dörr_%s_%s" % [typ, riktning], 53, 1.0, Color(0.85, 0.85, 0.85))
 	_öppen_himmel(f)
 	# Siffrorna i loggen: hur stor del av ytorna som blev slitna partier. Utan dem går det inte att
 	# se att fältet faktiskt delar våningen (en andel på 0 % eller 100 % ser ut som "ingen variation").
