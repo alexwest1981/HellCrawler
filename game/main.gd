@@ -3179,6 +3179,14 @@ func _inn_detalj(rad: Dictionary) -> void:
 	# och klicket på den valda figuren. Redan hyrd = ingenting att trycka.
 	inn_hyr.text = Tr.t("ui.inn.hyr", "HYR")
 	inn_hyr.disabled = bool(rad["hired"])
+	# PARTYT FULLT (M176): i referensen ger bara den först valda Crawlern stats och varje följande bara
+	# ett kort, och det finns ett tak (1 → 3 via en PowerUp). Ett köp som inte får plats ska säga det i
+	# detaljraden i stället för att tyst dra guldet och lämna ett kort utanför partyt.
+	if not inn_hyr.disabled:
+		var svar := meta.can_hire(str(rad["id"]))
+		if not bool(svar["ok"]) and str(svar["reason"]) == "partyt_fullt":
+			inn_det_pris.text = Tr.t("ui.inn.fullt", "partyt är fullt (%d/%d) — sälj inget, taket höjs av en uppgradering") % [meta.hired.size(), meta.party_tak()]
+			inn_hyr.disabled = true
 
 ## Ett tryck på en figur: ett tryck väljer den, ett tryck på den redan valda hyr den (samma två tryck
 ## som förut — priset står i detaljraden mellan dem).

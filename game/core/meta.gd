@@ -390,8 +390,12 @@ func stat(key: String) -> float:
 		var eff: Dictionary = d.get("effect", {})
 		if eff.has(key):
 			sum += float(eff[key]) * float(rank(str(d.get("id", ""))))
-	for id in hired:
-		var kamrat: Dictionary = crawler_for(str(id)).get("passiv", {})
+	# BARA FÖRSTAHANDSPLATSEN GER PASSIVA STATS (M176). I referensen är den först valda Crawlern "main":
+	# den bidrar med sina stats och fyra startkort, medan varje följande bara bidrar med ETT kort och
+	# inga stats. Här summerades alla hyrda, så tio kamrater gav tio gånger passiven — det var inte
+	# referensens regel, och det gjorde valet av första kamrat betydelselöst.
+	if not hired.is_empty():
+		var kamrat: Dictionary = crawler_for(str(hired[0])).get("passiv", {})
 		if kamrat.has(key):
 			sum += float(kamrat[key])
 	return sum
@@ -916,12 +920,21 @@ func is_hired(id: String) -> bool:
 	return hired.has(id)
 
 ## Kan kamraten hyras? Skälet i klartext, som för uppgraderingarna.
+## PARTYTAKET (M176). Referensen har en plats från start och upp till tre via en PowerUp. Taket är
+## hårt: en fjärde kamrat ger inget — den leder bara till att spelaren betalar för ett kort som inte får
+## plats. `crawler_slot` är uppgraderingens egen nyckel, så en ny rang höjer taket utan kodändring.
+const PARTY_TAK := 3
+func party_tak() -> int:
+	return clampi(1 + int(stat("crawler_slot")), 1, PARTY_TAK)
+
 func can_hire(id: String) -> Dictionary:
 	var c := crawler_for(id)
 	if c.is_empty():
 		return {"ok": false, "reason": "okand"}
 	if hired.has(id):
 		return {"ok": false, "reason": "redan_hyrd"}
+	if hired.size() >= party_tak():
+		return {"ok": false, "reason": "partyt_fullt"}
 	if gold < int(c.get("price", 0)):
 		return {"ok": false, "reason": "for_lite_guld"}
 	return {"ok": true, "reason": ""}
