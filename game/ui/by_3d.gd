@@ -108,6 +108,7 @@ func _knyt() -> void:
 	miljö = get_node_or_null("miljö") as WorldEnvironment
 	rök = get_node_or_null("rök") as GPUParticles3D
 	if by != null:
+		_pixelfilter(by)
 		_släck_dubblar(by)
 		_bygg_bybor()
 		# GRÄSET BYGGS EFTER BILDEN. Mätt: 630 tuvor + markplattan i `_knyt` drog byns byggtid från
@@ -392,6 +393,26 @@ func _säkerställ() -> void:
 
 ## Släck de riktningsljus i glb:n som scenens egna noder ersätter (se GLB_SLÄCKT). Allt annat i filen
 ## — skyltglöden, facklorna, ässjan, värdshusets fönster — är kvar och lyser som förut.
+## SKÄRPAN (M171). Alex: *"kass grafik, lågpolymodeller, usla effekter"*. MÄTT: byns 25 material
+## använde `TEXTURE_FILTER_LINEAR_WITH_MIPMAPS` (PX_*) och `…_ANISOTROPIC` (löv, bark) — pixelkonst som
+## filtreras mjukt i en vy som ritas i 480×270. Det suddar rutnätet till gröt: texturerna ÄR pixlade
+## (256-512 px, palettkvantiserade av `tools/`), men filtreringen gör dem till mellanfärger.
+## Här sätts NEAREST och mipmaps av på allt, så varje texel blir en pixel i bilden — samma regel som
+## spelets egna rutor. Ingen bild byts, ingen modell rörs: bara hur texelarna räknas ut.
+func _pixelfilter(nod: Node) -> void:
+	var bytta := 0
+	for m in nod.find_children("*", "MeshInstance3D", true, false):
+		var mesh: Mesh = (m as MeshInstance3D).mesh
+		if mesh == null:
+			continue
+		for s in mesh.get_surface_count():
+			var mat := mesh.surface_get_material(s)
+			if mat is BaseMaterial3D and (mat as BaseMaterial3D).texture_filter != BaseMaterial3D.TEXTURE_FILTER_NEAREST:
+				(mat as BaseMaterial3D).texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+				bytta += 1
+	print("  byn: %d material ritas med NEAREST" % bytta)
+
+
 func _släck_dubblar(rot: Node) -> void:
 	for namn in GLB_SLÄCKT:
 		var n := rot.get_node_or_null(namn)
