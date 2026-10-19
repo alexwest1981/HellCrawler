@@ -76,3 +76,7 @@ assets/**/*.blend*
 # jobb/ är min arbetsyta i projektet: skripten och README hör i git, bilderna och ögonblicksbilderna inte.
 jobb/bilder/
 jobb/snapshots/
+
+# assets/ är nu arbetsytan för byn: källkonsten (5 JPEG, 9 MB), arkivet med 18 äldre .blend (100 MB)
+# och arbetsfilen. Samma skäl som raderna ovan — källmaterial och binärer hör inte i ett publikt repo.
+/assets/

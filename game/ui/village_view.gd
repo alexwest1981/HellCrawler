@@ -106,9 +106,6 @@ const PLATSER := [
 	{"id": "avsluta", "namn": "EXIT", "skepp": "avsluta", "x": 80.5, "3d": "Exit", "x0": 75.0, "x1": 86.0, "färg": 14},
 ]
 const MÄRKE := Vector2(20.0, 26.0)   ## platsens PUNKT-ruta: invarianten provet mäter (och klick i reserv)
-## Hovringsglödens bandbredd i vyns px (M126). Tre band ritas utanför husets EGEN ruta — glöden är alltså
-## husets ruta utvidgad med 3 × GLOD_BREDD, och det är den rutan provet mäter.
-const GLOD_BREDD := 2.0
 const DJUP := 6.0                    ## platsens skugga i sidled (provet räknar in den i krockmåttet)
 ## Husets ÖVERKANT i procent av bildens höjd. Taken i Alex' bild ligger på 7–11 % av höjden (MÄTT:
 ## den första raden som avviker från himlens färg i varje hus' spann), och ramen och ljusväggen ska
@@ -163,6 +160,14 @@ var _tex: Texture2D = null           ## byns bild, läst en gång
 ## ritas då inte alls, varken över eller under byn.
 var _by3d_vp: SubViewport = null
 var _by3d: By3D = null
+## FÖNSTERPIXLAR PER VY-PIXEL (M152). Vyn ligger i `hud`, som skalas upp med heltalet (3 i ett 941 px
+## fönster), så en SubViewport i vyns LOGISKA mått renderade 3D:n i en tredjedel av fönstrets
+## upplösning och skalades sedan upp 3x — Alex: *"Nr 1, lite för låg upplösning för min smak, det
+## behöver bli mer crisp... tänk dig 2.5D HD."* Nu renderas 3D:n i FÖNSTRETS px och krymps ihop till
+## vyns logiska ruta; projektionen räknar fortfarande i logiska px, så klick, rutor och figurer står
+## kvar där de stod.
+var pixlar := 1.0
+var _by3d_sprite: Sprite2D = null
 var _scen3d: ByScen = null
 var _gata_px := 0.0                   ## gatans rad i KONSTENS px (scenen mäter därifrån)
 var _bak_tex: Texture2D = null        ## bilden med husen borttagna, läst en gång
@@ -274,8 +279,8 @@ func byscen() -> Texture2D:
 ## SubViewport i UPDATE_ALWAYS hade ritat 1919 meshar per bildruta i fängelsehålan också — samma
 ## kostnad som `_process`-spärren i den här filen finns för att undvika.
 func _bygg_by3d(vy: Vector2) -> void:
-	if (_by3d_vp != null and is_instance_valid(_by3d_vp)
-			and _by3d_vp.size == Vector2i(int(vy.x), int(vy.y))):
+	var mal := Vector2i(int(round(vy.x * maxf(1.0, pixlar))), int(round(vy.y * maxf(1.0, pixlar))))
+	if (_by3d_vp != null and is_instance_valid(_by3d_vp) and _by3d_vp.size == mal):
 		if _by3d != null and is_instance_valid(_by3d):
 			_by3d.sätt_vy(vy)        # samma ruta: projektionen ska räkna i vyns px varje gång
 		return
@@ -284,7 +289,7 @@ func _bygg_by3d(vy: Vector2) -> void:
 	if _by3d_vp != null and is_instance_valid(_by3d_vp):
 		_by3d_vp.queue_free()
 	_by3d_vp = SubViewport.new()
-	_by3d_vp.size = Vector2i(int(vy.x), int(vy.y))
+	_by3d_vp.size = mal
 	# EGEN VÄRLD. Scenen bär sitt eget WorldEnvironment (skymningshimmel, omgivningsljus), och en
 	# WorldEnvironment lägger sig i den värld den står i: delade vyn värld med spelvyn hade byns
 	# himmel och ljus lagt sig över kryptan.
@@ -298,6 +303,21 @@ func _bygg_by3d(vy: Vector2) -> void:
 		return
 	_by3d_vp.add_child(_by3d)
 	_by3d.sätt_vy(vy)            # husens rutor räknas i SAMMA px som vyn ritar (M126)
+	# 3D-bilden läggs i en egen Sprite2D UNDER vyns egen ritning: bara den ska filtreras linjärt
+	# (den krymps från fönsterpx till vyns ruta), medan husens platta, figuren och texten behåller
+	# NEAREST och sin kantiga stil.
+	if _by3d_sprite == null:
+		_by3d_sprite = Sprite2D.new()
+		_by3d_sprite.centered = false
+		_by3d_sprite.show_behind_parent = true
+		# NEAREST, inte linjärt: texturen ligger redan i fönstrets px och ritas 1:1 (939 px textur i
+		# en 313 px-ruta som skalas 3x). Linjär filtrering på en 1:1-mappning är ingen uppskalning men
+		# den samplar mellan två texlar och lägger tillbaka en halv pixel sudd — MÄTT: kantenergin sjönk
+		# från 0,1015 till samma nivå som den gamla 3x-uppskalningen.
+		_by3d_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(_by3d_sprite)
+	_by3d_sprite.texture = _by3d_vp.get_texture()
+	_by3d_sprite.scale = Vector2.ONE / maxf(1.0, pixlar)
 
 ## 3D-byns bild — textur i vyns mått. Null när scenen inte är byggd (glb:n saknas), och i en
 ## huvudlös körning finns ingen rityta: `_draw` faller då tillbaka på 2D-vyn, precis som förut.
@@ -711,7 +731,9 @@ func _draw() -> void:
 	# Den gamla bakgrundsbilden ritas då INTE — varken över eller under byn (grenen nedan är
 	# reservvägen för en körning utan rityta eller ett projekt utan byn.glb).
 	var by3d_tex := by3d_textur()
-	if by3d_tex != null:
+	if _by3d_sprite != null and _by3d_sprite.texture != null:
+		pass                                  # 3D:n ligger under vyn som Sprite2D (M152)
+	elif by3d_tex != null:
 		draw_texture_rect(by3d_tex, Rect2(Vector2.ZERO, vp), false)
 	elif _scen3d != null and _scen3d.klar():
 		# 3D-SCENEN (M122): bakgrund och hus ritas i den inre vyn, på var sitt djup, och den ritas
@@ -721,8 +743,10 @@ func _draw() -> void:
 		_bilden(vp, byscen())
 	else:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
-	# HOVRINGSGLÖDEN ligger ÖVER husen (den markerar huset man pekar på) och UNDER listen.
-	_glod()
+	# HOVRINGSGLÖDEN ÄR BORTA (M152). Alex: *"Rutan som blir runt det som är markerat — det ser inte
+	# jättebra ut, det skippar jag helst."* Den var en rektangel i tre band runt husets ruta, och en
+	# rektangel runt ett hus i en tippad 3D-vy läser som en urklippt bildruta. Kvar som svar på
+	# hovringen: husets namn i listen och markörens form.
 	# En mörk ton nedtill, tonad i åtta steg: etiketterna ska läsas mot en lugn yta, inte mot
 	# kullerstenen — och en rak kant mellan bilden och listen läses som en skarv.
 	for k in 8:
@@ -735,34 +759,10 @@ func _draw() -> void:
 	# GÅNGAREN sist: hon går på gatan framför husen, alltså närmast betraktaren.
 	_gångare_ritning()
 
-## HOVRINGSGLÖDEN (M126): en glöd runt huset muspekaren står över, i tre band UTANFÖR husets ruta.
-## Glöden låg förut på 2D-scenens hus-textur (uppskalad, bara silhuettens kant syns) — den texturen
-## ritas inte längre, och i 3D finns ingen silhuetttextur att skala upp. Banden följer SAMMA ruta som
-## klicket (`byggnad_rect`), så glöden kan inte glida ifrån huset den märker.
-func _glod() -> void:
-	if _hover < 0:
-		return
-	var r := byggnad_rect(_hover)
-	if r.size.x < 2.0 or r.size.y < 2.0:
-		return
-	var band := [Color(1.0, 0.86, 0.45, 0.42), Color(1.0, 0.86, 0.45, 0.24), Color(1.0, 0.86, 0.45, 0.12)]
-	for k in band.size():
-		var v: float = float(k + 1) * GLOD_BREDD
-		# Fyra kanter: en Rect2 har ingen kontur, och en fylld ruta hade målat ÖVER huset man pekar på.
-		draw_rect(Rect2(r.position.x - v, r.position.y - v, r.size.x + 2.0 * v, GLOD_BREDD), band[k])
-		draw_rect(Rect2(r.position.x - v, r.end.y + v - GLOD_BREDD, r.size.x + 2.0 * v, GLOD_BREDD), band[k])
-		draw_rect(Rect2(r.position.x - v, r.position.y - v, GLOD_BREDD, r.size.y + 2.0 * v), band[k])
-		draw_rect(Rect2(r.end.x + v - GLOD_BREDD, r.position.y - v, GLOD_BREDD, r.size.y + 2.0 * v), band[k])
-
-## Glödens yttre ruta: husets ruta utvidgad med alla bandens bredd. Egen funktion så provet kan mäta
-## att glöden sitter PÅ huset. MÄTT på provbilden i 941x1018 (`shot skarm=by byhov=2`): de pixlar som
-## skiljer sig från samma bild utan hovring ligger i EXAKT husets ruta ± 6 vyn-px (256..450, 432..626
-## fönster-px), alltså kanten 6 vyn-px utanför rutan på alla fyra sidor.
+## HOVRINGSGLÖDEN ÄR BORTA (M152) — se `_draw`. Den här raden finns kvar bara för att provet ska
+## kunna mäta att ingen ram ritas: den svarar alltid tom.
 func glod_rect() -> Rect2:
-	var r := byggnad_rect(_hover)
-	if _hover < 0 or r.size.x < 2.0 or r.size.y < 2.0:
-		return Rect2()
-	return r.grow(GLOD_BREDD * 3.0)
+	return Rect2()
 
 ## Figurbilden: figurens egen ruta i vyn, centrerad i sidled på `pos()` och med fötterna på den.
 func figur_rect() -> Rect2:

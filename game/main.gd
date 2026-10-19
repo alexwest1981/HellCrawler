@@ -9108,6 +9108,10 @@ func _placera_vy() -> void:
 			# LOGISKA rutor: de ligger i `hud`, som är skalat med `skala`. Gavs de fönstermått blev
 			# byn 4x för stor och föll utanför rutan (M151: "det går inte att se mer än lite av de
 			# pyramidliknande skiten i bakgrunden").
+			# 3D:n ritas i FÖNSTRETS px i stället (M152): vyns ruta är logisk, men byn renderar i
+			# fönsterupplösning och krymps ihop — "2.5D HD" i stället för 1/3 upplösning uppskalad 3x.
+			if v == by_view:
+				v.pixlar = skala
 			v.size = Vector2(bredd, höjd) / skala
 			v.queue_redraw()
 	# KARTAN FÖRE GUI:N (M113): barens högerzon — loggen och manaklotet — mäts mot kartans EGEN ruta.

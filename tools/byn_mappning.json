@@ -40,33 +40,39 @@
   "Wood_Oak": "Wood"
  },
  "objects_per_material": {
-  "PX_Bark": 22,
-  "PX_Barr": 44,
+  "PX_Baner Bl\u00e5": 1,
+  "PX_Baner R\u00f6d": 1,
+  "PX_Bark": 23,
+  "PX_Barr": 48,
   "PX_Cobblestone Brown": 91,
   "PX_Cobblestone Grey": 117,
   "PX_Cobblestone Mossy": 89,
-  "PX_Dark Stone": 2,
   "PX_Grass": 30,
   "PX_Hedge": 38,
   "PX_Iron Riveted": 44,
+  "PX_Ljus Varm": 1,
   "PX_Ljusgl\u00f6d": 30,
   "PX_L\u00f6vverk": 55,
-  "PX_M\u00f6rk Zon": 1,
+  "PX_M\u00f6rk Zon": 4,
   "PX_Purple Roof": 98,
-  "PX_Ram": 17,
+  "PX_Ram": 18,
   "PX_Skylt": 2,
   "PX_Skylt Board": 5,
   "PX_Slate Roof": 280,
-  "PX_Stone": 268,
+  "PX_Stone": 264,
   "PX_Stone Mossy": 5,
   "PX_Terracotta Roof": 322,
   "PX_Tudor Plaster": 68,
+  "PX_Vatten": 1,
   "PX_Window Bright": 2,
   "PX_Window Warm": 14,
-  "PX_Wood": 69,
-  "PX_Wood Beam": 97
+  "PX_Wood": 66,
+  "PX_Wood Beam": 91,
+  "PX_Wood.001": 9
  },
  "plate_file": {
+  "Baner Bl\u00e5": "baner_bla.png",
+  "Baner R\u00f6d": "baner_rod.png",
   "Bark": "bark.png",
   "Barr": "barr.png",
   "Cobblestone Brown": "atlas/cobblestone_brown.png",
@@ -95,21 +101,24 @@
   "Stone Mossy": "atlas/stone_wall_mossy_small.png",
   "Terracotta Roof": "tak_tegel.png",
   "Tudor Plaster": "puts.png",
+  "Vatten": "vatten.png",
   "Window Bright": "atlas/window_narrow.png",
   "Window Warm": "atlas/window_four_pane.png",
   "Wood": "virke.png",
   "Wood Beam": "virke_balk.png"
  },
  "plates_used": [
+  "Baner Bl\u00e5",
+  "Baner R\u00f6d",
   "Bark",
   "Barr",
   "Cobblestone Brown",
   "Cobblestone Grey",
   "Cobblestone Mossy",
-  "Dark Stone",
   "Grass",
   "Hedge",
   "Iron Riveted",
+  "Ljus Varm",
   "Ljus Varm (skylttext)",
   "Ljusgl\u00f6d",
   "L\u00f6vverk",
@@ -123,6 +132,7 @@
   "Stone Mossy",
   "Terracotta Roof",
   "Tudor Plaster",
+  "Vatten",
   "Window Bright",
   "Window Warm",
   "Wood",
@@ -173,5 +183,10 @@
   "Cloud_R_3": "Cloud_White",
   "Cloud_R_4": "Cloud_White"
  },
- "unmapped": {}
+ "unmapped": {
+  "PX_Wood.001": {
+   "fallback": "Tudor Plaster",
+   "objects": 9
+  }
+ }
 }

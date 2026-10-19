@@ -743,9 +743,52 @@ def bygg_hus(p: dict, mått: dict, palett: list, skala: float, x_mitt: float, bo
     for dx_ in (-0.28, 0.28):
         bygge.låda((x_mitt + b * dx_, fram, fz),
                    (b * 0.16, 0.12, max(0.20, höjd * 0.16)), FÄRG_FÖNSTER)
+    _detaljer(bygge, mått, x_mitt, b, höjd, botten, fram)
     # PLATSENS EGET: ordboken från referensen, färgerna ur paletten.
     bygge = _saken(p, bygge, x_mitt, b, d, höjd, botten, mått["profil_px"], skala)
     return bygge
+
+
+def _detaljer(bygge: Bygge, mått: dict, x_mitt: float, b: float, höjd: float, botten: float,
+              fram: float) -> None:
+    """Takfot, knutar, bjälkar, fönsterfoder och trappsteg — det som gör ett hus BYGGT (M152).
+
+    Husen var staplar av rätblock med en platt dörr och en platt skylt. Alex: *"inte så här otroligt
+    basic former"*. Det som får en fasad att läsa som byggd i stället för klippt är tre saker:
+    SKUGGAN under takfoten, DJUPET kring fönstren och VIRKET som sticker ut. Allt är fortfarande
+    rätblock — inga rundade former — och måtten är andelar av husets egen bredd, så det följer skalan.
+    """
+    tak = max(mått["rutor"], key=lambda r: r[3])[4] if mått["rutor"] else FÄRG_MUR
+    virke = FÄRG_DÖRR if FÄRG_DÖRR != tak else 4
+    fot = botten + höjd * 0.60                       # där väggen möter taket
+    # 1) TAKFOTEN: en platta som sticker ut framför och vid sidan om väggen, med en mörk kant under.
+    bygge.låda((x_mitt, fram - 0.05 * b, fot), (b * 0.98, 0.09 * b, 0.018 * b), tak)
+    bygge.låda((x_mitt, fram - 0.085 * b, fot - 0.016 * b), (b * 0.97, 0.02 * b, 0.012 * b), virke)
+    # 2) KNUTAR OCH BJÄLKE: fyra stolpar i hörnen och en vågrät bjälke en bit upp — halvtimmer hus.
+    for dx in (-1.0, 1.0):
+        bygge.låda((x_mitt + dx * b * 0.47, fram - 0.012 * b, (botten + fot) * 0.5),
+                   (0.035 * b, 0.02 * b, fot - botten), virke)
+    bygge.låda((x_mitt, fram - 0.012 * b, botten + (fot - botten) * 0.62),
+               (b * 0.94, 0.02 * b, 0.014 * b), virke)
+    # 3) FÖNSTERFODER: fyra smala rätblock kring varje fönster, 3 cm utanför glaset — djup i stället
+    #    för en platt ruta.
+    fz = botten + 0.5 * (höjd * 0.18 + höjd * 0.62)  # samma mitt som bygg_hus räknar
+    fw, fh = b * 0.16, max(0.20, höjd * 0.16)
+    for dx in (-0.28, 0.28):
+        cx = x_mitt + b * dx
+        bygge.låda((cx, fram - 0.03 * b, fz + fh * 0.5), (fw * 1.25, 0.02 * b, 0.02 * b), 8)
+        bygge.låda((cx, fram - 0.03 * b, fz - fh * 0.5), (fw * 1.25, 0.02 * b, 0.02 * b), 8)
+        for sx in (-1.0, 1.0):
+            bygge.låda((cx + sx * fw * 0.6, fram - 0.03 * b, fz), (0.02 * b, 0.02 * b, fh), 8)
+    # 4) TRAPPSTEGET: en sten framför dörren, så huset står på marken och inte i den.
+    if mått.get("dörr_byggd"):
+        a, bb, _ = mått["dörr_byggd"]
+        dxk = x_mitt - b / 2.0 + ((a + bb) / 2.0) * (b / mått["bredd_px"])
+        stegbr = max(0.5, (bb - a) * b / mått["bredd_px"] * 1.3)
+        # Steget hålls inom tomten som alla andra detaljer: annars sticker det ut i grannens ruta.
+        dxk = _innanför(dxk, stegbr, x_mitt - b / 2.0, x_mitt + b / 2.0)
+        bygge.låda((dxk, fram - 0.05 * b, botten + 0.012 * b),
+                   (stegbr, 0.08 * b, 0.024 * b), 6)
 
 
 def _innanför(x: float, bredd: float, hus_a: float, hus_b: float) -> float:

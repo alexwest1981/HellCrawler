@@ -211,5 +211,10 @@
     "#################",
     "#################"
   ],
-  "ytor": {}
+  "ytor": {
+    "3,8": "material/corroded_metal",
+    "3,9": "material/corroded_metal",
+    "5,8": "material/corroded_metal",
+    "5,9": "material/corroded_metal"
+  }
 }

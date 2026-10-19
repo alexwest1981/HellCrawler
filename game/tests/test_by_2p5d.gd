@@ -251,13 +251,10 @@ func _initialize() -> void:
 	# är den inre utvidgad med alla bandens bredd — en glöd som ritades kring en annan ruta (t.ex.
 	# 2D-rutans) hade glidit ifrån huset. MÄTT på provbilden i 941x1018: de pixlar som skiljer sig från
 	# samma bild UTAN hovring ligger i exakt husets ruta ± 6 vyn-px, på alla fyra sidor.
-	var gr := by.glod_rect()
-	var hr := by.byggnad_rect(2)
-	check(gr.encloses(hr) and absf(gr.size.x - (hr.size.x + 12.0)) < 0.01
-			and absf(gr.size.y - (hr.size.y + 12.0)) < 0.01
-			and gr.get_center().distance_to(hr.get_center()) < 0.01,
-		"hovringsglöden ligger runt husets EGEN ruta — 6 vyn-px utanför på varje sida, samma mitt",
-		"glöd %s mot huset %s" % [str(gr), str(hr)])
+	# RAMEN ÄR BORTA (M152): Alex ville inte ha en ruta runt det markerade huset, så hovringen syns
+	# bara som namnraden i listen. Provet mäter att ingen ram ritas alls — en återinförd glöd ska
+	# fastna här och inte i hans ögon.
+	check(by.glod_rect() == Rect2(), "ingen ram runt huset man pekar på (M152)", str(by.glod_rect()))
 	by.släpp_hovring()
 	check(by.hovrad() == -1, "och hovringen släpps när pekaren lämnar")
 	check(by.glod_rect() == Rect2(), "och då ritas ingen glöd alls", str(by.glod_rect()))

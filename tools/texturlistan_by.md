@@ -98,7 +98,8 @@ Namnklassningen som låg före den här mätningen gav 808 objekt Terracotta Roo
 
 | Originalmaterial | Objekt | Nödlösning (namnregeln) |
 |---|---:|---|
-| **0 material** | **0** | |
+| `PX_Wood.001` | 9 | Tudor Plaster |
+| **1 material** | **9** | |
 
 ### Rök och moln — tas ur exporten, ersätts av en smoke emitter i Godot
 
@@ -152,38 +153,42 @@ Båda riktningarna mäts nu utan Blender, direkt i den exporterade `byn.glb`, av
 | Material | Plattfil | Objekt | Ytor | Area m² |
 |---|---|---:|---:|---:|
 | `Cloud_White` | `**ingen bild**` | 0 | 0 | 0.0 |
-| `PX_Bark` | `bark.png` | 22 | 198 | 128.8 |
-| `PX_Barr` | `barr.png` | 44 | 616 | 692.2 |
+| `PX_Baner Blå` | `baner_bla.png` | 1 | 6 | 0.6 |
+| `PX_Baner Röd` | `baner_rod.png` | 1 | 6 | 0.6 |
+| `PX_Bark` | `bark.png` | 23 | 206 | 139.2 |
+| `PX_Barr` | `barr.png` | 48 | 672 | 798.9 |
 | `PX_Cobblestone Brown` | `cobblestone_brown.png` | 91 | 546 | 22.9 |
 | `PX_Cobblestone Grey` | `cobblestone_grey.png` | 117 | 702 | 309.5 |
 | `PX_Cobblestone Ground` | `cobblestone_ground.png` | 0 | 0 | 0.0 |
 | `PX_Cobblestone Mossy` | `cobblestone_mossy.png` | 89 | 534 | 23.5 |
-| `PX_Dark Stone` | `dark_stone.png` | 2 | 12 | 2.6 |
+| `PX_Dark Stone` | `dark_stone.png` | 0 | 0 | 0.0 |
 | `PX_Dirt` | `dirt.png` | 0 | 0 | 0.0 |
 | `PX_Dirt Stony` | `dirt_stony.png` | 0 | 0 | 0.0 |
 | `PX_Grass` | `gras.png` | 30 | 2178 | 2079.4 |
 | `PX_Grass Flowers` | `grass.png` | 0 | 0 | 0.0 |
 | `PX_Hedge` | `hedge.png` | 38 | 3040 | 177.4 |
 | `PX_Iron Riveted` | `metal_riveted.png` | 44 | 1532 | 11.5 |
-| `PX_Ljus Varm` | `ljus_varm.png` | 0 | 0 | 0.0 |
+| `PX_Ljus Varm` | `ljus_varm.png` | 1 | 6 | 0.9 |
 | `PX_Ljusglöd` | `ljus_varm.png` | 30 | 2400 | 1.1 |
 | `PX_Lövverk` | `lov.png` | 55 | 4400 | 705.8 |
 | `PX_Mossy Stone` | `mossy_stone.png` | 0 | 0 | 0.0 |
-| `PX_Mörk Zon` | `mork_zon.png` | 5 | 30 | 745.0 |
+| `PX_Mörk Zon` | `mork_zon.png` | 4 | 24 | 2.8 |
 | `PX_Purple Roof` | `tak_lila.png` | 98 | 588 | 43.3 |
-| `PX_Ram` | `ram.png` | 17 | 108 | 19.2 |
+| `PX_Ram` | `ram.png` | 18 | 114 | 20.2 |
 | `PX_Sand Path` | `sand_path.png` | 0 | 0 | 0.0 |
 | `PX_Skylt` | `skylt.png` | 2 | 12 | 1.8 |
 | `PX_Skylt Board` | `skylt_balk.png` | 5 | 30 | 12.4 |
 | `PX_Slate Roof` | `tak_skiffer.png` | 280 | 1680 | 104.5 |
 | `PX_Stone` | `mursten.png` | 263 | 2492 | 1252.4 |
 | `PX_Stone Mossy` | `stone_wall_mossy_small.png` | 5 | 40 | 1237.8 |
-| `PX_Terracotta Roof` | `tak_tegel.png` | 322 | 1932 | 131.9 |
-| `PX_Tudor Plaster` | `puts.png` | 68 | 408 | 862.2 |
+| `PX_Terracotta Roof` | `tak_tegel.png` | 330 | 1980 | 269.9 |
+| `PX_Tudor Plaster` | `puts.png` | 69 | 414 | 939.1 |
+| `PX_Vatten` | `vatten.png` | 1 | 6 | 742.2 |
 | `PX_Window Bright` | `window_narrow.png` | 2 | 12 | 5.2 |
 | `PX_Window Warm` | `window_four_pane.png` | 14 | 84 | 34.4 |
-| `PX_Wood` | `virke.png` | 71 | 490 | 244.2 |
-| `PX_Wood Beam` | `virke_balk.png` | 95 | 586 | 425.6 |
+| `PX_Wood` | `virke.png` | 66 | 460 | 90.1 |
+| `PX_Wood Beam` | `virke_balk.png` | 91 | 562 | 362.4 |
+| `PX_Wood.001` | `ram.png` | 0 | 0 | 0.0 |
 | `Sign_Text` | `**ingen bild**` | 0 | 0 | 0.0 |
 
-Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 34 material i filen står med.
+Objekt utan platta alls (materialet saknar bildtextur) räknas inte i tabellen ovan; alla 38 material i filen står med.

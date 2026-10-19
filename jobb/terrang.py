@@ -30,6 +30,7 @@ from mathutils import Matrix, Vector
 RIDGE_SPAN = 78.0          # world x from -39 to 39; the village itself is 44 m
 STEP = 0.9                 # every height is quantised to this, so the crest reads as voxel steps
 CELL = 1.3                 # terrain cell: mountains are a heightfield, not a wall of boxes
+MTN_SCALE = 0.62           # Alex 19/10: "berget blev en smula för högt" - one knob for the whole range
 STEP_MTN = 1.8             # terrace height: at 0.9 the steps vanished at render scale and the slope read
                            # as smooth low-poly next to voxel houses (measured)
 CREST_BAND = 2.6           # the top of a column is bare rock; below it is moss/vegetation
@@ -203,7 +204,7 @@ def height_at(x: float, y: float, x0: float = -48.0, x1: float = 48.0,
         if d2 < 9.0:
             h = max(h, ph * math.exp(-d2))
     ridge = 1.0 - abs(2.0 * _fbm(x * 0.055, y * 0.055, 17) - 1.0)
-    h *= 0.72 + 0.55 * ridge
+    h *= (0.72 + 0.55 * ridge) * MTN_SCALE
     h += (2.2 * _fbm(x * 0.22, y * 0.22, 91) - 1.0) * 1.1
     return max(0.0, h) * _envelope(x, y, x0, x1, y0, y1)
 
