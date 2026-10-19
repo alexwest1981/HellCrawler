@@ -156,6 +156,28 @@ func _init() -> void:
 		"penseln rör inte fiender — en fiende hör till en ruta",
 		"%d -> %d" % [strider_före, strider_efter])
 
+	# 6. TOM RUTA (M170). Alex: *"skall man kunna plocka bort både golv och vägg, så man ser skybox
+	#    utanför halvväggen"*. Tom = varken golv eller vägg, och inget får stå kvar på rutan.
+	var ft2 := MapIo.blank("stage_01", 0, 9, 7)
+	ft2.tiles[3][4] = Dungeon.TOM
+	var dt := MapIo.to_dict(ft2)
+	check(str(dt["tiles"][3])[4] == MapIo.TOM_CH, "tom ruta skrivs som mellanslag",
+		"[%s]" % str(dt["tiles"][3]))
+	var tillbaka2 := MapIo.from_dict(dt, "stage_01", 0)
+	check(tillbaka2.tiles[3][4] == Dungeon.TOM, "och läses tillbaka som tom")
+	check(not tillbaka2.is_floor_at(Vector2i(4, 3)), "en tom ruta är inte golv")
+	check(tillbaka2.tiles[3][4] != Dungeon.WALL, "och inte vägg — det är hela skillnaden mot berg")
+
+	editor._sätt_verktyg("ruta", "tom")
+	check(editor.ruta_mark == Dungeon.TOM, "T väljer tom ruta")
+	var tomruta: Vector2i = g[3]
+	MapIo.sätt_täcke(editor.floor, "gräs", tomruta)
+	MapIo.sätt_rekvisita(editor.floor, "trälåda", tomruta)
+	editor._måla(tomruta)
+	check(editor.floor.tiles[tomruta.y][tomruta.x] == Dungeon.TOM, "klicket gör rutan tom")
+	check(MapIo.täcke_vid(editor.floor, tomruta).is_empty(), "täcket togs bort från hålet")
+	check(MapIo.rekvisita_vid(editor.floor, tomruta).is_empty(), "och rekvisitan")
+
 	print("")
 	print("=== %d kontroller, %d fel ===" % [checks, fails])
 	quit(1 if fails > 0 else 0)

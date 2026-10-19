@@ -390,6 +390,13 @@ func _place(p: Vector2i) -> String:
 			floor.ytor.erase("%d,%d" % [p.x, p.y])
 			if ruta_mark == Dungeon.WALL or ruta_mark == Dungeon.HALVVÄGG:
 				MapIo.ta_bort_täcke(floor, p)     # berg och halvvägg bär inget täcke
+			if ruta_mark == Dungeon.TOM:
+				# En tom ruta bär ingenting: ingen rekvisita, inget täcke, ingen dörr. Att lämna kvar
+				# dem gav osynliga saker som `validate` sedan klagade på.
+				MapIo.ta_bort_täcke(floor, p)
+				MapIo.ta_bort_rekvisita(floor, p)
+				MapIo.ta_bort_dörr(floor, p)
+				_remove_node_at(p)
 		"täcke":
 			var ft := MapIo.sätt_täcke(floor, täcke_art, p)
 			if not ft.is_empty():
@@ -737,6 +744,10 @@ func _bygg_palett() -> void:
 	var halv := _palett_knapp(_knapp("Halvvägg", "låg vägg: man ser över den men kan inte gå igenom (H)",
 		_sätt_verktyg.bind("ruta", "halvvägg")))
 	halv.add_theme_color_override("font_color", Color(0.72, 0.76, 0.84))
+	# TOM (M170): varken golv eller vägg — inget ritas, så man ser bakgrunden utanför en halvvägg.
+	var tom := _palett_knapp(_knapp("Tom  (hål)", "varken golv eller vägg: inget ritas, man ser bakgrunden (T)",
+		_sätt_verktyg.bind("ruta", "tom")))
+	tom.add_theme_color_override("font_color", Color(0.62, 0.58, 0.70))
 	# MER AREA (M160): vid kanten tar kartan slut och resten är svart. Knappen öppnar storleksrutan
 	# förifylld med dagens mått, så man skriver hur mycket man vill lägga till.
 	var utoka := _knapp("Lägg till area   (N)", "våningen växer: det du ritat ligger kvar, nya rutor är berg",
@@ -932,8 +943,9 @@ func _sätt_verktyg(typ: String, vad := "") -> void:
 	verktyg = typ
 	match typ:
 		"ruta":
-			ruta_mark = (Dungeon.HALVVÄGG if vad == "halvvägg"
-				else (Dungeon.WALL if vad == "vägg" else Dungeon.FLOOR))
+			ruta_mark = (Dungeon.TOM if vad == "tom"
+				else (Dungeon.HALVVÄGG if vad == "halvvägg"
+					else (Dungeon.WALL if vad == "vägg" else Dungeon.FLOOR)))
 		"täcke":
 			täcke_art = vad
 		"nod":
@@ -955,13 +967,13 @@ func _sätt_verktyg(typ: String, vad := "") -> void:
 ## Knapparnas turordning i `_palett_knappar`, på ETT ställe: valj, golv, vägg, noderna, temats ruta,
 ## materialen, rekvisitan. Nya sektioner läggs i paletten och räknas här.
 func _palett_index() -> Dictionary:
-	var i_nod := 4                     # valj, golv, vägg, halvvägg
+	var i_nod := 5                     # valj, golv, vägg, halvvägg, tom
 	var i_mat_tema := i_nod + NODE_TOOLS.size()
 	var i_mat := i_mat_tema + 1
 	var i_rekv := i_mat + material_lista.size()
 	var i_fiende := i_rekv + rekvisita_arter.size()
 	var i_täcke := i_fiende + _fiendelista().size()
-	return {"valj": 0, "golv": 1, "vagg": 2, "halv": 3, "nod": i_nod, "mat_tema": i_mat_tema,
+	return {"valj": 0, "golv": 1, "vagg": 2, "halv": 3, "tom": 4, "nod": i_nod, "mat_tema": i_mat_tema,
 		"mat": i_mat, "rekv": i_rekv, "fiende": i_fiende, "täcke": i_täcke}
 
 
@@ -972,7 +984,8 @@ func _markera_verktyg() -> void:
 		index = int(ix["valj"])
 	elif verktyg == "ruta":
 		index = (int(ix["golv"]) if ruta_mark == Dungeon.FLOOR
-			else (int(ix["vagg"]) if ruta_mark == Dungeon.WALL else int(ix["halv"])))
+			else (int(ix["vagg"]) if ruta_mark == Dungeon.WALL
+				else (int(ix["halv"]) if ruta_mark == Dungeon.HALVVÄGG else int(ix["tom"]))))
 	elif verktyg == "täcke":
 		index = int(ix["täcke"]) + MapIo.TÄCKEN.find(täcke_art)
 	elif verktyg == "nod":
@@ -1120,6 +1133,8 @@ func _bygg_3d() -> void:
 	for y in range(floor.h):
 		for x in range(floor.w):
 			var p := Vector2i(x, y)
+			if floor.tiles[y][x] == Dungeon.TOM:
+				continue                 # inget ritas här (M170): bakgrunden syns genom hålet
 			var är_golv := floor.is_floor_at(p)
 			var tex := golv_tex if är_golv else vägg_tex
 			if floor.ytor.has("%d,%d" % [x, y]):
@@ -1383,6 +1398,8 @@ const FÄRG_GOLV := Color(0.31, 0.33, 0.39)
 const FÄRG_VÄGG := Color(0.085, 0.09, 0.11)
 ## Halvväggen ska synas som en egen sorts mur i planvyn — mellan golv och vägg i ljushet.
 const FÄRG_HALVVÄGG := Color(0.30, 0.33, 0.42)
+## Tom ruta: mörkare än väggen, så ett hål i våningen syns som ett hål och inte som en mur.
+const FÄRG_TOM := Color(0.03, 0.03, 0.05)
 ## Gräset i förhandsvisningen: byns eget bladmesh (M168), samma som `main.gd` använder.
 const GRÄS_MESH := "res://assets/by/quaternius/Grass_Common_Tall.gltf"
 const GRÄS_TEX := "res://assets/by/quaternius/Grass_pixel.png"
@@ -1400,7 +1417,8 @@ func _rita_plan(c: Control) -> void:
 			var r := _ruta_rect(p)
 			# HALVVÄGG (M166) ligger mitt emellan: man ser den som en ljusare mur, inte som takhög vägg.
 			var färg := (FÄRG_GOLV if golv else
-				(FÄRG_HALVVÄGG if floor.tiles[y][x] == Dungeon.HALVVÄGG else FÄRG_VÄGG))
+				(FÄRG_HALVVÄGG if floor.tiles[y][x] == Dungeon.HALVVÄGG
+					else (FÄRG_TOM if floor.tiles[y][x] == Dungeon.TOM else FÄRG_VÄGG)))
 			if not id.is_empty():
 				# materialet syns som sin EGEN färg: en överstyrd ruta ska gå att känna igen utan
 				# att man byter till texturvyn
@@ -1833,7 +1851,8 @@ func _måla(p: Vector2i) -> void:
 		status = "%s på (%d,%d)" % [nod_kind, p.x, p.y]
 	elif verktyg == "ruta":
 		var vad := ("halvvägg" if ruta_mark == Dungeon.HALVVÄGG
-			else ("vägg" if ruta_mark == Dungeon.WALL else "golv"))
+			else ("tom" if ruta_mark == Dungeon.TOM
+				else ("vägg" if ruta_mark == Dungeon.WALL else "golv")))
 		status = "%s på %s" % [vad, _antal_text(p, lyckade)]
 	elif verktyg == "material":
 		status = "%s på %s" % [yta_material if not yta_material.is_empty() else "temats ruta",
@@ -1919,6 +1938,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		_sätt_pensel(pensel_storlek - 1)
 	elif key == KEY_BRACKETRIGHT:
 		_sätt_pensel(pensel_storlek + 1)
+	elif key == KEY_T:
+		_sätt_verktyg("ruta", "tom")
 	elif key == KEY_H:
 		_sätt_verktyg("ruta", "halvvägg")
 	elif key == KEY_X or key == KEY_BACKSPACE:
@@ -2356,7 +2377,8 @@ func _pensel_text() -> String:
 	match verktyg:
 		"ruta":
 			return "pensel: %s%s" % ["halvvägg" if ruta_mark == Dungeon.HALVVÄGG
-				else ("vägg" if ruta_mark == Dungeon.WALL else "golv"), storlek]
+				else ("tom" if ruta_mark == Dungeon.TOM
+					else ("vägg" if ruta_mark == Dungeon.WALL else "golv")), storlek]
 		"nod":
 			return "pensel: %s" % nod_kind
 		"material":

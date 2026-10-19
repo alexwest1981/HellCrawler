@@ -5988,6 +5988,8 @@ class MapView extends Control:
 				# mörkret tills man öppnat och gått in — annars hade kartan skvallrat om bossen.
 				if not run.explore.sedd(p):
 					continue
+				if f.tiles[y][x] == Dungeon.TOM:
+					continue             # tom ruta syns inte på kartan heller
 				var col := Color(0.15, 0.15, 0.20) if f.is_floor_at(p) else Color(0.42, 0.45, 0.56)
 				draw_rect(Rect2(origin + Vector2(x, y) * cell, Vector2(cell, cell)), col)
 		# VÄGARNA MELLAN RUMMEN (M119): en linje längs varje koppling i våningsdatan, ritad UNDER
@@ -6522,6 +6524,8 @@ func _build_world() -> void:
 	for y in f.h:
 		for x in f.w:
 			var p := Vector2i(x, y)
+			if f.tiles[y][x] == Dungeon.TOM:
+				continue                 # tom ruta (M170): inget golv, ingen vägg, inget tak — skybox
 			if f.tiles[y][x] == Dungeon.HALVVÄGG:
 				halva.append(p)
 			elif not f.is_floor_at(p):

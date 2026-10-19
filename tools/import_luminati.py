@@ -32,8 +32,11 @@ TACKE = {
     "grass": "gräs", "grass_flowers": "gräs", "grass_dark": "mossa", "sand": "småsten",
     "farmland": "småsten", "dirt": "småsten", "dirt_path": "småsten", "riverbed": "vattenpöl",
 }
-GOLV, VAGG, HALV = ".", "#", "~"
+GOLV, VAGG, HALV, TOM = ".", "#", "~", " "
 STRIDER = 6          # samma tak som generatorn: encounters_per_floor 6
+# Bossen måste stå i banans `bosses`-lista och finnas i bestiariet, annars går våningen inte att spela
+# (`test_mapio` kontrollerar varje karta). Sätts med --boss om banan ska ha en annan.
+BOSS = "hollow_choir"
 
 
 def läs(sökväg: Path) -> dict:
@@ -43,7 +46,7 @@ def läs(sökväg: Path) -> dict:
     return nivå
 
 
-def bygg(nivå: dict, stage_id: str, tema: str, frö: int) -> tuple[dict, list[str]]:
+def bygg(nivå: dict, stage_id: str, tema: str, frö: int, boss: str = BOSS) -> tuple[dict, list[str]]:
     """Returnerar (vår karta, lista med saker som inte kunde följa med)."""
     bortfall: list[str] = []
     legend = nivå["legend"]
@@ -65,7 +68,7 @@ def bygg(nivå: dict, stage_id: str, tema: str, frö: int) -> tuple[dict, list[s
             tecken = rader[y][x] if x < len(rader[y]) else " "
             ruta = legend.get(tecken, {})
             if ruta.get("void"):
-                rad += VAGG
+                rad += TOM          # Luminatis void är vår tomma ruta: inget golv, ingen vägg
                 continue
             vatten = bool(ruta.get("water"))
             # Vatten är inte golv att gå på i Luminati; här blir det golv med ett vattentäcke, eftersom
@@ -109,12 +112,14 @@ def bygg(nivå: dict, stage_id: str, tema: str, frö: int) -> tuple[dict, list[s
     slump = random.Random(frö)
     avstånd = {p: d for p, d in nåbar.items()}
     längst = sorted(golv, key=lambda p: -avstånd[p])
-    boss = längst[0]
-    spade = next((p for p in längst[1:] if abs(p[0] - boss[0]) + abs(p[1] - boss[1]) > 3), längst[-1])
-    kandidater = [p for p in golv if p not in (start, boss, spade)]
+    boss_ruta = längst[0]
+    spade = next((p for p in längst[1:]
+                  if abs(p[0] - boss_ruta[0]) + abs(p[1] - boss_ruta[1]) > 3), längst[-1])
+    kandidater = [p for p in golv if p not in (start, boss_ruta, spade)]
     slump.shuffle(kandidater)
     strider = kandidater[:STRIDER]
-    noder = [{"kind": "start", "pos": list(start)}, {"kind": "boss", "pos": list(boss)},
+    noder = [{"kind": "start", "pos": list(start)},
+             {"kind": "boss", "pos": list(boss_ruta), "enemy_id": boss},
              {"kind": "shovel", "pos": list(spade)}]
     noder += [{"kind": "encounter", "pos": list(p)} for p in strider]
 
@@ -178,10 +183,11 @@ def main() -> None:
     ap.add_argument("--id", default="luminati", help="stage-id (skrivs som <id>_0.json)")
     ap.add_argument("--tema", default="grotta", help="tema för våningen (grotta, krypta, tunnel …)")
     ap.add_argument("--frö", type=int, default=1, help="frö för var striderna hamnar")
+    ap.add_argument("--boss", default=BOSS, help="bossens enemy_id (måste finnas i bestiariet)")
     ap.add_argument("--kolla", action="store_true", help="kör bara kontrollerna")
     a = ap.parse_args()
 
-    karta, bortfall = bygg(läs(a.fil), a.id, a.tema, a.frö)
+    karta, bortfall = bygg(läs(a.fil), a.id, a.tema, a.frö, a.boss)
     fel = kolla(karta)
     golv = sum(r.count(GOLV) for r in karta["tiles"])
     print(f"{a.fil.name}: {len(karta['tiles'][0])}×{len(karta['tiles'])} rutor, {golv} golv, "
@@ -207,7 +213,7 @@ def main() -> None:
         stag.write_text(json.dumps({
             "id": a.id, "name": a.id.capitalize(), "theme": a.tema, "floors": 1,
             "difficulty": 1, "tiers": [1], "encounters_per_floor": STRIDER,
-            "boss": "hollow_choir", "bosses": [], "final_boss": "", "regel": "",
+            "boss": a.boss, "bosses": [a.boss], "final_boss": "", "regel": "",
             "floor_themes": [a.tema], "gold_bonus": 0.0, "xp_bonus": 0.0,
         }, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"  skrev {stag} (behövs för att spelet ska hitta banan)")

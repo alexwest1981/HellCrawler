@@ -21,6 +21,11 @@ const FLOOR := 1
 ## helvetets öppna vidder."* En halvvägg är som en vägg för gången (man kan inte gå igenom) men låg nog
 ## att kameran ser över den, och den får inget tak.
 const HALVVÄGG := 2
+## TOM (M170). Alex: *"Jag behöver att det fungerar med halvvägg ut mot kant, alltså skall man kunna
+## plocka bort både golv och vägg, så man ser skybox utanför halvväggen."* En tom ruta är varken golv
+## eller vägg: inget att gå på, ingen mur, inget tak — bara bakgrunden. Den stänger gången som en vägg
+## (`is_floor_at` är falsk), men syns inte.
+const TOM := 3
 
 ## Våningens yta i rutor — 4x den gamla vid varje svårighetsgrad.
 static func _yta(difficulty: int) -> Vector2i:

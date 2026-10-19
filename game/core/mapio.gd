@@ -18,6 +18,8 @@ const WALL_CH := "#"
 const FLOOR_CH := "."
 ## Halvväggens tecken i kartfilen. Egen rad i BÅDA riktningarna (skrivs och läses), som allt annat.
 const HALV_CH := "~"
+## Tom ruta: ett mellanslag i kartfilen. Inget ritas där — man ser himlen/bakgrunden.
+const TOM_CH := " "
 
 ## TÄCKEN (M166): mark som ligger ÖVER golvet men under allt annat — gräs, mossa, grus, spindelnät,
 ## vattenpöl. Bilderna är de som redan finns i assets/props; här är de liggande, inte stående.
@@ -175,11 +177,12 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 		var row: Array[int] = []
 		for x in f.w:
 			var ch := rad[x]
-			if ch != WALL_CH and ch != FLOOR_CH and ch != HALV_CH:
+			if ch != WALL_CH and ch != FLOOR_CH and ch != HALV_CH and ch != TOM_CH:
 				push_error("kartan %s_%d: okänt tecken '%s' på rad %d" % [stage_id, floor_index, ch, y])
 				return null
-			row.append(Dungeon.HALVVÄGG if ch == HALV_CH
-				else (Dungeon.FLOOR if ch == FLOOR_CH else Dungeon.WALL))
+			row.append(Dungeon.TOM if ch == TOM_CH
+				else (Dungeon.HALVVÄGG if ch == HALV_CH
+					else (Dungeon.FLOOR if ch == FLOOR_CH else Dungeon.WALL)))
 		f.tiles.append(row)
 	# Öppna rum: [x, y, bredd, höjd] i rutor — taket byggs inte där och himlen läggs över (se
 	# main._öppen_himmel). Ett slagfält under öppen himmel är alltså något man RITAR in, inte något
@@ -246,8 +249,9 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 	for y in f.h:
 		var rad := ""
 		for x in f.w:
-			rad += (HALV_CH if f.tiles[y][x] == Dungeon.HALVVÄGG
-				else (FLOOR_CH if f.tiles[y][x] == Dungeon.FLOOR else WALL_CH))
+			rad += (TOM_CH if f.tiles[y][x] == Dungeon.TOM
+				else (HALV_CH if f.tiles[y][x] == Dungeon.HALVVÄGG
+					else (FLOOR_CH if f.tiles[y][x] == Dungeon.FLOOR else WALL_CH)))
 		rader.append(rad)
 	var noder := []
 	for n in f.nodes:
