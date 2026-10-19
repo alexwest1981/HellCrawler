@@ -107,6 +107,12 @@ var _vy: SubViewport               ## spelvyns ruta: 3D:n ritas i FÖNSTRETS upp
 ## fortfarande i logiska 480x270-rutor och delas med den här när något ska bli skärmpixlar.
 var _skala := 1.0
 var _vy_korg: SubViewportContainer ## ... och dess plats i fönstret (centrerad, NEAREST)
+## HD-LAGRET (M173). Byns panorama är målad i 3232×1312 och spelets värld ritas i 480×270 som skalas
+## upp 4×. Panoramat genom den vägen blir en 4,9× nerskalning (pixelgröt). Alex: *"Kör hd"*. Därför
+## ritas byn i ett EGET lager i fönstrets pixlar, 1:1 ur bilden, UNDER 480-vyn — och by-vyn hoppar då
+## över bilden och ritar bara listen, etiketterna och figuren ovanpå.
+var by_hd: TextureRect = null
+var _hd_lager: CanvasLayer = null
 var _vy_lager: CanvasLayer         ## lagret spelvyn ligger i (en Control under en Node3D ritas inte)
 var _runt: CanvasLayer             ## HUD:en i ytan RUNT vyn, i fönstrets upplösning (skarp text)
 var hud_ram: HudRam                ## ramen i marginalen (M36): sten och metall, ritad i kod
@@ -3474,12 +3480,26 @@ func _på_bana(stage_id: String) -> void:
 
 ## Rita om skalet. Panelen som hör till läget visas, de andra göms — och 3D-vyn ritas bara i en
 ## körning, eftersom det inte finns någon våning att visa förrän man valt en.
+## HD-lagrets ruta: samma formel som vyn ritar panoramat med, gånger fönsterskalan.
+func _placera_hd() -> void:
+	if by_hd == null or not by_hd.visible or by_view == null:
+		return
+	var skala := float(get_viewport().get_visible_rect().size.y) / 270.0
+	var ruta := by_view.hd_ruta(skala)
+	by_hd.position = ruta.position
+	by_hd.size = ruta.size
+
+
 func _refresh_shell() -> void:
 	# VYN LÄGGS OM EFTER LÄGET (M113): remsan finns bara i en körning, så vyns ruta beror på `shell`.
 	# Utan det här blev byn kvar i körningens ruta (med remsans plats tom under sig).
 	_placera_vy()
 	var i_körning: bool = shell == "körning"
 	by_view.visible = shell == "hem"
+	if by_hd != null:
+		by_view.hd_aktiv = shell == "hem" and by_hd.texture != null
+		by_hd.visible = by_view.hd_aktiv
+		_placera_hd()
 	# CRT-LAGRET ÄR RAKT ÖVER BYN (M123). Alex: *"Bort med ... CRT-kurvaturen/svart i hörnen/
 	# sträckningen i sidled."* Byn ligger kant i kant i hela fönstret, och där blir välvningen som
 	# störst: uv hamnade utanför bilden och kanten skars av i svart. Lagret är kvar (skanlinjer och
@@ -5582,6 +5602,9 @@ func _skaka_vyn(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	# HD-BYN följer vyns panorering varje bildruta (den glider mellan platser, så rutan ändras).
+	if by_hd != null and by_hd.visible:
+		_placera_hd()
 	# KUGGHJULET (M139) syns när startmenyn INTE är framme, och följer fönstret: det ska gå att nå
 	# hjältvalet var som helst efter starten (Alex), och en knapp som ligger kvar i hörnet medan
 	# menyn är uppe vore en knapp ovanpå menyn.
@@ -9223,12 +9246,25 @@ func _bygg_vy() -> void:
 	_vy_korg.gui_input.connect(_vy_klick)
 	# I ett eget lager, inte direkt under scenens rot: en Control som hänger under en Node3D ritas
 	# inte (den har ingen canvas) — mätt: hela spelvyn blev en tom bakgrundsfärg.
+	# BYNS HD-LAGER: under allt annat (layer -1), bara synligt i byskalet.
+	_hd_lager = CanvasLayer.new()
+	_hd_lager.layer = -1
+	by_hd = TextureRect.new()
+	by_hd.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	by_hd.stretch_mode = TextureRect.STRETCH_SCALE
+	by_hd.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	by_hd.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	by_hd.visible = false
+	_hd_lager.add_child(by_hd)
+	add_child(_hd_lager)
 	_vy_lager = CanvasLayer.new()
 	_vy_lager.layer = 0
 	_vy_lager.add_child(_vy_korg)
 	add_child(_vy_lager)
 	_placera_vy()
 	get_viewport().size_changed.connect(_placera_vy)
+	if ResourceLoader.exists(VillageView.BILD):
+		by_hd.texture = load(VillageView.BILD)
 	_runt = CanvasLayer.new()
 	_runt.layer = 1
 	add_child(_runt)

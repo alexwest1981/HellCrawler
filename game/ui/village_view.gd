@@ -174,6 +174,9 @@ var _scen3d: ByScen = null
 var _gata_px := 0.0                   ## gatans rad i KONSTENS px (scenen mäter därifrån)
 var _bak_tex: Texture2D = null        ## bilden med husen borttagna, läst en gång
 ## Kamerans sidled/höjdled i vyns px. Följer pekaren (man ser sig om i byn); `kamerapan=` låser den.
+## HD-LAGRET (M173): när main ritar panoramat i fönstrets pixlar (1:1) hoppar vyn över bilden och
+## ritar bara listen, etiketterna och figuren. Sätts av main när skalet är "hem".
+var hd_aktiv := false
 var _kamerapan := Vector2.ZERO
 var _kamera_låst := false
 var textlager: UiText                ## orden, ritade i FÖNSTRETS upplösning (se ui_text.gd)
@@ -756,7 +759,7 @@ func _draw() -> void:
 		# 3D-SCENEN (M122): bakgrund och hus ritas i den inre vyn, på var sitt djup, och den ritas
 		# 1:1 här — en pixel i den inre vyn är en pixel i vyn, som skalas till skärmen med heltalet.
 		draw_texture_rect(_scen3d.textur(), Rect2(Vector2.ZERO, vp), false)
-	elif byscen() != null:
+	elif byscen() != null and not hd_aktiv:
 		_bilden(vp, byscen())
 	else:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
@@ -862,6 +865,17 @@ func _vy() -> Vector2:
 ## (BILDENS_GATA). Då fyller bilden hela höjden kant i kant.
 func marklinje() -> float:
 	return _vy().y * 0.78
+
+## Panoramat i FÖNSTRETS pixlar. `skala` = fönsterhöjd / 270 (4 vid 1080p). Samma formel som `_bilden`
+## använder i vyn, bara gånger skalan — annars glider HD-bilden i sidled mot markören och listen.
+func hd_ruta(skala: float) -> Rect2:
+	var bild := byscen()
+	if bild == null:
+		return Rect2()
+	var mål := bild_storlek()
+	var y := marklinje() - mål.y * BILDENS_GATA / 100.0
+	return Rect2(-_pan * skala, y * skala, mål.x * skala, mål.y * skala)
+
 
 ## Etikettlistens överkant: den sista fjortondelen av höjden. Listen är ett överlägg på scenen,
 ## inte ett band under den.
