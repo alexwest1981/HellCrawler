@@ -663,6 +663,7 @@ func _bygg_palett() -> void:
 	ytor.columns = 4
 	ytor.add_theme_constant_override("h_separation", 3)
 	ytor.add_theme_constant_override("v_separation", 3)
+	_vikbar_rubrik("MATERIAL  (%d)" % material_lista.size(), ytor)
 	palett_box.add_child(ytor)
 	for id in material_lista:
 		var b := _palett_knapp(_knapp("", str(id).replace("material/", ""),
@@ -675,11 +676,11 @@ func _bygg_palett() -> void:
 	# REKVISITAN (M150): det man strör ut — stenar, grus, tunnor, burar, svampar. Samma ikonrutnät som
 	# materialen, ur mappen spelets dekor läser, med artnamnet som hovringstext: 94 arter får inte bli
 	# 94 rader text.
-	_verktygs_rubrik("REKVISITA  (%d)" % rekvisita_arter.size())
 	var prylar := GridContainer.new()
 	prylar.columns = 4
 	prylar.add_theme_constant_override("h_separation", 3)
 	prylar.add_theme_constant_override("v_separation", 3)
+	_vikbar_rubrik("REKVISITA  (%d)" % rekvisita_arter.size(), prylar)
 	palett_box.add_child(prylar)
 	for art in rekvisita_arter:
 		var b := _palett_knapp(_knapp("", str(art), _sätt_verktyg.bind("rekvisita", art)), prylar)
@@ -729,6 +730,25 @@ func _sätt_vy(v: String) -> void:
 func _markera_vy() -> void:
 	for nyckel in _vy_knappar:
 		(_vy_knappar[nyckel] as Button).set_pressed_no_signal(nyckel == vy)
+
+
+## RUBRIK SOM VIKER IHOP SIN RUTA (M155). Referenseditorn har korta kategorilistor; vår rekvisita är
+## 93 ikoner, och då ligger allt annat under vikningen. Klick på rubriken fäller ut/ihop rutnätet —
+## palettens index räknas på knapparnas ordning, inte på vad som syns, så inget flyttar sig.
+func _vikbar_rubrik(text: String, box: Control) -> Button:
+	var knapp := Button.new()
+	knapp.text = "▾ %s" % text
+	knapp.flat = true
+	knapp.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	knapp.add_theme_font_size_override("font_size", 10)
+	knapp.add_theme_color_override("font_color", Color(0.66, 0.7, 0.78))
+	knapp.custom_minimum_size.y = 14
+	knapp.focus_mode = Control.FOCUS_NONE
+	knapp.pressed.connect(func():
+		box.visible = not box.visible
+		knapp.text = ("▾ " if box.visible else "▸ ") + text)
+	palett_box.add_child(knapp)
+	return knapp
 
 
 func _verktygs_rubrik(text: String) -> void:
