@@ -60,6 +60,8 @@ extends Control
 signal vald(skepp: String)
 
 const BILD := "res://assets/ui/byn.png"
+## Byn som MÅLAD 2.5D-scen (M172). False = Alex' panorama ritas, 3D-scenen är urkopplad.
+const BY3D := false
 ## Figuren som går i byn (och på kartan): en av HJÄLTARNA ur Alex' hjälteark (`game/images/heroes.jpeg`,
 ## klippta av `tools/gen_hjalte.py`, som också sparar namnen i `assets/ui/hjalte.json`).
 ## HJÄLTEN MAN VALDE (M138): figuren är en MARKÖR, och valet (i huvudmenyn) styr både byn och kartan.
@@ -279,6 +281,11 @@ func byscen() -> Texture2D:
 ## SubViewport i UPDATE_ALWAYS hade ritat 1919 meshar per bildruta i fängelsehålan också — samma
 ## kostnad som `_process`-spärren i den här filen finns för att undvika.
 func _bygg_by3d(vy: Vector2) -> void:
+	# 2.5D HD (M172). Alex: *"2.5D HD. Kör"* — byn ritas som sin målade bild (assets/ui/byn.png,
+	# 3232×1312), inte som en Blender-scen i en SubViewport. 3D-vägen ligger kvar i filen och tänds
+	# igen genom att sätta BY3D till true; ingenting raderas.
+	if not BY3D:
+		return
 	var mal := Vector2i(int(round(vy.x * maxf(1.0, pixlar))), int(round(vy.y * maxf(1.0, pixlar))))
 	if (_by3d_vp != null and is_instance_valid(_by3d_vp) and _by3d_vp.size == mal):
 		if _by3d != null and is_instance_valid(_by3d):
@@ -531,6 +538,16 @@ func bild_storlek() -> Vector2:
 	var bild := byscen()
 	if bild == null or bild.get_height() <= 0:
 		return vp
+	# 2.5D HD (M172): utan 3D-ruta finns ingen SubViewport att mäta mot, och bilden ska fylla vyns
+	# HÖJD (panoramat är 3232×1312, alltså bredare än 16:9 — det är sidledes man går). Förut räknades
+	# storleken ur 3D-rutans heltalsskala, och då ritades bilden 1:1: 3232 px in i en 480 px-vy, vilket
+	# visade en förstorad urklippt fläck i stället för byn (mätt: vyn visade vävstugan, inte torget).
+	if not BY3D:
+		# Panoramat är ritat i 3232×1312 och visas i 665×270: en nerskalning på 4,9×. NEAREST kastar då
+		# fyra av fem pixlar och bilden läser som brus/moiré (mätt i skärmbilden). Linjär filtrering med
+		# mipmaps ger en mjuk, målad nerskalning — "HD"-känslan i en 480×270-vy.
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		return Vector2(vp.y * float(bild.get_width()) / float(bild.get_height()), vp.y)
 	var k := fönsterskala()
 	if _korg() == null:
 		return Vector2(vp.y * float(bild.get_width()) / float(bild.get_height()), vp.y)

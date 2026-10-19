@@ -249,6 +249,17 @@ func _initialize() -> void:
 	root.add_child(byvy)
 	byvy.visa(Meta.load_or_new(TEST_META), 1)
 	var nod: By3D = byvy.by3d()
+	# 2.5D HD (M172): 3D-byn är AVKOPPLAD (VillageView.BY3D = false), så den ska inte byggas alls.
+	# Provet mäter därför det som gäller nu — att ingenting byggs — och de gamla 3D-raderna hoppas över.
+	if not VillageView.BY3D:
+		check(nod == null, "3D-byn byggs inte när BY3D är av (2.5D-läget)", str(nod))
+		check(byvy.by3d_textur() == null, "och ingen 3D-textur ritas i vyn")
+		check(byvy.byscen() != null, "men byns målade bild finns",
+			str(byvy.byscen().get_size()) if byvy.byscen() != null else "null")
+		print("")
+		print("=== TOTALT (rök): %d kontroller, %d fel ===" % [checks, fails])
+		quit(1 if fails > 0 else 0)
+		return
 	check(nod != null, "by-vyn bygger 3D-byn (By3D) när den visas", "ui/village_view.gd -> ui/by_3d.gd")
 	check(nod != null and nod.by != null and nod.by.get_child_count() > 0,
 		"och byn.glb ligger i den", "%d noder" % (nod.by.get_child_count() if nod != null and nod.by != null else 0))
