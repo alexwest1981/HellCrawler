@@ -88,6 +88,15 @@ var rekvisita_arter: Array = []      ## arterna i assets/props (namngivna och de
 var rekvisit_art := ""               ## vald rekvisit i paletten
 var fiende_art := ""                 ## vald fiende: paletten "FIENDER" ställer ut en strid med den
 var dörr_typ := "trä"                ## vald dörrtyp i paletten (M161)
+var täcke_art := "gräs"              ## valt täcke (M166): mark man målar över golvet
+## PENSELN (M166). Referenseditorn har `brushSize` 1–9 och kvadratisk/rund pensel (läst ur dess bundle:
+## `toolOptions.brushSize`, `brushShape`), och det är samma sak man vill ha när man målar gräs över ett
+## helt rum i stället för att klicka ruta för ruta. Gäller rutor, material och täcken — inte noder,
+## fiender och dörrar, som hör till EN ruta.
+var pensel_storlek := 1
+var pensel_form := "ruta"            ## "ruta" eller "rund"
+var _pensel_etikett: Button = null
+var _pensel_form_knapp: Button = null
 
 ## Kartans mått. `zoom` är en faktor ovanpå den inpassning som ryms i vyn, så fönsterbytet behåller
 ## den zoom man valt; `pan` är panoreringen i px och behålls likaså.
@@ -316,8 +325,15 @@ func _material_tex(id: String) -> Texture2D:
 	if _tex.has(key):
 		return _tex[key]
 	var tex: Texture2D = null
-	var p := "res://assets/tiles/%s.png" % id
-	if ResourceLoader.exists(p):
+	# `täcke/<art>` är inte ett material utan ett täcke (gräs, vatten, lava): bilden kan ligga i props
+	# eller i materialmappen, och `MapIo.täcke_textur` vet var. Då fungerar `_material_färg` också, och
+	# 2D-vyn färgar rutan ur bilden i stället för att gissa (M166).
+	var p := ""
+	if id.begins_with("täcke/"):
+		p = MapIo.täcke_textur(id.substr(6))
+	else:
+		p = "res://assets/tiles/%s.png" % id
+	if not p.is_empty() and ResourceLoader.exists(p):
 		tex = load(p)
 	_tex[key] = tex
 	return tex
@@ -372,6 +388,12 @@ func _place(p: Vector2i) -> String:
 			if ruta_mark == Dungeon.WALL:
 				_remove_node_at(p)             # en vägg kan inte bära en nod
 			floor.ytor.erase("%d,%d" % [p.x, p.y])
+			if ruta_mark == Dungeon.WALL or ruta_mark == Dungeon.HALVVÄGG:
+				MapIo.ta_bort_täcke(floor, p)     # berg och halvvägg bär inget täcke
+		"täcke":
+			var ft := MapIo.sätt_täcke(floor, täcke_art, p)
+			if not ft.is_empty():
+				return ft
 		"material":
 			if yta_material.is_empty():
 				floor.ytor.erase("%d,%d" % [p.x, p.y])
@@ -657,7 +679,9 @@ func _bygg_mitten() -> Control:
 	sidor.add_theme_constant_override("separation", 4)
 	v.add_child(sidor)
 	vy3d_korg = SubViewportContainer.new()
-	vy3d_korg.stretch = true
+	# stretch = false: vi sätter SubViewportens storlek själva i `_layout_duk()` (M158). Med stretch på
+	# varnar Godot för varje storlekssättning och gör den ogiltig — och då blev vyn 640×420 igen.
+	vy3d_korg.stretch = false
 	vy3d_korg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vy3d_korg.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vy3d_korg.custom_minimum_size = Vector2(340, 260)
@@ -709,11 +733,16 @@ func _bygg_palett() -> void:
 		_sätt_verktyg.bind("ruta", "vägg")))
 	vägg.icon = _tema_tex(floor.theme if floor != null else "", "wall")
 	vägg.add_theme_constant_override("icon_max_width", 18)
+	# HALVVÄGG (M166): låg nog att se över, hög nog att stänga gången. Knähög i spelet.
+	var halv := _palett_knapp(_knapp("Halvvägg", "låg vägg: man ser över den men kan inte gå igenom (H)",
+		_sätt_verktyg.bind("ruta", "halvvägg")))
+	halv.add_theme_color_override("font_color", Color(0.72, 0.76, 0.84))
 	# MER AREA (M160): vid kanten tar kartan slut och resten är svart. Knappen öppnar storleksrutan
 	# förifylld med dagens mått, så man skriver hur mycket man vill lägga till.
-	var utoka := _palett_knapp(_knapp("Lägg till area   (N)", "våningen växer: det du ritat ligger kvar, nya rutor är berg",
-		_oppna_storlek))
+	var utoka := _knapp("Lägg till area   (N)", "våningen växer: det du ritat ligger kvar, nya rutor är berg",
+		_oppna_storlek)
 	utoka.add_theme_color_override("font_color", FÄRG_GOLVKANT)
+	palett_box.add_child(utoka)
 	# DÖRRARNA (M161): tre slag, samma regel — låst tills koden är löst.
 	_verktygs_rubrik("DÖRRAR")
 	var dörrrad := HBoxContainer.new()
@@ -734,6 +763,34 @@ func _bygg_palett() -> void:
 			"tangent %d" % (i + 1), _sätt_verktyg.bind("nod", d["kind"])))
 		b.add_theme_color_override("font_color", d["färg"])
 	# FIENDEPALETTEN (M155): vad som ska spawna, inte bara "en strid". Samma ikonrutnät som rekvisitan.
+	# PENSELN (M166): samma kontroll som referenseditorns "Brush"-sektion — storlek 1–9 och kvadratisk
+	# eller rund. Ingen av knapparna är en pensel, så palettens index står stilla.
+	_verktygs_rubrik("PENSEL")
+	var penselrad := HBoxContainer.new()
+	penselrad.add_theme_constant_override("separation", 3)
+	palett_box.add_child(penselrad)
+	penselrad.add_child(_knapp("−", "mindre pensel   ([)", _pensel_mindre))
+	_pensel_etikett = _knapp("%d" % pensel_storlek, "penselns storlek i rutor   ([ ])", _pensel_större)
+	_pensel_etikett.custom_minimum_size = Vector2(30, 0)
+	penselrad.add_child(_pensel_etikett)
+	penselrad.add_child(_knapp("+", "större pensel   (])", _pensel_större))
+	_pensel_form_knapp = _knapp("ruta", "kvadratisk eller rund pensel", _växla_penselform)
+	penselrad.add_child(_pensel_form_knapp)
+	# TÄCKENA (M166): gräs, mossa, grus, spindelnät, pölar. Ligger på golvet, inte i gången.
+	var täckesgrid := GridContainer.new()
+	täckesgrid.columns = 3
+	täckesgrid.add_theme_constant_override("h_separation", 3)
+	täckesgrid.add_theme_constant_override("v_separation", 3)
+	_vikbar_rubrik("TÄCKEN  (%d)" % MapIo.TÄCKEN.size(), täckesgrid)
+	palett_box.add_child(täckesgrid)
+	# Namnen står på knapparna: "gräs", "vatten", "lava" är ord man letar efter, inte bilder man
+	# känner igen i 30 px (M166).
+	for art in MapIo.TÄCKEN:
+		var b := _palett_knapp(_knapp(str(MapIo.TÄCKE_NAMN.get(art, art)),
+			"måla %s på golvet — dra för att måla ett streck" % str(MapIo.TÄCKE_NAMN.get(art, art)),
+			_sätt_verktyg.bind("täcke", art)), täckesgrid)
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.custom_minimum_size = Vector2(72, 24)
 	_verktygs_rubrik("FIENDER  (%d)" % _fiendelista().size())
 	var fiender := GridContainer.new()
 	fiender.columns = 4
@@ -875,7 +932,10 @@ func _sätt_verktyg(typ: String, vad := "") -> void:
 	verktyg = typ
 	match typ:
 		"ruta":
-			ruta_mark = Dungeon.WALL if vad == "vägg" else Dungeon.FLOOR
+			ruta_mark = (Dungeon.HALVVÄGG if vad == "halvvägg"
+				else (Dungeon.WALL if vad == "vägg" else Dungeon.FLOOR))
+		"täcke":
+			täcke_art = vad
 		"nod":
 			nod_kind = vad
 		"material":
@@ -895,13 +955,14 @@ func _sätt_verktyg(typ: String, vad := "") -> void:
 ## Knapparnas turordning i `_palett_knappar`, på ETT ställe: valj, golv, vägg, noderna, temats ruta,
 ## materialen, rekvisitan. Nya sektioner läggs i paletten och räknas här.
 func _palett_index() -> Dictionary:
-	var i_nod := 3
+	var i_nod := 4                     # valj, golv, vägg, halvvägg
 	var i_mat_tema := i_nod + NODE_TOOLS.size()
 	var i_mat := i_mat_tema + 1
 	var i_rekv := i_mat + material_lista.size()
 	var i_fiende := i_rekv + rekvisita_arter.size()
-	return {"valj": 0, "golv": 1, "vagg": 2, "nod": i_nod, "mat_tema": i_mat_tema,
-		"mat": i_mat, "rekv": i_rekv, "fiende": i_fiende}
+	var i_täcke := i_fiende + _fiendelista().size()
+	return {"valj": 0, "golv": 1, "vagg": 2, "halv": 3, "nod": i_nod, "mat_tema": i_mat_tema,
+		"mat": i_mat, "rekv": i_rekv, "fiende": i_fiende, "täcke": i_täcke}
 
 
 func _markera_verktyg() -> void:
@@ -910,7 +971,10 @@ func _markera_verktyg() -> void:
 	if verktyg == "valj":
 		index = int(ix["valj"])
 	elif verktyg == "ruta":
-		index = int(ix["golv"]) if ruta_mark == Dungeon.FLOOR else int(ix["vagg"])
+		index = (int(ix["golv"]) if ruta_mark == Dungeon.FLOOR
+			else (int(ix["vagg"]) if ruta_mark == Dungeon.WALL else int(ix["halv"])))
+	elif verktyg == "täcke":
+		index = int(ix["täcke"]) + MapIo.TÄCKEN.find(täcke_art)
 	elif verktyg == "nod":
 		for i in NODE_TOOLS.size():
 			if NODE_TOOLS[i]["kind"] == nod_kind:
@@ -1025,12 +1089,37 @@ func _bygg_3d() -> void:
 			if är_golv:
 				m.size = Vector3(0.97, 0.14, 0.97)
 				b.position = Vector3(x + 0.5, -0.07, y + 0.5)
+			elif floor.tiles[y][x] == Dungeon.HALVVÄGG:
+				m.size = Vector3(1.0, 0.62, 1.0)
+				b.position = Vector3(x + 0.5, 0.31, y + 0.5)
 			else:
 				m.size = Vector3(1.0, 1.0, 1.0)
 				b.position = Vector3(x + 0.5, 0.5, y + 0.5)
 			b.mesh = m
 			b.material_override = _vy3d_material(tex)
 			vy3d_värld.add_child(b)
+	# TÄCKENA (M166): liggande bild strax över golvet.
+	for k in floor.täcken:
+		var bitar2: PackedStringArray = str(k).split(",")
+		if bitar2.size() != 2:
+			continue
+		var tex2 := _material_tex(_täcke_nyckel(str(floor.täcken[k])))
+		if tex2 == null:
+			continue
+		var tp: Vector2i = Vector2i(int(bitar2[0]), int(bitar2[1]))
+		var q2 := MeshInstance3D.new()
+		var plan2 := QuadMesh.new()
+		plan2.size = Vector2(1.0, 1.0)
+		q2.mesh = plan2
+		q2.rotation = Vector3(-PI / 2.0, 0, 0)
+		q2.position = Vector3(tp.x + 0.5, 0.045, tp.y + 0.5)
+		var m2 := StandardMaterial3D.new()
+		m2.albedo_texture = tex2
+		m2.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		m2.alpha_scissor_threshold = 0.35
+		m2.cull_mode = BaseMaterial3D.CULL_DISABLED
+		q2.material_override = m2
+		vy3d_värld.add_child(q2)
 	# DÖRRARNA (M161) som en platta i gången, i dörrtypens färg — man ser var man inte kommer igenom.
 	for d in floor.dörrar:
 		var db := MeshInstance3D.new()
@@ -1190,6 +1279,7 @@ func _rita_duk(c: Control) -> void:
 		_rita_rutor(c)
 	else:
 		_rita_plan(c)
+	_rita_täcken(c)
 	_rita_rekvisita(c)
 	_rita_dörrar(c)
 	_rita_kant(c)
@@ -1239,6 +1329,8 @@ func _rita_duk(c: Control) -> void:
 ## (0,09 mot 0,30) — ögat skiljer dem på en blick, och det gör det inte mellan temats två rutor.
 const FÄRG_GOLV := Color(0.31, 0.33, 0.39)
 const FÄRG_VÄGG := Color(0.085, 0.09, 0.11)
+## Halvväggen ska synas som en egen sorts mur i planvyn — mellan golv och vägg i ljushet.
+const FÄRG_HALVVÄGG := Color(0.30, 0.33, 0.42)
 const FÄRG_GOLVKANT := Color(0.66, 0.73, 0.86)
 
 func _rita_plan(c: Control) -> void:
@@ -1248,7 +1340,9 @@ func _rita_plan(c: Control) -> void:
 			var golv: bool = floor.tiles[y][x] == Dungeon.FLOOR
 			var id := str(floor.ytor.get("%d,%d" % [x, y], ""))
 			var r := _ruta_rect(p)
-			var färg := FÄRG_GOLV if golv else FÄRG_VÄGG
+			# HALVVÄGG (M166) ligger mitt emellan: man ser den som en ljusare mur, inte som takhög vägg.
+			var färg := (FÄRG_GOLV if golv else
+				(FÄRG_HALVVÄGG if floor.tiles[y][x] == Dungeon.HALVVÄGG else FÄRG_VÄGG))
 			if not id.is_empty():
 				# materialet syns som sin EGEN färg: en överstyrd ruta ska gå att känna igen utan
 				# att man byter till texturvyn
@@ -1298,6 +1392,27 @@ func _prop_yta(art: String) -> Rect2:
 
 ## Rekvisitan ritas som sin EGEN bild i rutan — man känner igen en tunna på tunnan, inte på en bokstav.
 ## Figuren skalas in i rutan med bevarat förhållande och står på rutans nederkant, som regeln i spelet.
+## TÄCKENA (M166) som en svag ton över rutan — bilden är en rekvisitbild och skulle se ut som ett
+## föremål om den ritades skarp. Färgen är bildens medelvärde, så gräs blir grönt och pölen blå.
+## Nyckeln `_material_färg` ska slå upp: materialbilder ligger under sitt eget id, rekvisitbilderna
+## finns inte i materiallistan — då gissar vi en färg ur bildfilen i stället.
+func _täcke_nyckel(art: String) -> String:
+	if material_lista.has(art):
+		return art
+	return "täcke/%s" % art
+
+
+func _rita_täcken(c: Control) -> void:
+	for k in floor.täcken:
+		var bitar: PackedStringArray = str(k).split(",")
+		if bitar.size() != 2:
+			continue
+		var p := Vector2i(int(bitar[0]), int(bitar[1]))
+		var rr := _ruta_rect(p)
+		var färg := _material_färg(_täcke_nyckel(str(floor.täcken[k])))
+		c.draw_rect(rr.grow(-maxf(1.0, cell * 0.07)), Color(färg.r, färg.g, färg.b, 0.5))
+
+
 ## DÖRRARNA i kartan (M161): en tvärslå över rutan i dörrtypens färg, med ett streck över när den är
 ## låst. Man ska se på kartan var en dörr sitter och att den hör ihop med en nyckel — inte bara att
 ## rutan plötsligt inte går att gå in i.
@@ -1522,6 +1637,14 @@ func _vänster_upp() -> void:
 ## Högerklick suddar: noden på rutan, materialöverstyrningen, annars blir rutan vägg — samma vana som
 ## den gamla editorn, och den enda gesten som inte kräver att man byter verktyg först.
 func _höger(p: Vector2i) -> void:
+	if _pensel_verktyg():
+		for q in _penselrutor(p):
+			_höger_en(q)
+		return
+	_höger_en(p)
+
+
+func _höger_en(p: Vector2i) -> void:
 	_ångra_punkt()
 	if p.x < 0:
 		return
@@ -1532,6 +1655,8 @@ func _höger(p: Vector2i) -> void:
 		status = "rekvisitan borttagen på (%d,%d)" % [p.x, p.y]
 	elif MapIo.ta_bort_dörr(floor, p):
 		status = "dörren borttagen på (%d,%d)" % [p.x, p.y]
+	elif MapIo.ta_bort_täcke(floor, p):
+		status = "täcket borttaget på (%d,%d)" % [p.x, p.y]
 	elif floor.ytor.has("%d,%d" % [p.x, p.y]):
 		floor.ytor.erase("%d,%d" % [p.x, p.y])
 		status = "temats ruta igen på (%d,%d)" % [p.x, p.y]
@@ -1579,24 +1704,98 @@ func _stega(stapel: Array, mål: Array) -> void:
 	status = "inget att ångra"
 
 
+func _sätt_pensel(n: int) -> void:
+	var ny := clampi(n, 1, 9)
+	if ny == pensel_storlek:
+		return
+	pensel_storlek = ny
+	if _pensel_etikett != null:
+		_pensel_etikett.text = "%d" % pensel_storlek
+	status = "pensel %d×%d rutor (%s)" % [pensel_storlek, pensel_storlek, pensel_form]
+
+
+func _pensel_mindre() -> void:
+	_sätt_pensel(pensel_storlek - 1)
+
+
+func _pensel_större() -> void:
+	_sätt_pensel(pensel_storlek + 1)
+
+
+func _växla_penselform() -> void:
+	pensel_form = "rund" if pensel_form == "ruta" else "ruta"
+	if _pensel_form_knapp != null:
+		_pensel_form_knapp.text = "rund" if pensel_form == "rund" else "ruta"
+	status = "penseln är %s" % ("rund" if pensel_form == "rund" else "kvadratisk")
+
+
+## Rutorna en penseldragning träffar. Storleken räknas i RUTOR, inte pixlar: 3 betyder 3×3 rutor med
+## mitten under pekaren, 2 betyder 2×2 (då finns ingen exakt mitt, och då ligger den åt nedre höger).
+func _penselrutor(p: Vector2i) -> Array:
+	if pensel_storlek <= 1:
+		return [p]
+	var ut: Array = []
+	var n := pensel_storlek
+	var halv := (n - 1) / 2
+	var radie := (n - 1) * 0.5 + 0.35
+	for dy in range(-halv, n - halv):
+		for dx in range(-halv, n - halv):
+			if pensel_form == "rund" and Vector2(dx, dy).length() > radie:
+				continue
+			var q := p + Vector2i(dx, dy)
+			if q.x < 0 or q.y < 0 or q.x >= floor.w or q.y >= floor.h:
+				continue
+			ut.append(q)
+	return ut
+
+
+## Penseln gäller bara ytor — en nod, en fiende eller en dörr hör alltid till en ruta.
+func _pensel_verktyg() -> bool:
+	return verktyg == "ruta" or verktyg == "material" or verktyg == "täcke"
+
+
 func _måla(p: Vector2i) -> void:
-	var f := _place(p)
-	if not f.is_empty():
-		status = f
+	var punkter: Array = _penselrutor(p) if _pensel_verktyg() else [p]
+	# En stor pensel träffar alltid någon vägg. Då ska statusraden säga vad som BLEV gjort, inte bara
+	# klaga på den första väggen — felet visas bara om ingenting alls gick igenom.
+	var lyckade := 0
+	var feltext := ""
+	for q in punkter:
+		var s := _place(q)
+		if s.is_empty():
+			lyckade += 1
+		else:
+			feltext = s
+	if lyckade == 0 and not feltext.is_empty():
+		status = feltext
+		_stämpla()
+		duk.queue_redraw()
+		return
 	elif verktyg == "nod":
 		status = "%s på (%d,%d)" % [nod_kind, p.x, p.y]
 	elif verktyg == "ruta":
-		status = "%s på (%d,%d)" % ["golv" if ruta_mark == Dungeon.FLOOR else "vägg", p.x, p.y]
+		var vad := ("halvvägg" if ruta_mark == Dungeon.HALVVÄGG
+			else ("vägg" if ruta_mark == Dungeon.WALL else "golv"))
+		status = "%s på %s" % [vad, _antal_text(p, lyckade)]
 	elif verktyg == "material":
-		status = "%s på (%d,%d)" % [yta_material if not yta_material.is_empty() else "temats ruta", p.x, p.y]
+		status = "%s på %s" % [yta_material if not yta_material.is_empty() else "temats ruta",
+			_antal_text(p, lyckade)]
 	elif verktyg == "rekvisita":
 		status = "%s på (%d,%d)" % [rekvisit_art, p.x, p.y]
 	elif verktyg == "fiende":
 		status = "strid med %s på (%d,%d)" % [fiende_art if not fiende_art.is_empty() else "slumpad", p.x, p.y]
 	elif verktyg == "dörr":
 		status = "dörr (%s) på (%d,%d)" % [dörr_typ, p.x, p.y]
+	elif verktyg == "täcke":
+		status = "%s på %s" % [täcke_art, _antal_text(p, lyckade)]
 	_stämpla()
 	duk.queue_redraw()
+
+
+func _antal_text(p: Vector2i, antal: int) -> String:
+	if antal <= 1:
+		return "(%d,%d)" % [p.x, p.y]
+	return "(%d,%d) och %d rutor till" % [p.x, p.y, antal - 1]
 
 
 ## Bresenham mellan två rutor, så ett snabbt drag blir ett streck utan gluggar.
@@ -1658,6 +1857,12 @@ func _unhandled_input(e: InputEvent) -> void:
 		ruta_mark = Dungeon.FLOOR
 		_markera_verktyg()
 		_stämpla()
+	elif key == KEY_BRACKETLEFT:
+		_sätt_pensel(pensel_storlek - 1)
+	elif key == KEY_BRACKETRIGHT:
+		_sätt_pensel(pensel_storlek + 1)
+	elif key == KEY_H:
+		_sätt_verktyg("ruta", "halvvägg")
 	elif key == KEY_X or key == KEY_BACKSPACE:
 		verktyg = "ruta"
 		ruta_mark = Dungeon.WALL
@@ -2087,19 +2292,26 @@ func _stämpla() -> void:
 
 
 func _pensel_text() -> String:
+	var storlek := "" if pensel_storlek <= 1 else " %d×%d" % [pensel_storlek, pensel_storlek]
+	if _pensel_verktyg() and not storlek.is_empty() and pensel_form == "rund":
+		storlek += " rund"
 	match verktyg:
 		"ruta":
-			return "pensel: %s" % ("golv" if ruta_mark == Dungeon.FLOOR else "vägg")
+			return "pensel: %s%s" % ["halvvägg" if ruta_mark == Dungeon.HALVVÄGG
+				else ("vägg" if ruta_mark == Dungeon.WALL else "golv"), storlek]
 		"nod":
 			return "pensel: %s" % nod_kind
 		"material":
-			return "pensel: %s" % (yta_material if not yta_material.is_empty() else "temats ruta")
+			return "pensel: %s%s" % [yta_material if not yta_material.is_empty() else "temats ruta",
+				storlek]
 		"rekvisita":
 			return "pensel: %s" % (rekvisit_art if not rekvisit_art.is_empty() else "ingen rekvisit vald")
 		"fiende":
 			return "pensel: strid med %s" % (fiende_art if not fiende_art.is_empty() else "slumpad fiende")
 		"dörr":
 			return "pensel: dörr (%s) — klick binder om den, R vrider den" % dörr_typ
+		"täcke":
+			return "pensel: täcke (%s)%s" % [täcke_art, storlek]
 	return "verktyg: välj / flytta"
 
 

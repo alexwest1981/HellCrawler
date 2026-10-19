@@ -18,6 +18,7 @@ cd "$(dirname "$0")/../game" || exit 1
 # men för tester i FÖLJD. Egen katalog per körning, tömd vid start, så inget test kan se spelarens
 # filer eller ett annat tests rester. Namnet börjar med projektets eget (hc-), som skillen för
 # flakiga prov säger: egna kataloger ska heta efter projektet, aldrig tmp*.
+export HC_TEST=1          # prov får aldrig skriva i banans kartfiler (MapIo.skrivspärr, M166)
 export XDG_DATA_HOME="${TMPDIR:-/tmp}/hc-svit-$$-data"
 rm -rf "$XDG_DATA_HOME"
 mkdir -p "$XDG_DATA_HOME"

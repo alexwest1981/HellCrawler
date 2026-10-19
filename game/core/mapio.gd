@@ -16,12 +16,47 @@ extends RefCounted
 const DIR := "res://data/maps/"
 const WALL_CH := "#"
 const FLOOR_CH := "."
+## Halvväggens tecken i kartfilen. Egen rad i BÅDA riktningarna (skrivs och läses), som allt annat.
+const HALV_CH := "~"
+
+## TÄCKEN (M166): mark som ligger ÖVER golvet men under allt annat — gräs, mossa, grus, spindelnät,
+## vattenpöl. Bilderna är de som redan finns i assets/props; här är de liggande, inte stående.
+## Namnen man målar med, och vad de heter i paletten. `magma_rock` är en materialbild (lava);
+## `täcke_textur` letar i både props och material, så listan kan blanda dem.
+const TÄCKEN := ["gräs", "mossa", "småsten", "spindelnät", "vattenpöl", "stengolv", "magma_rock"]
+const TÄCKE_NAMN := {"gräs": "gräs", "mossa": "mossa", "småsten": "grus",
+	"spindelnät": "spindelnät", "vattenpöl": "vatten", "stengolv": "stengolv", "magma_rock": "lava"}
+
+
+## Bilden ett täcke ritas med: rekvisitbilden om den finns, annars materialbilden (lava är material).
+static func täcke_textur(art: String) -> String:
+	for p in ["res://assets/props/%s.png" % art, "res://assets/tiles/material/%s.png" % art]:
+		if ResourceLoader.exists(p):
+			return p
+	return ""
 const KINDS := ["start", "encounter", "boss", "shovel", "chest", "torch", "nyckel", "spak"]
 
 ## DÖRRARNA (M161). Alex: *"Hur gör vi om man vill sätta in en dörr? ... de skall alla vara beroende av
 ## en lösning på vägen."* Tre slag (trä, metall, galler) med SAMMA regel: dörren står på en golvruta och
 ## är låst tills koden den lyssnar på är löst — en nyckel man plockat upp eller en spak man dragit.
 const DÖRRAR := ["trä", "metall", "galler"]
+
+
+static func täcke_vid(f: Dungeon.Floor, p: Vector2i) -> String:
+	return str(f.täcken.get("%d,%d" % [p.x, p.y], ""))
+
+
+static func sätt_täcke(f: Dungeon.Floor, art: String, p: Vector2i) -> String:
+	if not TÄCKEN.has(art):
+		return "okänt täcke: %s (finns: %s)" % [art, ", ".join(TÄCKEN)]
+	if not f.is_floor_at(p):
+		return "täcket måste ligga på golv"
+	f.täcken["%d,%d" % [p.x, p.y]] = art
+	return ""
+
+
+static func ta_bort_täcke(f: Dungeon.Floor, p: Vector2i) -> bool:
+	return f.täcken.erase("%d,%d" % [p.x, p.y])
 
 
 static func dörr_vid(f: Dungeon.Floor, p: Vector2i) -> Dictionary:
@@ -140,10 +175,11 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 		var row: Array[int] = []
 		for x in f.w:
 			var ch := rad[x]
-			if ch != WALL_CH and ch != FLOOR_CH:
+			if ch != WALL_CH and ch != FLOOR_CH and ch != HALV_CH:
 				push_error("kartan %s_%d: okänt tecken '%s' på rad %d" % [stage_id, floor_index, ch, y])
 				return null
-			row.append(Dungeon.FLOOR if ch == FLOOR_CH else Dungeon.WALL)
+			row.append(Dungeon.HALVVÄGG if ch == HALV_CH
+				else (Dungeon.FLOOR if ch == FLOOR_CH else Dungeon.WALL))
 		f.tiles.append(row)
 	# Öppna rum: [x, y, bredd, höjd] i rutor — taket byggs inte där och himlen läggs över (se
 	# main._öppen_himmel). Ett slagfält under öppen himmel är alltså något man RITAR in, inte något
@@ -155,6 +191,11 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 			f.öppna.append(r)
 	for k in d.get("ytor", {}):
 		f.ytor[str(k)] = str(d["ytor"][k])
+	for k in d.get("täcken", {}):
+		if not TÄCKEN.has(str(d["täcken"][k])):
+			push_error("kartan %s_%d: okänt täcke %s" % [stage_id, floor_index, str(d["täcken"][k])])
+			continue
+		f.täcken[str(k)] = str(d["täcken"][k])
 	# Handplacerad rekvisita (M150). Ett fält till betyder en rad i BÅDA riktningarna — skrivs det i
 	# `to_dict` men läses inte här ser filen rätt ut och spelet ignorerar den.
 	for r in d.get("rekvisita", []):
@@ -205,7 +246,8 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 	for y in f.h:
 		var rad := ""
 		for x in f.w:
-			rad += FLOOR_CH if f.tiles[y][x] == Dungeon.FLOOR else WALL_CH
+			rad += (HALV_CH if f.tiles[y][x] == Dungeon.HALVVÄGG
+				else (FLOOR_CH if f.tiles[y][x] == Dungeon.FLOOR else WALL_CH))
 		rader.append(rad)
 	var noder := []
 	for n in f.nodes:
@@ -227,6 +269,8 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 			var rr: Rect2i = r
 			rum.append([rr.position.x, rr.position.y, rr.size.x, rr.size.y])
 		d["öppna"] = rum
+	if not f.täcken.is_empty():
+		d["täcken"] = f.täcken
 	if not f.dörrar.is_empty():
 		var dörrlista := []
 		for r in f.dörrar:
@@ -246,10 +290,23 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 
 ## Skriver kartan, men BARA om den går att spela. Felen returneras i stället för att skrivas —
 ## editorn visar dem, och en trasig våning kan aldrig hamna i spelet genom att man trycker spara.
+## TESTSPÄRR (M166). `tools/ett_prov.sh` och `tools/test.sh` sätter HC_TEST=1, och då vägrar `save_map`
+## skriva i de RIKTIGA kartfilerna. Upptäckt: ett prov hade skrivit 200 rader (sex dörrar och en
+## omskriven våning) i `data/maps/stage_02_0.json` — en bana som ligger i spelet. Ett prov som sparar
+## ska få ett fel den kan visa, inte tyst skriva om en bana.
+static var skrivspärr := false
+
+
+static func _static_init() -> void:
+	skrivspärr = OS.get_environment("HC_TEST") == "1"
+
+
 static func save_map(f: Dungeon.Floor, dir: String = DIR) -> Array:
 	var fel := validate(f)
 	if not fel.is_empty():
 		return fel
+	if skrivspärr and dir == DIR:
+		return ["prov får inte skriva i banans kartfiler — använd en egen katalog"]
 	var d := DirAccess.open(dir)
 	if d == null:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
@@ -298,6 +355,9 @@ static func validate(f: Dungeon.Floor) -> Array:
 			fel.append("%s går inte att nå (%d,%d)" % [n.kind, n.pos.x, n.pos.y])
 	# Rekvisitan: arten måste finnas som ark (annars står det en osynlig sak i våningen) och rutan
 	# måste vara golv. En per ruta — två saker i samma ruta går inte att skilja från en bugg.
+	for k in f.täcken:
+		if not TÄCKEN.has(str(f.täcken[k])):
+			fel.append("okänt täcke på %s: %s" % [k, str(f.täcken[k])])
 	for r in f.dörrar:
 		var p: Vector2i = r.get("pos", Vector2i(-1, -1))
 		if not DÖRRAR.has(str(r.get("typ", ""))):

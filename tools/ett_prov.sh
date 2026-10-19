@@ -18,6 +18,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/../game" || exit 1
 prov="${1:?ange en testsökväg, t.ex. tests/test_gui.gd}"; shift
+export HC_TEST=1
 export XDG_DATA_HOME="${TMPDIR:-/tmp}/hc-prov-$$-data"
 rm -rf "$XDG_DATA_HOME"
 mkdir -p "$XDG_DATA_HOME"

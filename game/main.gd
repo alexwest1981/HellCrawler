@@ -726,6 +726,9 @@ const KISTA_PIXELTRÖSKEL := 0.06
 ## försvann genom taket. 0,0195 ger 1,25 m, alltså strax under taket för den högsta figuren, och
 ## bossen är ändå rummets största varelse (en vanlig fiende toppar på 1,15 m).
 const TAK_HÖJD := 1.3
+## Halvväggens höjd: knähög. Under ögonhöjden (1,6 m) så man ser över den, över midjan så den känns
+## som ett skydd och inte som ett golv (M166).
+const HALVVÄGG_HÖJD := 0.62
 ## Dörrarna är låsta tills koden är löst, och då ska man se VAD som står i vägen: trä, metall eller
 ## galler (M161).
 const DÖRR_FÄRG := {"trä": Color(0.52, 0.36, 0.20), "metall": Color(0.48, 0.53, 0.60),
@@ -6498,10 +6501,13 @@ func _build_world() -> void:
 
 	var walls := []
 	var floors := []
+	var halva := []                    # halvväggar (M166): låga, man ser över dem
 	for y in f.h:
 		for x in f.w:
 			var p := Vector2i(x, y)
-			if not f.is_floor_at(p):
+			if f.tiles[y][x] == Dungeon.HALVVÄGG:
+				halva.append(p)
+			elif not f.is_floor_at(p):
 				walls.append(p)
 			else:
 				floors.append(p)
@@ -6537,6 +6543,10 @@ func _build_world() -> void:
 		VÄGG_TON)
 	_add_boxes_ytor(slitet_golv, COL_FLOOR, 0.02, Vector3(1, 0.04, 1), "floor_crack", 43, 2.0,
 		GOLV_TON)
+	# HALVVÄGGARNA (M166): knähöga, så kameran ser över dem och ut över de öppna vidderna. Samma
+	# väggtextur som resten, bara kortare — höjden är mätt mot ögonhöjden (1,6 m), inte på känn.
+	_add_boxes_ytor(halva, COL_WALL, HALVVÄGG_HÖJD * 0.5, Vector3(1, HALVVÄGG_HÖJD, 1),
+		"wall_moss", 59, 2.0, VÄGG_TON)
 	# TAKET ÖVER ETT ÖPPET RUM BYGGS INTE (VC-paritet 15/10): i stället för takrutor läggs en himmelyta
 	# över rummet. `floors` är hela rutnätet, så takrutorna delas i två listor — de stängda rummen får
 	# tak som förut, det öppna får himmel.
@@ -6571,6 +6581,9 @@ func _build_world() -> void:
 		% [floors.size(), slitet_golv.size(), walls.size(), sliten_vägg.size(), takrutor.size(),
 			floors.size() - takrutor.size()])
 
+	# TÄCKENA (M166): gräs, mossa, grus, pölar — liggande bilder en hårsmån över golvet. De ritas FÖRE
+	# dekoren, som står på dem.
+	_täcken(f, floors)
 	# Dekorationen läggs EFTER golvet: den står på det. Ingen kollision, ingen nod per tuva — se DEKOR_*.
 	_bygg_dekor(floors)
 
@@ -6698,6 +6711,54 @@ func _add_markör(n: Dungeon.FloorNode, namn: String) -> void:
 ## EN MultiMesh PER ART, som för ytorna: fyra arter blir fyra ritningar för hela våningen i stället för
 ## en nod per tuva. Skalan per instans behålls i shadern (MODEL_MATRIX[3] är positionen, längderna på
 ## basens axlar är skalan) — samma fallgrop som gav den dubbla, vita fienden i M79.
+## TÄCKENA (M166). Alex: *"hur gör jag om jag vill tala om för golvet att det skall på vissa delar
+## täckas av gräs"*. Ett liggande plan per ruta, en hårsmån över golvet, med bildens alfa som klippa
+## (samma skala som rekvisitan använder). Ingen kollision, inget att gå i — det är mark.
+func _täcken(f: Dungeon.Floor, golv: Array) -> void:
+	if f.täcken.is_empty():
+		return
+	var per_art := {}
+	for k in f.täcken:
+		var bitar: PackedStringArray = str(k).split(",")
+		if bitar.size() != 2:
+			continue
+		var p := Vector2i(int(bitar[0]), int(bitar[1]))
+		if not f.is_floor_at(p):
+			continue
+		var art := str(f.täcken[k])
+		if not per_art.has(art):
+			per_art[art] = []
+		per_art[art].append(p)
+	for art in per_art:
+		# Täcket kan vara en rekvisitbild (gräs, mossa) eller en materialbild (lava) — `MapIo` vet var.
+		var tp := MapIo.täcke_textur(str(art))
+		var tex: Texture2D = load(tp) if not tp.is_empty() else null
+		if tex == null:
+			continue
+		var mat := StandardMaterial3D.new()
+		mat.albedo_texture = tex
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		mat.alpha_scissor_threshold = 0.35
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = QuadMesh.new()
+		(mm.mesh as QuadMesh).size = Vector2(1.0, 1.0)
+		mm.instance_count = (per_art[art] as Array).size()
+		for i in range((per_art[art] as Array).size()):
+			var p: Vector2i = per_art[art][i]
+			# Liggande plan: vrid -90 grader kring x så bilden ligger på golvet, och en hårsmån upp.
+			var bas := Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), Vector3(p.x + 0.5, 0.045, p.y + 0.5))
+			mm.set_instance_transform(i, bas)
+		var nod := MultiMeshInstance3D.new()
+		nod.name = "täcke_%s" % art
+		nod.multimesh = mm
+		nod.material_override = mat
+		world.add_child(nod)
+		print("  täcke: %s på %d rutor" % [art, mm.instance_count])
+
+
 func _bygg_dekor(golv: Array) -> void:
 	if _dekor_täthet <= 0 or golv.is_empty():
 		return
@@ -6710,6 +6771,10 @@ func _bygg_dekor(golv: Array) -> void:
 	var upptagna := {}
 	for r in f.rekvisita:
 		upptagna[Vector2i(r.get("pos", Vector2i(-1, -1)))] = true
+	for k in f.täcken:
+		var bitar: PackedStringArray = str(k).split(",")
+		if bitar.size() == 2:
+			upptagna[Vector2i(int(bitar[0]), int(bitar[1]))] = true
 	# Våningen byggs om mellan striderna: de förra rekvisiternas ljus och material får inte ligga kvar
 	# i fladdret (en frigjord nod där hade kraschat `_fladdra` varje bildruta).
 	_låg_ljus.clear()

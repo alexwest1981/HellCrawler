@@ -17,6 +17,10 @@ extends RefCounted
 
 const WALL := 0
 const FLOOR := 1
+## HALVVÄGG (M166). Alex: *"eller att en viss yta skall ha en halvvägg, som lämnar spelaren en vy över
+## helvetets öppna vidder."* En halvvägg är som en vägg för gången (man kan inte gå igenom) men låg nog
+## att kameran ser över den, och den får inget tak.
+const HALVVÄGG := 2
 
 ## Våningens yta i rutor — 4x den gamla vid varje svårighetsgrad.
 static func _yta(difficulty: int) -> Vector2i:
@@ -119,6 +123,9 @@ class Floor extends RefCounted:
 	## golvruta och blockerar gången tills koden är löst — en nyckel man plockat upp eller en spak man
 	## dragit. Bakom den kan bossen, ett kistrum eller vad som helst ligga.
 	var dörrar: Array = []
+	## TÄCKEN (M166): mark ovanpå golvet, en per ruta — "x,y" -> art ur `MapIo.TÄCKEN`. Gräs, mossa,
+	## grus och pölar ritas liggande; de påverkar inte gången.
+	var täcken: Dictionary = {}
 	## ÖPPNA RUM (VC-paritet 15/10): rum UTAN TAK — slagfältet under himlen. Referensen har inget
 	## skybox-material i dungeons alls (kameran rensar till färg, `m_SkyboxMaterial` är NULL): himlen
 	## ligger som GEOMETRI i rumsmallen (faux-skybox-plan med en kubkarta). Här är motsvarigheten att

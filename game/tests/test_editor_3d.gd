@@ -43,8 +43,10 @@ func _init() -> void:
 	editor._växla_3d()
 	check(editor.vy3d_på and editor.vy3d_korg.visible, "F4 tar tillbaka den")
 	var barn: int = editor.vy3d_värld.get_child_count()
-	var väntat: int = editor.floor.w * editor.floor.h + editor.floor.rekvisita.size() \
-		+ editor.floor.nodes.size()
+	# Varje ruta blir en figur, plus rekvisita, noder, dörrar och täcken (M166) — våningen bär allt
+	# fyra, så väntat antal räknas ur datat och inte ur en gammal siffra.
+	var väntat: int = (editor.floor.w * editor.floor.h + editor.floor.rekvisita.size()
+		+ editor.floor.nodes.size() + editor.floor.dörrar.size() + editor.floor.täcken.size())
 	check(barn == väntat, "varje ruta, rekvisit och nod blir en figur i 3D",
 		"%d av %d" % [barn, väntat])
 	check(editor.floor.rekvisita.size() == 2, "två rekvisiter finns i våningen")
