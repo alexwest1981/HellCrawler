@@ -311,6 +311,7 @@ func _prop_tex(art: String) -> Texture2D:
 
 
 func _nasta_tema(steg: int) -> void:
+	_ångra_punkt()
 	var lista := [""] + MapIo.THEMES
 	var i := lista.find(floor.theme)
 	if i < 0:
@@ -395,6 +396,7 @@ func _valj_växla(n: Dungeon.FloorNode) -> void:
 
 
 func _ta_bort_vald() -> void:
+	_ångra_punkt()
 	if vald.is_empty():
 		status = "inget valt"
 		return
@@ -411,6 +413,7 @@ func _ta_bort_vald() -> void:
 ## Ctrl+D: kopian läggs på första lediga golvruta intill — norr, öster, söder, väster, sedan diagonalt,
 ## så en rad kistor kopieras åt samma håll som man tittar.
 func _kopiera_vald() -> void:
+	_ångra_punkt()
 	if vald.size() != 1:
 		status = "markera exakt en nod att kopiera"
 		return
@@ -588,7 +591,7 @@ func _bygg_mitten() -> Control:
 	d.mouse_filter = Control.MOUSE_FILTER_STOP
 	d.mouse_default_cursor_shape = Control.CURSOR_CROSS
 	d.tooltip_text = "klick väljer · Skift+klick lägger till · Ctrl+klick växlar · drag flyttar\n" \
-		+ "dra tom yta = box · Del tar bort · Ctrl+D kopierar · pilar flyttar 1 ruta\n" \
+		+ "dra tom yta = box · Del tar bort · Ctrl+D kopierar · Ctrl+Z ångrar · pilar flyttar 1 ruta\n" \
 		+ "hjul zoomar · mitten+drag panorerar · F ramar in"
 	d.resized.connect(_layout_duk)
 	d.gui_input.connect(_duk_input)
@@ -1120,6 +1123,7 @@ func _duk_input(e: InputEvent) -> void:
 
 func _vänster_ner(pos: Vector2, p: Vector2i) -> void:
 	if verktyg != "valj":
+		_ångra_punkt()
 		_målar = true
 		_ruta_från = p
 		if p.x >= 0:
@@ -1134,6 +1138,7 @@ func _vänster_ner(pos: Vector2, p: Vector2i) -> void:
 			_valj_växla(n)
 		else:
 			_valj_ensam(n)
+			_ångra_punkt()
 			_drar = true
 			_drag_punkt = pos
 			_drag_delta = Vector2i.ZERO
@@ -1171,6 +1176,7 @@ func _vänster_upp() -> void:
 ## Högerklick suddar: noden på rutan, materialöverstyrningen, annars blir rutan vägg — samma vana som
 ## den gamla editorn, och den enda gesten som inte kräver att man byter verktyg först.
 func _höger(p: Vector2i) -> void:
+	_ångra_punkt()
 	if p.x < 0:
 		return
 	if _nod_vid(p) != null:
@@ -1186,6 +1192,43 @@ func _höger(p: Vector2i) -> void:
 		status = "vägg på (%d,%d)" % [p.x, p.y]
 	ändrad = true
 	_uppdatera()
+
+
+## ÅNGRA (M157). Referenseditorn har Ctrl+Z; utan det är varje felklick ett litet handarbete. Våningen
+## är serialiserbar (`MapIo.to_dict`), så historiken är en stapel vanliga våningsdikter — ingen ny
+## datastruktur, ingen ändring i MapIo, och den ångrade våningen är samma våning som på disk.
+const ÅNGRA_MAX := 60
+var _historik: Array = []
+var _framtid: Array = []
+
+
+## Läggs före varje ändring som ska gå att ångra. Ett drag som målar 30 rutor är ETT steg: `_målar` och
+## `_drar` är sanna under draget, så bara det första trycket lägger en punkt.
+func _ångra_punkt() -> void:
+	if _målar or _drar:
+		return
+	_historik.append(MapIo.to_dict(floor))
+	if _historik.size() > ÅNGRA_MAX:
+		_historik.pop_front()
+	_framtid.clear()
+
+
+func _stega(stapel: Array, mål: Array) -> void:
+	var nu := MapIo.to_dict(floor)
+	while not stapel.is_empty():
+		var d: Dictionary = stapel.pop_back()
+		if d == nu:
+			continue                  # ett klick som inte ändrade något ska inte bli ett steg
+		mål.append(nu)
+		floor = MapIo.from_dict(d, floor.stage_id, floor.index)
+		vald = []
+		ändrad = true
+		status = "ångrade en ändring (%d kvar)" % stapel.size()
+		_stämpla()
+		_uppdatera()
+		duk.queue_redraw()
+		return
+	status = "inget att ångra"
 
 
 func _måla(p: Vector2i) -> void:
@@ -1250,6 +1293,12 @@ func _unhandled_input(e: InputEvent) -> void:
 		return
 	var k := e as InputEventKey
 	var key := k.keycode
+	if k.ctrl_pressed and key == KEY_Z:
+		_stega(_framtid if k.shift_pressed else _historik, _historik if k.shift_pressed else _framtid)
+		return
+	if k.ctrl_pressed and key == KEY_Y:
+		_stega(_framtid, _historik)
+		return
 	if key >= KEY_1 and key <= KEY_6:
 		_sätt_verktyg("nod", str(NODE_TOOLS[key - KEY_1]["kind"]))
 	elif key == KEY_V:
@@ -1323,6 +1372,8 @@ func till_menyn() -> void:
 
 func _våning(steg: int) -> void:
 	floor_index = clampi(floor_index + steg, 0, max(0, stage.floors - 1))
+	_historik.clear()             # en annan våning: annars ångar man in förra våningens rutor här
+	_framtid.clear()
 	load_or_generate()
 	_uppdatera()
 
@@ -1369,6 +1420,7 @@ func _storleksrad(box: VBoxContainer, text: String, värde: int) -> SpinBox:
 
 ## Skapar våningen/rummet i den storlek man skrev. Samma nollställning som N gjorde förut.
 func _skapa_rum() -> void:
+	_ångra_punkt()
 	var w := clampi(int(_sd_bredd.value), 3, 64)
 	var h := clampi(int(_sd_höjd.value), 3, 64)
 	floor = MapIo.blank(stage.id, floor_index, w, h)
@@ -1384,6 +1436,7 @@ func _skapa_rum() -> void:
 
 
 func _ny_våning() -> void:
+	_ångra_punkt()
 	floor = MapIo.blank(stage.id, floor_index)
 	genererad = false
 	ändrad = false
@@ -1734,6 +1787,8 @@ func nasta_bana(steg: int) -> void:
 	var i := ids.find(stage.id)
 	stage = stages[ids[(i + steg + ids.size()) % ids.size()]]
 	floor_index = clampi(floor_index, 0, max(0, stage.floors - 1))
+	_historik.clear()
+	_framtid.clear()
 	load_or_generate()
 	status = "bana: %s" % stage.id
 	_uppdatera()
