@@ -56,7 +56,7 @@
  "kw.wild": "Wild",
  "ui.by.hint": "← → pick · Enter = in · L = language · Q = quit · I = album · T = daily",
  "ui.by.status.smith": "no workshop yet",
- "ui.by.status.gems": "%d gems in the pocket",
+ "ui.by.status.gems": "gems: %d",
  "ui.by.status.nogems": "no gems",
  "ui.by.plats.juvelerare": "THE JEWELER",
  "ui.end.splitter": "%d shards",

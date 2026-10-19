@@ -4669,6 +4669,15 @@ func _input_shell(key: int) -> void:
 	if key == KEY_ESCAPE and shell != "hem" and shell != "körning":
 		_show_home()
 		return
+	# BACKSPACE = VC:s "tillbaka" (M175): i en byggnad går den till byn, i byn till World Map, och i
+	# World Map tillbaka till byn. Samma tangent hela vägen, så flödet by → byggnad → by → karta → by
+	# aldrig kräver att man letar efter rätt tangent. Esc äger inställningarna, som i VC.
+	if key == KEY_BACKSPACE and shell != "körning":
+		if shell == "hem":
+			_välj_skarm("karta")
+		else:
+			_show_home()
+		return
 	if shell == "album":
 		match key:
 			KEY_LEFT, KEY_A:
