@@ -397,18 +397,13 @@ static func placera(f: Dungeon.Floor, kind: String, p: Vector2i, stage: Stages.S
 			var byter_fiende: bool = kind == "encounter" and not vald_fiende.is_empty() and n.enemy_id != vald_fiende
 			if not byter_fiende:
 				return "%s står redan där" % kind
-	# EN VALD FIENDE MÅSTE FINNAS I BANANS TIERS (M155). Förut letades den upp i poolen och hittades
-	# den inte blev noden stående UTAN fiende — och poolen nollställdes ändå, så det blev ingen
-	# slumpad fiende heller. En strid utan fiende syns bara som en tom ruta. Kolla före `ta_bort`, så
-	# ett avslag inte kostar noden som stod där.
-	if kind == "encounter" and stage != null and not vald_fiende.is_empty():
-		var finns := false
-		for e in Enemies.by_tier(bestiary, stage.tiers):
-			if e.id == vald_fiende:
-				finns = true
-				break
-		if not finns:
-			return "fienden %s finns inte i banans tiers %s" % [vald_fiende, str(stage.tiers)]
+	# EN HANDPLACERAD FIENDE FÅR VARA VILKEN SOM HELST (M165). Alex: *"sällan det går att klicka på en
+	# fiende och sätta ut den."* Vakten här krävde att fienden fanns i BANANS tiers — stage_01 har 4 av
+	# 17 fiender i tier 1, så 13 av 17 klick svarade "finns inte i banans tiers" och ingenting hände.
+	# Att rita en våning är att bestämma; spelet slår upp fienden i bestiariet (`run.gd`), inte i
+	# banans svårighetslista. Bara ett okänt id vägras, och det före `ta_bort` så rutan behålls.
+	if kind == "encounter" and not vald_fiende.is_empty() and not bestiary.has(vald_fiende):
+		return "okänd fiende: %s" % vald_fiende
 	# En nod per ruta: två sorters noder på samma ruta blir två figurer i samma ruta, och man ser inte
 	# vad man byggt. Den gamla noden tas bort (och dess pekare nollställs) i stället.
 	ta_bort(f, p)
@@ -419,14 +414,12 @@ static func placera(f: Dungeon.Floor, kind: String, p: Vector2i, stage: Stages.S
 	if kind == "encounter" and stage != null:
 		var pool := Enemies.by_tier(bestiary, stage.tiers)
 		if not vald_fiende.is_empty():
-			# En uttryckligen vald fiende går före slumptalet: annars kan man inte bygga en våning där en
-			# bestämd fiende står på en bestämd ruta, vilket är halva poängen med att rita en våning.
-			for e in pool:
-				if e.id == vald_fiende:
-					ny.enemy_id = e.id
-					ny.xp = e.xp
-					ny.gold = e.gold
-					break
+			# En uttryckligen vald fiende går före slumptalet, och den hämtas ur BESTIARIET — inte ur
+			# banans pool: en handritad våning får ha en fiende från vilken tier som helst.
+			var vald: Enemies.EnemyDef = bestiary[vald_fiende]
+			ny.enemy_id = vald.id
+			ny.xp = vald.xp
+			ny.gold = vald.gold
 			pool = []
 		if not pool.is_empty():
 			# Deterministiskt ur banan, våningen och rutan: kartan spelar likadant varje gång, men tål

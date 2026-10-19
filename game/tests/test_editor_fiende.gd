@@ -95,27 +95,65 @@ func _init() -> void:
 			slumpsatt = n.enemy_id
 	check(not slumpsatt.is_empty(), "utan val får rutan en fiende ur banan (%s)" % slumpsatt)
 
-	# 5. En fiende UTANFÖR banans tiers vägras med besked (och rutan behåller det som stod där).
-	#    Förut blev noden stående utan fiende — en tom strid som bara syns som en ruta.
-	var utanför := ""
-	for id in lista:
-		var i_pool := false
-		for e in Enemies.by_tier(editor.bestiary, editor.stage.tiers):
-			if str(e.id) == str(id):
-				i_pool = true
-		if not i_pool:
-			utanför = str(id)
+	# 5. ALLA FIENDER GÅR ATT SÄTTA UT (M165). Alex: *"sällan det går att klicka på en fiende och sätta
+	#    ut den."* Förut krävde `placera` att fienden låg i banans tiers — 4 av 17 i stage_01 — och då
+	#    hände ingenting för de andra 13. Provet ställer ut VARJE fiende på en egen ruta.
+	_tom()
+	editor.verktyg = "fiende"
+	var placerade := 0
+	var rutor: Array = []
+	for y in range(1, editor.floor.h - 1):
+		for x in range(1, editor.floor.w - 1):
+			if editor.floor.is_floor_at(Vector2i(x, y)) and rutor.size() < lista.size():
+				rutor.append(Vector2i(x, y))
+	for i in range(mini(lista.size(), rutor.size())):
+		editor.fiende_art = str(lista[i])
+		editor._måla(rutor[i])
+		for n in editor.floor.nodes:
+			if n.pos == rutor[i] and n.kind == "encounter" and n.enemy_id == str(lista[i]):
+				placerade += 1
+	check(placerade == mini(lista.size(), rutor.size()),
+		"varje fiende i paletten går att ställa ut", "%d av %d" % [placerade, mini(lista.size(), rutor.size())])
+
+	# 5b. KLICKET: en riktig knapptryckning i paletten ska välja fienden, och ett riktigt musklick i
+	#     kartan ska ställa ut den — provet ovan anropar `_måla` direkt och hade inte märkt om knappen
+	#     slutade koppla ihop sig med penseln.
+	# Knappen hittas på sin IKON: palettens fiendeknappar har bilden men ingen text (namnet ligger i
+	# hovringstexten), så en textsökning hittar dem inte.
+	var knapp := ""
+	var ikon: Texture2D = editor._fiende_tex(str(lista[0]))
+	for b in editor.find_children("*", "Button", true, false):
+		if b.icon != null and b.icon == ikon:
+			knapp = "ikon"
+			b.pressed.emit()
 			break
-	if not utanför.is_empty():
-		editor.verktyg = "fiende"
-		editor.fiende_art = utanför
-		var före: int = editor.floor.nodes.size()
-		editor._måla(Vector2i(8, 8))
-		var efter: int = editor.floor.nodes.size()
-		check(efter == före, "fienden utanför banans tiers ställs inte ut",
-			"%d -> %d noder" % [före, efter])
-		check(editor.status.contains("tiers") or editor.status.contains("finns inte"),
-			"och statusraden säger varför", editor.status)
+	check(not knapp.is_empty(), "fiendeknappen finns i paletten (på sin ikon)", knapp)
+	check(editor.verktyg == "fiende" and editor.fiende_art == str(lista[0]),
+		"knapptryckningen väljer fienden", "%s / %s" % [editor.verktyg, editor.fiende_art])
+	var mål := Vector2i(-1, -1)
+	for y in range(1, editor.floor.h - 1):
+		for x in range(1, editor.floor.w - 1):
+			if editor.floor.is_floor_at(Vector2i(x, y)) and mål.x < 0:
+				mål = Vector2i(x, y)
+	editor._layout_duk()
+	var punkt: Vector2 = editor.anka + (Vector2(mål) + Vector2(0.5, 0.5)) * editor.cell
+	var mb := InputEventMouseButton.new()
+	mb.button_index = MOUSE_BUTTON_LEFT
+	mb.pressed = true
+	mb.position = punkt
+	editor._duk_input(mb)
+	var satte := ""
+	for n in editor.floor.nodes:
+		if n.pos == mål and n.kind == "encounter":
+			satte = n.enemy_id
+	check(satte == str(lista[0]), "och ett musklick i kartan ställer ut den", satte)
+
+	# 6. Ett okänt id vägras fortfarande, och rutan behåller det som stod där.
+	editor.fiende_art = "finns_inte"
+	var före_antal: int = editor.floor.nodes.size()
+	editor._måla(Vector2i(2, 2))
+	check(editor.floor.nodes.size() == före_antal, "en okänd fiende ställs inte ut")
+	check(editor.status.contains("okänd fiende"), "och statusraden säger varför", editor.status)
 
 	print("")
 	print("=== %d kontroller, %d fel ===" % [checks, fails])
