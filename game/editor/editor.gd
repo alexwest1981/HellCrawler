@@ -56,6 +56,23 @@ var ändrad := false
 ## "material" lägger ett material på rutan ("" = temats egen ruta).
 var verktyg := "valj"
 var vy := "plan"                     ## "plan" (golv ljust, vägg mörkt) eller "textur" (temats rutor)
+## 3D-FÖRHANDSVISNINGEN (M158). Alex: *"Jag vill ha en äkta 3d preview som vi har här i editorn."*
+## Den ritar våningen man håller på med i en SubViewport — samma rutor, samma rekvisita, samma
+## nodfärger som i 2D — och vrider sig kring rummet. Den är en ÖVERSIKT, inte spelets mörker: hur det
+## ser ut inifrån ser man med P (och F1 möblerar där).
+var vy3d_på := false
+var vy3d_korg: SubViewportContainer
+var vy3d_vy: SubViewport
+var vy3d_kamera: Camera3D
+var vy3d_värld: Node3D
+var vy3d_lutning := 0.95               ## radianer ned mot golvet
+var vy3d_varv := 0.55
+var vy3d_zoom := 1.0
+var vy3d_rotar := false
+var vy3d_smutsig := false
+var vy3d_sen := 0.0
+var vy3d_knapp: Button
+var _vy3d_mat: Dictionary = {}         ## material per textur: 289 våningsrutor ska inte bygga 289 material
 var nod_kind := "encounter"
 var ruta_mark := Dungeon.FLOOR
 var yta_material := ""
@@ -597,6 +614,15 @@ func _bygg_mitten() -> Control:
 	d.gui_input.connect(_duk_input)
 	v.add_child(d)
 	duk = d
+	vy3d_korg = SubViewportContainer.new()
+	vy3d_korg.stretch = true
+	vy3d_korg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vy3d_korg.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vy3d_korg.custom_minimum_size = Vector2(340, 260)
+	vy3d_korg.visible = false
+	vy3d_korg.mouse_filter = Control.MOUSE_FILTER_STOP
+	v.add_child(vy3d_korg)
+	_initiera_3d()
 	var p := PanelContainer.new()
 	status_rad = _etikett("", 12, FÄRG_DIM)
 	status_rad.clip_text = true
@@ -722,6 +748,12 @@ func _vy_rad() -> void:
 		b.custom_minimum_size.y = 24
 		h.add_child(b)
 		_vy_knappar[str(par[0])] = b
+	var tredje := _knapp("3D", "våningen i 3D — dra för att vrida, hjulet zoomar (F4)", _växla_3d)
+	tredje.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tredje.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tredje.custom_minimum_size.y = 24
+	h.add_child(tredje)
+	vy3d_knapp = tredje
 	_markera_vy()
 
 
@@ -836,6 +868,189 @@ func _markera_verktyg() -> void:
 
 ## Inpassningen ryms i vyn; `zoom` är faktorn ovanpå. Anropas av `duk.resized`, av zoom och av
 ## inramningen — aldrig av `_draw`, så `_cell_at` och ritningen alltid räknar med SAMMA tal.
+# --- 3D-förhandsvisning (M158) ------------------------------------------------------------------
+
+func _initiera_3d() -> void:
+	vy3d_vy = SubViewport.new()
+	vy3d_vy.size = Vector2i(640, 420)
+	vy3d_vy.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vy3d_vy.msaa_3d = Viewport.MSAA_4X
+	vy3d_korg.add_child(vy3d_vy)
+	# LJUST OCH JÄMNT: förhandsvisningen ska visa FORMEN (rum, väggar, möbler), inte spelets mörker.
+	var miljö := Environment.new()
+	miljö.background_mode = Environment.BG_COLOR
+	miljö.background_color = Color(0.10, 0.11, 0.14)
+	miljö.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	miljö.ambient_light_color = Color(0.78, 0.80, 0.86)
+	miljö.ambient_light_energy = 1.0
+	var we := WorldEnvironment.new()
+	we.environment = miljö
+	vy3d_vy.add_child(we)
+	var sol := DirectionalLight3D.new()
+	sol.rotation_degrees = Vector3(-55, -38, 0)
+	sol.light_energy = 1.2
+	sol.shadow_enabled = true
+	vy3d_vy.add_child(sol)
+	vy3d_kamera = Camera3D.new()
+	vy3d_kamera.fov = 46
+	vy3d_vy.add_child(vy3d_kamera)
+	vy3d_värld = Node3D.new()
+	vy3d_vy.add_child(vy3d_värld)
+	vy3d_korg.gui_input.connect(_vy3d_input)
+
+
+## Materialet för en ruta. Samma textur som 2D-vyn använder, så det man ser i 3D är det man målade.
+func _vy3d_material(tex: Texture2D, figur: bool = false) -> StandardMaterial3D:
+	var nyckel := "%s/%s" % [tex.resource_path if tex != null else "", figur]
+	if _vy3d_mat.has(nyckel):
+		return _vy3d_mat[nyckel]
+	var m := StandardMaterial3D.new()
+	if tex != null:
+		m.albedo_texture = tex
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	else:
+		m.albedo_color = Color(0.45, 0.47, 0.52)
+	if figur:
+		# Rekvisitan är en 2D-bild: alpha-scissor i stället för genomskinlighet (djupet blir rätt utan
+		# sorteringsproblem), och billboard så den syns från alla håll man vrider kameran till.
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		m.alpha_scissor_threshold = 0.5
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	_vy3d_mat[nyckel] = m
+	return m
+
+
+func _växla_3d() -> void:
+	vy3d_på = not vy3d_på
+	vy3d_korg.visible = vy3d_på
+	duk.visible = not vy3d_på
+	if vy3d_på:
+		_bygg_3d()
+	if vy3d_knapp != null:
+		vy3d_knapp.button_pressed = vy3d_på
+	status = ("3D: dra för att vrida, hjulet zoomar — samma våning, samma rekvisita" if vy3d_på
+		else "tillbaka i 2D: rita som förut")
+	_stämpla()
+
+
+## Bygger om hela förhandsvisningen ur `floor`. Små meshar per ruta: 289 rutor är ingenting att rita,
+## och då behöver 2D- och 3D-vyn ingen gemensam cache som kan gå ur takt.
+func _bygg_3d() -> void:
+	if vy3d_värld == null or floor == null:
+		return
+	for barn in vy3d_värld.get_children():
+		# Koppla loss FÖRST: `queue_free` tar bort först i nästa bildruta, och då ritas två lager
+		# ovanpå varandra en bild — och antalet figurer man mäter är dubbelt.
+		vy3d_värld.remove_child(barn)
+		barn.queue_free()
+	vy3d_smutsig = false
+	vy3d_sen = Time.get_ticks_msec() / 1000.0
+	var golv_tex := _tema_tex(floor.theme, "floor")
+	var vägg_tex := _tema_tex(floor.theme, "wall")
+	for y in range(floor.h):
+		for x in range(floor.w):
+			var p := Vector2i(x, y)
+			var är_golv := floor.is_floor_at(p)
+			var tex := golv_tex if är_golv else vägg_tex
+			if floor.ytor.has("%d,%d" % [x, y]):
+				tex = _material_tex(str(floor.ytor["%d,%d" % [x, y]]))
+			var b := MeshInstance3D.new()
+			var m := BoxMesh.new()
+			if är_golv:
+				m.size = Vector3(0.97, 0.14, 0.97)
+				b.position = Vector3(x + 0.5, -0.07, y + 0.5)
+			else:
+				m.size = Vector3(1.0, 1.0, 1.0)
+				b.position = Vector3(x + 0.5, 0.5, y + 0.5)
+			b.mesh = m
+			b.material_override = _vy3d_material(tex)
+			vy3d_värld.add_child(b)
+	# REKVISITAN: bilden ställd i rutans mitt, i samma höjd som golvet.
+	for r in floor.rekvisita:
+		var tex := _prop_tex(str(r.get("art", "")))
+		if tex == null:
+			continue
+		var q := MeshInstance3D.new()
+		var plan := QuadMesh.new()
+		plan.size = Vector2(0.85, 0.85)
+		q.mesh = plan
+		var pos: Vector2i = r["pos"]
+		q.position = Vector3(pos.x + 0.5, 0.42, pos.y + 0.5)
+		q.material_override = _vy3d_material(tex, true)
+		vy3d_värld.add_child(q)
+	# NODERNA som kuber i 2D-vyns färger: samma legend i båda vyerna.
+	for n in floor.nodes:
+		var k := MeshInstance3D.new()
+		var km := BoxMesh.new()
+		km.size = Vector3(0.42, 0.42, 0.42)
+		k.mesh = km
+		k.position = Vector3(n.pos.x + 0.5, 0.34, n.pos.y + 0.5)
+		var mm := StandardMaterial3D.new()
+		mm.albedo_color = _nodfärg(n.kind)
+		mm.emission_enabled = true
+		mm.emission = mm.albedo_color * 0.45
+		k.material_override = mm
+		vy3d_värld.add_child(k)
+	_placera_3d_kamera()
+
+
+func _nodfärg(kind: String) -> Color:
+	match kind:
+		"start":
+			return Color(0.36, 0.85, 0.44)
+		"encounter":
+			return Color(0.92, 0.34, 0.32)
+		"boss":
+			return Color(0.85, 0.36, 0.86)
+		"shovel":
+			return Color(0.36, 0.78, 0.92)
+		"chest":
+			return Color(0.95, 0.82, 0.34)
+		"torch":
+			return Color(0.96, 0.60, 0.26)
+	return Color(0.8, 0.8, 0.8)
+
+
+func _placera_3d_kamera() -> void:
+	if vy3d_kamera == null or floor == null:
+		return
+	var mitten := Vector3(floor.w * 0.5, 0.0, floor.h * 0.5)
+	var d := maxf(float(floor.w), float(floor.h)) * 1.12 * vy3d_zoom
+	var riktning := Vector3(sin(vy3d_varv) * cos(vy3d_lutning), sin(vy3d_lutning),
+		cos(vy3d_varv) * cos(vy3d_lutning))
+	vy3d_kamera.position = mitten + riktning * d
+	vy3d_kamera.look_at(mitten, Vector3.UP)
+
+
+func _vy3d_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton:
+		var mb := e as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT or mb.button_index == MOUSE_BUTTON_RIGHT:
+			vy3d_rotar = mb.pressed
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
+			vy3d_zoom = clampf(vy3d_zoom * 0.9, 0.25, 4.0)
+			_placera_3d_kamera()
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
+			vy3d_zoom = clampf(vy3d_zoom * 1.1, 0.25, 4.0)
+			_placera_3d_kamera()
+	elif e is InputEventMouseMotion and vy3d_rotar:
+		var mm := e as InputEventMouseMotion
+		vy3d_varv += mm.relative.x * 0.012
+		vy3d_lutning = clampf(vy3d_lutning + mm.relative.y * 0.010, 0.18, 1.45)
+		_placera_3d_kamera()
+
+
+## En ändring i kartan ska synas i 3D — men inte byggas om mitt i ett drag med 30 rutor. Flaggan sätts
+## av `_stämpla`, och ombygget sker när handen varit stilla i 0,25 s.
+func _process(_delta: float) -> void:
+	if not vy3d_på or not vy3d_smutsig:
+		return
+	if Time.get_ticks_msec() / 1000.0 - vy3d_sen < 0.25:
+		return
+	_bygg_3d()
+
+
 func _layout_duk() -> void:
 	if duk == null or floor == null:
 		return
@@ -845,6 +1060,10 @@ func _layout_duk() -> void:
 	cell = maxf(3.0, fit * zoom)
 	anka = (yta - Vector2(floor.w, floor.h) * cell) * 0.5 + pan
 	duk.queue_redraw()
+	# 3D-rutan ritar i sin EGEN storlek: en SubViewport på 640x420 i en större ruta blir en liten
+	# bild i hörnet (mätt: hela vyn hamnade i övre vänstra hörnet i stället för att fylla).
+	if vy3d_vy != null:
+		vy3d_vy.size = Vector2i(maxi(64, int(vy3d_korg.size.x)), maxi(64, int(vy3d_korg.size.y)))
 
 
 func _ruta_vid(pos: Vector2) -> Vector2i:
@@ -1348,6 +1567,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		_kopiera_vald()
 	elif key == KEY_F:
 		_rama_in()
+	elif key == KEY_F4:
+		_växla_3d()
 	elif key == KEY_K:
 		_sätt_vy("textur" if vy == "plan" else "plan")
 	elif key == KEY_LEFT:
@@ -1660,6 +1881,7 @@ func _outliner_vald(i: int) -> void:
 ## Toppraden och statusraden. `hover` ger rutan under pekaren, så man vet VAD man är på väg att
 ## ändra innan man klickar — en yta utan den raden tvingar fram en gissning per klick.
 func _stämpla() -> void:
+	vy3d_smutsig = true
 	if floor == null or stage == null:
 		return
 	if _l_bana != null:
