@@ -58,6 +58,12 @@ func _initialize() -> void:
 			# mäter ytorna. Utan detta rad fälldes gräset för att det inte är en vägg.
 			hoppade += 1
 			continue
+		if mi.name.begins_with("markskugga_"):
+			# Markskuggan är en UNSHADED, genomskinlig fläck på golvet (main.gd `_dekor_nod`): den ritar
+			# en albedo med alfa och frågar aldrig efter normal eller råhet. Att kräva en normalkarta av
+			# en oskuggad quad är att kräva en karta shadern inte läser.
+			hoppade += 1
+			continue
 		if mi.name == "fukt":
 			# Fuktlagret räknar sin EGEN normal ur fuktighetens lutning i shadern (`NORMAL_MAP` i
 			# `Fx.VATTEN_SHADER`) — den har ingen normalkarta och ska inte ha någon. Provet mäter
