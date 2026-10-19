@@ -997,6 +997,46 @@ func _markera_verktyg() -> void:
 
 ## Inpassningen ryms i vyn; `zoom` är faktorn ovanpå. Anropas av `duk.resized`, av zoom och av
 ## inramningen — aldrig av `_draw`, så `_cell_at` och ritningen alltid räknar med SAMMA tal.
+## Tuvorna i 3D-förhandsvisningen: en MultiMesh för allt gräs (en nod per tuva hade blivit 1 000+).
+func _bygg_tuvor(rutor: Array) -> void:
+	if rutor.is_empty() or not ResourceLoader.exists(GRÄS_MESH) or not ResourceLoader.exists(GRÄS_TEX):
+		return
+	var mesh: Mesh = null
+	var scen: PackedScene = load(GRÄS_MESH)
+	if scen != null:
+		var prov := scen.instantiate()
+		for n in prov.find_children("*", "MeshInstance3D", true, false):
+			mesh = (n as MeshInstance3D).mesh
+			break
+		prov.free()
+	if mesh == null:
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = load(GRÄS_TEX)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	mat.alpha_scissor_threshold = 0.4
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mesh.surface_set_material(0, mat)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261019
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = rutor.size() * 10
+	var i := 0
+	for p in rutor:
+		for k in 10:
+			var s := GRÄS_SKALA * (0.75 + rng.randf() * 0.55)
+			var bas := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s))
+			mm.set_instance_transform(i, Transform3D(bas, Vector3(
+				p.x + 0.12 + rng.randf() * 0.76, 0.0, p.y + 0.12 + rng.randf() * 0.76)))
+			i += 1
+	var nod := MultiMeshInstance3D.new()
+	nod.name = "täcken_gräs"
+	nod.multimesh = mm
+	vy3d_värld.add_child(nod)
+
+
 # --- 3D-förhandsvisning (M158) ------------------------------------------------------------------
 
 func _initiera_3d() -> void:
@@ -1098,8 +1138,18 @@ func _bygg_3d() -> void:
 			b.mesh = m
 			b.material_override = _vy3d_material(tex)
 			vy3d_värld.add_child(b)
+	# GRÄSET STÅR UPP (M168): samma mesh som byns fält, så förhandsvisningen visar samma sak som spelet.
+	var gräsrutor: Array = []
+	for k in floor.täcken:
+		if str(floor.täcken[k]) == "gräs":
+			var gb: PackedStringArray = str(k).split(",")
+			if gb.size() == 2:
+				gräsrutor.append(Vector2i(int(gb[0]), int(gb[1])))
+	_bygg_tuvor(gräsrutor)
 	# TÄCKENA (M166): liggande bild strax över golvet.
 	for k in floor.täcken:
+		if str(floor.täcken[k]) == "gräs":
+			continue
 		var bitar2: PackedStringArray = str(k).split(",")
 		if bitar2.size() != 2:
 			continue
@@ -1331,6 +1381,10 @@ const FÄRG_GOLV := Color(0.31, 0.33, 0.39)
 const FÄRG_VÄGG := Color(0.085, 0.09, 0.11)
 ## Halvväggen ska synas som en egen sorts mur i planvyn — mellan golv och vägg i ljushet.
 const FÄRG_HALVVÄGG := Color(0.30, 0.33, 0.42)
+## Gräset i förhandsvisningen: byns eget bladmesh (M168), samma som `main.gd` använder.
+const GRÄS_MESH := "res://assets/by/quaternius/Grass_Common_Tall.gltf"
+const GRÄS_TEX := "res://assets/by/quaternius/Grass_pixel.png"
+const GRÄS_SKALA := 0.18
 const FÄRG_GOLVKANT := Color(0.66, 0.73, 0.86)
 
 func _rita_plan(c: Control) -> void:

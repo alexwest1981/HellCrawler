@@ -729,6 +729,23 @@ const TAK_HÖJD := 1.3
 ## Halvväggens höjd: knähög. Under ögonhöjden (1,6 m) så man ser över den, över midjan så den känns
 ## som ett skydd och inte som ett golv (M166).
 const HALVVÄGG_HÖJD := 0.62
+## GRÄSET SOM STICKER UPP (M168). Alex: *"Bilden med 'gräset' är inte riktigt ... Ville ha sånt som
+## sticker upp ur marken, som i byn isåfall."* Byns gräs är Quaternius riktiga blad
+## (`Grass_Common_Tall`, CC0) med `ui/gras3d.gdshader`; samma mesh och samma shader används här, bara
+## sådda på de rutor man målat. Vatten, lava, grus och stengolv ligger kvar som liggande bilder — de ÄR
+## plana ytor. Saknas meshen faller gräset tillbaka på den liggande bilden.
+const STÅENDE_TÄCKEN := ["gräs"]
+const GRÄS_MESH := "res://assets/by/quaternius/Grass_Common_Tall.gltf"
+const GRÄS_TEX := "res://assets/by/quaternius/Grass_pixel.png"
+const GRÄS_SHADER := "res://ui/gras3d.gdshader"
+const GRÄS_SKALA := 0.18            ## källan är 1,84 m hög; 0,18 ger 0,33 m — knähögt, så kameran ser över fältet (byns fält: 0,70 m, sett uppifrån)
+const GRÄS_PER_RUTA := 10           ## tuvor per målad ruta (byns fält ligger på ~20/m²)
+## MARKEN UNDER TUVORNA. Utan den står gräset som lösa blad i ett svart hål — samma mätning som byns
+## fält gjorde ("det såg ut som brus, inte som gräs"). `assets/by/tex/` har `.gdignore` och importeras
+## aldrig (mätt: `load()` gav null); `assets/by/byn_grass.png` är byns markbild och ÄR importerad, så den
+## används i stället. En platt grön ton utan bild läste som en grön matta.
+const GRÄS_MARK_TEX := "res://assets/by/byn_grass.png"
+const GRÄS_MARK_FÄRG := Color(1.05, 1.0, 0.95)
 ## Dörrarna är låsta tills koden är löst, och då ska man se VAD som står i vägen: trä, metall eller
 ## galler (M161).
 const DÖRR_FÄRG := {"trä": Color(0.52, 0.36, 0.20), "metall": Color(0.48, 0.53, 0.60),
@@ -6730,6 +6747,10 @@ func _täcken(f: Dungeon.Floor, golv: Array) -> void:
 			per_art[art] = []
 		per_art[art].append(p)
 	for art in per_art:
+		if STÅENDE_TÄCKEN.has(str(art)):
+			_täcke_mark(per_art[art])
+		if STÅENDE_TÄCKEN.has(str(art)) and _täcke_står(str(art), per_art[art]):
+			continue
 		# Täcket kan vara en rekvisitbild (gräs, mossa) eller en materialbild (lava) — `MapIo` vet var.
 		var tp := MapIo.täcke_textur(str(art))
 		var tex: Texture2D = load(tp) if not tp.is_empty() else null
@@ -6757,6 +6778,82 @@ func _täcken(f: Dungeon.Floor, golv: Array) -> void:
 		nod.material_override = mat
 		world.add_child(nod)
 		print("  täcke: %s på %d rutor" % [art, mm.instance_count])
+
+
+## Marken under tuvorna: ett liggande plan per målad ruta med byns gräsmatta, så gliporna mellan
+## tuverna blir gräs i stället för stengolv.
+func _täcke_mark(rutor: Array) -> void:
+	if rutor.is_empty() or not ResourceLoader.exists(GRÄS_MARK_TEX):
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = load(GRÄS_MARK_TEX)
+	mat.albedo_color = GRÄS_MARK_FÄRG
+	mat.uv1_triplanar = true
+	mat.uv1_scale = Vector3(1.6, 1.6, 1.6)
+	mat.roughness = 1.0
+	# Utan cull syns planet inte alls från ovan: quaden vrids -90 grader kring x och då pekar baksidan
+	# upp. Samma fälla som det liggande täcket hade.
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = QuadMesh.new()
+	(mm.mesh as QuadMesh).size = Vector2(1.0, 1.0)
+	mm.instance_count = rutor.size()
+	for i in range(rutor.size()):
+		var p: Vector2i = rutor[i]
+		mm.set_instance_transform(i, Transform3D(Basis(Vector3.RIGHT, -PI / 2.0),
+			Vector3(p.x + 0.5, 0.055, p.y + 0.5)))
+	var nod := MultiMeshInstance3D.new()
+	nod.name = "täckemark"
+	nod.multimesh = mm
+	nod.material_override = mat
+	world.add_child(nod)
+
+
+var _gräs_mesh: Mesh = null
+
+
+## Tuvorna: samma mesh och samma shader som byns fält, så gräset rör sig likadant. En MultiMesh per
+## art — 560 målade rutor blir 1 120 tuvor i EN ritning, inte 1 120 noder.
+func _täcke_står(art: String, rutor: Array) -> bool:
+	if _gräs_mesh == null and ResourceLoader.exists(GRÄS_MESH):
+		var scen: PackedScene = load(GRÄS_MESH)
+		if scen != null:
+			var prov := scen.instantiate()
+			for n in prov.find_children("*", "MeshInstance3D", true, false):
+				_gräs_mesh = (n as MeshInstance3D).mesh
+				break
+			prov.free()
+	if _gräs_mesh == null or not ResourceLoader.exists(GRÄS_TEX) or not ResourceLoader.exists(GRÄS_SHADER):
+		return false
+	var mat := ShaderMaterial.new()
+	mat.shader = load(GRÄS_SHADER)
+	mat.set_shader_parameter("textur", load(GRÄS_TEX))
+	mat.set_shader_parameter("svep", 0.045)
+	mat.set_shader_parameter("vind", 1.1)
+	_gräs_mesh.surface_set_material(0, mat)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261019                    # samma gräs varje gång våningen byggs
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = _gräs_mesh
+	mm.instance_count = rutor.size() * GRÄS_PER_RUTA
+	var i := 0
+	for p in rutor:
+		for k in GRÄS_PER_RUTA:
+			var s := GRÄS_SKALA * (0.75 + rng.randf() * 0.55)
+			var bas := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s))
+			mm.set_instance_transform(i, Transform3D(bas, Vector3(
+				p.x + 0.12 + rng.randf() * 0.76, 0.0, p.y + 0.12 + rng.randf() * 0.76)))
+			i += 1
+	var nod := MultiMeshInstance3D.new()
+	nod.name = "täcke_%s" % art
+	nod.multimesh = mm
+	nod.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(nod)
+	print("  täcke: %s — %d tuvor på %d rutor" % [art, mm.instance_count, rutor.size()])
+	return true
 
 
 func _bygg_dekor(golv: Array) -> void:
