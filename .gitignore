@@ -69,3 +69,10 @@ game/assets/tredjepart/ikoner_1244/
 # Arbetsfilen Alex och jag jobbar mot: en .blend är 7 MB binär och hör inte i git.
 # Spelet läser game/assets/by/byn.glb; den här filen är källan vi redigerar.
 assets/*.blend*
+# Äldre versioner av samma fil (flyttade hit 19/10 från Downloads/Pictures/Documents, 18 filer, 100 MB).
+assets/arkiv/
+assets/**/*.blend*
+
+# jobb/ är min arbetsyta i projektet: skripten och README hör i git, bilderna och ögonblicksbilderna inte.
+jobb/bilder/
+jobb/snapshots/
