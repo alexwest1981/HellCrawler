@@ -133,6 +133,7 @@ func _draw() -> void:
 	if källa == null or not is_instance_valid(källa):
 		return
 	var m := _mapp()
+	var w0: Dictionary = i_fönstret(rader[rader.size() - 1], m) if not rader.is_empty() else {}
 	var f := ThemeDB.fallback_font
 	for raden in rader:
 		var w := i_fönstret(raden, m)
@@ -152,7 +153,10 @@ func _draw() -> void:
 func _mapp() -> Transform2D:
 	var korg := _korg()
 	if korg != null:
-		return korg.get_global_transform_with_canvas() * källa.get_global_transform()
+		# `get_global_transform()` UTESLUTER canvaslagrets skalning. HUD:en skalas på CanvasLayer-nivå
+		# sedan vyn började ritas i fönstrets upplösning (M151), och då ritas orden i 1x — kartans
+		# nivårader och byns meny blev tomma. `_with_canvas` tar med lagret, en gång.
+		return korg.get_global_transform_with_canvas() * källa.get_global_transform_with_canvas()
 	return källa.get_global_transform_with_canvas()
 
 ## Korgen vyn ritas upp i (SubViewportContainer i main.gd). Finns den inte är källan ingen vy i
