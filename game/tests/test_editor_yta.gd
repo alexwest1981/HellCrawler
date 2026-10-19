@@ -44,7 +44,15 @@ func _init() -> void:
 		var karta: Rect2 = duk.get_global_rect()
 		var vad := "%dx%d: karta %.0fx%.0f px, ruta %.1f px" % [fall.x, fall.y, karta.size.x, karta.size.y,
 			editor.cell]
-		check(karta.size.x >= fall.x * 0.45, "kartan äger minst 45 %% av bredden", vad)
+		## M159 (5a400ed1) satte en 3D-ruta bredvid kartan, med samma stretch-ratio: kartan fick då
+		## halva mittutrymmet (mätt: 732 -> 364 px vid 1280) och invariantet "45 % av FÖNSTRETS bredd"
+		## gällde inte längre — det var provet som var gammalt, inte layouten. Andelen mäts nu mot
+		## mittutrymmet, som är det kartan faktiskt delar: kartan + 3D-rutan när den är framme.
+		var mitt := karta
+		var korg: Control = editor.vy3d_korg
+		if korg != null and korg.is_visible_in_tree():
+			mitt = mitt.merge(korg.get_global_rect())
+		check(karta.size.x >= mitt.size.x * 0.45, "kartan äger minst 45 %% av mittutrymmet", vad)
 		check(karta.size.y >= fall.y * 0.55, "kartan äger minst 55 %% av höjden", vad)
 		check(editor.cell >= 10.0, "en ruta är minst 10 px (34x34-våning)", vad)
 		# Panelerna mäts mot sin EGEN yta, inte mot ett magiskt tal: paletten är så bred som dess
