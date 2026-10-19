@@ -153,62 +153,73 @@ def _blob_at(bm, at: Vector, r: float, mat: int, sub: int = 1, stretch=(1.0, 1.0
 
 
 def pine(name: str, base: Vector, height: float, seed: int, collection) -> bpy.types.Object:
-    """A spruce: a segmented trunk with root flare, eleven whorls of boughs, needle tufts.
+    """A spruce as whorls of elongated needle clumps on a trunk — the same language as the bushes.
 
-    Previous version: six solid cones stacked on a stick (77 faces). It read as a party hat. A real
-    conifer at this scale is a whorl of 5-7 drooping branches every 20-30 cm up the trunk, with the
-    branch length shrinking toward the top — that is what makes the silhouette fray instead of step."""
+    Four versions were rendered and judged before this: six cones (party hat), boughs with needle
+    rosettes (bottle brush), flat rings (pagoda), and drooping torn skirts. The skirts read best in
+    silhouette but every scene light comes from above, so the underside of each tier was a black band,
+    and no plate choice fixed it: a face that points down gets no sun here.
+
+    Clumps solve it by having no underside at all. Each whorl is five to seven ellipsoids stretched
+    along its branch and turned to its angle, so the crown frays the way the broadband trees do — one
+    visual language for all the vegetation."""
     state = [seed]
     materials = [BARK, GREEN_MID, GREEN_LIGHT, GREEN_DARK]
     obj, bm = _new_mesh(name, materials, collection)
 
-    trunk_h = height * 0.96
-    lean = (rnd(state) - 0.5) * 0.10
-    # trunk in three sections, each a little thinner, so it bends instead of being a rod
-    seg = 3
-    for i in range(seg):
-        t0 = i / seg
-        t1 = (i + 1) / seg
-        z0 = base.z + trunk_h * t0
-        z1 = base.z + trunk_h * t1
-        r0 = height * (0.030 - 0.006 * i)
-        r1 = height * (0.030 - 0.006 * (i + 1))
-        m = (Matrix.Translation(Vector((base.x + lean * trunk_h * t0, base.y, (z0 + z1) / 2)))
-             @ Matrix.Rotation(lean, 4, "Y"))
-        cone(bm, m, r0, max(0.012, r1), (z1 - z0) * 1.02, 0, segments=7)
-    # root flare: three short fins, so the tree is planted instead of stuck into the ground
+    trunk_h = height * 0.97
+    lean = (rnd(state) - 0.5) * 0.08
     for i in range(3):
+        t0, t1 = i / 3, (i + 1) / 3
+        m = (Matrix.Translation(Vector((base.x + lean * trunk_h * t0, base.y,
+                                        base.z + trunk_h * (t0 + t1) / 2)))
+             @ Matrix.Rotation(lean, 4, "Y"))
+        cone(bm, m, height * (0.030 - 0.006 * i), max(0.012, height * (0.030 - 0.006 * (i + 1))),
+             trunk_h / 3 * 1.03, 0, segments=7)
+    for i in range(3):                                       # root flare
         a = math.tau * i / 3 + rnd(state)
         mm = (Matrix.Translation(base + Vector((math.cos(a) * height * 0.03,
                                                 math.sin(a) * height * 0.03, 0.0)))
-              @ Matrix.Rotation(a, 4, "Z")
-              @ Matrix.Rotation(math.radians(74), 4, "X"))
-        cone(bm, mm, height * 0.028, height * 0.008, height * 0.10, 0, segments=4)
+              @ Matrix.Rotation(a, 4, "Z") @ Matrix.Rotation(math.radians(74), 4, "X"))
+        cone(bm, mm, height * 0.026, height * 0.008, height * 0.09, 0, segments=4)
 
-    whorls = 14
+    whorls = 10
     for i in range(whorls):
         t = i / (whorls - 1.0)
-        z = base.z + height * (0.14 + 0.82 * t)
-        radius = height * 0.34 * (1.0 - 0.82 * t) * (0.92 + 0.18 * rnd(state))
-        boughs = 9 if t < 0.55 else (7 if t < 0.85 else 5)
-        twist = rnd(state) * math.tau
-        # låga grenar hänger, höga reser sig — och alla böjer sig ned ytterst
-        pitch = math.radians(-16 + 34 * t)
-        for b in range(boughs):
-            a = twist + math.tau * b / boughs + (rnd(state) - 0.5) * 0.30
-            length = radius * (0.82 + 0.36 * rnd(state))
-            origin = Vector((base.x + lean * height * 0.3, base.y, z))
-            mat_nål = 1 if b % 3 else (2 if i % 2 else 3)
-            tip = _bough(bm, origin, a, pitch, length, height * 0.018, mat_nål,
-                         droop=math.radians(26 + 22 * (1 - t)))
-            _needles(bm, tip, height * (0.050 + 0.018 * rnd(state)),
-                     2 if b % 2 else 3, count=2)
-    # the leader: a slim spike with a few tufts, not a party hat
-    top = Vector((base.x + lean * height * 0.3, base.y, base.z + height * 0.97))
-    cone(bm, Matrix.Translation(top), height * 0.045, 0.0, height * 0.14, 2, segments=6)
-    for i in range(3):
-        _needles(bm, top + Vector((0, 0, height * 0.03 * i)), height * 0.05, 3 if i % 2 else 2,
-                 count=3)
+        z = base.z + height * (0.15 + 0.82 * t)
+        radius = height * 0.36 * (1.0 - 0.88 * t) * (0.94 + 0.14 * rnd(state))
+        clumps = 7 if t < 0.5 else (5 if t < 0.85 else 3)
+        phase = rnd(state) * math.tau
+        for k in range(clumps):
+            a = phase + math.tau * k / clumps + (rnd(state) - 0.5) * 0.22
+            out = radius * (0.55 + 0.35 * rnd(state))
+            droop = height * (0.035 + 0.03 * rnd(state)) * (1.0 - 0.4 * t)
+            at = Vector((base.x + lean * height * 0.3 * t + math.cos(a) * out,
+                         base.y + math.sin(a) * out, z - droop))
+            size = height * (0.100 + 0.030 * rnd(state)) * (1.0 - 0.28 * t)
+            # bara PX_Lövverk och PX_Barr: PX_Hedge (luma 0,202) läses som svarta hål i kronan
+            mat_i = 2 if k % 2 else 1
+            _blob_at(bm, at, size, mat_i, sub=1,
+                     stretch=(1.0, 0.62 + 0.12 * rnd(state), 0.52 + 0.12 * rnd(state)),
+                     rot=a)
+        # inre ring: stänger gliporna mellan ytterklumparna så kronan blir tät
+        inner = 4
+        for k in range(inner):
+            a = phase + math.tau * k / inner + 0.4
+            out = radius * 0.34
+            _blob_at(bm, Vector((base.x + lean * height * 0.3 * t + math.cos(a) * out,
+                                 base.y + math.sin(a) * out, z - height * 0.008)),
+                     height * (0.085 - 0.035 * t), 1 if (i + k) % 2 else 2,
+                     stretch=(1.0, 0.85, 0.7), rot=a)
+
+    # toppen: två små klumpar och ett spetsigt skott
+    _blob_at(bm, Vector((base.x + lean * height * 0.3, base.y, base.z + height * 0.94)),
+             height * 0.075, 2, stretch=(1.0, 0.85, 0.85), rot=rnd(state) * math.tau)
+    _blob_at(bm, Vector((base.x + lean * height * 0.3, base.y, base.z + height * 0.975)),
+             height * 0.045, 3, stretch=(1.0, 0.8, 0.9), rot=rnd(state) * math.tau)
+    cone(bm, Matrix.Translation(Vector((base.x + lean * height * 0.3, base.y,
+                                        base.z + height * 1.0))),
+         height * 0.018, 0.0, height * 0.06, 2, segments=6)
     return finish(bm, obj, materials, 0.9)
 
 
