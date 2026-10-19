@@ -1079,6 +1079,7 @@ func _ready() -> void:
 	# Playtest från kart-editorn: en liten fil med bana och våning. Den konsumeras (tas bort) när den
 	# lästs, så en kvarglömd fil inte flyttar nästa vanliga start.
 	var pt := _take_playtest()
+	_playtestad = not pt.is_empty()
 	# Samma väg från kommandoraden: `tools/play.sh -- stage=stage_03 vaning=2`. Våningen skrivs som
 	# en människa räknar den (1 = första), inte som kod (0).
 	for f in OS.get_cmdline_user_args():
@@ -11215,7 +11216,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_animate_cam()
 		KEY_F1:
 			byggläge = not byggläge
-			_bygg_säg("BYGGLÄGE %s — 1-6 noder, K/L väljer rekvisit, P ställer den, X tar bort, G/V golv eller vägg, M material, N temats ruta, F2 sparar" % ["på" if byggläge else "av"])
+			_bygg_säg("BYGGLÄGE %s — 1-6 noder, K/L väljer rekvisit, P ställer den, X tar bort, G/V golv eller vägg, M material, N temats ruta, F2 sparar%s" % ["på" if byggläge else "av", ", F3 tillbaka till editorn" if _playtestad else ""])
 		KEY_F2:
 			if byggläge:
 				_bygg_spara()
@@ -11243,6 +11244,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_P:
 			if byggläge:
 				_bygg_rekvisit()
+		KEY_F3:
+			if _playtestad:
+				get_tree().change_scene_to_file("res://editor/editor.tscn")
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
 			# I byggläget ställer 1-6 ut det man tittar på (samma ordning som MapIo.KINDS). Utanför
 			# byggläget är 1-9 korten, och de grenarna ligger före den här.
@@ -11628,6 +11632,9 @@ func _bygg_bort() -> void:
 ## F2 sparar den med våningen — så en tunna man ställt i 3D ligger kvar nästa gång.
 var bygg_rekvisit := ""
 var _bygg_rekvisiter: Array = []
+## Startad från karteditorns P (playtest). Då finns F3: tillbaka till editorn, som läser våningen från
+## disk — man ritar, tittar i 3D (F1), F2 sparar, F3 ritar vidare, utan att gå via menyn.
+var _playtestad := false
 
 func _bygg_rekvisitlista() -> Array:
 	if not _bygg_rekvisiter.is_empty():

@@ -121,8 +121,11 @@ func _ready() -> void:
 	material_lista = _materiallista()
 	rekvisita_arter = _rekvisitalista()
 	var args := OS.get_cmdline_user_args()
-	var stage_id: String = args[0] if args.size() > 0 else "stage_01"
-	floor_index = int(args[1]) if args.size() > 1 else 0
+	# SENASTE VÅNINGEN (M156): kommer man tillbaka från en playtest (F3 i spelet) finns inga
+	# kommandoradsargument, och då ska editorn öppna den våning man just spelade — inte stage_01 våning 1.
+	var senast := _senast()
+	var stage_id: String = args[0] if args.size() > 0 else str(senast.get("stage_id", "stage_01"))
+	floor_index = int(args[1]) if args.size() > 1 else int(senast.get("floor", 0))
 	stage = stages.get(stage_id)
 	if stage == null:
 		push_error("okänd bana: %s" % stage_id)
@@ -1660,6 +1663,12 @@ func save() -> void:
 	_uppdatera()
 
 
+## {stage_id, floor} för den våning man senast spelade, tomt om ingen finns.
+func _senast() -> Dictionary:
+	var d = JSON.parse_string(FileAccess.get_file_as_string("user://senast.json"))
+	return d if typeof(d) == TYPE_DICTIONARY else {}
+
+
 func playtest() -> void:
 	fel = MapIo.validate(floor)
 	if not fel.is_empty():
@@ -1674,9 +1683,11 @@ func playtest() -> void:
 		status = "kunde inte spara före playtest"
 		_uppdatera()
 		return
-	var f := FileAccess.open("user://playtest.json", FileAccess.WRITE)
-	f.store_string(JSON.stringify({"stage_id": floor.stage_id, "floor": floor.index}))
-	f.close()
+	var d := {"stage_id": floor.stage_id, "floor": floor.index}
+	for namn in ["user://playtest.json", "user://senast.json"]:
+		var f := FileAccess.open(namn, FileAccess.WRITE)
+		f.store_string(JSON.stringify(d))
+		f.close()
 	get_tree().change_scene_to_file("res://main.tscn")
 
 
