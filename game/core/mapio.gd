@@ -242,6 +242,29 @@ static func blank(stage_id: String, floor_index: int, w: int = 17, h: int = 17) 
 	return f
 
 
+## MER AREA (M160). Alex: *"Om jag kommit till utkanten skall jag kunna klicka på en knapp för att
+## lägga till mer area att bygga på, för om man går hela vägen ut mot en kant, så blir det bara svart."*
+##
+## Våningen växer åt höger och nedåt: det man ritat ligger kvar på sina rutor, och de NYA rutorna är
+## berg (vägg) — inget blir spelbart av misstag, man målar golv själv där man vill ha rum. Krympning
+## vägras: den skulle kasta bort det man ritat utan att säga till.
+static func utöka(f: Dungeon.Floor, w: int, h: int) -> String:
+	if w < f.w or h < f.h:
+		return "krympning stöds inte: %d×%d är mindre än %d×%d" % [w, h, f.w, f.h]
+	if w == f.w and h == f.h:
+		return "samma storlek som förut"
+	for y in range(f.h):
+		for x in range(f.w, w):
+			f.tiles[y].append(Dungeon.WALL)
+	for y in range(f.h, h):
+		var rad: Array[int] = []
+		for x in w:
+			rad.append(Dungeon.WALL)
+		f.tiles.append(rad)
+	f.w = w
+	f.h = h
+	return ""
+
 ## --- noder på en ruta: reglerna på ETT ställe ------------------------------------------------
 ##
 ## Ban-editorn (tools/editor.sh) och byggläget i spelet (F1) gör exakt samma sak: ställer en nod på en

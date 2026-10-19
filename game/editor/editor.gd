@@ -673,6 +673,11 @@ func _bygg_palett() -> void:
 		_sätt_verktyg.bind("ruta", "vägg")))
 	vägg.icon = _tema_tex(floor.theme if floor != null else "", "wall")
 	vägg.add_theme_constant_override("icon_max_width", 18)
+	# MER AREA (M160): vid kanten tar kartan slut och resten är svart. Knappen öppnar storleksrutan
+	# förifylld med dagens mått, så man skriver hur mycket man vill lägga till.
+	var utoka := _palett_knapp(_knapp("Lägg till area   (N)", "våningen växer: det du ritat ligger kvar, nya rutor är berg",
+		_oppna_storlek))
+	utoka.add_theme_color_override("font_color", FÄRG_GOLVKANT)
 	_verktygs_rubrik("NODER")
 	for i in NODE_TOOLS.size():
 		var d: Dictionary = NODE_TOOLS[i]
@@ -1564,7 +1569,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		load_or_generate()
 		_uppdatera()
 	elif key == KEY_N:
-		storlek_dialog.popup_centered()
+		_oppna_storlek()
 	elif key == KEY_P:
 		playtest()
 	elif key == KEY_T:
@@ -1639,6 +1644,12 @@ func _bygg_storlek_dialog() -> void:
 	storlek_dialog.title = "Nytt rum (block)"
 	storlek_dialog.ok_button_text = "Skapa"
 	storlek_dialog.cancel_button_text = "Avbryt"
+	# TVÅ SAKER I SAMMA RUTA: "Skapa" gör en tom våning, "Utöka" lägger till area på den man har.
+	storlek_dialog.add_button("Lägg till area", true, "utoka")
+	storlek_dialog.custom_action.connect(func(a: String):
+		if a == "utoka":
+			storlek_dialog.hide()
+			_utöka_karta())
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	_sd_bredd = _storleksrad(box, "Bredd", floor.w if floor != null else 7)
@@ -1646,6 +1657,13 @@ func _bygg_storlek_dialog() -> void:
 	storlek_dialog.add_child(box)
 	storlek_dialog.confirmed.connect(_skapa_rum)
 	add_child(storlek_dialog)
+
+
+func _oppna_storlek() -> void:
+	if _sd_bredd != null and floor != null:
+		_sd_bredd.value = floor.w
+		_sd_höjd.value = floor.h
+	storlek_dialog.popup_centered()
 
 
 func _storleksrad(box: VBoxContainer, text: String, värde: int) -> SpinBox:
@@ -1680,6 +1698,24 @@ func _skapa_rum() -> void:
 	status = "nytt rum %d×%d — rita det och tryck O för att spara som block" % [w, h]
 	_layout_duk()
 	_uppdatera()
+
+
+## Lägger till area på våningen man har (M160): det ritade ligger kvar, nya rutor är berg.
+func _utöka_karta() -> void:
+	var w := clampi(int(_sd_bredd.value), 3, 64)
+	var h := clampi(int(_sd_höjd.value), 3, 64)
+	_ångra_punkt()
+	var fel := MapIo.utöka(floor, w, h)
+	if not fel.is_empty():
+		status = fel
+		_stämpla()
+		return
+	ändrad = true
+	status = "våningen är nu %d×%d — de nya rutorna är berg, måla golv där rummen ska vara" % [w, h]
+	_layout_duk()
+	_stämpla()
+	_uppdatera()
+	vy3d_sen = 0.0
 
 
 func _ny_våning() -> void:
