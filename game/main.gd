@@ -3496,10 +3496,14 @@ func _refresh_shell() -> void:
 	_placera_vy()
 	var i_körning: bool = shell == "körning"
 	by_view.visible = shell == "hem"
+	# HD-LAGRET ÄR AVSTÄNGT (M174): vyn ritas redan i fönstrets pixlar (`_vy.size` = fönstret sedan
+	# M151), så panoramat kan ritas 1:1 direkt i vyn. Ett eget lager UNDER vyn blev svart, eftersom
+	# vyns SubViewport har egen ogenomskinlig bakgrund. Lagret finns kvar för den som vill testa.
 	if by_hd != null:
 		by_view.hd_aktiv = shell == "hem" and by_hd.texture != null
 		by_hd.visible = by_view.hd_aktiv
-		_placera_hd()
+		by_hd.size = Vector2(_vy.size)
+		by_hd.position = Vector2.ZERO
 	# CRT-LAGRET ÄR RAKT ÖVER BYN (M123). Alex: *"Bort med ... CRT-kurvaturen/svart i hörnen/
 	# sträckningen i sidled."* Byn ligger kant i kant i hela fönstret, och där blir välvningen som
 	# störst: uv hamnade utanför bilden och kanten skars av i svart. Lagret är kvar (skanlinjer och
@@ -9246,17 +9250,16 @@ func _bygg_vy() -> void:
 	_vy_korg.gui_input.connect(_vy_klick)
 	# I ett eget lager, inte direkt under scenens rot: en Control som hänger under en Node3D ritas
 	# inte (den har ingen canvas) — mätt: hela spelvyn blev en tom bakgrundsfärg.
-	# BYNS HD-LAGER: under allt annat (layer -1), bara synligt i byskalet.
-	_hd_lager = CanvasLayer.new()
-	_hd_lager.layer = -1
+	# BYNS HD-LAGER: ett barn till VYN (viewportens egen canvas), inte till `hud` — barn till hud ritas
+	# i 480-rutor och skalas 4×, men vyns canvas ÄR fönstrets pixlar (M151). Då ritas bilden 1:1.
+	# Det ligger under `hud` (CanvasLayer ritas alltid över canvasen), så menyn hamnar ovanpå.
 	by_hd = TextureRect.new()
 	by_hd.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	by_hd.stretch_mode = TextureRect.STRETCH_SCALE
 	by_hd.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	by_hd.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	by_hd.visible = false
-	_hd_lager.add_child(by_hd)
-	add_child(_hd_lager)
+	_vy.add_child(by_hd)
 	_vy_lager = CanvasLayer.new()
 	_vy_lager.layer = 0
 	_vy_lager.add_child(_vy_korg)
@@ -9265,6 +9268,7 @@ func _bygg_vy() -> void:
 	get_viewport().size_changed.connect(_placera_vy)
 	if ResourceLoader.exists(VillageView.BILD):
 		by_hd.texture = load(VillageView.BILD)
+		by_hd.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_runt = CanvasLayer.new()
 	_runt.layer = 1
 	add_child(_runt)

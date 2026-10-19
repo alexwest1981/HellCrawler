@@ -59,7 +59,7 @@ extends Control
 ## Platsen man valde och gick in i. `skepp` är skalets läge (main.gd), inte en egen sorts plats.
 signal vald(skepp: String)
 
-const BILD := "res://assets/ui/byn.png"
+const BILD := "res://assets/by2d/byn.png"
 ## Byn som MÅLAD 2.5D-scen (M172). False = Alex' panorama ritas, 3D-scenen är urkopplad.
 const BY3D := false
 ## Figuren som går i byn (och på kartan): en av HJÄLTARNA ur Alex' hjälteark (`game/images/heroes.jpeg`,
@@ -97,15 +97,15 @@ const FIGUR_SKALA := 1.0
 ## den, så platsen är borta härifrån — skärmen finns kvar i skalet (och nås av skalsvepet). Ska
 ## kortköpet ha en egen dörr får han säga vilket hus den ska bo i.
 const PLATSER := [
-	{"id": "tradet", "namn": "THREAD OF DESTINY", "skepp": "trad", "x": 8.5, "3d": "Weaver", "x0": 2.0, "x1": 15.0, "färg": 1},
-	{"id": "smed", "namn": "BLACKSMITH", "skepp": "smed", "x": 22.5, "3d": "Smith", "x0": 14.0, "x1": 31.0, "färg": 12},
-	{"id": "vardshus", "namn": "THE TAVERN", "skepp": "vardshus", "x": 40.0, "3d": "Tavern", "x0": 32.0, "x1": 48.0, "färg": 13},
-	{"id": "karta", "namn": "THE GATE", "skepp": "karta", "x": 53.5, "3d": "Gate", "x0": 45.0, "x1": 62.0, "färg": 25},
-	{"id": "juvelerare", "namn": "JEWELER", "skepp": "juvelerare", "x": 69.0, "3d": "Jeweler", "x0": 63.0, "x1": 75.0, "färg": 30},
+	{"id": "tradet", "namn": "THREAD OF DESTINY", "skepp": "trad", "x": 9.0, "3d": "Weaver", "x0": 1.0, "x1": 18.0, "topp": 40.0, "färg": 1},
+	{"id": "smed", "namn": "BLACKSMITH", "skepp": "smed", "x": 29.0, "3d": "Smith", "x0": 19.0, "x1": 39.0, "topp": 38.0, "färg": 12},
+	{"id": "vardshus", "namn": "THE TAVERN", "skepp": "vardshus", "x": 52.0, "3d": "Tavern", "x0": 41.0, "x1": 64.0, "topp": 34.0, "färg": 13},
+	{"id": "karta", "namn": "THE GATE", "skepp": "karta", "x": 75.0, "3d": "Gate", "x0": 66.0, "x1": 85.0, "topp": 12.0, "färg": 25},
+	{"id": "juvelerare", "namn": "JEWELER", "skepp": "juvelerare", "x": 93.0, "3d": "Jeweler", "x0": 86.0, "x1": 100.0, "topp": 50.0, "färg": 30},
 	# EXIT-skylten i bilden (längst till höger) stänger spelet. Alex: "Exit på bilden behöver vara
 	# till att avsluta spelet." Den är ingen skärm i skalet — `_på_plats` i main.gd känner igen
 	# "avsluta" och avslutar, och provet mot SKAL_LÄGEN hoppar över just den här platsen.
-	{"id": "avsluta", "namn": "EXIT", "skepp": "avsluta", "x": 80.5, "3d": "Exit", "x0": 75.0, "x1": 86.0, "färg": 14},
+	{"id": "avsluta", "namn": "EXIT", "skepp": "avsluta", "x": 60.0, "3d": "Exit", "x0": 55.0, "x1": 65.0, "topp": 78.0, "färg": 14},
 ]
 const MÄRKE := Vector2(20.0, 26.0)   ## platsens PUNKT-ruta: invarianten provet mäter (och klick i reserv)
 const DJUP := 6.0                    ## platsens skugga i sidled (provet räknar in den i krockmåttet)
@@ -131,7 +131,7 @@ const PAN_FART := 8.0
 ## Var i bildens HÖJD gatan ligger, i procent: märkena ställs på gatans linje, och bilden skjuts i
 ## höjdled så att den linjen hamnar på MARKLINJE. Utan det står märkena i himlen på en panoramabild
 ## som är 2,5 gånger bredare än hög.
-const BILDENS_GATA := 78.0
+const BILDENS_GATA := 86.0
 
 var _vald := 0
 ## Platsen muspekaren står över, eller -1. Sätts på musens RÖRELSE i `_gui_input` och ritas som en
@@ -351,7 +351,8 @@ func _konst_ruta(i: int, art: Vector2) -> Rect2:
 	var p: Dictionary = PLATSER[i]
 	var x0 := int(roundf(art.x * float(p["x0"]) / 100.0))
 	var x1 := int(roundf(art.x * float(p["x1"]) / 100.0))
-	var y0 := int(roundf(art.y * HUS_TOPP / 100.0))
+	var topp := float(p.get("topp", HUS_TOPP))
+	var y0 := int(roundf(art.y * topp / 100.0))
 	var y1 := int(roundf(art.y * BILDENS_GATA / 100.0))
 	return Rect2(Vector2(x0, y0), Vector2(x1 - x0, y1 - y0))
 
@@ -384,6 +385,12 @@ func _hus_textur(i: int) -> Texture2D:
 ## (`x0`/`x1`) och höjden går från `HUS_TOPP` ned till gatulinjen — huset man ser är det som reses.
 ## Byggs om bara när vyns storlek har ändrats: i en kedja av bildrutor räcker det.
 func _bygg_scen() -> void:
+	# 2.5D HD (M174): den gamla scenen (bak.png + hus ur den gamla konsten) hör till 3D-vägen. Byggdes
+	# den ändå ritade den ÖVER HD-lagret — mätt: bilden visade den gamla dagsljusbyn med band och
+	# urklippta hus trots att HD-texturen var rätt.
+	if not BY3D:
+		_scen3d = null
+		return
 	# 3D-BYN först (M125): den är det som ritas, och den byggs ur SAMMA ruta som 2D-scenen.
 	_bygg_by3d(_vy())
 	var konst := byscen()
@@ -546,6 +553,8 @@ func bild_storlek() -> Vector2:
 	# storleken ur 3D-rutans heltalsskala, och då ritades bilden 1:1: 3232 px in i en 480 px-vy, vilket
 	# visade en förstorad urklippt fläck i stället för byn (mätt: vyn visade vävstugan, inte torget).
 	if not BY3D:
+		return vp
+	if false:
 		# Panoramat är ritat i 3232×1312 och visas i 665×270: en nerskalning på 4,9×. NEAREST kastar då
 		# fyra av fem pixlar och bilden läser som brus/moiré (mätt i skärmbilden). Linjär filtrering med
 		# mipmaps ger en mjuk, målad nerskalning — "HD"-känslan i en 480×270-vy.
@@ -603,6 +612,10 @@ func _byggnad_rect_2d(i: int) -> Rect2:
 ## Hur långt bilden ska flyttas för att plats i ska stå mitt i vyn. Ändarna är taket: panoreringen går
 ## inte förbi bildens kant (Alex: "det gör inget om det tar stopp när man når vardera hörn").
 func _mål_pan(i: int) -> float:
+	# 2.5D HD (M174): bilden fyller vyn exakt, så det finns inget att panorera. Alex: *"något weird
+	# parallax som flyttar sig åt fel håll när man rör muspekaren"* — bort.
+	if not BY3D:
+		return 0.0
 	var vp := _vy()
 	return clampf(_plats_x(i) - vp.x * 0.5, 0.0, maxf(0.0, bild_storlek().x - vp.x))
 
@@ -725,7 +738,8 @@ func _gui_input(event: InputEvent) -> void:
 		# rörelsen som ger paralax — husen och bakgrunden flyttar sig olika mycket (se by_scen.gd).
 		if not _kamera_låst and _scen3d != null:
 			var halv := _vy() * 0.5
-			_kamerapan = Vector2((pos.x - halv.x) / maxf(1.0, halv.x), (pos.y - halv.y) / maxf(1.0, halv.y)) * ByScen.SVEP
+			if BY3D:
+				_kamerapan = Vector2((pos.x - halv.x) / maxf(1.0, halv.x), (pos.y - halv.y) / maxf(1.0, halv.y)) * ByScen.SVEP
 			_scen3d.sätt_kamera(_kamerapan.x, _kamerapan.y)
 		var ny := plats_vid(pos)
 		if ny != _hover:
@@ -755,11 +769,13 @@ func _draw() -> void:
 		pass                                  # 3D:n ligger under vyn som Sprite2D (M152)
 	elif by3d_tex != null:
 		draw_texture_rect(by3d_tex, Rect2(Vector2.ZERO, vp), false)
-	elif _scen3d != null and _scen3d.klar():
+	elif _scen3d != null and _scen3d.klar() and not hd_aktiv:
 		# 3D-SCENEN (M122): bakgrund och hus ritas i den inre vyn, på var sitt djup, och den ritas
 		# 1:1 här — en pixel i den inre vyn är en pixel i vyn, som skalas till skärmen med heltalet.
 		draw_texture_rect(_scen3d.textur(), Rect2(Vector2.ZERO, vp), false)
-	elif byscen() != null and not hd_aktiv:
+	elif hd_aktiv:
+		pass                                  # HD-lagret under vyn äger bilden (M174)
+	elif byscen() != null:
 		_bilden(vp, byscen())
 	else:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
@@ -873,6 +889,8 @@ func hd_ruta(skala: float) -> Rect2:
 	if bild == null:
 		return Rect2()
 	var mål := bild_storlek()
+	if not BY3D:
+		return Rect2(0.0, 0.0, mål.x * skala, mål.y * skala)
 	var y := marklinje() - mål.y * BILDENS_GATA / 100.0
 	return Rect2(-_pan * skala, y * skala, mål.x * skala, mål.y * skala)
 
