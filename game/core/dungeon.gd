@@ -93,6 +93,8 @@ class FloorNode extends RefCounted:
 	var kind: String            ## encounter | chest | torch | boss | shovel | start
 	var pos: Vector2i
 	var enemy_id: String = ""
+	## Vilken DÖRRKOD noden löser: en nyckel eller spak öppnar alla dörrar med samma kod (M161).
+	var kod: String = ""
 	var gold: int = 0
 	var xp: int = 0
 	var cleared := false          ## avklarad (strid vunnen, eller shovel använd)
@@ -113,6 +115,10 @@ class Floor extends RefCounted:
 	## ritas med det i stället för temats ruta. Tomt = temat gäller, precis som förut. Id:t är en
 	## sökväg utan ändelse under assets/tiles/, så motorn hittar bilden utan en egen tabell.
 	var ytor: Dictionary = {}
+	## DÖRRAR (M161): [{pos: Vector2i, typ: "trä"|"metall"|"galler", kod: String}]. En dörr står på en
+	## golvruta och blockerar gången tills koden är löst — en nyckel man plockat upp eller en spak man
+	## dragit. Bakom den kan bossen, ett kistrum eller vad som helst ligga.
+	var dörrar: Array = []
 	## ÖPPNA RUM (VC-paritet 15/10): rum UTAN TAK — slagfältet under himlen. Referensen har inget
 	## skybox-material i dungeons alls (kameran rensar till färg, `m_SkyboxMaterial` är NULL): himlen
 	## ligger som GEOMETRI i rumsmallen (faux-skybox-plan med en kubkarta). Här är motsvarigheten att

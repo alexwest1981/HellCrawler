@@ -726,6 +726,10 @@ const KISTA_PIXELTRÖSKEL := 0.06
 ## försvann genom taket. 0,0195 ger 1,25 m, alltså strax under taket för den högsta figuren, och
 ## bossen är ändå rummets största varelse (en vanlig fiende toppar på 1,15 m).
 const TAK_HÖJD := 1.3
+## Dörrarna är låsta tills koden är löst, och då ska man se VAD som står i vägen: trä, metall eller
+## galler (M161).
+const DÖRR_FÄRG := {"trä": Color(0.52, 0.36, 0.20), "metall": Color(0.48, 0.53, 0.60),
+	"galler": Color(0.28, 0.32, 0.38)}
 const LAGA_LUTNING := 32.0        ## skaftets lutning ut från väggen, i grader
 const LAGA_SKAFT := 0.26          ## skaftets längd (kort — rummet är en meter högt)
 const LAGA_HUVUD := 0.30          ## var lågan sitter, mätt från kransen längs skaftets axel
@@ -6522,6 +6526,18 @@ func _build_world() -> void:
 		if not f.är_öppen(p):
 			takrutor.append(p)
 	_add_boxes_ytor(takrutor, COL_CEIL, TAK_HÖJD, Vector3(1, 0.04, 1), "ceiling", 47, 2.0, TAK_TON)
+	# DÖRRARNA (M161): en låst dörr är en platta i rutans mitt, i dörrtypens färg — annars ser en
+	# blockerad gång ut som en osynlig vägg. När koden är löst (nyckel upplockad eller spak dragen)
+	# byggs världen om och plattan är borta: gången är öppen.
+	for typ in MapIo.DÖRRAR:
+		var låsta: Array = []
+		for d in f.dörrar:
+			if str(d.get("typ", "")) == typ and run.explore.dörr_låst(d["pos"]):
+				låsta.append(d["pos"])
+		if låsta.is_empty():
+			continue
+		_add_boxes_ytor(låsta, DÖRR_FÄRG[typ], TAK_HÖJD * 0.5, Vector3(1, TAK_HÖJD, 0.16),
+			"dörr_%s" % typ, 53, 1.0, Color(0.85, 0.85, 0.85))
 	_öppen_himmel(f)
 	# Siffrorna i loggen: hur stor del av ytorna som blev slitna partier. Utan dem går det inte att
 	# se att fältet faktiskt delar våningen (en andel på 0 % eller 100 % ser ut som "ingen variation").
@@ -11755,6 +11771,13 @@ func _step_forward() -> void:
 	if run.finished or _draft_pending():
 		return
 	var err := run.explore.forward()
+	if err == "låst":
+		# EN LÅST DÖRR SÄGER TILL (M161): annars ser den ut som en vägg man går in i.
+		var d := run.explore.dörr_vid(run.explore.ahead())
+		_logga("dörren är låst — leta efter nyckeln (kod %s)" % str(d.get("kod", "?")),
+			Color(0.95, 0.8, 0.4))
+		_sfx("bump")
+		return
 	if err != "":
 		return
 	_sfx("step")

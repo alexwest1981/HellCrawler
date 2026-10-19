@@ -22,7 +22,14 @@ const NODE_TOOLS := [
 	{"kind": "shovel", "ch": "N", "färg": Color(0.45, 0.85, 0.95), "namn": "Nedstigning"},
 	{"kind": "chest", "ch": "K", "färg": Color(0.95, 0.82, 0.35), "namn": "Kista"},
 	{"kind": "torch", "ch": "F", "färg": Color(0.95, 0.62, 0.3), "namn": "Fackla"},
+	{"kind": "nyckel", "ch": "Y", "färg": Color(0.95, 0.9, 0.45), "namn": "Nyckel"},
+	{"kind": "spak", "ch": "Z", "färg": Color(0.55, 0.85, 0.95), "namn": "Spak"},
 ]
+
+## Dörrtyperna och deras färg i kartan. Trä är varmt, metall kallt, galler mörkt — samma tre som
+## `MapIo.DÖRRAR`, så paletten och reglerna inte kan glida ifrån varandra.
+const DÖRR_FÄRG := {"trä": Color(0.62, 0.42, 0.24), "metall": Color(0.55, 0.60, 0.70),
+	"galler": Color(0.34, 0.38, 0.44)}
 
 ## Banans fält, i panelens ordning. `↑↓` väljer inte längre rad (pilarna flyttar urvalet i kartan),
 ## utan varje rad har egna ◀ ▶ — `meta_vald` håller reda på vilken rad som ändrades senast.
@@ -80,6 +87,7 @@ var material_lista: Array = []
 var rekvisita_arter: Array = []      ## arterna i assets/props (namngivna och de som arken gav dem)
 var rekvisit_art := ""               ## vald rekvisit i paletten
 var fiende_art := ""                 ## vald fiende: paletten "FIENDER" ställer ut en strid med den
+var dörr_typ := "trä"                ## vald dörrtyp i paletten (M161)
 
 ## Kartans mått. `zoom` är en faktor ovanpå den inpassning som ryms i vyn, så fönsterbytet behåller
 ## den zoom man valt; `pan` är panoreringen i px och behålls likaså.
@@ -377,6 +385,10 @@ func _place(p: Vector2i) -> String:
 			var ff := MapIo.placera(floor, "encounter", p, stage, bestiary, fiende_art)
 			if not ff.is_empty():
 				return ff
+		"dörr":
+			var fd := MapIo.sätt_dörr(floor, dörr_typ, p)
+			if not fd.is_empty():
+				return fd
 		"nod":
 			var f := MapIo.placera(floor, nod_kind, p, stage, bestiary, vald_fiende)
 			if not f.is_empty():
@@ -678,6 +690,19 @@ func _bygg_palett() -> void:
 	var utoka := _palett_knapp(_knapp("Lägg till area   (N)", "våningen växer: det du ritat ligger kvar, nya rutor är berg",
 		_oppna_storlek))
 	utoka.add_theme_color_override("font_color", FÄRG_GOLVKANT)
+	# DÖRRARNA (M161): tre slag, samma regel — låst tills koden är löst.
+	_verktygs_rubrik("DÖRRAR")
+	var dörrrad := HBoxContainer.new()
+	dörrrad.add_theme_constant_override("separation", 3)
+	palett_box.add_child(dörrrad)
+	for typ in MapIo.DÖRRAR:
+		var b := _knapp(str(typ), "sätt en %s-dörr på rutan (låst tills kod 1 är löst)" % typ,
+			_sätt_verktyg.bind("dörr", typ))
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.custom_minimum_size.y = 24
+		b.add_theme_color_override("font_color", DÖRR_FÄRG.get(str(typ), Color.WHITE))
+		dörrrad.add_child(b)
 	_verktygs_rubrik("NODER")
 	for i in NODE_TOOLS.size():
 		var d: Dictionary = NODE_TOOLS[i]
@@ -835,6 +860,8 @@ func _sätt_verktyg(typ: String, vad := "") -> void:
 			rekvisit_art = vad
 		"fiende":
 			fiende_art = vad
+		"dörr":
+			dörr_typ = vad
 	_markera_verktyg()
 	_stämpla()
 	if duk != null:
@@ -980,6 +1007,21 @@ func _bygg_3d() -> void:
 			b.mesh = m
 			b.material_override = _vy3d_material(tex)
 			vy3d_värld.add_child(b)
+	# DÖRRARNA (M161) som en platta i gången, i dörrtypens färg — man ser var man inte kommer igenom.
+	for d in floor.dörrar:
+		var db := MeshInstance3D.new()
+		var dm := BoxMesh.new()
+		dm.size = Vector3(0.96, 1.0, 0.28)
+		db.mesh = dm
+		var dp: Vector2i = d["pos"]
+		db.position = Vector3(dp.x + 0.5, 0.5, dp.y + 0.5)
+		var dmat := StandardMaterial3D.new()
+		dmat.albedo_color = DÖRR_FÄRG.get(str(d.get("typ", "")), Color(0.5, 0.5, 0.5))
+		# Dörren lyser svagt: i en översikt med jämnt ljus drunknar en brun platta i bruna murar.
+		dmat.emission_enabled = true
+		dmat.emission = dmat.albedo_color * 0.55
+		db.material_override = dmat
+		vy3d_värld.add_child(db)
 	# REKVISITAN: bilden ställd i rutans mitt, i samma höjd som golvet.
 	for r in floor.rekvisita:
 		var tex := _prop_tex(str(r.get("art", "")))
@@ -1123,6 +1165,7 @@ func _rita_duk(c: Control) -> void:
 	else:
 		_rita_plan(c)
 	_rita_rekvisita(c)
+	_rita_dörrar(c)
 	_rita_kant(c)
 	# rutnätet ovanpå rytorna: tunna linjer, en per ruta
 	var linje := Color(0, 0, 0, 0.35)
@@ -1229,6 +1272,23 @@ func _prop_yta(art: String) -> Rect2:
 
 ## Rekvisitan ritas som sin EGEN bild i rutan — man känner igen en tunna på tunnan, inte på en bokstav.
 ## Figuren skalas in i rutan med bevarat förhållande och står på rutans nederkant, som regeln i spelet.
+## DÖRRARNA i kartan (M161): en tvärslå över rutan i dörrtypens färg, med ett streck över när den är
+## låst. Man ska se på kartan var en dörr sitter och att den hör ihop med en nyckel — inte bara att
+## rutan plötsligt inte går att gå in i.
+func _rita_dörrar(c: Control) -> void:
+	for d in floor.dörrar:
+		var p: Vector2i = d.get("pos", Vector2i(-1, -1))
+		var rr := _ruta_rect(p)
+		var färg: Color = DÖRR_FÄRG.get(str(d.get("typ", "")), Color(0.6, 0.6, 0.6))
+		var ijock := maxf(2.0, cell * 0.16)
+		c.draw_rect(Rect2(rr.position.x, rr.get_center().y - ijock * 0.5, rr.size.x, ijock), färg)
+		c.draw_rect(Rect2(rr.get_center().x - ijock * 0.5, rr.position.y, ijock, rr.size.y),
+			färg.darkened(0.35))
+		c.draw_string(ThemeDB.fallback_font, rr.position + Vector2(cell * 0.06, cell * 0.36),
+			str(d.get("kod", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, clampi(int(cell * 0.4), 8, 14),
+			Color(1, 1, 1, 0.75))
+
+
 func _rita_rekvisita(c: Control) -> void:
 	for r in floor.rekvisita:
 		var p: Vector2i = r.get("pos", Vector2i(-1, -1))
@@ -1434,6 +1494,8 @@ func _höger(p: Vector2i) -> void:
 		status = "nod borttagen på (%d,%d)" % [p.x, p.y]
 	elif MapIo.ta_bort_rekvisita(floor, p):
 		status = "rekvisitan borttagen på (%d,%d)" % [p.x, p.y]
+	elif MapIo.ta_bort_dörr(floor, p):
+		status = "dörren borttagen på (%d,%d)" % [p.x, p.y]
 	elif floor.ytor.has("%d,%d" % [p.x, p.y]):
 		floor.ytor.erase("%d,%d" % [p.x, p.y])
 		status = "temats ruta igen på (%d,%d)" % [p.x, p.y]
@@ -1495,6 +1557,8 @@ func _måla(p: Vector2i) -> void:
 		status = "%s på (%d,%d)" % [rekvisit_art, p.x, p.y]
 	elif verktyg == "fiende":
 		status = "strid med %s på (%d,%d)" % [fiende_art if not fiende_art.is_empty() else "slumpad", p.x, p.y]
+	elif verktyg == "dörr":
+		status = "dörr (%s) på (%d,%d)" % [dörr_typ, p.x, p.y]
 	_stämpla()
 	duk.queue_redraw()
 
@@ -1549,7 +1613,7 @@ func _unhandled_input(e: InputEvent) -> void:
 	if k.ctrl_pressed and key == KEY_Y:
 		_stega(_framtid, _historik)
 		return
-	if key >= KEY_1 and key <= KEY_6:
+	if key >= KEY_1 and key <= KEY_8:
 		_sätt_verktyg("nod", str(NODE_TOOLS[key - KEY_1]["kind"]))
 	elif key == KEY_V:
 		_sätt_verktyg("valj")
@@ -1955,7 +2019,8 @@ func _stämpla() -> void:
 		_l_läge.add_theme_color_override("font_color", Color(0.95, 0.75, 0.35) if ändrad else FÄRG_DIM)
 	if status_rad == null:
 		return
-	var bitar: Array = ["vy: %s" % ("plan" if vy == "plan" else "textur"), _pensel_text()]
+	var bitar: Array = ["vy: %s" % ("plan" if vy == "plan" else "textur"), _pensel_text(),
+		"dörrar %d" % floor.dörrar.size()]
 	if hover.x >= 0:
 		var n := _nod_vid(hover)
 		var vad := "golv" if floor.is_floor_at(hover) else "vägg"
@@ -1981,6 +2046,8 @@ func _pensel_text() -> String:
 			return "pensel: %s" % (rekvisit_art if not rekvisit_art.is_empty() else "ingen rekvisit vald")
 		"fiende":
 			return "pensel: strid med %s" % (fiende_art if not fiende_art.is_empty() else "slumpad fiende")
+		"dörr":
+			return "pensel: dörr (%s) — låst tills nyckeln/spaken med kod 1 är löst" % dörr_typ
 	return "verktyg: välj / flytta"
 
 

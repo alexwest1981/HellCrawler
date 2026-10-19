@@ -502,6 +502,16 @@ func _resolve(node: Dungeon.FloorNode) -> void:
 			events.append(rv if not rv.is_empty() else _rest())
 		"torch":
 			events.append(_rest())
+		"nyckel":
+			# NYCKELN ÖPPNAR DÖRRARNA MED SIN KOD (M161): samma kod som dörren lyssnar på. Ingen
+			# inventarie än — en nyckel är en lösning på vägen, inte ett föremål man bär omkring.
+			explore.öppna(node.kod)
+			events.append({"type": "nyckel", "vad": "nyckel", "kod": node.kod})
+		"spak":
+			# SPAKEN GÖR SAMMA SAK. Skillnaden är bara hur den ser ut på kartan — och att en spak kan
+			# läggas bakom en dörr som nyckeln öppnar, så en våning kan ha två steg.
+			explore.öppna(node.kod)
+			events.append({"type": "spak", "vad": "spak", "kod": node.kod})
 		_:
 			pass
 
@@ -598,6 +608,16 @@ func enter_node(node: Dungeon.FloorNode) -> Combat:
 			events.append(rv if not rv.is_empty() else _rest())
 		"torch":
 			events.append(_rest())
+		"nyckel":
+			# NYCKELN ÖPPNAR DÖRRARNA MED SIN KOD (M161): samma kod som dörren lyssnar på. Ingen
+			# inventarie än — en nyckel är en lösning på vägen, inte ett föremål man bär omkring.
+			explore.öppna(node.kod)
+			events.append({"type": "nyckel", "vad": "nyckel", "kod": node.kod})
+		"spak":
+			# SPAKEN GÖR SAMMA SAK. Skillnaden är bara hur den ser ut på kartan — och att en spak kan
+			# läggas bakom en dörr som nyckeln öppnar, så en våning kan ha två steg.
+			explore.öppna(node.kod)
+			events.append({"type": "spak", "vad": "spak", "kod": node.kod})
 	return null
 
 ## UI-vägen ut ur striden: räkna in resultatet.

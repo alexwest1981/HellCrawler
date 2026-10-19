@@ -46,6 +46,8 @@ func forward() -> String:
 	var target: Vector2i = pos + STEP[facing]
 	if not floor_ref.is_floor_at(target):
 		return "vaggen"
+	if dörr_låst(target):
+		return "låst"
 	pos = target
 	steps_taken += 1
 	return ""
@@ -57,9 +59,32 @@ func backward() -> String:
 	var target: Vector2i = pos - STEP[facing]
 	if not floor_ref.is_floor_at(target):
 		return "vaggen"
+	if dörr_låst(target):
+		return "låst"
 	pos = target
 	steps_taken += 1
 	return ""
+
+## DÖRRARNA (M161): en dörr är en ruta man inte kommer igenom förrän koden den lyssnar på är löst.
+## Vilka koder som är lösta hör till GÅNGEN (inte till våningen): samma kartfil kan spelas om, och då
+## ska dörrarna vara låsta igen.
+var öppnade: Dictionary = {}
+
+
+func dörr_vid(p: Vector2i) -> Dictionary:
+	return MapIo.dörr_vid(floor_ref, p)
+
+
+func dörr_låst(p: Vector2i) -> bool:
+	var d := dörr_vid(p)
+	if d.is_empty():
+		return false
+	return not öppnade.has(str(d.get("kod", "")))
+
+
+func öppna(kod: String) -> void:
+	öppnade[kod] = true
+
 
 ## Rutan vi tittar på just nu (framför spelaren).
 func ahead() -> Vector2i:

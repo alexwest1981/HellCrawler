@@ -16,7 +16,40 @@ extends RefCounted
 const DIR := "res://data/maps/"
 const WALL_CH := "#"
 const FLOOR_CH := "."
-const KINDS := ["start", "encounter", "boss", "shovel", "chest", "torch"]
+const KINDS := ["start", "encounter", "boss", "shovel", "chest", "torch", "nyckel", "spak"]
+
+## DÖRRARNA (M161). Alex: *"Hur gör vi om man vill sätta in en dörr? ... de skall alla vara beroende av
+## en lösning på vägen."* Tre slag (trä, metall, galler) med SAMMA regel: dörren står på en golvruta och
+## är låst tills koden den lyssnar på är löst — en nyckel man plockat upp eller en spak man dragit.
+const DÖRRAR := ["trä", "metall", "galler"]
+
+
+static func dörr_vid(f: Dungeon.Floor, p: Vector2i) -> Dictionary:
+	for d in f.dörrar:
+		if d["pos"] == p:
+			return d
+	return {}
+
+
+static func sätt_dörr(f: Dungeon.Floor, typ: String, p: Vector2i, kod: String = "1") -> String:
+	if not DÖRRAR.has(typ):
+		return "okänd dörrtyp: %s" % typ
+	if not f.is_floor_at(p):
+		return "dörren måste stå på golv"
+	if not dörr_vid(f, p).is_empty():
+		return "det står redan en dörr där"
+	if kod.strip_edges().is_empty():
+		return "dörren måste lyssna på en kod (nyckel eller spak)"
+	f.dörrar.append({"pos": p, "typ": typ, "kod": kod})
+	return ""
+
+
+static func ta_bort_dörr(f: Dungeon.Floor, p: Vector2i) -> bool:
+	for i in f.dörrar.size():
+		if f.dörrar[i]["pos"] == p:
+			f.dörrar.remove_at(i)
+			return true
+	return false
 
 ## Teman = tileset-kataloger under assets/tiles/. Namnen valideras här, som nodtyperna: en bana med
 ## ett tema som inte finns blir ett fel i editorn i stället för ett platt golv i spelet.
@@ -98,6 +131,17 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 			push_error("kartan %s_%d: rekvisita utan art eller pos" % [stage_id, floor_index])
 			continue
 		f.rekvisita.append({"art": art, "pos": Vector2i(int(pos[0]), int(pos[1]))})
+	# Dörrarna (M161), samma fälla som rekvisitan: ett fält som bara skrivs syns i filen och ignoreras
+	# av spelet.
+	for r in d.get("dörrar", []):
+		if typeof(r) != TYPE_DICTIONARY:
+			continue
+		var pos: Array = r.get("pos", [])
+		if pos.size() != 2:
+			push_error("kartan %s_%d: dörr utan pos" % [stage_id, floor_index])
+			continue
+		f.dörrar.append({"pos": Vector2i(int(pos[0]), int(pos[1])), "typ": str(r.get("typ", "")),
+			"kod": str(r.get("kod", "1"))})
 	for nd in d.get("nodes", []):
 		var pos: Array = nd.get("pos", [])
 		if pos.size() != 2:
@@ -107,6 +151,7 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 		n.kind = str(nd.get("kind", ""))
 		n.pos = Vector2i(int(pos[0]), int(pos[1]))
 		n.enemy_id = str(nd.get("enemy_id", ""))
+		n.kod = str(nd.get("kod", ""))
 		n.gold = int(nd.get("gold", 0))
 		n.xp = int(nd.get("xp", 0))
 		f.nodes.append(n)
@@ -131,6 +176,8 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 		var d := {"kind": n.kind, "pos": [n.pos.x, n.pos.y]}
 		if not n.enemy_id.is_empty():
 			d["enemy_id"] = n.enemy_id
+		if not n.kod.is_empty():
+			d["kod"] = n.kod
 		if n.gold != 0:
 			d["gold"] = n.gold
 		if n.xp != 0:
@@ -144,6 +191,13 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 			var rr: Rect2i = r
 			rum.append([rr.position.x, rr.position.y, rr.size.x, rr.size.y])
 		d["öppna"] = rum
+	if not f.dörrar.is_empty():
+		var dörrlista := []
+		for r in f.dörrar:
+			var p: Vector2i = r.get("pos", Vector2i(-1, -1))
+			dörrlista.append({"typ": str(r.get("typ", "")), "kod": str(r.get("kod", "")),
+				"pos": [p.x, p.y]})
+		d["dörrar"] = dörrlista
 	if not f.rekvisita.is_empty():
 		var prylar := []
 		for r in f.rekvisita:
@@ -207,6 +261,22 @@ static func validate(f: Dungeon.Floor) -> Array:
 			fel.append("%s går inte att nå (%d,%d)" % [n.kind, n.pos.x, n.pos.y])
 	# Rekvisitan: arten måste finnas som ark (annars står det en osynlig sak i våningen) och rutan
 	# måste vara golv. En per ruta — två saker i samma ruta går inte att skilja från en bugg.
+	for r in f.dörrar:
+		var p: Vector2i = r.get("pos", Vector2i(-1, -1))
+		if not DÖRRAR.has(str(r.get("typ", ""))):
+			fel.append("okänd dörrtyp: %s" % r.get("typ", ""))
+		if p.x < 0 or p.y < 0 or p.x >= f.w or p.y >= f.h:
+			fel.append("dörren ligger utanför kartan (%d,%d)" % [p.x, p.y])
+		elif not f.is_floor_at(p):
+			fel.append("dörren står i en vägg (%d,%d)" % [p.x, p.y])
+		if str(r.get("kod", "")).strip_edges().is_empty():
+			fel.append("dörren på (%d,%d) lyssnar inte på någon kod" % [p.x, p.y])
+	var dörr_rutor := {}
+	for r in f.dörrar:
+		var p: Vector2i = r.get("pos", Vector2i(-1, -1))
+		if dörr_rutor.has(p):
+			fel.append("två dörrar på samma ruta (%d,%d)" % [p.x, p.y])
+		dörr_rutor[p] = true
 	var rekvisita_rutor := {}
 	for r in f.rekvisita:
 		var art := str(r.get("art", ""))
@@ -328,6 +398,10 @@ static func placera(f: Dungeon.Floor, kind: String, p: Vector2i, stage: Stages.S
 			ny.gold = e.gold
 	elif kind == "chest":
 		ny.gold = 10 + svårighet * 5
+	elif kind == "nyckel" or kind == "spak":
+		# Dörrkoden noden löser (M161). Standard "1": en nyckel öppnar dörrarna med samma kod, och
+		# koden går att ändra i kartfilen för den som vill ha flera lås på samma våning.
+		ny.kod = "1"
 	elif kind == "torch":
 		ny.gold = 2 + svårighet
 	elif kind == "boss" and stage != null:
