@@ -31,16 +31,29 @@ static func dörr_vid(f: Dungeon.Floor, p: Vector2i) -> Dictionary:
 	return {}
 
 
-static func sätt_dörr(f: Dungeon.Floor, typ: String, p: Vector2i, kod: String = "1") -> String:
+## Namnet en ny dörr/nyckel/spak får: "dörr 1", "dörr 2" … Så man kan säga VILKEN dörr man menar när
+## man binder den till en spak, i stället för att alla heter "1".
+static func namn_för(f: Dungeon.Floor, slag: String) -> String:
+	var n := 1
+	var tagna := {}
+	for d in f.dörrar:
+		tagna[str(d.get("namn", ""))] = true
+	for nd in f.nodes:
+		if not str(nd.kod).is_empty():
+			tagna[str(nd.kod)] = true
+	while tagna.has("%s %d" % [slag, n]):
+		n += 1
+	return "%s %d" % [slag, n]
+
+
+static func sätt_dörr(f: Dungeon.Floor, typ: String, p: Vector2i, kod: String = "") -> String:
 	if not DÖRRAR.has(typ):
 		return "okänd dörrtyp: %s" % typ
 	if not f.is_floor_at(p):
 		return "dörren måste stå på golv"
 	if not dörr_vid(f, p).is_empty():
 		return "det står redan en dörr där"
-	if kod.strip_edges().is_empty():
-		return "dörren måste lyssna på en kod (nyckel eller spak)"
-	f.dörrar.append({"pos": p, "typ": typ, "kod": kod})
+	f.dörrar.append({"pos": p, "typ": typ, "namn": namn_för(f, "dörr"), "kod": kod.strip_edges()})
 	return ""
 
 
@@ -141,7 +154,7 @@ static func from_dict(d: Dictionary, stage_id: String, floor_index: int) -> Dung
 			push_error("kartan %s_%d: dörr utan pos" % [stage_id, floor_index])
 			continue
 		f.dörrar.append({"pos": Vector2i(int(pos[0]), int(pos[1])), "typ": str(r.get("typ", "")),
-			"kod": str(r.get("kod", "1"))})
+			"namn": str(r.get("namn", "")), "kod": str(r.get("kod", ""))})
 	for nd in d.get("nodes", []):
 		var pos: Array = nd.get("pos", [])
 		if pos.size() != 2:
@@ -196,7 +209,7 @@ static func to_dict(f: Dungeon.Floor) -> Dictionary:
 		for r in f.dörrar:
 			var p: Vector2i = r.get("pos", Vector2i(-1, -1))
 			dörrlista.append({"typ": str(r.get("typ", "")), "kod": str(r.get("kod", "")),
-				"pos": [p.x, p.y]})
+				"namn": str(r.get("namn", "")), "pos": [p.x, p.y]})
 		d["dörrar"] = dörrlista
 	if not f.rekvisita.is_empty():
 		var prylar := []
@@ -270,7 +283,8 @@ static func validate(f: Dungeon.Floor) -> Array:
 		elif not f.is_floor_at(p):
 			fel.append("dörren står i en vägg (%d,%d)" % [p.x, p.y])
 		if str(r.get("kod", "")).strip_edges().is_empty():
-			fel.append("dörren på (%d,%d) lyssnar inte på någon kod" % [p.x, p.y])
+			fel.append("dörren %s (%d,%d) är inte bunden till någon spak eller nyckel"
+				% [str(r.get("namn", "?")), p.x, p.y])
 	var dörr_rutor := {}
 	for r in f.dörrar:
 		var p: Vector2i = r.get("pos", Vector2i(-1, -1))
@@ -399,9 +413,9 @@ static func placera(f: Dungeon.Floor, kind: String, p: Vector2i, stage: Stages.S
 	elif kind == "chest":
 		ny.gold = 10 + svårighet * 5
 	elif kind == "nyckel" or kind == "spak":
-		# Dörrkoden noden löser (M161). Standard "1": en nyckel öppnar dörrarna med samma kod, och
-		# koden går att ändra i kartfilen för den som vill ha flera lås på samma våning.
-		ny.kod = "1"
+		# NYCKELN OCH SPAKEN FÅR ETT NAMN (M163): "spak 1", "nyckel 2". Namnet är det dörrarna binder
+		# sig till, så en våning kan ha flera lås som öppnas var för sig — det var hela poängen.
+		ny.kod = namn_för(f, "nyckel" if kind == "nyckel" else "spak")
 	elif kind == "torch":
 		ny.gold = 2 + svårighet
 	elif kind == "boss" and stage != null:

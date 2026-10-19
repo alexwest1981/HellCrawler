@@ -104,7 +104,10 @@ func dörr_låst(p: Vector2i) -> bool:
 	var d := dörr_vid(p)
 	if d.is_empty():
 		return false
-	return not öppnade.has(str(d.get("kod", "")))
+	var kod := str(d.get("kod", ""))
+	if kod.is_empty():
+		return true                  # obunden dörr: ingen spak eller nyckel öppnar den
+	return not öppnade.has(kod)
 
 
 func öppna(kod: String) -> void:

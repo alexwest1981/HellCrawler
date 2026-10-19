@@ -37,7 +37,8 @@ func _bana() -> Dungeon.Floor:
 func _init() -> void:
 	# 1. KARTREGLERNA
 	var f := _bana()
-	check(MapIo.sätt_dörr(f, "trä", Vector2i(3, 2)).is_empty(), "en trädörr går att sätta på golv")
+	check(MapIo.sätt_dörr(f, "trä", Vector2i(3, 2), "spak 1").is_empty(),
+		"en trädörr går att sätta på golv")
 	check(f.dörrar.size() == 1, "den ligger i våningens dörrlista")
 	check(not MapIo.sätt_dörr(f, "trä", Vector2i(3, 2)).is_empty(), "två dörrar på samma ruta vägras")
 	check(MapIo.sätt_dörr(f, "galler", Vector2i(1, 0)).contains("golv"), "en dörr i väggen vägras")
@@ -51,8 +52,8 @@ func _init() -> void:
 	check(d.has("dörrar") and (d["dörrar"] as Array).size() == 1, "dörren skrivs till filen")
 	var tillbaka := MapIo.from_dict(d, "stage_01", 0)
 	check(tillbaka != null and tillbaka.dörrar.size() == 1, "och läses tillbaka")
-	check(Vector2i(tillbaka.dörrar[0]["pos"]) == Vector2i(3, 2)
-		and str(tillbaka.dörrar[0]["typ"]) == "trä" and str(tillbaka.dörrar[0]["kod"]) == "1",
+	check(tillbaka.dörrar[0]["pos"] == Vector2i(3, 2)
+		and str(tillbaka.dörrar[0]["typ"]) == "trä" and str(tillbaka.dörrar[0]["kod"]) == "spak 1",
 		"med ruta, typ och kod", str(tillbaka.dörrar[0]))
 
 	# 3. GÅNGEN: en låst dörr stoppar, en löst kod öppnar.
@@ -63,29 +64,41 @@ func _init() -> void:
 	var err := ex.forward()
 	check(err == "låst", "att gå in i den säger 'låst'", err)
 	check(ex.pos == Vector2i(2, 2), "och man står kvar")
-	ex.öppna("1")
-	check(not ex.dörr_låst(Vector2i(3, 2)), "nyckeln med kod 1 öppnar dörren")
+	ex.öppna("spak 1")
+	check(not ex.dörr_låst(Vector2i(3, 2)), "spaken med samma namn öppnar dörren")
 	err = ex.forward()
 	check(err == "" and ex.pos == Vector2i(3, 2), "och då går den att gå igenom", err)
 
 	# 4. EN ANNAN KOD ÖPPNAR INTE: låset hör ihop med sin nyckel.
 	var f2 := _bana()
-	MapIo.sätt_dörr(f2, "metall", Vector2i(3, 2), "2")
+	MapIo.sätt_dörr(f2, "metall", Vector2i(3, 2), "spak 2")
 	var ex2 := Explore.new(f2)
-	ex2.öppna("1")
+	ex2.öppna("spak 1")
 	ex2.pos = Vector2i(2, 2)
 	ex2.facing = Explore.EAST
-	check(ex2.forward() == "låst", "kod 1 öppnar inte en dörr som lyssnar på kod 2")
+	check(ex2.forward() == "låst", "spak 1 öppnar inte en dörr som lyssnar på spak 2")
+
+	# 4b. OBUNDEN DÖRR: ingen spak öppnar den, och namnet är dörrens eget.
+	var f2b := _bana()
+	MapIo.sätt_dörr(f2b, "trä", Vector2i(3, 2))
+	var ex2b := Explore.new(f2b)
+	ex2b.öppna("spak 1")
+	ex2b.öppna("")
+	ex2b.pos = Vector2i(2, 2)
+	ex2b.facing = Explore.EAST
+	check(ex2b.forward() == "låst", "en obunden dörr går inte att öppna alls")
+	check(str(f2b.dörrar[0]["namn"]) == "dörr 1", "och dörren har fått ett namn",
+		str(f2b.dörrar[0]["namn"]))
 
 	# 5. KÖRNINGEN: nyckeln på rutan löser koden, spaken likaså.
 	var stage: Stages.StageDef = Stages.load_all().values()[0]
 	var bestiary := Enemies.load_all()
 	var f3 := _bana()
-	MapIo.sätt_dörr(f3, "galler", Vector2i(3, 2))
+	MapIo.sätt_dörr(f3, "galler", Vector2i(3, 2), "spak 1")
 	var nyckel := Dungeon.FloorNode.new()
 	nyckel.kind = "nyckel"
 	nyckel.pos = Vector2i(4, 2)
-	nyckel.kod = "1"
+	nyckel.kod = "spak 1"
 	f3.nodes.append(nyckel)
 	var spak := Dungeon.FloorNode.new()
 	spak.kind = "spak"
@@ -114,7 +127,7 @@ func _init() -> void:
 	f4.dörrar.append({"pos": Vector2i(3, 2), "typ": "trä", "kod": ""})
 	var utan := ""
 	for rad in MapIo.validate(f4):
-		if str(rad).contains("lyssnar inte"):
+		if str(rad).contains("inte bunden"):
 			utan = str(rad)
 	check(not utan.is_empty(), "en dörr utan kod är ett fel", utan)
 

@@ -386,6 +386,20 @@ func _place(p: Vector2i) -> String:
 			if not ff.is_empty():
 				return ff
 		"dörr":
+			# KLICK PÅ EN DÖRR IGEN = BIND DEN (M163). Alex: *"sen klicka på dörren igen, och välja att
+			# spaken styr den dörren"*. Varje klick på en befintlig dörr flyttar bindningen till nästa
+			# spak/nyckel; Skift går bakåt. Det finns inget att välja i en lista — man ser resultatet i
+			# statusraden och på kartan, och det är samma klick som satte dörren.
+			var d: Dictionary = MapIo.dörr_vid(floor, p)
+			if not d.is_empty():
+				var val: Array = _lösningar()
+				var i := val.find(str(d.get("kod", "")))
+				var steg := -1 if _skift else 1
+				var nästa := str(val[(i + steg + val.size()) % val.size()]) if not val.is_empty() else ""
+				d["kod"] = nästa
+				ändrad = true
+				return "%s öppnas av %s" % [str(d.get("namn", "dörren")),
+					nästa if not nästa.is_empty() else "(ingenting — klicka igen)"]
 			var fd := MapIo.sätt_dörr(floor, dörr_typ, p)
 			if not fd.is_empty():
 				return fd
@@ -393,10 +407,20 @@ func _place(p: Vector2i) -> String:
 			var f := MapIo.placera(floor, nod_kind, p, stage, bestiary, vald_fiende)
 			if not f.is_empty():
 				return f
+			# Namnet sätts av `MapIo.placera` (namn_för): en nyckel heter "nyckel 1", en spak "spak 1".
 		_:
 			return ""
 	ändrad = true
 	return ""
+
+
+## Namnen en dörr kan bindas till: alla spakar och nycklar på våningen, i den ordning de ligger.
+func _lösningar() -> Array:
+	var ut := []
+	for n in floor.nodes:
+		if (n.kind == "spak" or n.kind == "nyckel") and not str(n.kod).is_empty():
+			ut.append(str(n.kod))
+	return ut
 
 
 func _tool_for(kind: String) -> Dictionary:
@@ -1284,9 +1308,12 @@ func _rita_dörrar(c: Control) -> void:
 		c.draw_rect(Rect2(rr.position.x, rr.get_center().y - ijock * 0.5, rr.size.x, ijock), färg)
 		c.draw_rect(Rect2(rr.get_center().x - ijock * 0.5, rr.position.y, ijock, rr.size.y),
 			färg.darkened(0.35))
-		c.draw_string(ThemeDB.fallback_font, rr.position + Vector2(cell * 0.06, cell * 0.36),
-			str(d.get("kod", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, clampi(int(cell * 0.4), 8, 14),
-			Color(1, 1, 1, 0.75))
+		# Bindningen skrivs på dörren ("spak 1"), inte en siffra: det är namnet man binder till.
+		var bindning := str(d.get("kod", ""))
+		var text := bindning if not bindning.is_empty() else "—"
+		c.draw_string(ThemeDB.fallback_font, rr.position + Vector2(cell * 0.04, cell * 0.34),
+			text.substr(0, 7), HORIZONTAL_ALIGNMENT_LEFT, rr.size.x,
+			clampi(int(cell * 0.34), 7, 12), Color(1, 1, 1, 0.8))
 
 
 func _rita_rekvisita(c: Control) -> void:
@@ -2047,7 +2074,7 @@ func _pensel_text() -> String:
 		"fiende":
 			return "pensel: strid med %s" % (fiende_art if not fiende_art.is_empty() else "slumpad fiende")
 		"dörr":
-			return "pensel: dörr (%s) — låst tills nyckeln/spaken med kod 1 är löst" % dörr_typ
+			return "pensel: dörr (%s) — klicka på en dörr igen för att binda den till nästa spak/nyckel (Skift = bakåt)" % dörr_typ
 	return "verktyg: välj / flytta"
 
 

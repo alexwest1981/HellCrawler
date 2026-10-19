@@ -37,7 +37,7 @@ func _bana() -> Dungeon.Floor:
 
 func _init() -> void:
 	var f := _bana()
-	MapIo.sätt_dörr(f, "galler", Vector2i(4, 2))
+	MapIo.sätt_dörr(f, "galler", Vector2i(4, 2), "spak 1")
 	var ex := Explore.new(f)
 
 	# 1. Från början: rutan man står på och det man ser.
@@ -69,7 +69,7 @@ func _init() -> void:
 	check(not ex.sedd(Vector2i(6, 2)), "och bossen syns inte på kartan")
 
 	# 4. Nyckeln öppnar, och först när man gått in avslöjas rummet.
-	ex.öppna("1")
+	ex.öppna("spak 1")
 	check(ex.forward() == "", "dörren går att gå igenom när koden är löst")
 	check(ex.sedd(Vector2i(5, 2)), "rutan bakom dörren är sedd när man står där")
 	check(not ex.sedd(Vector2i(6, 2)), "bossens ruta är fortfarande ett steg bort")

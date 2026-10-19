@@ -63,7 +63,7 @@ func _init() -> void:
 	# 3. Två dörrar på samma ruta går inte, och beskedet säger varför.
 	editor._måla(golv[0])
 	check(editor.floor.dörrar.size() == 2, "en dörr på en upptagen ruta läggs inte till")
-	check(editor.status.contains("redan"), "och statusraden säger det", editor.status)
+	check(editor.status.contains("öppnas av"), "klicket på en dörr binder om den i stället", editor.status)
 
 	# 4. Högerklick tar bort dörren (före material och vägg).
 	editor._höger(golv[0])
@@ -80,7 +80,47 @@ func _init() -> void:
 	check(editor.floor.dörrar.size() == med - 1, "Ctrl+Z tog bort den igen",
 		"%d -> %d" % [med, editor.floor.dörrar.size()])
 
-	# 6. Filen: dörren överlever en tur genom JSON.
+	# 6. NAMN OCH BINDNING (M163): spaken får ett namn, dörren ett eget, och ett klick på dörren
+	#    binder den till nästa spak/nyckel.
+	var g := _golv(6)
+	editor.floor.dörrar.clear()
+	editor.floor.nodes = editor.floor.nodes.filter(func(n): return n.kind in ["start", "boss", "shovel"])
+	editor._sätt_verktyg("nod", "spak")
+	editor._måla(g[3])
+	editor._sätt_verktyg("nod", "nyckel")
+	editor._måla(g[4])
+	var spak := ""
+	var nyckel := ""
+	for n in editor.floor.nodes:
+		if n.kind == "spak":
+			spak = str(n.kod)
+		elif n.kind == "nyckel":
+			nyckel = str(n.kod)
+	check(spak == "spak 1", "spaken fick namnet 'spak 1'", spak)
+	check(nyckel == "nyckel 1", "nyckeln fick namnet 'nyckel 1'", nyckel)
+	check(editor._lösningar().size() == 2, "båda går att binda till",
+		str(editor._lösningar()))
+
+	editor._sätt_verktyg("dörr", "metall")
+	editor._måla(g[5])
+	var d0: Dictionary = MapIo.dörr_vid(editor.floor, g[5])
+	check(str(d0.get("kod", "")) == "", "dörren är obunden när den sätts ut")
+	check(str(d0.get("namn", "")) == "dörr 1", "och heter 'dörr 1'", str(d0.get("namn", "")))
+
+	editor._måla(g[5])
+	check(str(MapIo.dörr_vid(editor.floor, g[5]).get("kod", "")) == spak,
+		"ett klick på dörren band den till spaken", str(MapIo.dörr_vid(editor.floor, g[5])))
+	check(editor.status.contains(spak), "och statusraden säger vem som styr den", editor.status)
+	editor._måla(g[5])
+	check(str(MapIo.dörr_vid(editor.floor, g[5]).get("kod", "")) == nyckel,
+		"nästa klick flyttade bindningen till nyckeln")
+	editor._skift = true
+	editor._måla(g[5])
+	editor._skift = false
+	check(str(MapIo.dörr_vid(editor.floor, g[5]).get("kod", "")) == spak,
+		"Skift gick bakåt igen")
+
+	# 7. Filen: dörren överlever en tur genom JSON.
 	var d := MapIo.to_dict(editor.floor)
 	var tillbaka := MapIo.from_dict(d, editor.floor.stage_id, editor.floor.index)
 	check(tillbaka.dörrar.size() == editor.floor.dörrar.size(), "dörrarna följer med filen",
