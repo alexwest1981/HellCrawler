@@ -99,6 +99,10 @@ rm -f "$tmp"
 ## Röret ovan kör vänsterledet i ett eget skal, så ett fail=1 därifrån når aldrig hit: hela
 ## sviten kunde vara röd och scriptet ändå avsluta med 0. Utgångskoden sätts därför ur loggen:
 ## FEL-raderna OCH en testfil som föll (timeout eller parsefel skriver ingen FEL-rad).
+## fail=0 FÖRST: `set -u` gör `exit $fail` till "unbound variable" (exit 1) när inget fel fanns —
+## mätt: en helt grön svit på 3241 kontroller avslutade med 1. En CI som alltid ser rött är en CI
+## ingen tittar på.
+fail=0
 test "$fel" -eq 0 || fail=1
 test "$stupade" -eq 0 || fail=1
 exit $fail
