@@ -62,6 +62,7 @@ var yta_material := ""
 var material_lista: Array = []
 var rekvisita_arter: Array = []      ## arterna i assets/props (namngivna och de som arken gav dem)
 var rekvisit_art := ""               ## vald rekvisit i paletten
+var fiende_art := ""                 ## vald fiende: paletten "FIENDER" ställer ut en strid med den
 
 ## Kartans mått. `zoom` är en faktor ovanpå den inpassning som ryms i vyn, så fönsterbytet behåller
 ## den zoom man valt; `pan` är panoreringen i px och behålls likaså.
@@ -162,12 +163,72 @@ func load_or_generate() -> void:
 	if floor.theme.is_empty():
 		floor.theme = Stages.theme_for(stage, floor_index)
 	_layout_duk()
+	_bygg_storlek_dialog()
 
 
 ## Arterna man kan ställa ut: samma mapp som spelets dekor läser (`assets/props`), så en ny rekvisit
 ## blir valbar samma dag den klipps — ingen lista i koden att glida ifrån. Nodbilderna (kista, spade,
 ## boss, fackla) hoppas över: de är nodtyper i kartan, inte lös rekvisita man strör ut.
 const NODBILDER := ["chest", "shovel", "boss", "fackla", "benhög"]
+
+## FIENDEPALETTEN (M155). Den här editorn ska gå att använda som referensen: man väljer VAD som ska
+## spawna, inte bara "en strid". Ikonerna är fiendernas egna bilder ur assets/enemies, och klicket
+## ställer en `encounter` med den fienden — `MapIo.placera` tar enemy_id som sista argument, så samma
+## regel gäller som i byggläget (en nod per ruta, fienden deterministisk när man inte väljer).
+func _fiendelista() -> Array:
+	# BANANS EGNA FÖRST. `MapIo.placera` vägrar en fiende som inte finns i banans tiers, så paletten
+	# ska börja med dem man faktiskt får använda — resten ligger kvar efteråt (en våning kan flyttas
+	# till en annan bana, och då är listan redan rätt).
+	var pool := []
+	if stage != null:
+		for e in Enemies.by_tier(bestiary, stage.tiers):
+			pool.append(str(e.id))
+	pool.sort()
+	var ut := []
+	for id in bestiary:
+		if not pool.has(str(id)):
+			ut.append(str(id))
+	ut.sort()
+	return pool + ut
+
+
+func _fiende_tex(id: String) -> Texture2D:
+	var key := "fiende/%s" % id
+	if _tex.has(key):
+		return _tex[key]
+	var tex: Texture2D = null
+	var p := "res://assets/enemies/%s.png" % id
+	if ResourceLoader.exists(p):
+		var källa := load(p) as Texture2D
+		# FIGURENS EGEN YTA, inte hela arket: fiendearken är 128 px med luft runt figuren, och då blir
+		# ansiktet en mörk prick i en tom ruta. Samma skäl som `_prop_yta` för rekvisitan.
+		if källa != null:
+			var img := källa.get_image()
+			if img != null:
+				# FIENDEARKEN ÄR EN REMSA (720x120 = sex rutor à 120 px), inte en figur. Helremsan i en
+				# 26 px-ruta blir en grå linje. Ta första rutan, och sedan figurens yta inuti den.
+				if img.get_width() > img.get_height() * 3 / 2:
+					var sida := img.get_height()
+					img = img.get_region(Rect2i(0, 0, sida, sida))
+					var första := ImageTexture.create_from_image(img)
+					var yta0 := img.get_used_rect()
+					if yta0.size.x > 1 and yta0.size.y > 1:
+						var a0 := AtlasTexture.new()
+						a0.atlas = första
+						a0.region = yta0
+						_tex[key] = a0
+						return a0
+				var yta := img.get_used_rect()
+				if yta.size.x > 1 and yta.size.y > 1:
+					var atlas := AtlasTexture.new()
+					atlas.atlas = källa
+					atlas.region = yta
+					tex = atlas
+		if tex == null:
+			tex = källa
+	_tex[key] = tex
+	return tex
+
 
 func _rekvisitalista() -> Array:
 	var ut := []
@@ -291,6 +352,10 @@ func _place(p: Vector2i) -> String:
 			var fr := MapIo.sätt_rekvisita(floor, rekvisit_art, p)
 			if not fr.is_empty():
 				return fr
+		"fiende":
+			var ff := MapIo.placera(floor, "encounter", p, stage, bestiary, fiende_art)
+			if not ff.is_empty():
+				return ff
 		"nod":
 			var f := MapIo.placera(floor, nod_kind, p, stage, bestiary, vald_fiende)
 			if not f.is_empty():
@@ -573,6 +638,21 @@ func _bygg_palett() -> void:
 		var b := _palett_knapp(_knapp("%s   %s" % [d["ch"], d["namn"]],
 			"tangent %d" % (i + 1), _sätt_verktyg.bind("nod", d["kind"])))
 		b.add_theme_color_override("font_color", d["färg"])
+	# FIENDEPALETTEN (M155): vad som ska spawna, inte bara "en strid". Samma ikonrutnät som rekvisitan.
+	_verktygs_rubrik("FIENDER  (%d)" % _fiendelista().size())
+	var fiender := GridContainer.new()
+	fiender.columns = 4
+	fiender.add_theme_constant_override("h_separation", 3)
+	fiender.add_theme_constant_override("v_separation", 3)
+	palett_box.add_child(fiender)
+	for id in _fiendelista():
+		var b := _palett_knapp(_knapp("", str(id), _sätt_verktyg.bind("fiende", id)), fiender)
+		b.icon = _fiende_tex(str(id))
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.custom_minimum_size = Vector2(34, 34)
+		b.add_theme_constant_override("icon_max_width", 26)
+
 	_verktygs_rubrik("MATERIAL  (%d)" % material_lista.size())
 	var ingen := _palett_knapp(_knapp("Temats ruta", "ta bort materialöverstyrningen på rutan",
 		_sätt_verktyg.bind("material", "")))
@@ -681,6 +761,8 @@ func _sätt_verktyg(typ: String, vad := "") -> void:
 			yta_material = vad
 		"rekvisita":
 			rekvisit_art = vad
+		"fiende":
+			fiende_art = vad
 	_markera_verktyg()
 	_stämpla()
 	if duk != null:
@@ -694,8 +776,9 @@ func _palett_index() -> Dictionary:
 	var i_mat_tema := i_nod + NODE_TOOLS.size()
 	var i_mat := i_mat_tema + 1
 	var i_rekv := i_mat + material_lista.size()
+	var i_fiende := i_rekv + rekvisita_arter.size()
 	return {"valj": 0, "golv": 1, "vagg": 2, "nod": i_nod, "mat_tema": i_mat_tema,
-		"mat": i_mat, "rekv": i_rekv}
+		"mat": i_mat, "rekv": i_rekv, "fiende": i_fiende}
 
 
 func _markera_verktyg() -> void:
@@ -714,6 +797,8 @@ func _markera_verktyg() -> void:
 			else int(ix["mat"]) + material_lista.find(yta_material)
 	elif verktyg == "rekvisita":
 		index = int(ix["rekv"]) + rekvisita_arter.find(rekvisit_art)
+	elif verktyg == "fiende":
+		index = int(ix["fiende"]) + _fiendelista().find(fiende_art)
 	# alla av först: en knappgrupp släpper inte en knapp som tryckts med set_pressed_no_signal
 	for b in _palett_knappar:
 		(b as Button).set_pressed_no_signal(false)
@@ -1092,6 +1177,8 @@ func _måla(p: Vector2i) -> void:
 		status = "%s på (%d,%d)" % [yta_material if not yta_material.is_empty() else "temats ruta", p.x, p.y]
 	elif verktyg == "rekvisita":
 		status = "%s på (%d,%d)" % [rekvisit_art, p.x, p.y]
+	elif verktyg == "fiende":
+		status = "strid med %s på (%d,%d)" % [fiende_art if not fiende_art.is_empty() else "slumpad", p.x, p.y]
 	_stämpla()
 	duk.queue_redraw()
 
@@ -1160,7 +1247,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		load_or_generate()
 		_uppdatera()
 	elif key == KEY_N:
-		_ny_våning()
+		storlek_dialog.popup_centered()
 	elif key == KEY_P:
 		playtest()
 	elif key == KEY_T:
@@ -1214,6 +1301,62 @@ func till_menyn() -> void:
 func _våning(steg: int) -> void:
 	floor_index = clampi(floor_index + steg, 0, max(0, stage.floors - 1))
 	load_or_generate()
+	_uppdatera()
+
+
+## STORLEKEN NÄR MAN SKAPAR ETT NYTT RUM (M154). Alex: *"Jag vill själv kunna avgöra rum-storlek, så
+## låt mig ange t ex 6x6, 9x3 eller vad jag behöver när jag skapar ett nytt rum."* N öppnar en liten
+## ruta: bredd och höjd var för sig, 3-64 rutor. Ett block ÄR en våning, så storleken man skriver är
+## exakt den man får — och `O` sparar den som block i data/blocks/.
+var storlek_dialog: AcceptDialog = null
+var _sd_bredd: SpinBox = null
+var _sd_höjd: SpinBox = null
+
+
+func _bygg_storlek_dialog() -> void:
+	storlek_dialog = ConfirmationDialog.new()
+	storlek_dialog.title = "Nytt rum (block)"
+	storlek_dialog.ok_button_text = "Skapa"
+	storlek_dialog.cancel_button_text = "Avbryt"
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	_sd_bredd = _storleksrad(box, "Bredd", floor.w if floor != null else 7)
+	_sd_höjd = _storleksrad(box, "Höjd", floor.h if floor != null else 7)
+	storlek_dialog.add_child(box)
+	storlek_dialog.confirmed.connect(_skapa_rum)
+	add_child(storlek_dialog)
+
+
+func _storleksrad(box: VBoxContainer, text: String, värde: int) -> SpinBox:
+	var rad := HBoxContainer.new()
+	rad.add_theme_constant_override("separation", 10)
+	var etikett := _etikett(text, 12, FÄRG_TEXT)
+	etikett.custom_minimum_size = Vector2(64, 0)
+	var ruta := SpinBox.new()
+	ruta.min_value = 3
+	ruta.max_value = 64
+	ruta.step = 1
+	ruta.value = värde
+	ruta.custom_minimum_size = Vector2(96, 0)
+	rad.add_child(etikett)
+	rad.add_child(ruta)
+	box.add_child(rad)
+	return ruta
+
+
+## Skapar våningen/rummet i den storlek man skrev. Samma nollställning som N gjorde förut.
+func _skapa_rum() -> void:
+	var w := clampi(int(_sd_bredd.value), 3, 64)
+	var h := clampi(int(_sd_höjd.value), 3, 64)
+	floor = MapIo.blank(stage.id, floor_index, w, h)
+	genererad = false
+	ändrad = false
+	fel = []
+	vald = []
+	zoom = 1.0
+	pan = Vector2.ZERO
+	status = "nytt rum %d×%d — rita det och tryck O för att spara som block" % [w, h]
+	_layout_duk()
 	_uppdatera()
 
 
@@ -1476,6 +1619,8 @@ func _pensel_text() -> String:
 			return "pensel: %s" % (yta_material if not yta_material.is_empty() else "temats ruta")
 		"rekvisita":
 			return "pensel: %s" % (rekvisit_art if not rekvisit_art.is_empty() else "ingen rekvisit vald")
+		"fiende":
+			return "pensel: strid med %s" % (fiende_art if not fiende_art.is_empty() else "slumpad fiende")
 	return "verktyg: välj / flytta"
 
 

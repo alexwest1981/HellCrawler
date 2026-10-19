@@ -193,17 +193,28 @@ static func generate(stage, floor_index: int, seed_value: int, bestiary: Diction
 	var block: Array = Blockar.ladda_alla()
 	var stämplade: Array = []
 	for i in range(1, rooms.size()):
-		var kandidater: Array = []
-		for b in block:
-			if Blockar.passar(b, rooms[i]):
-				kandidater.append(b)
-		if kandidater.is_empty():
-			continue                     # inget block ryms: rummet blir som förut, inget att välja
-		var valt: Dictionary = kandidater[rng.randi_range(0, kandidater.size() - 1)]
-		var varv := rng.randi_range(0, 3)
-		var ut: Dictionary = Blockar.stämpla(f, valt, rooms[i], varv)
-		if not ut.is_empty():
-			stämplade.append(ut)
+		# STÖRSTA FÖRST: Alex bestämmer storleken själv (M154), och en 9x3 ska inte strykas av att en
+		# 5x5 redan fyllt rummet. Ordningen är slumpad mellan lika stora, så fröet styr fortfarande.
+		var kandidater: Array = block.duplicate()
+		var nyckel := {}
+		for b in kandidater:
+			nyckel[str(b["id"])] = rng.randf()
+		kandidater.sort_custom(func(a, b):
+			var sa := int(a["w"]) * int(a["h"])
+			var sb := int(b["w"]) * int(b["h"])
+			if sa != sb:
+				return sa > sb
+			return float(nyckel[str(a["id"])]) < float(nyckel[str(b["id"])]))
+		for valt in kandidater:
+			# Rummet får växa ut i berget när blocket är större än rummet (se Blockar.plats).
+			var rumsyta: Rect2i = Blockar.plats(f, rooms[i], valt)
+			if rumsyta.size.x <= 0:
+				continue
+			var varv := rng.randi_range(0, 3)
+			var ut: Dictionary = Blockar.stämpla(f, valt, rumsyta, varv)
+			if not ut.is_empty():
+				stämplade.append(ut)
+				break
 	f.blockar = stämplade
 	# MITTEN AV VARJE RUM ÄR GOLV. Starten, bossen och nedstigningen ställs på rumsmitten, och ett
 	# block får inte göra den rutan till vägg — då finns starten i en vägg och våningen går inte att

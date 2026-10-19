@@ -11215,7 +11215,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_animate_cam()
 		KEY_F1:
 			byggläge = not byggläge
-			_bygg_säg("BYGGLÄGE %s — 1-6 placerar, X tar bort, G/V golv eller vägg, M material, N temats ruta, F2 sparar" % ["på" if byggläge else "av"])
+			_bygg_säg("BYGGLÄGE %s — 1-6 noder, K/L väljer rekvisit, P ställer den, X tar bort, G/V golv eller vägg, M material, N temats ruta, F2 sparar" % ["på" if byggläge else "av"])
 		KEY_F2:
 			if byggläge:
 				_bygg_spara()
@@ -11234,6 +11234,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_N:
 			if byggläge:
 				_bygg_material_tema()
+		KEY_K:
+			if byggläge:
+				_bygg_rekvisit_cykla(1)
+		KEY_L:
+			if byggläge:
+				_bygg_rekvisit_cykla(-1)
+		KEY_P:
+			if byggläge:
+				_bygg_rekvisit()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
 			# I byggläget ställer 1-6 ut det man tittar på (samma ordning som MapIo.KINDS). Utanför
 			# byggläget är 1-9 korten, och de grenarna ligger före den här.
@@ -11603,10 +11612,61 @@ func _bygg_bort() -> void:
 	var p := _bygg_rutan()
 	var bort := MapIo.ta_bort(f, p)
 	if bort == 0:
+		# Ingen nod: då kan det stå en rekvisit på rutan (M154). Samma tangent, samma besked.
+		if MapIo.ta_bort_rekvisita(f, p):
+			_build_world()
+			_bygg_säg("rekvisitan borttagen på (%d,%d)" % [p.x, p.y])
+			return
 		_bygg_säg("inget att ta bort på (%d,%d)" % [p.x, p.y])
 		return
 	_build_world()
 	_bygg_säg("%d nod(er) borttagna på (%d,%d)" % [bort, p.x, p.y])
+
+## REKVISITAN I 3D (M154). Alex: *"Viktigaste är att jag kan "möblera" det i 3d om jag vill med."*
+## I byggläget står man i rummet man möblerar: K/L bläddrar bland arterna, P ställer den på rutan man
+## TITTAR PÅ, X tar bort den igen. Samma MapIo-regler som karteditorn (golv krävs, en per ruta), och
+## F2 sparar den med våningen — så en tunna man ställt i 3D ligger kvar nästa gång.
+var bygg_rekvisit := ""
+var _bygg_rekvisiter: Array = []
+
+func _bygg_rekvisitlista() -> Array:
+	if not _bygg_rekvisiter.is_empty():
+		return _bygg_rekvisiter
+	for fil in DirAccess.get_files_at("res://assets/props"):
+		if not fil.ends_with(".png") or fil.begins_with("_"):
+			continue
+		var art := fil.get_basename()
+		if art in ["chest", "shovel", "boss", "fackla", "benhög"]:
+			continue                       # nodbilder: de är nodtyper, inte lös rekvisita
+		_bygg_rekvisiter.append(art)
+	_bygg_rekvisiter.sort()
+	return _bygg_rekvisiter
+
+func _bygg_rekvisit_cykla(steg: int) -> void:
+	var arter := _bygg_rekvisitlista()
+	if arter.is_empty():
+		_bygg_säg("inga rekvisiter i assets/props")
+		return
+	var i := arter.find(bygg_rekvisit)
+	if i < 0:
+		bygg_rekvisit = str(arter[0] if steg > 0 else arter[arter.size() - 1])
+	else:
+		bygg_rekvisit = str(arter[(i + steg + arter.size()) % arter.size()])
+	_bygg_säg("rekvisit: %s (%d av %d) — P ställer den på rutan du tittar på" % [
+		bygg_rekvisit, _bygg_rekvisiter.find(bygg_rekvisit) + 1, arter.size()])
+
+func _bygg_rekvisit() -> void:
+	if bygg_rekvisit.is_empty():
+		_bygg_säg("välj rekvisit först (K/L)")
+		return
+	var f: Dungeon.Floor = run.explore.floor_ref
+	var p := _bygg_rutan()
+	var fel := MapIo.sätt_rekvisita(f, bygg_rekvisit, p)
+	if not fel.is_empty():
+		_bygg_säg(fel)
+		return
+	_build_world()
+	_bygg_säg("%s på (%d,%d)" % [bygg_rekvisit, p.x, p.y])
 
 ## Rutan framför blir golv eller vägg. Att göra en vägg av en ruta med en nod tar bort noden — en vägg
 ## kan inte bära något (samma regel som editorn).

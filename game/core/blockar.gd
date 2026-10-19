@@ -94,6 +94,44 @@ static func passar(b: Dictionary, rum: Rect2i) -> bool:
 	return int(b["w"]) <= rum.size.x and int(b["h"]) <= rum.size.y
 
 
+## VAR SKA BLOCKET LIGGA (M154)? Alex bestämmer storleken själv ("6x6, 9x3 eller vad jag behöver"),
+## och då kan blocket vara större än rummet. Rummet får VÄXA ut i berget tills blocket ryms — men bara
+## ut i berg: en ruta som redan är golv (annat rum) får inte tas, för då hade två rum gått i varandra.
+## Svarar en tom Rect2i när det inte finns plats åt något håll (då hoppas blocket över).
+static func plats(f: Dungeon.Floor, rum: Rect2i, b: Dictionary) -> Rect2i:
+	var bw := int(b["w"])
+	var bh := int(b["h"])
+	if bw <= rum.size.x and bh <= rum.size.y:
+		return rum
+	var w := maxi(rum.size.x, bw)
+	var h := maxi(rum.size.y, bh)
+	for hörn in [[0, 0], [1, 0], [0, 1], [1, 1]]:
+		var x := rum.position.x - ((w - rum.size.x) if int(hörn[0]) == 1 else 0)
+		var y := rum.position.y - ((h - rum.size.y) if int(hörn[1]) == 1 else 0)
+		var r := Rect2i(x, y, w, h)
+		if r.position.x < 1 or r.position.y < 1 or r.end.x > f.w - 1 or r.end.y > f.h - 1:
+			continue
+		if not _bara_berg(f, r, rum):
+			continue
+		for yy in range(r.position.y, r.end.y):
+			for xx in range(r.position.x, r.end.x):
+				f.tiles[yy][xx] = Dungeon.FLOOR
+		return r
+	return Rect2i()
+
+
+## Är allt utanför rummet men innanför `r` berg (vägg)? Rummet självt räknas inte.
+static func _bara_berg(f: Dungeon.Floor, r: Rect2i, rum: Rect2i) -> bool:
+	for y in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			var p := Vector2i(x, y)
+			if rum.has_point(p):
+				continue
+			if f.tiles[p.y][p.x] != Dungeon.WALL:
+				return false
+	return true
+
+
 ## STÄMPLA: blockets INNANMÄTE skrivs in, inte dess ram. Rummets egna väggar står kvar, så ett block
 ## som är mindre än rummet lämnar golv runt sig (annars skar blockets ram loss en remsa golv som ingen
 ## gång når — mätt: 25 igenfyllda rutor på en enda våning). Blockets ytterring är bara dess egen form.

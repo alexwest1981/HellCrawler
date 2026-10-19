@@ -1,0 +1,20 @@
+{
+ "namn": "långsal",
+ "w": 9,
+ "h": 3,
+ "tiles": [
+  "#########",
+  "#.#...#.#",
+  "#########"
+ ],
+ "ytor": {
+  "3,1": "ancient_stone",
+  "4,1": "ancient_stone",
+  "5,1": "ancient_stone"
+ },
+ "rekvisita": [
+  {"art": "trälåda", "pos": [1, 1]},
+  {"art": "trälåda", "pos": [7, 1]},
+  {"art": "kranium", "pos": [4, 1]}
+ ]
+}

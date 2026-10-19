@@ -257,7 +257,24 @@ static func placera(f: Dungeon.Floor, kind: String, p: Vector2i, stage: Stages.S
 		return "nodtypen måste stå på golv"
 	for n in f.nodes:
 		if n.pos == p and n.kind == kind:
-			return "%s står redan där" % kind
+			# Samma nodtyp på samma ruta är normalt ett dubbelklick — men en strid man byter FIENDE på
+			# ska bytas ut, inte vägras (M155). Annars kan man inte rätta en felvald fiende utan att
+			# sudda rutan först.
+			var byter_fiende: bool = kind == "encounter" and not vald_fiende.is_empty() and n.enemy_id != vald_fiende
+			if not byter_fiende:
+				return "%s står redan där" % kind
+	# EN VALD FIENDE MÅSTE FINNAS I BANANS TIERS (M155). Förut letades den upp i poolen och hittades
+	# den inte blev noden stående UTAN fiende — och poolen nollställdes ändå, så det blev ingen
+	# slumpad fiende heller. En strid utan fiende syns bara som en tom ruta. Kolla före `ta_bort`, så
+	# ett avslag inte kostar noden som stod där.
+	if kind == "encounter" and stage != null and not vald_fiende.is_empty():
+		var finns := false
+		for e in Enemies.by_tier(bestiary, stage.tiers):
+			if e.id == vald_fiende:
+				finns = true
+				break
+		if not finns:
+			return "fienden %s finns inte i banans tiers %s" % [vald_fiende, str(stage.tiers)]
 	# En nod per ruta: två sorters noder på samma ruta blir två figurer i samma ruta, och man ser inte
 	# vad man byggt. Den gamla noden tas bort (och dess pekare nollställs) i stället.
 	ta_bort(f, p)
