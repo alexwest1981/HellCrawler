@@ -43,6 +43,7 @@ import bmesh
 from mathutils import Matrix, Vector
 
 CHAMFER = 0.02
+CHAMFER_BIG = 0.05
 WALL = 0.14
 PLINTH = 0.34
 ROOF_T = 0.10
@@ -59,6 +60,7 @@ MAT_ROOF = "PX_Terracotta Roof"
 MAT_SLATE = "PX_Slate Roof"
 MAT_PURPLE = "PX_Purple Roof"
 MAT_GLASS = "PX_Window Warm"
+MAT_GLOW = "PX_Ljusglöd"
 MAT_GLASS_BRIGHT = "PX_Window Bright"
 MAT_WOOD = "PX_Wood"
 MAT_IRON = "PX_Iron Riveted"
@@ -90,7 +92,7 @@ class Mesh:
             face.material_index = i
 
     def box(self, center, size, mat: str, bevel: float = CHAMFER, rot_z: float = 0.0,
-            rot_y: float = 0.0) -> None:
+            rot_y: float = 0.0, rot_x: float = 0.0) -> None:
         """A chamfered box. The transform runs BEFORE the bevel: bevel replaces the original vertices,
         so transforming afterwards hits removed geometry (TypeError: BMVert has been removed) and
         transforming only the survivors would leave the chamfer faces behind at the origin."""
@@ -99,7 +101,7 @@ class Mesh:
         bmesh.ops.scale(self.bm, vec=Vector(size), verts=verts)
         self._tag(verts, mat)
         m = (Matrix.Translation(Vector(center)) @ Matrix.Rotation(rot_z, 4, "Z")
-             @ Matrix.Rotation(rot_y, 4, "Y"))
+             @ Matrix.Rotation(rot_y, 4, "Y") @ Matrix.Rotation(rot_x, 4, "X"))
         bmesh.ops.transform(self.bm, matrix=m, verts=verts)
         if bevel > 0.0:
             edges = {e for v in verts for e in v.link_edges}
@@ -161,7 +163,7 @@ class Mesh:
         def place(u, z):
             if axis == "y":
                 return (u, offset, z)
-            return (offset, u, z)
+            return (offset, u, z)      # axis="x": profile is (y, z) at a fixed x
         bottom = [self.bm.verts.new(place(u, z0)) for u, z in pts2d]
         top = [self.bm.verts.new(place(u, z1)) for u, z in pts2d]
         f = self.bm.faces.new(list(reversed(bottom)))
@@ -325,7 +327,8 @@ def spec_from_group(name: str, objs: list) -> House | None:
 
 # ------------------------------------------------------------------ geometry
 def wall_with_openings(m: Mesh, h: House, u0: float, u1: float, z0: float, z1: float,
-                       openings: list, y_center: float, thickness: float, mat: str) -> None:
+                       openings: list, y_center: float, thickness: float, mat: str,
+                       bevel: float = CHAMFER) -> None:
     """A wall as the union of solid rectangles around its openings.
 
     Openings are sorted along u and never overlap there, so the wall is: full-height piers between
@@ -336,17 +339,17 @@ def wall_with_openings(m: Mesh, h: House, u0: float, u1: float, z0: float, z1: f
         a, b = max(op.u0, u0), min(op.u1, u1)
         if a - cursor > 0.02:
             m.box(((cursor + a) / 2, y_center, (z0 + z1) / 2),
-                  (a - cursor, thickness, z1 - z0), mat, bevel=CHAMFER)
+                  (a - cursor, thickness, z1 - z0), mat, bevel=bevel)
         if op.z0 - z0 > 0.02:                      # apron under the opening
             m.box(((a + b) / 2, y_center, (z0 + op.z0) / 2),
-                  (b - a, thickness, op.z0 - z0), mat, bevel=CHAMFER)
+                  (b - a, thickness, op.z0 - z0), mat, bevel=bevel)
         if z1 - op.z1 > 0.02:                      # lintel over it
             m.box(((a + b) / 2, y_center, (op.z1 + z1) / 2),
-                  (b - a, thickness, z1 - op.z1), mat, bevel=CHAMFER)
+                  (b - a, thickness, z1 - op.z1), mat, bevel=bevel)
         cursor = max(cursor, b)
     if u1 - cursor > 0.02:
         m.box(((cursor + u1) / 2, y_center, (z0 + z1) / 2),
-              (u1 - cursor, thickness, z1 - z0), mat, bevel=CHAMFER)
+              (u1 - cursor, thickness, z1 - z0), mat, bevel=bevel)
 
 
 def stone_courses(m: Mesh, h: House, sides: list, z_bottom: float, height: float) -> None:
@@ -391,66 +394,81 @@ def shingle_slope(m: Mesh, x0: float, x1: float, y_eave: float, y_ridge: float, 
     for i in range(4):
         j = (i + 1) % 4
         m.quad((slab[i], slab[j], top[j], top[i]), mat)
-    # courses
+    # Courses as real pans with thickness and overlap. The first version laid coplanar quads 2 cm above
+    # the slab: at render distance they were invisible and the roof read as one smooth surface (the
+    # review called it "a beige cloth"). A pan is a thin box following the slope, sitting 2 cm proud and
+    # overlapping the row below by a third, so each course casts its own line.
     rows = max(2, int(slope_len / SHINGLE_ROWS))
     cols = max(2, int((x1 - x0) / SHINGLE_W))
+    ang = math.atan2(span_z, span_y)
+    col_w = (x1 - x0) / cols
     for r in range(rows):
-        t0 = r / rows
-        t1 = min(1.0, (r + 1) / rows)
+        t = (r + 0.5) / rows
+        y = y_eave + span_y * t + nx.y
+        z = z_eave + span_z * t + nx.z
         for c in range(cols):
-            su0 = x0 + (c + (0.5 if r % 2 else 0.0)) * (x1 - x0) / cols
-            su1 = su0 + (x1 - x0) / cols * 0.96
-            if su1 > x1:
+            su = x0 + (c + (0.5 if r % 2 else 0.0)) * col_w
+            if su + col_w * 0.5 > x1:
                 continue
-            p = []
-            for (t, u) in ((t0, su0), (t0, su1), (t1, su1), (t1, su0)):
-                y = y_eave + span_y * t
-                z = z_eave + span_z * t
-                p.append((u, y + nx.y * 1.02, z + nx.z * 1.02))
-            m.quad(p[::-1], mat)
+            m.box((su, y, z), (col_w * 0.92, slope_len / rows * 1.40, 0.085), mat,
+                  bevel=0.008, rot_x=ang)
     # fascia along the eave and a ridge cap
     m.box(((x0 + x1) / 2, y_eave - 0.04, z_eave - 0.02), (x1 - x0 + 0.04, 0.10, 0.20),
           MAT_BEAM, bevel=0.01)
 
 
-def gable_wall(m: Mesh, h: House, y_center: float, thickness: float, mat: str) -> None:
-    """The triangle under the ridge, as a real polygon (the old model stepped it in nine boxes)."""
+def gable_wall(m: Mesh, h: House, x_gable: float, thickness: float, mat: str) -> None:
+    """The triangle under the ridge, as a real polygon extruded along x.
+
+    First version passed the gable's x as `y_center` and extruded along y, so the "gable" became a slab
+    lying across the building at y=-6.3 — that is what drew the black bars over both roofs."""
     apex_z = h.ridge
-    pts = [(h.x0, h.z1), (h.x1, h.z1), ((h.x0 + h.x1) / 2, apex_z)]
-    m.poly(pts, y_center - thickness / 2, y_center + thickness / 2, mat)
-    # a barge board along each rake, so the roof does not end in a paper edge
-    for a, b in (((h.x0, h.z1), ((h.x0 + h.x1) / 2, apex_z)),
-                 (((h.x0 + h.x1) / 2, apex_z), (h.x1, h.z1))):
-        mx, mz = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+    y_mid = (h.y0 + h.y1) / 2.0
+    pts = [(h.y0, h.z1), (h.y1, h.z1), (y_mid, apex_z)]
+    m.poly(pts, x_gable - thickness / 2, x_gable + thickness / 2, mat, axis="x")
+    # barge boards along the two rakes, long axis in y, tilted by the rake angle
+    for a, b in (((h.y0, h.z1), (y_mid, apex_z)), ((y_mid, apex_z), (h.y1, h.z1))):
+        my, mz = (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0
         length = math.hypot(b[0] - a[0], b[1] - a[1])
-        angle = math.atan2(b[1] - a[1], b[0] - a[0])
-        m.box((mx, y_center, mz), (length, thickness * 1.4, 0.12), MAT_BEAM, bevel=0.01,
-              rot_y=angle)
+        ang = math.atan2(b[1] - a[1], b[0] - a[0])
+        m.box((x_gable, my, mz), (thickness * 1.4, length, 0.13), MAT_BEAM, bevel=0.012,
+              rot_x=ang)
 
 
 def window_dressing(m: Mesh, op: Opening, y_facade: float, facing: float, mat_frame: str,
                     panes: bool = True) -> None:
-    """Recessed pane, frame boards, sill and a mullion grid — the inside of the hole."""
+    """The inside of the hole: a pane 4 cm behind the facade, a frame, a sill and mullions.
+
+    The first version put the pane 10 cm in and used one cross of mullions on a 2.8 m shop window; in the
+    review it read as a black rectangle. Glass close to the facade catches the room light, and the grid
+    scales with the opening."""
     w = op.u1 - op.u0
     hgt = op.z1 - op.z0
     cy = op.u0 + w / 2
     cz = op.z0 + hgt / 2
-    depth = 0.10
-    y_pane = y_facade + facing * depth * 0.55
-    m.box((cy, y_pane, cz), (w * 0.96, 0.03, hgt * 0.94), MAT_GLASS, bevel=0.0)
-    # frame: two jambs, a head and a sill that sticks out
-    jamb = 0.06
-    m.box((op.u0 + jamb / 2, y_facade + facing * 0.01, cz), (jamb, WALL + 0.03, hgt), mat_frame,
+    y_pane = y_facade + facing * 0.045
+    # PX_Ljusglöd, not the window plates: those are 256 px textures of a whole window, and on a 2.8 m
+    # shop window they repeat 3x2 and read as a dark grid. A uniform warm plate plus the mullions is the
+    # same information with none of the tiling.
+    m.box((cy, y_pane, cz), (w * 0.97, 0.02, hgt * 0.96), MAT_GLOW, bevel=0.0)
+    jamb = 0.07
+    m.box((op.u0 + jamb / 2, y_facade + facing * 0.012, cz), (jamb, WALL + 0.02, hgt), mat_frame,
           bevel=0.008)
-    m.box((op.u1 - jamb / 2, y_facade + facing * 0.01, cz), (jamb, WALL + 0.03, hgt), mat_frame,
+    m.box((op.u1 - jamb / 2, y_facade + facing * 0.012, cz), (jamb, WALL + 0.02, hgt), mat_frame,
           bevel=0.008)
-    m.box((cy, y_facade + facing * 0.01, op.z1 - jamb / 2), (w, WALL + 0.03, jamb), mat_frame,
+    m.box((cy, y_facade + facing * 0.012, op.z1 - jamb / 2), (w, WALL + 0.02, jamb), mat_frame,
           bevel=0.008)
-    m.box((cy, y_facade + facing * 0.10, op.z0 + 0.02), (w + 0.10, WALL + 0.22, 0.07), MAT_STONE,
-          bevel=0.01)
-    if panes:                                        # mullions: 1 vertical, 1 horizontal
-        m.box((cy, y_pane - facing * 0.02, cz), (0.035, 0.05, hgt * 0.92), mat_frame, bevel=0.0)
-        m.box((cy, y_pane - facing * 0.02, cz), (w * 0.94, 0.05, 0.035), mat_frame, bevel=0.0)
+    m.box((cy, y_facade + facing * 0.055, op.z0 + 0.02), (w + 0.12, WALL + 0.16, 0.08), MAT_STONE,
+          bevel=0.012)
+    if panes:
+        cols = max(1, int(round(w / 0.62)))
+        rows = max(1, int(round(hgt / 0.70)))
+        for i in range(1, cols):
+            u = op.u0 + w * i / cols
+            m.box((u, y_pane + facing * 0.014, cz), (0.045, 0.04, hgt * 0.94), mat_frame, bevel=0.0)
+        for j in range(1, rows):
+            z = op.z0 + hgt * j / rows
+            m.box((cy, y_pane + facing * 0.014, z), (w * 0.94, 0.04, 0.045), mat_frame, bevel=0.0)
 
 
 def door_dressing(m: Mesh, op: Opening, y_facade: float, facing: float, plank_mat: str) -> None:
@@ -465,6 +483,10 @@ def door_dressing(m: Mesh, op: Opening, y_facade: float, facing: float, plank_ma
         u = op.u0 + 0.05 + pw * (i + 0.5)
         m.box((u, y_facade + facing * 0.06, cz), (pw * 0.94, 0.06, hgt - 0.06), plank_mat,
               bevel=0.008)
+    # karm: två sidoposter och ett överstycke
+    m.box((op.u0 + 0.035, y_facade + facing * 0.01, cz), (0.07, WALL + 0.02, hgt), MAT_BEAM, bevel=0.006)
+    m.box((op.u1 - 0.035, y_facade + facing * 0.01, cz), (0.07, WALL + 0.02, hgt), MAT_BEAM, bevel=0.006)
+    m.box((cy, y_facade + facing * 0.01, op.z1 - 0.035), (w, WALL + 0.02, 0.07), MAT_BEAM, bevel=0.006)
     # straps and a handle
     for zz in (cz - hgt * 0.28, cz + hgt * 0.28):
         m.box((cy, y_facade + facing * 0.10, zz), (w * 0.80, 0.02, 0.05), MAT_IRON, bevel=0.005)
@@ -493,12 +515,12 @@ def timber_frame(m: Mesh, h: House, y_facade: float, facing: float, z_top: float
               MAT_BEAM, bevel=0.006)
     # corner boards on all four corners
     for (ux, uy) in ((h.x0, h.y0), (h.x1, h.y0), (h.x0, h.y1), (h.x1, h.y1)):
-        m.box((ux, uy, (h.z0 + h.z1) / 2), (0.14, 0.14, h.z1 - h.z0), MAT_BEAM, bevel=0.01)
+        m.box((ux, uy, (h.z0 + h.z1) / 2), (0.14, 0.14, h.z1 - h.z0), MAT_BEAM, bevel=0.035)
 
 
 def build_house(h: House, collection) -> bpy.types.Object:
     materials = [h.wall_mat, MAT_BEAM, MAT_STONE, MAT_STONE_DARK, h.roof_mat, MAT_GLASS,
-                 MAT_WOOD, MAT_IRON]
+                 MAT_GLOW, MAT_WOOD, MAT_IRON]
     m = Mesh(h.name, collection, materials)
     z_wall0 = h.z0
     z_wall1 = h.z1
@@ -508,12 +530,12 @@ def build_house(h: House, collection) -> bpy.types.Object:
     y_front = h.y0 + WALL / 2
     y_back = h.y1 - WALL / 2
     wall_with_openings(m, h, h.x0 + 0.02, h.x1 - 0.02, z_wall0, z_wall1, h.openings,
-                       y_front, WALL, h.wall_mat)
+                       y_front, WALL, h.wall_mat, bevel=CHAMFER_BIG)
     m.box((h.cx, y_back, (z_wall0 + z_wall1) / 2), (h.w, WALL, z_wall1 - z_wall0), h.wall_mat,
-          bevel=CHAMFER)
+          bevel=CHAMFER_BIG)
     for x in (h.x0 + WALL / 2, h.x1 - WALL / 2):
         m.box((x, h.cy, (z_wall0 + z_wall1) / 2), (WALL, h.d - 2 * WALL, z_wall1 - z_wall0),
-              h.wall_mat, bevel=CHAMFER)
+              h.wall_mat, bevel=CHAMFER_BIG)
 
     # plinth in courses, all four sides
     sides = [(h.x0, h.x1, h.y0 + 0.02, 0.06), (h.x0, h.x1, h.y1 - 0.02, 0.06),
@@ -542,7 +564,7 @@ def build_house(h: House, collection) -> bpy.types.Object:
                   h.ridge, h.roof_mat)
     shingle_slope(m, h.x0 - OVERHANG_X, h.x1 + OVERHANG_X, y_eave_b, h.cy, z_wall1 - 0.04,
                   h.ridge, h.roof_mat)
-    for xc in (h.x0, h.x1):
+    for xc in (h.x0 + 0.02, h.x1 - 0.02):
         gable_wall(m, h, xc, WALL, h.wall_mat)
     m.box((h.cx, h.cy, h.ridge + 0.03), (h.w + 2 * OVERHANG_X + 0.06, 0.26, 0.12), MAT_BEAM,
           bevel=0.01)
