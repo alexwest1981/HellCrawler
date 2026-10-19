@@ -60,7 +60,7 @@ var vy := "plan"                     ## "plan" (golv ljust, vägg mörkt) eller 
 ## Den ritar våningen man håller på med i en SubViewport — samma rutor, samma rekvisita, samma
 ## nodfärger som i 2D — och vrider sig kring rummet. Den är en ÖVERSIKT, inte spelets mörker: hur det
 ## ser ut inifrån ser man med P (och F1 möblerar där).
-var vy3d_på := false
+var vy3d_på := true
 var vy3d_korg: SubViewportContainer
 var vy3d_vy: SubViewport
 var vy3d_kamera: Camera3D
@@ -612,17 +612,26 @@ func _bygg_mitten() -> Control:
 		+ "hjul zoomar · mitten+drag panorerar · F ramar in"
 	d.resized.connect(_layout_duk)
 	d.gui_input.connect(_duk_input)
-	v.add_child(d)
-	duk = d
+	# 3D OCH 2D SAMTIDIGT (M159). Alex: *"jag vill se allt hända i 3d när jag gör ändringar i 2d-plan"*
+	# — och referensen har just de två vyerna sida vid sida. 3D till vänster, kartan till höger, båda
+	# levande hela tiden; 3D-knappen/F4 fäller bara undan 3D-rutan när man vill ha kartan stor.
+	var sidor := HBoxContainer.new()
+	sidor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sidor.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sidor.add_theme_constant_override("separation", 4)
+	v.add_child(sidor)
 	vy3d_korg = SubViewportContainer.new()
 	vy3d_korg.stretch = true
 	vy3d_korg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vy3d_korg.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vy3d_korg.custom_minimum_size = Vector2(340, 260)
-	vy3d_korg.visible = false
+	vy3d_korg.size_flags_stretch_ratio = 1.0
 	vy3d_korg.mouse_filter = Control.MOUSE_FILTER_STOP
-	v.add_child(vy3d_korg)
+	sidor.add_child(vy3d_korg)
 	_initiera_3d()
+	d.size_flags_stretch_ratio = 1.0
+	sidor.add_child(d)
+	duk = d
 	var p := PanelContainer.new()
 	status_rad = _etikett("", 12, FÄRG_DIM)
 	status_rad.clip_text = true
@@ -924,7 +933,7 @@ func _vy3d_material(tex: Texture2D, figur: bool = false) -> StandardMaterial3D:
 func _växla_3d() -> void:
 	vy3d_på = not vy3d_på
 	vy3d_korg.visible = vy3d_på
-	duk.visible = not vy3d_på
+	vy3d_korg.size_flags_stretch_ratio = 1.0 if vy3d_på else 0.0
 	if vy3d_på:
 		_bygg_3d()
 	if vy3d_knapp != null:
@@ -981,6 +990,23 @@ func _bygg_3d() -> void:
 		vy3d_värld.add_child(q)
 	# NODERNA som kuber i 2D-vyns färger: samma legend i båda vyerna.
 	for n in floor.nodes:
+		# MONSTREN SYNS (M159). Alex: *"jag vill se monstren existera"*. En strid blir fiendens egen
+		# bild, ställd på rutan — samma bild som paletten och spelet använder. Kista/fackla/start/
+		# nedstigning är markörer, inte varelser, och behåller kuberna i 2D-vyns färger.
+		var fiende := ""
+		if n.kind == "encounter" or n.kind == "boss":
+			fiende = str(n.enemy_id)
+		if not fiende.is_empty():
+			var tex := _fiende_tex(fiende)
+			if tex != null:
+				var s := MeshInstance3D.new()
+				var plan2 := QuadMesh.new()
+				plan2.size = Vector2(0.95, 0.95)
+				s.mesh = plan2
+				s.position = Vector3(n.pos.x + 0.5, 0.52, n.pos.y + 0.5)
+				s.material_override = _vy3d_material(tex, true)
+				vy3d_värld.add_child(s)
+				continue
 		var k := MeshInstance3D.new()
 		var km := BoxMesh.new()
 		km.size = Vector3(0.42, 0.42, 0.42)

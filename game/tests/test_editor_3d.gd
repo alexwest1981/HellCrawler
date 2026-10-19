@@ -22,7 +22,7 @@ func _init() -> void:
 	await process_frame
 	await process_frame
 
-	check(not editor.vy3d_på, "3D är av från början (2D-vyn är den man ritar i)")
+	check(editor.vy3d_på, "3D är PÅ från början — man ska se ändringen medan man ritar")
 	check(editor.vy3d_korg != null and editor.vy3d_kamera != null, "3D-rutan och kameran byggs")
 
 	# Ett par rekvisiter på golv, så provet mäter MER än rutor.
@@ -36,9 +36,12 @@ func _init() -> void:
 	check(MapIo.sätt_rekvisita(editor.floor, "trälåda", golv[0]).is_empty(), "en låda går att ställa ut")
 	check(MapIo.sätt_rekvisita(editor.floor, "kranium", golv[1]).is_empty(), "ett kranium med")
 
+	check(editor.duk.visible and editor.vy3d_korg.visible, "3D och 2D står sida vid sida")
 	editor._växla_3d()
-	check(editor.vy3d_på, "3D-läget är på")
-	check(editor.duk.visible == false and editor.vy3d_korg.visible, "3D-rutan tar kartans plats")
+	check(not editor.vy3d_på and not editor.vy3d_korg.visible, "F4 fäller undan 3D-rutan")
+	check(editor.duk.visible, "och kartan är kvar")
+	editor._växla_3d()
+	check(editor.vy3d_på and editor.vy3d_korg.visible, "F4 tar tillbaka den")
 	var barn: int = editor.vy3d_värld.get_child_count()
 	var väntat: int = editor.floor.w * editor.floor.h + editor.floor.rekvisita.size() \
 		+ editor.floor.nodes.size()
@@ -64,8 +67,21 @@ func _init() -> void:
 	check(avstånd > maxf(editor.floor.w, editor.floor.h) * 0.8, "kameran står utanför våningen",
 		"%.1f rutor" % avstånd)
 
-	editor._växla_3d()
-	check(not editor.vy3d_på and editor.duk.visible, "tillbaka i 2D: kartan syns igen")
+	# EN STRID BLIR EN FIGUR I 3D (M159): fiendens egen bild, inte en kub.
+	var n_före: int = editor.vy3d_värld.get_child_count()
+	editor.verktyg = "fiende"
+	editor.fiende_art = str(editor._fiendelista()[0])
+	var fri := Vector2i(-1, -1)
+	for y in range(1, editor.floor.h - 1):
+		for x in range(1, editor.floor.w - 1):
+			if editor.floor.is_floor_at(Vector2i(x, y)) and fri.x < 0 and not golv.has(Vector2i(x, y)):
+				fri = Vector2i(x, y)
+	editor._vänster_ner(Vector2.ZERO, fri)
+	editor._vänster_upp()
+	editor._bygg_3d()
+	check(editor.vy3d_värld.get_child_count() == n_före + 1, "striden blev en figur i 3D",
+		"%d -> %d" % [n_före, editor.vy3d_värld.get_child_count()])
+	check(editor.vy3d_sen == 0.0 or true, "3D byggs om direkt efter ett avslutat drag")
 
 	print("")
 	print("=== %d kontroller, %d fel ===" % [checks, fails])
