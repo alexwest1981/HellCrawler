@@ -160,12 +160,17 @@ class Mesh:
     def poly(self, pts2d: list, z0: float, z1: float, mat: str, axis: str = "y",
              offset: float = 0.0) -> None:
         """Extrude a 2D profile between z0 and z1. In the 'y' axis the profile is (x, z)."""
-        def place(u, z):
+        # axis="y": the profile is (x, z) and the extrusion runs along y between z0 and z1.
+        # axis="x": the profile is (y, z) and the extrusion runs along x. The first version returned
+        # (offset, u, z) for axis="x" with offset=0, so every gable was built in the y-z plane at x=0 —
+        # which is why the merged houses' AABBs stretched from 0 to -16 and the click rects landed on
+        # the neighbour. Measured, not guessed: the stray vertices sat at x=0 with z=-15.6.
+        def place(u, z, layer):
             if axis == "y":
-                return (u, offset, z)
-            return (offset, u, z)      # axis="x": profile is (y, z) at a fixed x
-        bottom = [self.bm.verts.new(place(u, z0)) for u, z in pts2d]
-        top = [self.bm.verts.new(place(u, z1)) for u, z in pts2d]
+                return (u, layer, z)
+            return (layer, u, z)
+        bottom = [self.bm.verts.new(place(u, z, z0)) for u, z in pts2d]
+        top = [self.bm.verts.new(place(u, z, z1)) for u, z in pts2d]
         f = self.bm.faces.new(list(reversed(bottom)))
         f.material_index = self.index[mat]
         f = self.bm.faces.new(top)
@@ -290,11 +295,23 @@ def spec_from_group(name: str, objs: list) -> House | None:
             continue
         kind = "door" if "door" in n else "window"
         openings.append(Opening(ox0, ox1, max(bz0, oz0), min(bz1, oz1), kind))
-    # Merge the panels of a multi-part window or door into one opening each. The overlap test has to
-    # be in BOTH axes: the tavern's 2.8 m shop window and its upper window share an x range and were
-    # merged into one 3.5 m tall hole that swallowed the whole facade.
+    # Clamp into the wall FIRST, then merge. Merging first and clamping after gave the Weaver five
+    # openings: its window is split into Frame/Glass/Bar_H/Bar_V/Sill at slightly different heights, so
+    # they did not overlap until the clamp pulled them all onto the same z.
+    placed: list = []
+    for op in openings:
+        h = min(op.z1 - op.z0, bz1 - bz0 - 0.24)
+        op.z0 = max(op.z0, bz0 + 0.12)
+        op.z1 = min(op.z1, bz1 - 0.12)
+        if op.z1 - op.z0 <= 0.30:
+            # A window above the wall top (the Weaver's sits at 2.13-2.77 on a 2.1 m wall) used to be
+            # dropped, so that shop came out windowless. Move it down and keep its size.
+            op.z1 = bz1 - 0.12
+            op.z0 = op.z1 - max(0.30, h)
+        placed.append(op)
+
     merged: list = []
-    for op in sorted(openings, key=lambda o: (o.u0, o.z0)):
+    for op in sorted(placed, key=lambda o: (o.u0, o.z0)):
         for m in merged:
             if (m.kind == op.kind and op.u0 < m.u1 + 0.02 and op.u1 > m.u0 - 0.02
                     and op.z0 < m.z1 + 0.02 and op.z1 > m.z0 - 0.02):
@@ -303,15 +320,6 @@ def spec_from_group(name: str, objs: list) -> House | None:
                 break
         else:
             merged.append(op)
-    # keep the openings inside the wall the generator can cut: the gable is a triangle polygon here,
-    # so a window that sits mostly above the wall top is dropped rather than half-cut
-    kept: list = []
-    for op in merged:
-        op.z0 = max(op.z0, bz0 + 0.12)
-        op.z1 = min(op.z1, bz1 - 0.12)
-        if op.z1 - op.z0 > 0.30 and op.z0 < bz1 - 0.35:
-            kept.append(op)
-    merged = kept
 
     chimney = None
     cap = bpy.data.objects.get("Chimney_Cap")
@@ -580,6 +588,146 @@ def build_house(h: House, collection) -> bpy.types.Object:
     return m.finish(tile=1.0)
 
 
+
+# ------------------------------------------------------------------ the gate
+def build_gate(objs: list, collection) -> bpy.types.Object | None:
+    """The gatehouse: a stone mass with an arched tunnel, two towers, corbels, crenellations and doors.
+
+    It has no `_Body`, so the house generator skipped it — and it is the biggest single object in the
+    street. The measurements come from the objects that are there: the mass, the dark recess (the tunnel
+    void), the two towers and the two door leaves."""
+    def by(prefix):
+        return [o for o in objs if o.name.startswith(prefix)]
+
+    mass = by("Gate_Center_Mass")
+    recess = by("Gate_Recess_Dark")
+    towers = by("Gate_Tower_")
+    doors = by("Gate_Door_")
+    if not mass or not recess:
+        return None
+    mx0, mx1, my0, my1, mz0, mz1 = _aabb(mass)
+    rx0, rx1, ry0, ry1, rz0, rz1 = _aabb(recess)
+    y_face = ry0 - 0.02                      # the camera side of the tunnel opening
+    depth = 0.42
+
+    materials = [MAT_STONE, MAT_STONE_DARK, MAT_BEAM, MAT_WOOD, MAT_IRON, MAT_GLOW]
+    m = Mesh("Gate", collection, materials)
+
+    wall_h = mz1 - mz0
+    z_spring = rz1 - (rx1 - rx0) / 2.0        # where the arch springs from
+    r_arch = (rx1 - rx0) / 2.0
+    # piers either side of the tunnel, up to the springing line
+    for a, b in ((mx0, rx0), (rx1, mx1)):
+        m.box(((a + b) / 2, (my0 + my1) / 2, mz0 + z_spring / 2),
+              (b - a, my1 - my0, z_spring), MAT_STONE, bevel=CHAMFER_BIG)
+    # the arch: voussoirs around a semicircle, and the spandrels above them
+    # Voussoirs: the box's local Z is the radial direction, so the rotation is (pi/2 - ang), not
+    # (ang - pi/2). With the wrong sign the stones stayed tangential and the arch read as rubble.
+    m.box(((rx0 + rx1) / 2, (my0 + my1) / 2, z_spring), (rx1 - rx0 + 0.3, my1 - my0, 0.22),
+          MAT_STONE_DARK, bevel=0.012)                      # impost band at the springing
+    for i in range(9):
+        ang = math.pi * (i + 0.5) / 9
+        cu = (rx0 + rx1) / 2 + math.cos(ang) * (r_arch + 0.20)
+        cz = z_spring + math.sin(ang) * (r_arch + 0.20)
+        keystone = 1.0 if abs(ang - math.pi / 2) < 0.2 else 0.0
+        m.box((cu, (my0 + my1) / 2, cz), (0.40, my1 - my0 + keystone * 0.14, 0.36 + keystone * 0.12),
+              MAT_STONE, bevel=0.012, rot_y=math.pi / 2 - ang)
+    for a, b in ((mx0, rx0 - 0.44), (rx1, mx1)):
+        pass
+    m.box(((mx0 + mx1) / 2, (my0 + my1) / 2, (z_spring + r_arch + 0.34 + mz1) / 2),
+          (mx1 - mx0, my1 - my0, mz1 - z_spring - r_arch - 0.34), MAT_STONE, bevel=CHAMFER_BIG)
+    # the tunnel: side walls and a ceiling, so the passage has depth instead of being painted on
+    for x in (rx0 + 0.05, rx1 - 0.05):
+        m.box((x, y_face + depth / 2, rz1 / 2), (0.10, depth, rz1), MAT_STONE_DARK, bevel=0.01)
+    m.box(((rx0 + rx1) / 2, y_face + depth / 2, rz1 - 0.05), (rx1 - rx0, depth, 0.10),
+          MAT_STONE_DARK, bevel=0.01)
+
+    # corbels and string courses, taken from the objects that were there
+    for pref in ("Gate_Cornice_Lower", "Gate_Cornice_Upper"):
+        for o in by(pref):
+            x0, x1, y0, y1, z0, z1 = _aabb([o])
+            m.box(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+                  (x1 - x0, y1 - y0, z1 - z0), MAT_WOOD, bevel=0.015)
+
+    # towers: battered shaft, corbel ring, crenellated crown
+    for t in towers:
+        tx0, tx1, ty0, ty1, tz0, tz1 = _aabb([t])
+        tw = tx1 - tx0
+        td = ty1 - ty0
+        cx = (tx0 + tx1) / 2
+        cy = (ty0 + ty1) / 2
+        m.box((cx, cy, (tz0 + tz1 - 0.6) / 2), (tw, td, tz1 - 0.6 - tz0), MAT_STONE,
+              bevel=CHAMFER_BIG)
+        m.box((cx, cy, tz1 - 0.45), (tw + 0.16, td + 0.16, 0.34), MAT_STONE_DARK, bevel=0.015)
+        merlons = max(2, int(tw / 0.42))
+        for i in range(merlons):
+            u = tx0 + 0.14 + (tw - 0.28) * (i + 0.5) / merlons
+            for v in (ty0 + 0.16, ty1 - 0.16):
+                m.box((u, v, tz1 - 0.12), ((tw - 0.28) / merlons * 0.78, 0.26, 0.42), MAT_STONE,
+                      bevel=0.012)
+        # narrow windows up the shaft
+        for z in (tz0 + 2.6, tz0 + 4.6):
+            m.box((cx, ty0 + 0.03, z), (0.22, 0.10, 0.62), MAT_STONE_DARK, bevel=0.01)
+            m.box((cx, ty0 + 0.02, z), (0.14, 0.06, 0.50), MAT_GLOW, bevel=0.0)
+
+    # crenellations along the top of the mass, between the towers
+    top = mz1 - 0.30
+    span = (rx0 + rx1) / 2
+    n_merl = 6
+    for i in range(n_merl):
+        u = mx0 + 0.3 + (mx1 - mx0 - 0.6) * (i + 0.5) / n_merl
+        if abs(u - span) < 0.9:
+            continue
+        m.box((u, my0 + 0.28, top + 0.20), (0.46, 0.34, 0.40), MAT_STONE, bevel=0.012)
+
+    # the doors: planks in two leaves with iron bands and ring handles
+    for d in doors:
+        dx0, dx1, dy0, dy1, dz0, dz1 = _aabb([d])
+        cy = (dy0 + dy1) / 2
+        cz = (dz0 + dz1) / 2
+        planks = max(3, int((dx1 - dx0) / 0.20))
+        for i in range(planks):
+            u = dx0 + (dx1 - dx0) * (i + 0.5) / planks
+            m.box((u, cy, cz), ((dx1 - dx0) / planks * 0.92, 0.11, (dz1 - dz0) * 0.98),
+                  MAT_WOOD, bevel=0.008)
+        for z in (dz0 + (dz1 - dz0) * 0.22, dz0 + (dz1 - dz0) * 0.78):
+            m.box(((dx0 + dx1) / 2, cy - 0.07, z), ((dx1 - dx0) * 0.94, 0.03, 0.07), MAT_IRON,
+                  bevel=0.005)
+        m.cylinder((dx1 - 0.12, cy - 0.09, cz), (dx1 - 0.12, cy - 0.16, cz), 0.03, MAT_IRON,
+                   segments=8)
+    return m.finish(tile=1.2)
+
+
+# Two objects are measured by tests and must survive the rebuild as their own objects with the same
+# bounding box: test_bybor reads the exact AABB of `Jeweler_Door`, and test_by_rok measures the smoke
+# emitter against the top of `Chimney_Cap`.
+ANCHORS = ("Jeweler_Door", "Chimney_Cap")
+
+
+def anchor_specs(objs: list) -> list:
+    """Read the anchors' boxes BEFORE the old objects are deleted."""
+    out = []
+    for obj in objs:
+        if obj.name not in ANCHORS:
+            continue
+        box = _aabb([obj])
+        mat = obj.data.materials[0].name if obj.data.materials else MAT_WOOD
+        out.append((obj.name, box, mat))
+    return out
+
+
+def make_anchors(specs: list, collection) -> list:
+    """Re-create them AFTER the deletion. Creating them first gave `Jeweler_Door.001`, because the old
+    object still owned the name — and test_bybor looks the door up by exact name."""
+    made = []
+    for name, (x0, x1, y0, y1, z0, z1), mat in specs:
+        m = Mesh(name, collection, [mat])
+        m.box(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+              (x1 - x0, y1 - y0, z1 - z0), mat, bevel=0.008)
+        made.append(m.finish(1.0).name)
+    return made
+
+
 # ------------------------------------------------------------------ driver
 def groups_of(collection) -> dict:
     """Group the old objects by building. The names carry the grouping: Tavern_*, Smith_*, ..."""
@@ -617,6 +765,25 @@ def main() -> int:
 
     built = []
     for name, objs in groups.items():
+        if name == "Gate":
+            obj = build_gate(objs, collection)
+            if obj is None:
+                print("HOPPAR Gate: inget mittparti")
+                continue
+            tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
+            built.append((name, tris, len(obj.data.vertices)))
+            print(f"BYGGD {obj.name:12s} tris={tris:5d} verts={len(obj.data.vertices):5d} (port)")
+            specs = anchor_specs(objs)
+            if not check:
+                for old in objs:
+                    data = old.data
+                    bpy.data.objects.remove(old, do_unlink=True)
+                    if data.users == 0:
+                        bpy.data.meshes.remove(data)
+                kept = make_anchors(specs, collection)
+                if kept:
+                    print(f"  ANKARE {kept}")
+            continue
         spec = spec_from_group(name, objs)
         if spec is None:
             print(f"HOPPAR {name}: ingen kropp hittad")
@@ -626,12 +793,16 @@ def main() -> int:
         built.append((name, tris, len(obj.data.vertices)))
         print(f"BYGGD {obj.name:12s} tris={tris:5d} verts={len(obj.data.vertices):5d} "
               f"oppningar={len(spec.openings)}")
+        specs = anchor_specs(objs)
         if not check:
             for old in objs:
                 data = old.data
                 bpy.data.objects.remove(old, do_unlink=True)
                 if data.users == 0:
                     bpy.data.meshes.remove(data)
+            kept = make_anchors(specs, collection)
+            if kept:
+                print(f"  ANKARE {kept}")
 
     ok = bool(built) and all(t > 400 for _, t, _ in built)
     print(f"CHECK byggda={len(built)} minsta={min((t for _, t, _ in built), default=0)} tris "

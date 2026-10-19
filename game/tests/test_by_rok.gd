@@ -145,11 +145,11 @@ func _initialize() -> void:
 	for n in _alla(råt):
 		if n is MeshInstance3D:
 			meshar.append(n)
-	## MÄTT EFTER OM-MODELLERINGEN 19/10: 22 modellerade träd ersätter 126 trädbitar, så antalet
-	## mesh-NODER föll från 1824 till 1717 utan att byn blev mindre — en tröskel på nodantal mäter
-	## objektindelningen, inte innehållet. Provets avsikt är "byn finns kvar", och det mäts på ytor:
-	## glb:n bär 48 938 trianglar. Båda talen kontrolleras, med marginal nedåt.
-	check(meshar.size() > 1600, "byn finns kvar i filen", "%d mesh-noder" % meshar.size())
+	## MÄTT 19/10, EFTER HUSOMBYGGNADEN: sex byggnader (BG_House, Gate, Jeweler, Smith, Tavern,
+	## Weaver) är nu ETT mesh var i stället för 1 000+ delar, så antalet mesh-NODER föll från 1 717 till
+	## 748. Provets avsikt är "byn finns kvar", och nodantal mäter objektindelningen — därför mäts även
+	## ytorna, som går åt andra hållet: 48 938 -> 94 402 trianglar. Båda kontrolleras med marginal.
+	check(meshar.size() > 700, "byn finns kvar i filen", "%d mesh-noder" % meshar.size())
 	var tri := 0
 	for n in meshar:
 		var mi := n as MeshInstance3D
@@ -159,7 +159,7 @@ func _initialize() -> void:
 			var arr: Array = mi.mesh.surface_get_arrays(yta)
 			if arr.size() > Mesh.ARRAY_INDEX and arr[Mesh.ARRAY_INDEX] != null:
 				tri += (arr[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
-	check(tri > 40000, "byns geometri finns kvar (trianglar)", "%d trianglar" % tri)
+	check(tri > 80000, "byns geometri finns kvar (trianglar)", "%d trianglar" % tri)
 	råt.queue_free()
 	await process_frame
 
