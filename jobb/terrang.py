@@ -30,7 +30,7 @@ from mathutils import Matrix, Vector
 RIDGE_SPAN = 78.0          # world x from -39 to 39; the village itself is 44 m
 STEP = 0.9                 # every height is quantised to this, so the crest reads as voxel steps
 CELL = 1.3                 # terrain cell: mountains are a heightfield, not a wall of boxes
-MTN_SCALE = 0.62           # Alex 19/10: "berget blev en smula för högt" - one knob for the whole range
+MTN_SCALE = 0.40           # Alex 19/10: "berget blev en smula för högt" - one knob for the whole range
 STEP_MTN = 1.8             # terrace height: at 0.9 the steps vanished at render scale and the slope read
                            # as smooth low-poly next to voxel houses (measured)
 CREST_BAND = 2.6           # the top of a column is bare rock; below it is moss/vegetation
@@ -177,13 +177,20 @@ PEAKS = [
     (33.0, 31.0, 16.0, 10.0),
     (6.0, 41.0, 30.0, 16.0),          # the massif behind the row
     (-18.0, 43.0, 27.0, 15.0),
-    # foothills: without them the range meets the village as a cliff, with a hard band along its foot
-    (-30.0, 19.0, 4.5, 7.0),
-    (-16.0, 18.0, 5.5, 7.5),
-    (-4.0, 20.0, 4.0, 6.5),
-    (9.0, 18.5, 5.0, 7.0),
-    (24.0, 19.5, 4.2, 7.0),
-    (35.0, 20.0, 3.6, 6.0),
+    # foothills: a band of low summits in front of the range, so the mountain rises out of the ground
+    # instead of being a wedge parked behind the village (the wedge silhouette was the last complaint)
+    (-34.0, 17.5, 4.0, 6.5),
+    (-24.0, 15.5, 5.5, 7.5),
+    (-14.0, 16.5, 3.5, 6.0),
+    (-3.0, 15.0, 5.0, 7.0),
+    (8.0, 16.0, 4.2, 6.5),
+    (19.0, 15.0, 5.8, 7.5),
+    (30.0, 16.5, 4.0, 6.5),
+    # spurs off the main crest: shoulders that break the wedge in the side view
+    (-27.0, 23.0, 9.0, 8.0),
+    (-9.0, 24.0, 11.0, 8.5),
+    (13.0, 23.5, 10.0, 8.0),
+    (28.0, 25.0, 8.5, 7.5),
 ]
 
 
@@ -205,7 +212,9 @@ def height_at(x: float, y: float, x0: float = -48.0, x1: float = 48.0,
             h = max(h, ph * math.exp(-d2))
     ridge = 1.0 - abs(2.0 * _fbm(x * 0.055, y * 0.055, 17) - 1.0)
     h *= (0.72 + 0.55 * ridge) * MTN_SCALE
-    h += (2.2 * _fbm(x * 0.22, y * 0.22, 91) - 1.0) * 1.1
+    # fine relief: gullies and ribs. 1.1 was too little on an 11 m range - the surface read as paper
+    h += (2.6 * _fbm(x * 0.22, y * 0.22, 91) - 1.0) * 1.7
+    h += (1.4 * _fbm(x * 0.55, y * 0.55, 311) - 1.0) * 0.9
     return max(0.0, h) * _envelope(x, y, x0, x1, y0, y1)
 
 
@@ -219,7 +228,7 @@ def build_ridge(collection) -> list:
     read as a thin backdrop. A real surface mesh is the only shape that reads as a mountain from all
     four views, and flat shading keeps it in the project's low-poly language."""
     cx, cy, cell = 0.0, 30.0, 0.9
-    nx, ny = 106, 36                   # 95 x 32 m of terrain, half-metre voxels
+    nx, ny = 78, 36                    # 70 x 32 m: the range must not out-measure the village 2x
     x0, x1 = cx - nx * cell / 2.0, cx + nx * cell / 2.0
     y0, y1 = cy - ny * cell / 2.0, cy + ny * cell / 2.0
     verts, faces, mat_of_face = [], [], []
@@ -242,7 +251,10 @@ def build_ridge(collection) -> list:
             h = (verts[a][2] + verts[b][2] + verts[c][2] + verts[d][2]) / 4.0
             # three bands: grass at the foot, mossy stone as a treeline, bare rock on the summits.
             # Two bands only left a dark rock strip along the whole foot, which read as a cut band.
-            band = 0 if h < 1.6 else (1 if h < 7.0 else 2)
+            # thresholds were 1.6/7.0 m against a 12.7 m range, so almost the whole massif got the dark
+            # mossy plate and read as a black wall. Measured plates: grass 0.288, mossy 0.255,
+            # stone 0.354 luma - the rock is what should dominate a mountain.
+            band = 0 if h < 1.2 else (1 if h < 3.4 else 2)
             mat_of_face += [band, band]
             faces += [(a, b, d), (a, d, c)]
     mesh = bpy.data.meshes.new("Mountain_Range")
@@ -406,10 +418,9 @@ def main() -> int:
     save = "--no-save" not in args and not check
     collection = bpy.data.collections.get("Collection") or bpy.context.scene.collection
 
-    # the old pyramids, and the old tree/grass parts this script replaces
     removed = []
     for obj in list(bpy.data.objects):
-        if obj.name.startswith("Mountain_") or obj.name == "Grass_Tufts":
+        if obj.name.startswith("Mountain_"):
             removed.append(obj.name)
             data = obj.data if obj.type == "MESH" else None
             bpy.data.objects.remove(obj, do_unlink=True)
@@ -417,20 +428,15 @@ def main() -> int:
                 bpy.data.meshes.remove(data)
 
     ridge = build_ridge(collection)
-    trees, n_fam, n_tree_boxes = rebuild_trees(collection)
-    grass, n_grass_boxes = build_grass(collection)
-
     print(f"REMOVED {removed}")
-    for o in ridge + [trees, grass]:
-        print(f"BUILT {o.name:26s} boxes={len(o.data.polygons) // 6:5d} verts={len(o.data.vertices):6d}")
-    print(f"TREES families={n_fam} boxes={n_tree_boxes} GRASS boxes={n_grass_boxes}")
+    for o in ridge:
+        print(f"BUILT {o.name:26s} tris={len(o.data.polygons):5d} verts={len(o.data.vertices):6d}")
 
-    # a check that bites: several summits, and enough relief to be a range rather than a hill
-    sampled = [height_at(x, cy=29.0) if False else height_at(x, 29.0) for x in _frange(-40.0, 40.0, 1.5)]
+    sampled = [height_at(x, 30.0) for x in _frange(-40.0, 40.0, 1.5)]
     peaks = sum(1 for i in range(1, len(sampled) - 1)
-                if sampled[i] > sampled[i - 1] and sampled[i] > sampled[i + 1] and sampled[i] > 8.0)
+                if sampled[i] > sampled[i - 1] and sampled[i] > sampled[i + 1] and sampled[i] > 5.0)
     spread = max(sampled) - min(sampled)
-    ok = peaks >= 3 and spread > 8.0 and max(sampled) > 14.0
+    ok = peaks >= 3 and spread > 5.0 and max(sampled) > 9.0
     print(f"CHECK peaks={peaks} spread={spread:.1f} max={max(sampled):.1f} -> {'OK' if ok else 'FAIL'}")
 
     if save:
