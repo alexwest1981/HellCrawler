@@ -278,13 +278,35 @@ func _uppdatera_museum() -> void:
 	var rubrik := Label.new()
 	rubrik.text = Tr.t("ui.museum.title", "MUSEET — reliker man hittat: %d / %d") 		% [_meta.relics.size(), Relics.load_all().size()]
 	box.add_child(rubrik)
-	for id in Relics.load_all():
-		var r: Relics.RelicDef = Relics.load_all()[id]
+	# IKONERNA (M184): genererade i samma stil som byn, 64×64, en per relik med samma id som datat.
+	# En relik man inte hittat ritas som en mörk silhuett i stället för att saknas — formen är målet.
+	var db: Dictionary = Relics.load_all()
+	var rutnät := GridContainer.new()
+	rutnät.columns = 4
+	box.add_child(rutnät)
+	for id in db:
+		var r: Relics.RelicDef = db[id]
 		var ägd: bool = _meta != null and _meta.relics.has(str(id))
+		var cell := VBoxContainer.new()
+		cell.custom_minimum_size = Vector2(96, 0)
+		var bild := TextureRect.new()
+		var väg := "res://assets/ui/relik/%s.png" % str(id)
+		if ResourceLoader.exists(väg):
+			bild.texture = load(väg)
+		bild.custom_minimum_size = Vector2(44, 44)
+		bild.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		bild.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		bild.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		bild.modulate = Color(1, 1, 1, 1) if ägd else Color(0.22, 0.22, 0.26, 1.0)
+		cell.add_child(bild)
 		var rad := Label.new()
-		rad.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		rad.text = "%s %s — %s" % ["✓" if ägd else "·", r.name, r.text if ägd else "—"]
-		box.add_child(rad)
+		rad.text = r.name if ägd else "???"
+		rad.add_theme_font_size_override("font_size", 8)
+		rad.modulate = Color(1, 1, 1, 1) if ägd else Color(0.55, 0.55, 0.6)
+		cell.add_child(rad)
+		if ägd:
+			rad.tooltip_text = r.text
+		rutnät.add_child(cell)
 
 ## Vyns yta, med ett golv för en vy som ännu inte fått sin storlek.
 func _yta() -> Vector2:

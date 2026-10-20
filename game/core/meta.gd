@@ -81,7 +81,7 @@ var defs: Array = []              ## uppgraderingarna, läsna ur data/powerups.j
 var last_error := ""              ## satt när filen fanns men inte gick att läsa
 ## Inställningarna från startmenyns ALTERNATIV (M39). Standard är på: CRT-känslan och musiken hör till
 ## spelet, och en spelare som inte letat upp alternativen ska få dem.
-var crt_på := true
+var crt_på := false        ## RETIRED: CRT-lagret slås inte på längre (Alex 19/10); fältet står kvar för äldre sparfilers skull
 var musik_på := true
 ## Den SPARADE KÖRNINGEN: "LADDA SPEL" i menyn återupptar den. Id:n och tal, inte kortobjekt — korten
 ## byggs ur datat igen, så en sparfil som bara bär id:n inte kan ljuga om vad ett kort gör när datat
@@ -148,7 +148,7 @@ static func load_or_new(path: String = PATH) -> Meta:
 	m.gem_in = gi if typeof(gi) == TYPE_DICTIONARY else {}
 	# Menyns inställningar och den sparade körningen (M39): en äldre fil saknar dem, och standarden
 	# (på/på/ingen körning) är samma sak som en ny spelare.
-	m.crt_på = bool(parsed.get("crt", true))
+	m.crt_på = false                        # CRT är avstängt; en gammal sparfil får inte slå på det igen
 	m.musik_på = bool(parsed.get("musik", true))
 	var sparad = parsed.get("korning", {})
 	m.korning = sparad if typeof(sparad) == TYPE_DICTIONARY else {}

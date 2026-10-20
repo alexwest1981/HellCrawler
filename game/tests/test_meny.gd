@@ -197,37 +197,33 @@ func _initialize() -> void:
 		"klick på %.0f,%.0f" % [mitten.x, mitten.y])
 	for i in main.alt_rader.size():
 		print("      alternativ %d: %s" % [i, main.alt_rader[i].text])
-	check(main.alt_rader.size() == 4, "fyra rader: språk, CRT, musik och spår")
+	check(main.alt_rader.size() == 3, "tre rader: språk, musik och spår (CRT-raden är borta)")
 	check(main.alt_rader[0].text.contains("språk"), "första raden är språket")
-	check(main.alt_rader[1].text.contains("CRT"), "andra raden är CRT-läget")
-	check(main.alt_rader[2].text.contains("musik"), "tredje raden är musiken")
+	check(main.alt_rader[1].text.contains("musik"), "andra raden är musiken")
 	# Jukeboxen (M54): raden visar spåret som spelar, och ett tryck byter till nästa i mappen.
 	var spår_innan: String = main.musik.nuvarande()
-	check(main.alt_rader[3].text.contains(spår_innan), "fjärde raden visar spåret som spelar",
-		main.alt_rader[3].text)
-	main._alt_byt(3)
+	check(main.alt_rader[2].text.contains(spår_innan), "tredje raden visar spåret som spelar",
+		main.alt_rader[2].text)
+	main._alt_byt(2)
 	await process_frame
 	check(main.musik.nuvarande() != spår_innan, "och ett tryck byter låt",
 		"%s -> %s" % [spår_innan, main.musik.nuvarande()])
-	check(main.alt_rader[3].text.contains(main.musik.nuvarande()), "raden följer bytet",
-		main.alt_rader[3].text)
+	check(main.alt_rader[2].text.contains(main.musik.nuvarande()), "raden följer bytet",
+		main.alt_rader[2].text)
 
 	print("")
-	print("— CRT-lagret —")
-	check(main.crt != null and main.crt.visible, "CRT-lagret är på (standard)")
+	print("— CRT-lagret är AV (Alex 19/10) —")
+	# Alex: *"vi skall skippa crt-effekten, den förvränger och får det bara att se lortigt ut"*. Lagret
+	# finns kvar för mätningar (`crt=1`), men spelet slår aldrig på det och ingen rad kan göra det.
+	check(main.crt != null and not main.crt.visible, "CRT-lagret är av")
 	check(main.crt.mouse_filter == Control.MOUSE_FILTER_IGNORE,
 		"CRT-lagret tar ingen pekare (annars blev menyn oklickbar)")
 	check(main.crt.get_index() == main.crt.get_parent().get_child_count() - 1,
 		"CRT-lagret ligger ÖVERST (det läser skärmen bakom sig)")
 	check(is_equal_approx(main.crt.styrka(), 1.0), "styrkan går att mäta", "%.2f" % main.crt.styrka())
-	var var_på: bool = main.meta.crt_på
-	main._alt_byt(1)
-	await process_frame
-	check(main.meta.crt_på != var_på and main.crt.visible == main.meta.crt_på,
-		"CRT-raden slår av och på lagret", "meta %s, lagret syns %s"
-			% ["på" if main.meta.crt_på else "av", "ja" if main.crt.visible else "nej"])
-	main._alt_byt(1)
-	await process_frame
+	check(not main.meta.crt_på, "och sparfilens flagga står av")
+	check(not main.alt_rader.any(func(r): return r.text.contains("CRT")),
+		"ingen rad i ALTERNATIV slår på det")
 
 	print("")
 	print("— musiken —")
@@ -239,7 +235,7 @@ func _initialize() -> void:
 		check(not (main.musik.stream as AudioStreamMP3).loop, "ingen låt slingar — listan går vidare")
 	check(main.musik.playing, "musiken spelar medan menyn är framme")
 	var s_av: bool = main.meta.musik_på
-	main._alt_byt(2)
+	main._alt_byt(1)
 	await process_frame
 	check(main.meta.musik_på != s_av and main.musik.playing == main.meta.musik_på,
 		"musik-raden stänger av och på ljudet")

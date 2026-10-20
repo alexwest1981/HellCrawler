@@ -397,7 +397,7 @@ const SKAL_LÄGEN := ["hem", "butik", "vardshus", "smed", "karta", "album", "juv
 	"banverkstad", "trad", "upplas"]
 ## Raderna i ALTERNATIV-panelen: språk, CRT, musik och spår (M54). Byggs på ett ställe och fylls
 ## på ett ställe — antalet får inte stå som ett tal på två ställen.
-const ALT_RADER := 4
+const ALT_RADER := 3
 ## Krediteringen (TACK TILL): paketlistan läses ur data/credits.json, och bredden är den samma för varje
 ## rad så att panelen får EN bredd att centrera (en rad som fick sin egen bredd gav en trappstegskant).
 const CREDITS_PATH := "res://data/credits.json"
@@ -819,6 +819,7 @@ var _ssil := true                  ## indirekt ljus ur samma pass (SSIL): ljuset
 var _vol := true                   ## volymetrisk dimma: ljuskäglorna i luften (facklor och lyktan)
 var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, se LJUSPROVET nedan
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
+var _crt_begärd := false            ## `crt=N` med N > 0: lagret slås på för en mätning (aldrig av spelet självt)
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
 var _kamerapan_prov := Vector2.ZERO ## `kamerapan=N`: byns kamera pannad N px (granskningsflagga, M122)
 var _byplats_prov := -1            ## `byplats=N`: byns plats N vald innan provbilden (granskningsflagga, M123)
@@ -979,6 +980,7 @@ func _ready() -> void:
 			# tar — samma skäl som ssr=0/vol=0.
 			var crt_v := clampf(float(f.substr(4)), 0.0, 1.0)
 			_crt_av = crt_v <= 0.0
+			_crt_begärd = crt_v > 0.0
 			_crt_styrka = crt_v
 		elif f == "vag=0":
 			# Granskningsflagga: VÄGARNA mellan platserna på världskartan av (M120). Frågan är hur
@@ -4038,12 +4040,15 @@ func _rita_alternativ() -> void:
 	alt_label.text = Tr.t("ui.alternativ.titel", "ALTERNATIV")
 	var texter := [
 		Tr.t("ui.alternativ.sprak", "språk: %s") % Tr.name_of_code(Tr.lang),
-		Tr.t("ui.alternativ.crt", "CRT-läge: %s") % (på if crt.är_på() else av),
 		Tr.t("ui.alternativ.musik", "musik: %s") % (på if meta.musik_på else av),
 		# Jukeboxen (M54). Spåret står med namn, och raden byter låt — menyns musik spelar ju redan,
 		# så en ändring hörs direkt i stället för att sparas till senare.
 		Tr.t("ui.alternativ.spar", "spår: %s") % (musik.nuvarande() if musik != null else ""),
 	]
+	# CRT-RADEN ÄR BORTA (Alex 19/10): *"Jag tror vi skall skippa crt-effekten, den förvränger och får
+	# det bara att se 'lortigt' ut, mindre genomtänkt."* Lagret finns kvar i koden (mätningar och
+	# skärmbilder använder `crt=0`/`crt=1`), men det slås aldrig på i spelet och det finns ingen rad
+	# som kan slå på det.
 	for i in alt_rader.size():
 		alt_rader[i].text = "%s %s" % ["▶" if i == alt_index else "  ", str(texter[i])]
 		alt_rader[i].add_theme_color_override("font_color",
@@ -4056,17 +4061,13 @@ func _alt_byt(i: int) -> void:
 		0:
 			_cycle_language()
 		1:
-			meta.crt_på = not meta.crt_på
-			crt.sätt_på(meta.crt_på)
-			meta.save()
-		2:
 			meta.musik_på = not meta.musik_på
 			if meta.musik_på and musik.stream != null and not musik.playing:
 				musik.play()
 			elif not meta.musik_på and musik.playing:
 				musik.stop()
 			meta.save()
-		3:
+		2:
 			# Nästa spår i spellistan. Alla sju (eller fler) ligger i mappen, så raden räknar upp
 			# och lägger sig i ringen: den sista går till den första.
 			musik.nästa()
@@ -9969,7 +9970,9 @@ func _bygg_runt() -> void:
 	# CRT-LAGRET (M39) läggs in SIST: det läser skärmen bakom sig och ska därför ha med både spelet,
 	# HUD:en och menyn i sin bild.
 	crt = Crt.bygg()
-	crt.sätt_på((meta.crt_på if meta != null else true) and not _crt_av)
+	# CRT ÄR AV (Alex 19/10). Flaggan `crt=1` finns kvar för mätningar, men spelet självt slår aldrig
+	# på lagret — skanlinjerna gjorde bilden grumlig, inte äldre.
+	crt.sätt_på(_crt_begärd and not _crt_av)
 	crt.sätt_styrka(_crt_styrka)
 	_runt.add_child(crt)
 	get_viewport().size_changed.connect(_placera_meny)
@@ -11704,8 +11707,8 @@ func _show_draft() -> bool:
 	var choices := run.pending_draft()
 	# RELIKVALET (VC-paritet 15/10) ritas som en knapprad per relik i samma ruta som kortvalet:
 	# referensen öppnar `ReceiveRelicModal` — "Relic Found!" — och valet är ett val, inte en lott.
-	# En relik har ingen konst än, så en knapp med namn + text går att läsa; rubriken säger vad som
-	# händer, precis som bossvalets gör.
+	# Knappen bär relikens EGEN ikon (M184, genererad i samma stil som byn), så valet läses i bild
+	# innan man läser texten.
 	if run.pending_draft_relic():
 		draft_label.text = Tr.t("ui.draft.relic", "RELIK FUNNEN — välj en")
 		var alla: Dictionary = Relics.load_all()
@@ -11718,6 +11721,12 @@ func _show_draft() -> bool:
 			var knapp := Button.new()
 			knapp.text = "%d  %s\n%s" % [i + 1, rd.name, rd.text]
 			knapp.custom_minimum_size = Vector2(bredd, 46.0 * kk)
+			var ikon_väg := "res://assets/ui/relik/%s.png" % str(choices[i])
+			if ResourceLoader.exists(ikon_väg):
+				knapp.icon = load(ikon_väg)
+				knapp.expand_icon = false
+				knapp.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+				knapp.add_theme_constant_override("icon_max_width", int(34.0 * kk))
 			knapp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			knapp.pressed.connect(_on_draft_pick.bind(i))
 			draft_box.add_child(knapp)
