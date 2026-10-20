@@ -1490,21 +1490,10 @@ func _bygg_landskap(värld: Node3D) -> void:
 		km2.albedo_color = Color(0.30, 0.31, 0.34)
 		krön.material_override = km2
 		värld.add_child(krön)
-	for i in 9:
-		var vinkel2 := TAU * float(i) / 9.0 + 0.3
-		var berg := MeshInstance3D.new()
-		var bk := CylinderMesh.new()
-		bk.top_radius = 0.0
-		bk.bottom_radius = 46.0
-		bk.height = 58.0 + float(i % 3) * 20.0
-		berg.mesh = bk
-		berg.position = Vector3(sin(vinkel2) * 150.0, bk.height * 0.5 - 10.0, cos(vinkel2) * 150.0)
-		var bm := StandardMaterial3D.new()
-		bm.albedo_color = Color(0.20, 0.24, 0.34)
-		bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		bm.disable_fog = true
-		berg.material_override = bm
-		värld.add_child(berg)
+	# BERGSKEDJOR (M218): Alex: *"Bergen får inte vara pyramider, de måste se ut som berg"*. Två
+	# ryggar med midpunktsförflyttning — en riktig kam med toppar och sadlar, inte koner.
+	_bergskedja(värld, 190.0, 22.0, 58.0, Color(0.16, 0.19, 0.28), 11)
+	_bergskedja(värld, 155.0, 10.0, 40.0, Color(0.20, 0.24, 0.34), 23)
 
 
 ## REKVISITA (M213): Alex: *"sätt ut lite tunnor, något städ vid smeden, barbord utanför tavernan.
@@ -1631,3 +1620,47 @@ func _bygg_himmel_dekor(värld: Node3D) -> void:
 			puff.material_override = molnmat
 			puff.position = Vector3(rng.randf_range(-40.0, 40.0), rng.randf_range(-6.0, 6.0), rng.randf_range(-24.0, 24.0))
 			kluster.add_child(puff)
+
+
+## BERG (M218): en kam runt hela vyn, byggd av en profil med midpunktsförflyttning (då blir topparna
+## ojämna och hamnar på olika avstånd, som en riktig bergskedja). Unshaded, ingen dimma — silhuett.
+func _bergskedja(värld: Node3D, radie: float, bas: float, topp: float, färg: Color, frö: int) -> void:
+	const ANTAL := 384
+	var rng := RandomNumberGenerator.new()
+	rng.seed = frö
+	var profil := PackedFloat32Array()
+	profil.resize(ANTAL)
+	# Mjuk kam: summa av få sinusar ger breda toppar och sadlar. Midpunktsförflyttning gav nålar
+	# (mätt: profilen varierade för mycket mellan närliggande punkter), alltså lågfrekvent i stället.
+	var fas := [rng.randf_range(0.0, TAU), rng.randf_range(0.0, TAU), rng.randf_range(0.0, TAU), rng.randf_range(0.0, TAU)]
+	for i in ANTAL:
+		var v := TAU * float(i) / float(ANTAL)
+		profil[i] = 0.50 \
+			+ 0.26 * sin(v * 3.0 + fas[0]) \
+			+ 0.16 * sin(v * 7.0 + fas[1]) \
+			+ 0.08 * sin(v * 13.0 + fas[2]) \
+			+ 0.05 * sin(v * 29.0 + fas[3])
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in ANTAL:
+		var j := (i + 1) % ANTAL
+		var v0 := TAU * float(i) / float(ANTAL)
+		var v1 := TAU * float(j) / float(ANTAL)
+		var h0 := bas + (topp - bas) * clampf(profil[i], 0.0, 1.0)
+		var h1 := bas + (topp - bas) * clampf(profil[j], 0.0, 1.0)
+		var r0 := radie + sin(v0 * 3.0 + float(frö)) * 8.0
+		var p0 := Vector3(sin(v0) * r0, h0, cos(v0) * r0)
+		var b0 := Vector3(sin(v0) * r0, -6.0, cos(v0) * r0)
+		var p1 := Vector3(sin(v1) * r0, h1, cos(v1) * r0)
+		var b1 := Vector3(sin(v1) * r0, -6.0, cos(v1) * r0)
+		st.add_vertex(b0); st.add_vertex(p0); st.add_vertex(p1)
+		st.add_vertex(b0); st.add_vertex(p1); st.add_vertex(b1)
+	var berg := MeshInstance3D.new()
+	berg.mesh = st.commit()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = färg
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.disable_fog = true
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	berg.material_override = mat
+	värld.add_child(berg)
