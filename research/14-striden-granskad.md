@@ -51,7 +51,7 @@ medan referensen har en trigger på varje Crawler.
 |---|---|
 | **Du attackerar** | `AttackFx` ritar en av fem former beroende på korttyp (klinga, piska, kross, ringar, glöd), skalad av combo; hit-stop 0,045 s (0,11 s vid combo ≥ 3); siffra med kontur; pixelregn; splitter vid dråp; skärmen skakar vid dråp |
 | **Du träffas** | Röd blink över vyn (`_blink_röd`, styrka efter skadan) + HP-, mana- och rustningskärlen far till. **Vyn skakade inte** — tillagt nu |
-| **Du får ett nytt kort** | Ljudet `card`. Ingen ankomst, ingen glidning, ingen glöd |
+| **Du får ett nytt kort** | Ljudet `card`, och kortet DELAS IN: `CardView.dela_in()` skalar från `DELA_KRYMP` till 1 med TRANS_BACK och tonar in, förskjutet ett steg per kort. Ankomsten fanns redan |
 | **Nivå upp** | Ljudet `level_up` |
 
 Det är den tydligaste obalansen i feedbacken: **anfallet har fem former och en skakning, medan de två
@@ -59,8 +59,8 @@ Det är den tydligaste obalansen i feedbacken: **anfallet har fem former och en 
 
 ## 4. Vad jag skulle göra först, i ordning
 
-1. **Nytt kort får en ankomst**: kortet glider in i handen med en kort glöd (samma `kortfx`-overlay som
-   redan finns). Billigast av allt och syns varje tur.
+1. ~~Nytt kort får en ankomst~~ — **fanns redan** (`dela_in`). Enda kvarvarande yta: ingen glöd på
+   kortet när det är nytt, bara rörelse och ljud.
 2. ✅ **Träffad: vy-skakningen** — `_blink_röd` anropar nu `skaka()` med styrka efter skadan. Blinken
    fanns redan; det var rörelsen som saknades.
 3. **Trigger per färg**: låt `trigger` läsa kortets `type`/färg på de 16 crawler-korten. Motorn har
