@@ -514,14 +514,18 @@ func _initialize() -> void:
 	# PILEN: en pil, ovanför den valda postens cell i listen, med spetsen nedåt. Rutorna mäts i
 	# FÖNSTERpixlar (vyn ritas i heltalsskala 3 här, precis som i spelet), och den ska FLYTTA sig med
 	# valet — ett fast läge hade pekat på samma post hela gatan igenom.
-	var poster: int = VillageView.PLATSER.size()
+	# LISTAN VÄXER (M192): kolumnerna räknas ur de SYNLIGA platserna, inte ur alla sex.
+	var poster: int = by3.synliga().size()
 	var cell: float = by3._vy().x / float(poster) * by3.fönsterskala()
 	var ramar := []
 	var fel_mitt := []
 	var pil_rutor := []
 	var pil_mitt := []
-	for i in poster:
-		while by3.valt_index() != i:
+	for i in by3.synliga():
+		# Välj platsen med samma väg som spelaren: flytta tills markeringen står på den.
+		var varv := 0
+		while by3.valt_index() != i and varv < poster + 2:
+			varv += 1
 			if not by3.flytta(Vector2i(1, 0)):
 				break
 		by3.pan_klart()
@@ -531,9 +535,11 @@ func _initialize() -> void:
 		var pr := by3.pil_rect()
 		pil_rutor.append(Rect2(pr.position * by3.fönsterskala(), pr.size * by3.fönsterskala()))
 		pil_mitt.append(pr.get_center().x * by3.fönsterskala())
-		if absf(pil_mitt[i] - (float(i) + 0.5) * cell) > 1.0 * by3.fönsterskala():
+		var kol: float = float(by3._kol(i))
+		var väntad: float = (kol + 0.5) * cell
+		if absf(pil_mitt[pil_mitt.size() - 1] - väntad) > 1.0 * by3.fönsterskala():
 			fel_mitt.append("%s %.1f mot %.1f" % [str(VillageView.PLATSER[i]["id"]),
-				pil_mitt[i], (float(i) + 0.5) * cell])
+				pil_mitt[pil_mitt.size() - 1], väntad])
 	check(ramar.is_empty(), "ingen ram och ingen ljusvägg ritas runt det valda huset",
 		"markeringens ruta är tom för varje plats (0 px)" if ramar.is_empty() else ", ".join(ramar))
 	check(fel_mitt.is_empty(), "pilen sitter centrerad över den valda posten",

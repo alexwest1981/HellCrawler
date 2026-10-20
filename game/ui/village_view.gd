@@ -146,7 +146,11 @@ var _figur: Texture2D = null
 ## vinkel: den kan stanna mitt i, och i ändarna tar den slut.
 var _pan := 0.0
 var _pan_mål := 0.0                  ## dit panoreringen är på väg; `_process` glider dit (aldrig ett hopp)
-var _status: Array = []              ## [{text, ljus}] per plats — det som står under namnet i listen
+var _status: Array = []
+## LISTAN VÄXER (M192): som i VC visas bara de platser som har en anledning just nu. En plats utan
+## ärende står inte grå i listen — den finns inte, och dyker upp när den får ett. `_synliga` är
+## indexen i PLATSER som ritas, och kolumnerna räknas ur DEN längden.
+var _synliga: Array = []              ## [{text, ljus}] per plats — det som står under namnet i listen
 var _t := 0.0
 var _ram := 0                        ## bildrutan i guppet; ritas bara om när den byter
 var _tex: Texture2D = null           ## byns bild, läst en gång
@@ -568,7 +572,42 @@ func visa(meta: Meta, antal_banor: int) -> void:
 		# EXIT-skylten: ingen siffra, bara vad platsen gör. Den ligger sist, som i bilden.
 		{"text": Tr.t("ui.by.status.quit", "lämna spelet"), "ljus": false},
 	]
+	_räckna()
 	queue_redraw()
+
+## Vilka platser som syns just nu. Porten och EXIT finns alltid (man måste kunna gå ut i världen och
+## ut ur spelet); resten syns när statusraden är tänd, alltså när platsen har något att erbjuda.
+func _räckna() -> void:
+	_synliga = []
+	for i in PLATSER.size():
+		var id := str(PLATSER[i]["id"])
+		# KÄRNAN FINNS ALLTID: porten, värdshuset (där man hyr), smeden (landmärket i bilden) och
+		# EXIT. Det som VÄXER fram är de två som har ett mätt villkor: handeln (något att köpa) och
+		# juveleraren (något i fickan).
+		var alltid: bool = id in ["karta", "avsluta", "smed", "vardshus"]
+		if alltid or (i < _status.size() and bool(_status[i]["ljus"])):
+			_synliga.append(i)
+	if _synliga.is_empty():
+		_synliga = [0]
+	if not _synliga.has(_vald):
+		_vald = int(_synliga[0])
+
+func synliga() -> Array:
+	return _rader()
+
+## Kolumnerna som ritas. Tom `_synliga` betyder "vyn är inte uppdaterad än" (en färsk instans, ett
+## prov) — då gäller alla platser, annars ritades ingen rad alls.
+func _rader() -> Array:
+	if _synliga.is_empty():
+		var alla := []
+		for i in PLATSER.size():
+			alla.append(i)
+		return alla
+	return _synliga
+
+## Kolumnen en plats står i, räknad bland raderna som ritas.
+func _kol(i: int) -> int:
+	return _rader().find(i)
 
 func valt_index() -> int:
 	return _vald
@@ -721,11 +760,13 @@ func plats_px(i: int) -> Vector2:
 func flytta(dir: Vector2i) -> bool:
 	if dir.x == 0:
 		return false
-	var nästa := _vald + (1 if dir.x > 0 else -1)
+	var kol := _kol(_vald)
+	var nästa_kol := kol + (1 if dir.x > 0 else -1)
 	# Stopp i ändarna, som förut: en panorering som viker runt skulle fara från bildens ena kant till
 	# den andra i ett svep, och det är precis den sortens kast Alex inte tål.
-	if nästa < 0 or nästa >= PLATSER.size():
+	if nästa_kol < 0 or nästa_kol >= _rader().size():
 		return false
+	var nästa: int = int(_rader()[nästa_kol])
 	_vald = nästa
 	_pan_mål = _mål_pan(_vald)
 	_om_markering()
@@ -776,6 +817,8 @@ func hus_rect(i: int) -> Rect2:
 ## Vilken plats ligger under pekaren? Husets EGEN ruta först — man klickar på byggnaden man ser — och
 ## punkt-rutan i reserv. -1 = inget hus.
 func plats_vid(p: Vector2) -> int:
+	# KLICK GÅR ALLTID (M192): husen SYNS i scenen även när platsen inte har ett ärende, så ett klick
+	# på dem ska gå in. Det är LISTAN som växer, som i VC — inte byn.
 	for i in PLATSER.size():
 		if byggnad_rect(i).has_point(p):
 			return i
@@ -1008,9 +1051,9 @@ func markör_ram() -> Rect2:
 ## och 4 px-breda rader blev 18 eller 21 px. Priset för gridläget är att pilen ligger högst en halv
 ## vyn-pixel från cellens mitt — cellen är 52 px bred, så det syns inte.
 func pil_rect() -> Rect2:
-	var cell := _vy().x / float(PLATSER.size())
+	var cell := _vy().x / float(maxi(1, _rader().size()))
 	var bredd: float = float(PIL_BREDD.max())
-	var mitten := floorf((float(_vald) + 0.5) * cell) + 0.5
+	var mitten := floorf((float(_kol(_vald)) + 0.5) * cell) + 0.5
 	return Rect2(mitten - bredd * 0.5, bar_topp() - PIL_H - 2.0, bredd, PIL_H)
 
 ## Pilen ritas rad för rad: hård pixelkonst i Palett.c(14) med en mörk kant i Palett.c(1) — samma
@@ -1031,9 +1074,9 @@ func _bar(vp: Vector2) -> void:
 	draw_rect(Rect2(0.0, bar_topp(), vp.x, 40.0), Palett.c(1))
 	draw_rect(Rect2(0.0, bar_topp(), vp.x, 1.0), Palett.c(14))
 	draw_rect(Rect2(0.0, bar_topp() + 1.0, vp.x, 1.0), Palett.c(9))
-	var cell := vp.x / float(PLATSER.size())
-	for i in PLATSER.size():
-		var x := float(i) * cell
+	var cell := vp.x / float(maxi(1, _rader().size()))
+	for i in _rader():
+		var x := float(_kol(i)) * cell
 		if i == _vald:
 			draw_rect(Rect2(x + 1.0, bar_topp() + 2.0, cell - 2.0, 38.0), _a(Palett.c(4), 0.55))
 		if i > 0:
@@ -1046,7 +1089,7 @@ func _bar(vp: Vector2) -> void:
 func etiketter() -> Array:
 	var vp := _vy()
 	var f := ThemeDB.fallback_font
-	var cell := vp.x / float(PLATSER.size())
+	var cell := vp.x / float(maxi(1, _rader().size()))
 	var namn := []
 	var status := []
 	for i in PLATSER.size():
