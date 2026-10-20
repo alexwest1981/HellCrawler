@@ -61,7 +61,10 @@ signal vald(skepp: String)
 
 ## BYN ENLIGT VC (M193): en bred målad gata med låg horisont, överdimensionerade hus i rad och
 ## små figurer — samma uppbyggnad som Vampire Crawlers by, med vår egen konst (genererad, 1264x806).
-const BILD := "res://assets/by2d/byn_vc.png"
+## PLACEHOLDER (M200): byns riktiga bakgrund, utdragen ur VC:s `sharedassets2` — bara för att kunna SE
+## byn fungera innan vår egen bildgenerator är tillbaka. `tools/build.sh` VÄGRAR bygga så länge den här
+## raden pekar på `assets/vc_lan`: inget får publiceras med någon annans konst.
+const BILD := "res://assets/vc_lan/town/Town_BG.png"
 ## Byn som MÅLAD 2.5D-scen (M172). False = Alex' panorama ritas, 3D-scenen är urkopplad.
 const BY3D := false
 ## BYN ROTERAR (M194). Alex: *"man roterar i byn på VC ... mellan porten ut, smeden, museet å allt
@@ -283,7 +286,8 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	# RÖKEN LIGGER ÖVERST (M190): eget lager så den kan ritas om varje ruta utan att byns dyra
 	# textmätning körs. `show_behind_parent` är av — rök ska läggas ÖVER bilden.
-	if ROTERA:
+	# 3D-ringen är avstängd medan placeholder-bilden används: VC:s bakgrund är redan en färdig scen.
+	if ROTERA and not BILD.contains("vc_lan"):
 		_bygg_ring()
 	_rok = Rök.new()
 	_rok.vy = self
