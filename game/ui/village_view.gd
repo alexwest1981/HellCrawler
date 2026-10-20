@@ -1315,7 +1315,9 @@ func _ring_titta(_i: int) -> void:
 	if _ring_kam == null:
 		return
 	var antal := PLATSER.size()
-	_ring_kam.rotation = Vector3(0.0, TAU * _rot / float(antal), 0.0)
+	# SPEGELVÄNT (M206): Alex: *"klickar du höger vänder den åt vänster"*. Kameran vrider mot
+	# ringens riktning, alltså minus — annars går husen åt motsatt håll mot tangenten.
+	_ring_kam.rotation = Vector3(0.0, -TAU * _rot / float(antal), 0.0)
 
 ## KARUSELLEN (M202). Alex: *"Det är ännu ingen karusell"*. Byggnaderna står på en RING kring
 ## kameran: vinkeln avgör var de hamnar i sidled, hur stora de är och hur mycket de vrids bort.

@@ -1,6 +1,6 @@
 {
   "_": "Byn som DATA, inte en bild (M204). Varje post är ett hus på ringen: vinkel i grader runt byns mitt, mått i meter, och vilka av spelets egna material som används. Alex: \"annars får vi bygga en by som vi bygger banor\" — samma princip som rummen: layouten är en fil, konsten är våra egna rutor.",
-  "radie": 8.0,
+  "radie": 12.0,
   "hus": [
     {
       "id": "tradet",
