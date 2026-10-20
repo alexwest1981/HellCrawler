@@ -770,3 +770,47 @@ Framträdd 3 px kärna / 3 px ned, i ledet 2 px / 1 px.
 **Prov:** fem kontroller av hugget (genom `_slag_kvitto`, en kvad med hugg-shadern, figurens höjd, två
 hugg drar olika rattar — mätt 5 av 6 — och bågen städar sig själv) plus en skuggkontroll. Hela sviten:
 2 263 kontroller, 0 fel.
+
+## 40. Unlocks — en skärm som visar vad som är upplåst och vad som låser upp resten (Alex 19/10)
+
+Alex: *"lägg till detta på to-do: Unlocks, relics, de måste in med"*.
+
+Referensen har **Town Hall**: en post i byn som bara listar upplåsningar. Den är billig (en lista, inget
+system) och gör upplåsningskedjan synlig — utan den märker spelaren inte att nya byggnader och kort
+låses upp, eftersom de bara dyker upp.
+
+**Att bygga:** en post i byn (eller en flik i albumet) som läser `Meta`-statusen och listar: upplåsta
+banor, hyrda kamrater, hittade relics, antal kort i samlingen, och för varje låst sak **vad som låser
+upp den** ("klara våning 1 i Mad Forest"). Ingen ny data — bara en läsning av det som redan sparas.
+
+## 41. Relics — de måste in (Alex 19/10)
+
+Alex: *"relics, de måste in med"*.
+
+Referensen har 15 relics, och varje relic **låser upp en mekanik** (Combo Stack, Gem Hammer, Guiding
+Light, Stardust Anvil → smedjan, Lapidary Loupe → juveleraren, Polentír → spådomen). Det är därför
+relicerna inte är samlarprylar: de är spelets gång.
+
+Vi har `core/relics.gd` och relic-data, men ingen väg in i spelet och ingen skärm (Museum).
+
+**Att bygga, i ordning:** (1) en relic som belöning i ett rum — en egen ruta, som referensens
+`RT_Relic_2x2_*`; (2) relicens effekt kopplad till den mekanik den ska öppna; (3) Museum-posten i byn
+som visar samlingen. Första relicen bör öppna en mekanik vi redan har men håller stängd (kombon), så
+att systemet bevisas utan ny stridskod.
+
+## 42. Permanenta boosts för det man åstadkommit (Alex 19/10)
+
+Alex: *"Något som ger permanenta boosts för att man låst upp dem efter t ex dödat 3000 fiender, spelat
+en sorts kort 1000ggr osv."*
+
+En räknare per bedrift, och en permanent boost när tröskeln nås — inte en achievement-badge, utan en
+**regeländring** som gäller alla kommande körningar.
+
+**Formen:** `data/milstolpar.json` = `[{id, räknare, tröskel, boost, text}]`, där `räknare` är en av
+`dödade_fiender`, `spelade_kort:<typ>`, `klara_körningar`, `hittade_relics`, `guld_tjänat`, och `boost`
+är samma nyckelvokabulär som kamraternas passiv (`might`, `armor`, `max_hp`, `mana`, `hand`, `recovery`,
+`area`). Räknaren ligger i `Meta` och sparas; boosten räknas in i `Meta.stat()`, alltså på samma ställe
+som kamraterna — ingen ny väg in i striden.
+
+**Trösklar (förslag):** 250 / 1 000 / 3 000 dödade fiender; 100 / 500 / 1 000 spelade kort av en typ;
+10 / 25 klara körningar. Varje milstolpe ska synas i Unlocks-skärmen (punkt 40) med procent kvar.

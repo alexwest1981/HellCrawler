@@ -11282,6 +11282,9 @@ func _slag_kvitto(spr: Sprite3D, skada: float, mult: int, död: bool = false) ->
 func _blink_röd(skada: float) -> void:
 	if hit_flash == null:
 		return
+	# VYN SKAKAR OCKSÅ (M177). Blinken och kärlen sade att slaget hände, men ingenting rörde sig —
+	# anfallet har haft skakning sedan M122, slaget mot spelaren hade bara färg.
+	skaka(clampf(skada / 26.0, 0.35, 1.0))
 	hit_flash.color = Color(0.75, 0.10, 0.10, clampf(skada / 40.0, 0.10, 0.42))
 	create_tween().tween_property(hit_flash, "color:a", 0.0, 0.45)
 	# Kärlen far till av SAMMA stöt (M102): en blink över hela skärmen och ett kärl som står still
