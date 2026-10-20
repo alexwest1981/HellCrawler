@@ -1263,7 +1263,9 @@ func _bygg_ring() -> void:
 		var vinkel := deg_to_rad(float(d.get("vinkel", 0.0)))
 		var hus := Node3D.new()
 		hus.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
-		hus.rotation.y = vinkel
+		# FASADEN INÅT (M211): modellerna byggdes med fasaden åt +Z, och på ringen pekade `vinkel` dem
+		# utåt — därför såg man baksidan. Ett halvt varv gör att man ser dörr och fönster.
+		hus.rotation.y = vinkel + PI
 		värld.add_child(hus)
 		# MODELLEN (M210): huset är en Blender-modell (tools/gen_by_hus3d.py), inte en låda.
 		# Saknas filen ritas ingen kropp alls — då syns felet direkt i stället för en tyst låda.
@@ -1482,6 +1484,35 @@ func _bygg_landskap(värld: Node3D) -> void:
 		sm.albedo_color = Color(0.12, 0.09, 0.07)
 		stam.material_override = sm
 		gran.add_child(stam)
+	# SKYDDSMUREN (M211): Alex: *"lägg hellre en mur i bakgrunden, så det känns som man är skyddad i
+	# byn"*. En ring av mursten bakom husen, med en mörkare krönrad, så byn ligger inom murar.
+	var murtex: Texture2D = load("res://assets/tiles/material/fortified_stone_bricks.png")
+	for i in 64:
+		var vinkel3 := TAU * float(i) / 64.0
+		var mur := MeshInstance3D.new()
+		var murbox := BoxMesh.new()
+		murbox.size = Vector3(2.9, 4.2, 0.9)
+		mur.mesh = murbox
+		mur.position = Vector3(sin(vinkel3) * 26.0, 2.1, cos(vinkel3) * 26.0)
+		mur.rotation.y = vinkel3
+		var mm := StandardMaterial3D.new()
+		mm.albedo_texture = murtex
+		mm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		mm.uv1_scale = Vector3(2.0, 2.0, 1.0)
+		mm.roughness = 1.0
+		mur.material_override = mm
+		värld.add_child(mur)
+		# KRÖNET: en rad mörkare stenar ovanpå, så muren läses som mur och inte som en vägg.
+		var krön := MeshInstance3D.new()
+		var krönbox := BoxMesh.new()
+		krönbox.size = Vector3(2.9, 0.5, 1.1)
+		krön.mesh = krönbox
+		krön.position = Vector3(sin(vinkel3) * 26.0, 4.45, cos(vinkel3) * 26.0)
+		krön.rotation.y = vinkel3
+		var km2 := StandardMaterial3D.new()
+		km2.albedo_color = Color(0.30, 0.31, 0.34)
+		krön.material_override = km2
+		värld.add_child(krön)
 	for i in 9:
 		var vinkel2 := TAU * float(i) / 9.0 + 0.3
 		var berg := MeshInstance3D.new()
