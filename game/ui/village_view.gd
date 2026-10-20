@@ -248,6 +248,12 @@ class Rök extends Node2D:
 			draw_texture_rect(tex, Rect2(p2, Vector2(6.0, 6.0) * (ruta.size.y / 540.0)), false,
 				Color(1.0, 0.85, 0.45, a2))
 
+## KARUSELLEN (M195): byggnaderna står på en ring och vyn vrider ett steg i taget. LÄST UR VC:s kod
+## (`TownViewController` + `ButtonCarousel` + `TownBuilding`, se research/16): byn är inga panoramor,
+## den är en ring av byggnadsobjekt med egen bild och egen låst/upplåst text.
+var _rot := 0.0
+var _rot_mål := 0.0
+var _byggnadstex: Dictionary = {}
 var _rok: Rök = null
 var _by3d_vp: SubViewport = null
 var _by3d: By3D = null
@@ -788,6 +794,7 @@ func flytta(dir: Vector2i) -> bool:
 	if nästa_kol < 0 or nästa_kol >= _rader().size():
 		return false
 	var nästa: int = int(_rader()[nästa_kol])
+	_rot_mål += (1.0 if dir.x > 0 else -1.0)
 	_vald = nästa
 	_pan_mål = _mål_pan(_vald)
 	_om_markering()
@@ -864,6 +871,11 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	# Panoreringen glider mot målet. Glider den klart ritas vyn om en sista gång och sedan inte mer:
 	# en stillastående bild ska kosta ingenting.
+	if ROTERA and absf(_rot_mål - _rot) > 0.001:
+		_rot = lerpf(_rot, _rot_mål, 1.0 - exp(-PAN_FART * delta))
+		if absf(_rot_mål - _rot) <= 0.001:
+			_rot = _rot_mål
+		queue_redraw()
 	if absf(_pan_mål - _pan) > 0.05:
 		_pan = lerpf(_pan, _pan_mål, 1.0 - exp(-PAN_FART * delta))
 		if absf(_pan_mål - _pan) <= 0.05:
@@ -1098,31 +1110,113 @@ func _pil() -> void:
 ## Etikettlisten längst ned: en mörk list med en guldkant och en ruta per plats. Texten står I
 ## listen — över en bild med hus och gata drunknar den i kullerstenen (granskningen av den gamla
 ## byn: "text unreadable over busy terrain").
-## Den roterande gatan: bilden och dess spegelvändning sida vid sida, upprepade så vyn alltid är
-## täckt, förskjutna med `_pan`. Figur och namn står still — det är världen som vrider sig.
-func _rita_roterande(vp: Vector2) -> void:
+## BYGGNADEN SOM EGEN BILD: en ruta ur bykonsten (x0..x1, topp..botten), cachad per plats. Det är
+## samma sak som VC:s `TownBuilding` — varje byggnad är ett objekt, inte en fläck i en gemensam bild.
+func _byggnadstextur(i: int) -> Texture2D:
+	if _byggnadstex.has(i):
+		return _byggnadstex[i]
 	var tex := byscen()
 	if tex == null:
+		return null
+	var p: Dictionary = PLATSER[i]
+	var w := float(tex.get_width())
+	var h := float(tex.get_height())
+	var x0 := w * float(p["x0"]) / 100.0
+	var x1 := w * float(p["x1"]) / 100.0
+	var y0 := h * float(p["topp"]) / 100.0
+	# KANTEN MÅSTE TONA UT (M195): en rätkantig urklippning läser som en söm genom himmel och träd
+	# (mätt på skärmbild: hårda vertikala linjer). Alfan tonas över 12 % av bredden på var sida.
+	var bild := tex.get_image()
+	if bild == null:
+		return null
+	var region := Rect2i(int(x0), int(y0), int(maxf(8.0, x1 - x0)), int(maxf(8.0, h - y0)))
+	var bit := bild.get_region(region)
+	bit.convert(Image.FORMAT_RGBA8)
+	var bw := bit.get_width()
+	var kant := maxi(2, int(float(bw) * 0.12))
+	for y in bit.get_height():
+		for x in bw:
+			var a := 1.0
+			if x < kant:
+				a = float(x) / float(kant)
+			elif x >= bw - kant:
+				a = float(bw - 1 - x) / float(kant)
+			if a < 1.0:
+				var c := bit.get_pixel(x, y)
+				bit.set_pixel(x, y, Color(c.r, c.g, c.b, c.a * a))
+	var ut := ImageTexture.create_from_image(bit)
+	_byggnadstex[i] = ut
+	return ut
+
+## Hur långt platsen står från den valda, kortaste vägen runt ringen (−n/2 … n/2).
+func _delta(i: int) -> float:
+	var n := PLATSER.size()
+	return fposmod(float(i) - _rot + float(n) * 0.5, float(n)) - float(n) * 0.5
+
+## Ringen: byggnaderna längre bak är mindre, mörkare och längre in mot mitten; den valda står rakt
+## fram. Figur och namn står still — det är ringen som vrider sig.
+## Medelfärgen ur en rad i bykonsten (0 = överkant, 1 = nederkant). Cachad: den läses en gång.
+var _bakfärger: Dictionary = {}
+func _bakfärg(y: float) -> Color:
+	var nyckel := int(y * 100.0)
+	if _bakfärger.has(nyckel):
+		return _bakfärger[nyckel]
+	var tex := byscen()
+	if tex == null:
+		return Palett.c(1)
+	var bild := tex.get_image()
+	if bild == null:
+		return Palett.c(1)
+	var rad := clampi(int(y * float(bild.get_height())), 0, bild.get_height() - 1)
+	var summa := Color(0, 0, 0, 0)
+	for x in range(0, bild.get_width(), 8):
+		summa += bild.get_pixel(x, rad)
+	summa /= maxf(1.0, float(bild.get_width() / 8))
+	_bakfärger[nyckel] = summa
+	return summa
+
+func _rita_roterande(vp: Vector2) -> void:
+	if byscen() == null:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
 		return
-	var w := bild_storlek().x
-	var källa := Rect2(Vector2.ZERO, tex.get_size())
-	var start := -fposmod(_pan, _period())
-	var k := 0
-	while start + float(k) * _period() < vp.x:
-		var x := start + float(k) * _period()
-		draw_texture_rect_region(tex, Rect2(x, 0.0, w, vp.y), källa)
-		# Spegelvändningen lägger bildens högerkant mot sin egen högerkant: ingen skarv, ingen söm.
-		draw_set_transform(Vector2(x + 2.0 * w, 0.0), 0.0, Vector2(-1.0, 1.0))
-		draw_texture_rect_region(tex, Rect2(0.0, 0.0, w, vp.y), källa)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		k += 1
-	# Figuren står mitt i bilden, på gatulinjen.
+	# BAKPLATTAN (M195): hela bykonsten ligger underst, dämpad. Utan den möttes byggnadsrutorna i
+	# hårda kanter — mätt på skärmbild: synliga vertikala sömmar genom himmel, träd och mark.
+	# HIMLEN OCH MARKEN, inte bybilden (M195): en karusell har ingen gemensam bakgrund bakom
+	# byggnaderna — därför kunde urklippet aldrig smälta in i en bakplatta som föreställer samma sak.
+	# Färgerna tas ur konsten en gång, så vyn hör ihop med bilden utan att vara bilden.
+	var himmel := _bakfärg(0.08)
+	var mark := _bakfärg(0.95)
+	draw_rect(Rect2(0.0, 0.0, vp.x, marklinje()), himmel)
+	draw_rect(Rect2(0.0, marklinje(), vp.x, vp.y - marklinje()), mark)
+	var ordning := []
+	for i in PLATSER.size():
+		var d := _delta(i)
+		# Bara byggnaden i mitten ritas som egen bild — grannarna syns i bakplattan, och då behövs
+		# ingen söm där två urklipp möts.
+		if absf(d) <= 0.75:
+			ordning.append([cos(d * 0.55), i, d])
+	ordning.sort_custom(func(a, b): return float(a[0]) < float(b[0]))   # bakt först
+	for post in ordning:
+		var djup: float = float(post[0])
+		var i: int = int(post[1])
+		var d: float = float(post[2])
+		var tex := _byggnadstextur(i)
+		if tex == null:
+			continue
+		var x := vp.x * 0.5 + sin(d * 0.55) * vp.x * 0.30
+		var skala := lerpf(0.62, 1.0, clampf(djup, 0.0, 1.0))
+		var h2 := vp.y * 0.72 * skala
+		var förh := maxf(0.05, float(tex.get_width()) / float(tex.get_height()))
+		var w2 := h2 * förh
+		# Full täckning: urklippet är SAMMA pixlar som bakplattan, så med rätt alfa syns ingen ruta.
+		var al := 1.0
+		draw_texture_rect(tex, Rect2(x - w2 * 0.5, marklinje() - h2, w2, h2), false,
+			Color(1.0, 1.0, 1.0, al))
+	# Figuren står mitt i bilden, på gatulinjen, framför den valda byggnaden.
 	if _figur != null:
 		var storlek := _figur.get_size() * FIGUR_SKALA
 		draw_texture(_figur, Vector2(vp.x * 0.5 - storlek.x * 0.5, marklinje() - storlek.y))
-	# Namnet och statusraden för platsen som står i mitten, i en egen mörk remsa så orden går att
-	# läsa mot kullerstenen.
+	# Namn och status för byggnaden i mitten.
 	var namn := Tr.t("ui.by.plats.%s" % str(PLATSER[_vald]["id"]), str(PLATSER[_vald]["namn"]))
 	var status: String = status_text(_vald)
 	var f := ThemeDB.fallback_font
