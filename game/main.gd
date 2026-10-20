@@ -11829,7 +11829,13 @@ func _show_unlocks() -> void:
 	rader.append(Tr.t("ui.upplas.title", "UPPLÅSNINGAR"))
 	rader.append("")
 	rader.append("%s: %d / %d" % [Tr.t("ui.upplas.stages", "banor"), meta.unlocked.size(), _stage_order.size()])
-	rader.append("%s: %d" % [Tr.t("ui.upplas.relics", "relics"), meta.relics.size()])
+	var reliker: Dictionary = Relics.load_all()
+	var ägda_namn: Array[String] = []
+	for rid in reliker:
+		if meta.relics.has(str(rid)):
+			ägda_namn.append((reliker[rid] as Relics.RelicDef).name)
+	rader.append("%s: %d / %d%s" % [Tr.t("ui.upplas.relics", "relics"), meta.relics.size(), reliker.size(),
+		"" if ägda_namn.is_empty() else "  —  " + ", ".join(ägda_namn)])
 	rader.append("%s: %d" % [Tr.t("ui.upplas.crawlers", "kamrater"), meta.hired.size()])
 	rader.append("%s: %d" % [Tr.t("ui.upplas.cards", "kort i samlingen"), meta.samling.size()])
 	rader.append("%s: %d  ·  %s: %d  ·  %s: %d" % [
@@ -12391,6 +12397,12 @@ func _after_state_change() -> void:
 				print("ny bana upplåst: %s" % _unlocked_now)
 			if meta.steg_upplast > 0:
 				print("trappan: %s steg %d upplåst" % [meta.steg_upplast_bana, meta.steg_upplast])
+			# RELIKERNA BLIR PERMANENTA (önskemål 41). Körningen höll dem, men ingen skrev ner dem: efter
+			# tio körningar stod samlingen fortfarande på noll. Nu förs de över när körningen tar slut —
+			# det är de som är museet.
+			for rid in run.relics:
+				if not meta.relics.has(str(rid)):
+					meta.relics.append(str(rid))
 			# MILSTOLPARNA (önskemål 42): permanenta boosts. Kvitteras efter note_run, så räknarna har
 			# körningen inräknad — samma ordning som efterlysningarna, och av samma skäl.
 			for mid in meta.kolla_milstolpar():
