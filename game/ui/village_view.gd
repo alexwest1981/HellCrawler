@@ -1228,7 +1228,7 @@ func _bygg_ring() -> void:
 	# DIMHED (M209): Alex: *"det blir så tvärt avslutat"*. Marken tonar ut i himlens färg.
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.30, 0.34, 0.44)
-	env.fog_density = 0.020
+	env.fog_density = 0.011
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.62, 0.66, 0.78)
 	env.ambient_light_energy = 0.55
@@ -1458,38 +1458,8 @@ func _bygg_landskap(värld: Node3D) -> void:
 	värld.add_child(äng)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20261020
-	for i in 90:
-		var vinkel := TAU * float(i) / 90.0 + rng.randf_range(-0.05, 0.05)
-		var radie := rng.randf_range(24.0, 48.0)
-		var höjd := rng.randf_range(6.0, 12.0)
-		var gran := Node3D.new()
-		gran.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
-		värld.add_child(gran)
-		# VOXELGRAN (M213): Alex: originalet var *"lite val avancerade modeller for trad"*. Tre staplade
-		# lådor i grönt och en stam — samma blockighet som resten av spelet, och inga hundra megabyte.
-		for lager in 3:
-			var krona := MeshInstance3D.new()
-			var kloss := BoxMesh.new()
-			var bredd := höjd * (0.42 - 0.10 * float(lager))
-			kloss.size = Vector3(bredd, höjd * 0.30, bredd)
-			krona.mesh = kloss
-			krona.position = Vector3(0.0, höjd * (0.42 + 0.24 * float(lager)), 0.0)
-			var km2 := StandardMaterial3D.new()
-			km2.albedo_color = Color(0.10, 0.17, 0.13).lerp(Color(0.16, 0.24, 0.18), rng.randf())
-			km2.roughness = 1.0
-			krona.material_override = km2
-			gran.add_child(krona)
-		var stam := MeshInstance3D.new()
-		var stamcyl := CylinderMesh.new()
-		stamcyl.top_radius = 0.14
-		stamcyl.bottom_radius = 0.19
-		stamcyl.height = 1.2
-		stam.mesh = stamcyl
-		stam.position = Vector3(0.0, 0.6, 0.0)
-		var sm := StandardMaterial3D.new()
-		sm.albedo_color = Color(0.12, 0.09, 0.07)
-		stam.material_override = sm
-		gran.add_child(stam)
+	_bygg_skog(värld)
+
 	# SKYDDSMUREN (M211): Alex: *"lägg hellre en mur i bakgrunden, så det känns som man är skyddad i
 	# byn"*. En ring av mursten bakom husen, med en mörkare krönrad, så byn ligger inom murar.
 	var murtex: Texture2D = load("res://assets/tiles/material/fortified_stone_bricks.png")
@@ -1573,3 +1543,58 @@ func _bygg_rekvisita(värld: Node3D) -> void:
 			pjäs.rotation.y = vinkel + PI * 0.5
 			pjäs.scale = Vector3.ONE * 1.15
 			värld.add_child(pjäs)
+
+## VOXELSKOG (M214): Alex pekade på Meshys voxel-tag — *"något i den här stilen mer"*. Träden är nu
+## riktiga voxelmodeller: ett rutnät av små kuber (stam + konisk krona) i EN MultiMesh, så 90 träd blir
+## ett draw call i stället för hundra noder. Färgen per kloss ger skiftningar utan texturer.
+func _bygg_skog(värld: Node3D) -> void:
+	const KUB := 0.62
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261020
+	var plaster: Array[Transform3D] = []
+	var färger: Array[Color] = []
+	for i in 90:
+		var vinkel := TAU * float(i) / 90.0 + rng.randf_range(-0.05, 0.05)
+		var radie := rng.randf_range(30.0, 56.0)
+		var höjd := rng.randf_range(12.0, 21.0)
+		var fot := Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
+		var lager := int(höjd / KUB)
+		var grönt := Color(0.22, 0.34, 0.23).lerp(Color(0.31, 0.45, 0.30), rng.randf())
+		for y in lager:
+			var andel := float(y) / float(lager)
+			# Stammen är en kloss bred; kronan en kon som smalnar av uppåt och kantas av slump.
+			var bredd := 0.0 if andel > 0.30 else (1.0 - andel) * 2.9
+			var rutor := int(bredd / KUB)
+			for x in range(-rutor, rutor + 1):
+				for z in range(-rutor, rutor + 1):
+					var avstånd := Vector2(float(x), float(z)).length() * KUB
+					if andel > 0.30 and avstånd > (1.0 - andel) * 1.7:
+						continue
+					if andel > 0.30 and rng.randf() < 0.18:
+						continue
+					if andel <= 0.30 and abs(x) > 0 and abs(z) > 0:
+						continue
+					var pos := fot + Vector3(float(x) * KUB, KUB * (float(y) + 0.5), float(z) * KUB)
+					plaster.append(Transform3D(Basis().scaled(Vector3.ONE * KUB), pos))
+					var ton := grönt
+					if andel <= 0.30:
+						ton = Color(0.12, 0.09, 0.07)
+					else:
+						ton = grönt.lightened(rng.randf_range(-0.06, 0.10))
+					färger.append(ton)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = BoxMesh.new()
+	mm.instance_count = plaster.size()
+	for i in plaster.size():
+		mm.set_instance_transform(i, plaster[i])
+		mm.set_instance_color(i, färger[i])
+	var nod := MultiMeshInstance3D.new()
+	nod.multimesh = mm
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 1.0
+	nod.material_override = mat
+	värld.add_child(nod)
+	print("voxelskog: ", plaster.size(), " klossar i ett draw call")
