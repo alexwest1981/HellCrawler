@@ -160,6 +160,85 @@ var _tex: Texture2D = null           ## byns bild, läst en gång
 ## `WorldEnvironment` lagt sig över kryptans ljus, eftersom vyn ligger kvar i trädet under en
 ## körning. `_draw` ritar 3D-texturen när den finns: den gamla bakgrundsbilden (byn.png/bak.png)
 ## ritas då inte alls, varken över eller under byn.
+
+## LEVANDE BY (M190): rök, glöd och eldflugor i den målade byn.
+## VARFÖR EGEN NOD: byns `_draw` mäter text (UiText.storlek_som_ryms) och fick MÄTT 241 ms per
+## bildruta när den kördes varje ruta — därför ritas den bara när markörens gupp byter (6 ggr/s).
+## Röken måste gå mjukt, så den ligger i ett eget Node2D som ritar om sig själv varje ruta. Byter
+## bildrutan i den dyra vyn rör inte röken, och röken rör inte texten.
+class Rök extends Node2D:
+	var vy = null
+	var t := 0.0
+	## Skorstenar och ljuskällor i procent av bildens bredd/höjd, lästa ur bilden: smedens skorsten
+	## (29 %, 30 %), krogens skorsten (52 %, 27 %), facklorna vid porten (75 %, 26 %).
+	var skorstenar: Array = [Vector3(29.0, 30.0, 1.0), Vector3(52.0, 27.0, 0.7)]
+	var facklor: Array = [Vector3(73.6, 27.0, 1.0), Vector3(76.4, 27.0, 1.0)]
+
+	func _process(delta: float) -> void:
+		if not is_visible_in_tree():
+			return
+		t += delta
+		queue_redraw()
+
+	var _puff_tex: Texture2D = null
+
+	func _puff() -> Texture2D:
+		if _puff_tex != null:
+			return _puff_tex
+		# En mjuk rund fläck, ritad en gång. Hård `draw_circle` läser som bollar, inte som rök.
+		var s := 64
+		var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+		for y in s:
+			for x in s:
+				var d := (Vector2(x, y) - Vector2(s, s) * 0.5).length() / (float(s) * 0.5)
+				var a := clampf(1.0 - d, 0.0, 1.0)
+				img.set_pixel(x, y, Color(1.0, 1.0, 1.0, a * a * 0.55))
+		_puff_tex = ImageTexture.create_from_image(img)
+		return _puff_tex
+
+	func _draw() -> void:
+		if vy == null:
+			return
+		# Skalan räknas ur vyns EGEN storlek, inte ur main._skala: röken äger ingen referens till
+		# skalet och ska inte behöva en. `bild_storlek()` är designmåttet, `size` är ytan den ritas i.
+		var mål: Vector2 = vy.bild_storlek()
+		if mål.x < 1.0:
+			return
+		var ruta: Rect2 = vy.hd_ruta(vy.size.x / mål.x)
+		if ruta.size.x < 1.0:
+			return
+		var tex := _puff()
+		# RÖKEN: fem staplar per skorsten, var och en med egen förskjutning så det inte pulserar i takt.
+		for sk in skorstenar:
+			var bas := ruta.position + Vector2(float(sk.x) / 100.0 * ruta.size.x,
+				float(sk.y) / 100.0 * ruta.size.y)
+			for i in 5:
+				var fas: float = fmod(t * 0.16 + float(i) / 5.0 + float(sk.x) * 0.01, 1.0)
+				var upp: float = fas * ruta.size.y * 0.22
+				var ving: float = sin(fas * 6.28 + float(i)) * ruta.size.x * 0.006
+				var st: float = (0.012 + fas * 0.026) * float(sk.z) * ruta.size.y
+				var ton: float = (1.0 - fas) * 0.30 * float(sk.z)
+				draw_texture_rect(tex, Rect2(bas + Vector2(ving, -upp), Vector2(st, st)), false,
+					Color(0.62, 0.64, 0.70, ton))
+		# FACKLORNA: ett andetag i ljuset, aldrig ett blink — 0,9 till 1,1 i styrka.
+		for fa in facklor:
+			var p := ruta.position + Vector2(float(fa.x) / 100.0 * ruta.size.x,
+				float(fa.y) / 100.0 * ruta.size.y)
+			var puls: float = 1.0 + 0.18 * sin(t * 5.3 + float(fa.x))
+			var st2: float = ruta.size.y * 0.075 * puls
+			draw_texture_rect(tex, Rect2(p - Vector2(st2, st2) * 0.5, Vector2(st2, st2)), false,
+				Color(1.0, 0.62, 0.24, 0.35))
+		# ELDFLUGORNA: tio punkter som driver långsamt uppåt och slocknar.
+		for i in 10:
+			var fas2: float = fmod(t * 0.10 + float(i) * 0.137, 1.0)
+			var x: float = (0.15 + 0.75 * fmod(float(i) * 0.37, 1.0) + 0.02 * sin(t * 0.7 + float(i)))
+			var y: float = 0.45 - fas2 * 0.32
+			var a2: float = sin(fas2 * 3.14159) * 0.55
+			var p2 := ruta.position + Vector2(x * ruta.size.x, y * ruta.size.y)
+			draw_texture_rect(tex, Rect2(p2, Vector2(6.0, 6.0) * (ruta.size.y / 540.0)), false,
+				Color(1.0, 0.85, 0.45, a2))
+
+var _rok: Rök = null
 var _by3d_vp: SubViewport = null
 var _by3d: By3D = null
 ## FÖNSTERPIXLAR PER VY-PIXEL (M152). Vyn ligger i `hud`, som skalas upp med heltalet (3 i ett 941 px
@@ -186,6 +265,12 @@ func _ready() -> void:
 	# NEAREST satt HÄR och inte bara i projektet: skärpan är ett krav på den här vyn (M122), och ett
 	# filter som ärvs från en projektinställning kan ändras utan att någon tittar på byn.
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# RÖKEN LIGGER ÖVERST (M190): eget lager så den kan ritas om varje ruta utan att byns dyra
+	# textmätning körs. `show_behind_parent` är av — rök ska läggas ÖVER bilden.
+	_rok = Rök.new()
+	_rok.vy = self
+	_rok.z_index = 1
+	add_child(_rok)
 	_pan = _mål_pan(_vald)                        # bilden står vid den valda platsen från start
 	_pan_mål = _pan
 	set_process(true)

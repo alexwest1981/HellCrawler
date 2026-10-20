@@ -66,3 +66,19 @@ Mipmaps slogs på för de 519 ruttexturerna under försöket och slogs **av igen
 2. **Kontaktmörker i fogarna**: en mörk kant i albedon (finns som `_kant_dämpad`) ska vara mörkare i
    fogen och ljusare på plattan, så blocken läses som block även i svagt ljus.
 3. **Modellerad rekvisita** för de mest sedda objekten (tunna, kista, ljusstake), resten som i dag.
+
+## 6. Byn: 1:1 i stället för uppskalad, och den lever (20/10)
+
+Byn och menyn är en **färdig bild**, inte 3D. Att rita den 1,5× och skala ned igen är ren förlust —
+därför är supersamplingen 1,0 i skalet `hem` (`_ssaa_aktuell`), så konsten ritas 1:1 i fönstret.
+MÄTT: kantstyrka 18,54 mot 18,68, alltså i praktiken oförändrat (uppskalning + nedskalning tog ut
+varandra), men fyllnadskostnaden försvinner och bilden slipper två resamplingar.
+
+Generatorn är taket: den nya bybilden kom tillbaka i **1264×848**, alltså *mindre* än den vi har
+(1920×1080). Det finns ingen väg till 2560 genom att be om större — den bild vi har är redan uppskalad
+en gång. Skarpare by kräver antingen en annan modell eller sömmad konst från flera paneler.
+
+Det som ger mest "HD" per krona är i stället **liv**: `Rök` i `ui/village_view.gd` ritar rök ur
+skorsteningarna, ett andetag i facklorna vid porten och tio eldflugor som driver uppåt. Den ligger i
+ett eget Node2D som ritar om sig varje ruta, eftersom byns egen `_draw` mäter text och fick MÄTT
+241 ms per bildruta när den kördes varje ruta. Prov: `tests/test_byns_liv.gd` 11/0.

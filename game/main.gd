@@ -401,6 +401,10 @@ var shell := "hem"              ## hem | butik | karta | körning. Bara körning
 ## LOGIK och layout, och layouten räknas i logiska rutor (`_vy_mått` delar bort `_ssaa`), så de mäter
 ## samma sak vid 1,0. `ssaa=`-flaggan kan sätta den för hand även i prov.
 var _ssaa := 1.0 if OS.get_environment("HC_TEST") == "1" else 1.5
+## Den FAKTISKA supersamplingen just nu (M189). Byn och menyn är en färdig bild i sin egen
+## upplösning — att rita den 1,5× och skala ned igen är ren förlust. Där är den 1,0, och då ritas
+## konsten 1:1 i fönstret. 3D:n har inget att förlora på 1,5.
+var _ssaa_aktuell := 1.5
 const SKAL_LÄGEN := ["hem", "butik", "vardshus", "smed", "karta", "album", "juvelerare",
 	"banverkstad", "trad", "upplas"]
 ## Raderna i ALTERNATIV-panelen: språk, CRT, musik och spår (M54). Byggs på ett ställe och fylls
@@ -9391,15 +9395,16 @@ func _placera_vy() -> void:
 	# inget skalas upp och inget blir grötigt. HUD:en ligger i logiska 480x270-rutor och skalas med
 	# `skala` — den behåller sin storlek och sin kantiga stil.
 	_skala = skala
-	_vy.size = Vector2i(int(bredd * _ssaa), int(höjd * _ssaa))
+	_ssaa_aktuell = 1.0 if shell == "hem" else _ssaa
+	_vy.size = Vector2i(int(bredd * _ssaa_aktuell), int(höjd * _ssaa_aktuell))
 	_vy_korg.size = Vector2(bredd, höjd)
 	# NEDSKALNINGEN: korgen ritar den större texturen i sin ruta. LINJÄR (inte NEAREST) är hela
 	# poängen — det är den som gör 1,5× till mjuka kanter i stället för hårda pixlar.
-	_vy_korg.texture_filter = (CanvasItem.TEXTURE_FILTER_NEAREST if _ssaa <= 1.0
+	_vy_korg.texture_filter = (CanvasItem.TEXTURE_FILTER_NEAREST if _ssaa_aktuell <= 1.0
 		else CanvasItem.TEXTURE_FILTER_LINEAR)
 	_vy_korg.scale = Vector2.ONE
 	if hud != null:
-		hud.transform = Transform2D(0.0, Vector2(skala * _ssaa, skala * _ssaa), 0.0, Vector2.ZERO)
+		hud.transform = Transform2D(0.0, Vector2(skala * _ssaa_aktuell, skala * _ssaa_aktuell), 0.0, Vector2.ZERO)
 		if crt != null:
 			crt.sätt_radhojd(skala)
 	# VYN I ÖVERKANTEN (M113). Det som blir över i sidled (högst skala-1 px, alltså 0-2 px) delas
@@ -9444,7 +9449,7 @@ func _vy_mått() -> Vector2:
 	# fortfarande i 480x270-rutor. Utan divisionen blev korten, panelerna och byn 4x för stora.
 	# SUPERSAMPLINGEN delas bort också (M186): `_vy.size` är 1,5× fönstret, och utan `_ssaa` här blev
 	# varje panel byggd ur 1,5× för stora rutor — mätt: valet 1920x864 i ett 1280x720-fönster.
-	return Vector2(_vy.size) / (maxf(1.0, _skala) * _ssaa)
+	return Vector2(_vy.size) / (maxf(1.0, _skala) * _ssaa_aktuell)
 
 ## Barens ruta (M113): allt under spelvyn, i fönstrets fulla bredd. Höjden är den höjd som blir kvar
 ## när vyn ligger i överkanten — och eftersom skalan väljs med BAR_HOJD i nämnaren är den minst 68
