@@ -393,6 +393,10 @@ var end_label: Label
 var shell := "hem"              ## hem | butik | karta | körning. Bara körningen ritar 3D-vyn.
 ## Skärmarna i skalet. Listan finns för att en plats i byn som pekar fel ska mötas av en varning i
 ## stället för av en tom skärm (skalet ritar ingenting för ett läge det inte känner igen).
+## SUPERSAMPLING (M186): vyn ritas SSAA× större än fönstret och skalas ned linjärt av korgen. Det är
+## den enda vägen till mjuka kanter som inte förstör pixelkonsten: 3D, text och sprites ritas alla i
+## samma högre upplösning. Mätt kostnad och vinst i `research/15-grafik.md`.
+var _ssaa := 1.5
 const SKAL_LÄGEN := ["hem", "butik", "vardshus", "smed", "karta", "album", "juvelerare",
 	"banverkstad", "trad", "upplas"]
 ## Raderna i ALTERNATIV-panelen: språk, CRT, musik och spår (M54). Byggs på ett ställe och fylls
@@ -819,6 +823,11 @@ var _ssil := true                  ## indirekt ljus ur samma pass (SSIL): ljuset
 var _vol := true                   ## volymetrisk dimma: ljuskäglorna i luften (facklor och lyktan)
 var _kontrast := 1.2               ## kontrasten i spelvyn: mätt i ljusprovet, se LJUSPROVET nedan
 var _crt_styrka := 1.0             ## `crt=N`: CRT-lagrets styrka (0 = av), granskningsflagga
+## Granskningsflagga `filter=0|1` (M186): 0 = NEAREST som förut, 1 = linjärt med mipmaps (standard).
+## Två skärmbilder av SAMMA vy, tagna i samma ögonblick, är enda sättet att mäta filtret — två körningar
+## med olika väntetid gav 2× skillnad i ljusstyrka och alltså inget att jämföra.
+var _filter := BaseMaterial3D.TEXTURE_FILTER_NEAREST
+var _msaa := Viewport.MSAA_4X
 var _crt_begärd := false            ## `crt=N` med N > 0: lagret slås på för en mätning (aldrig av spelet självt)
 var _crt_av := false               ## `crt=0`: CRT-lagret av — granskningsflagga, för att kunna MÄTA
 var _kamerapan_prov := Vector2.ZERO ## `kamerapan=N`: byns kamera pannad N px (granskningsflagga, M122)
@@ -974,6 +983,13 @@ func _ready() -> void:
 			# bara när pekaren står över ett hus, och en provbild har ingen pekare — utan flaggan
 			# går glöden inte att fotografera alls.
 			_byhov_prov = maxi(0, int(f.substr(6)))
+		elif f.begins_with("ssaa="):
+			_ssaa = clampf(float(f.substr(5)), 1.0, 2.0)
+		elif f.begins_with("msaa="):
+			_msaa = Viewport.MSAA_DISABLED if f.substr(5) == "0" else Viewport.MSAA_4X
+		elif f.begins_with("filter="):
+			_filter = (BaseMaterial3D.TEXTURE_FILTER_NEAREST if f.substr(7) != "1"
+				else BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC)
 		elif f.begins_with("crt="):
 			# Granskningsflagga: `crt=0` slår av CRT-lagret, `crt=0.5` halverar styrkan (skanlinjer,
 			# vinjett, välvd kant). Behövs för att kunna MÄTA hur mycket av bildens kontrast lagret
@@ -1042,7 +1058,7 @@ func _ready() -> void:
 	# i helsvart mot 0 % i Vulkan). Ett försök att lyfta ambientljuset till 0,14 stängde INTE gapet
 	# (16,4 % svart, medelljus −2 — inom lyktans flimmer), så det står kvar på 0,08. Skillnaden är
 	# kvar och är känd; den ska lösas med något annat än ett grått golv om den ska lösas.
-	env.ambient_light_energy = 0.08
+	env.ambient_light_energy = _omgivning
 	# Dimma: mörkret längst bort ska vara en vägg av luft, inte bara svart. Den bär också avståndet
 	# i långa korridorer, där lyktan annars bara tar slut.
 	env.fog_enabled = true
@@ -7496,7 +7512,12 @@ func _add_boxes(tiles: Array, color: Color, y: float, size: Vector3, ruta: Strin
 		mat.albedo_texture = _kant_dämpad(tex, _kant)
 	else:
 		mat.albedo_texture = _tex(color)
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	# FILTER: LINJÄRT MED MIPMAPS (M186). Texturerna är 256 px och ritas ~128 px stora, alltså NEDSKALAS
+	# de — och NEAREST på en nerskalning hoppar över varannan pixel, vilket läste som brus ("slumpmässigt
+	# visuellt brus" i granskningen). Samma fynd som byns 25 material (M171), samma bot: linjärt med
+	# mipmaps och anisotropi, så stenen läses som sten även på sned.
+	mat.texture_filter = _filter
+	mat.anisotropy = 4.0
 	# Ljussatt, inte ostrukturerat: våningen är mörk och lyktan i handen är det som lyser. Matt yta
 	# (roughness 1, ingen spegling) så pixelkonsten inte ser ut som plast när ljuset faller på den.
 	mat.roughness = 1.0
@@ -9246,6 +9267,9 @@ func _card_icon(id: String) -> Texture2D:
 ## fönstrets upplösning (1280x720), där bokstäverna är riktiga bokstäver.
 func _bygg_vy() -> void:
 	_vy = SubViewport.new()
+	# MSAA 4× (M186): utan den var varje kant på ett block en trappa — granskningen pekade på
+	# golvets rutnät och blockens kanter. 4× kostar några procent bildrutor och tar bort trappan.
+	_vy.msaa_3d = _msaa
 	_vy.size = VY
 	_vy.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	# PEKAREN MÅSTE IN I VYN. Paneler som ligger inne i spelvyn (kortvalet, albumet, slagpanelen) är
@@ -9363,11 +9387,15 @@ func _placera_vy() -> void:
 	# inget skalas upp och inget blir grötigt. HUD:en ligger i logiska 480x270-rutor och skalas med
 	# `skala` — den behåller sin storlek och sin kantiga stil.
 	_skala = skala
-	_vy.size = Vector2i(int(bredd), int(höjd))
+	_vy.size = Vector2i(int(bredd * _ssaa), int(höjd * _ssaa))
 	_vy_korg.size = Vector2(bredd, höjd)
+	# NEDSKALNINGEN: korgen ritar den större texturen i sin ruta. LINJÄR (inte NEAREST) är hela
+	# poängen — det är den som gör 1,5× till mjuka kanter i stället för hårda pixlar.
+	_vy_korg.texture_filter = (CanvasItem.TEXTURE_FILTER_NEAREST if _ssaa <= 1.0
+		else CanvasItem.TEXTURE_FILTER_LINEAR)
 	_vy_korg.scale = Vector2.ONE
 	if hud != null:
-		hud.transform = Transform2D(0.0, Vector2(skala, skala), 0.0, Vector2.ZERO)
+		hud.transform = Transform2D(0.0, Vector2(skala * _ssaa, skala * _ssaa), 0.0, Vector2.ZERO)
 		if crt != null:
 			crt.sätt_radhojd(skala)
 	# VYN I ÖVERKANTEN (M113). Det som blir över i sidled (högst skala-1 px, alltså 0-2 px) delas
@@ -9410,7 +9438,9 @@ func _vy_mått() -> Vector2:
 		return Vector2(VY)
 	# LOGISKA rutor (M151): vyn ritas i fönstrets upplösning, men allt som placeras i den räknar
 	# fortfarande i 480x270-rutor. Utan divisionen blev korten, panelerna och byn 4x för stora.
-	return Vector2(_vy.size) / maxf(1.0, _skala)
+	# SUPERSAMPLINGEN delas bort också (M186): `_vy.size` är 1,5× fönstret, och utan `_ssaa` här blev
+	# varje panel byggd ur 1,5× för stora rutor — mätt: valet 1920x864 i ett 1280x720-fönster.
+	return Vector2(_vy.size) / (maxf(1.0, _skala) * _ssaa)
 
 ## Barens ruta (M113): allt under spelvyn, i fönstrets fulla bredd. Höjden är den höjd som blir kvar
 ## när vyn ligger i överkanten — och eftersom skalan väljs med BAR_HOJD i nämnaren är den minst 68
