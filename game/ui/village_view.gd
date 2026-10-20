@@ -251,7 +251,7 @@ class Rök extends Node2D:
 			draw_texture_rect(tex, Rect2(p2, Vector2(6.0, 6.0) * (ruta.size.y / 540.0)), false,
 				Color(1.0, 0.85, 0.45, a2))
 
-## KARUSELLEN (M195): byggnaderna står på en ring och vyn vrider ett steg i taget. LÄST UR VC:s kod
+## KARUSELLEN (M195/M202): byggnaderna står på en ring och vyn vrider ett steg i taget. LÄST UR VC:s kod
 ## (`TownViewController` + `ButtonCarousel` + `TownBuilding`, se research/16): byn är inga panoramor,
 ## den är en ring av byggnadsobjekt med egen bild och egen låst/upplåst text.
 var _rot := 0.0
@@ -287,7 +287,7 @@ func _ready() -> void:
 	# RÖKEN LIGGER ÖVERST (M190): eget lager så den kan ritas om varje ruta utan att byns dyra
 	# textmätning körs. `show_behind_parent` är av — rök ska läggas ÖVER bilden.
 	# 3D-ringen är avstängd medan placeholder-bilden används: VC:s bakgrund är redan en färdig scen.
-	if ROTERA and not BILD.contains("vc_lan"):
+	if ROTERA:
 		_bygg_ring()
 	_rok = Rök.new()
 	_rok.vy = self
@@ -806,6 +806,7 @@ func flytta(dir: Vector2i) -> bool:
 	if nästa_kol < 0 or nästa_kol >= _rader().size():
 		return false
 	var nästa: int = int(_rader()[nästa_kol])
+	_rot_mål += (1.0 if dir.x > 0 else -1.0)
 
 	_vald = nästa
 	_pan_mål = _mål_pan(_vald)
@@ -883,6 +884,11 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	# Panoreringen glider mot målet. Glider den klart ritas vyn om en sista gång och sedan inte mer:
 	# en stillastående bild ska kosta ingenting.
+	if ROTERA and absf(_rot_mål - _rot) > 0.0005:
+		_rot = lerpf(_rot, _rot_mål, 1.0 - exp(-PAN_FART * delta))
+		if absf(_rot_mål - _rot) <= 0.0005:
+			_rot = _rot_mål
+		queue_redraw()
 	if absf(_pan_mål - _pan) > 0.05:
 		_pan = lerpf(_pan, _pan_mål, 1.0 - exp(-PAN_FART * delta))
 		if absf(_pan_mål - _pan) <= 0.05:
@@ -1223,62 +1229,133 @@ func _bygg_ring() -> void:
 	plan.size = Vector2(40.0, 40.0)
 	golv.mesh = plan
 	var gm := StandardMaterial3D.new()
-	gm.albedo_color = _bakfärg(0.95)
-	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var gattex: Texture2D = load("res://assets/tiles/material/ancient_stone.png")
+	gm.albedo_texture = gattex
+	gm.uv1_scale = Vector3(12.0, 12.0, 1.0)
+	gm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	gm.albedo_color = Color(0.75, 0.75, 0.78)
 	golv.material_override = gm
 	värld.add_child(golv)
-	# BYGGNADERNA PÅ RINGEN: en kropp per plats, med konstens urklipp som fasad.
-	var antal := PLATSER.size()
-	for i in antal:
-		var vinkel := TAU * float(i) / float(antal)
+	# HUSEN UR DATA (M204): `data/by.json` är byns layout — ringens radie och varje hus vinkel,
+	# mått och material. Samma princip som rummen: layouten är en fil, konsten är spelets egna rutor.
+	var data: Dictionary = {}
+	var fil := FileAccess.open("res://data/by.json", FileAccess.READ)
+	if fil != null:
+		data = JSON.parse_string(fil.get_as_text())
+		fil.close()
+	var radie := float(data.get("radie", 9.0))
+	for hus_data in data.get("hus", []):
+		var d: Dictionary = hus_data
+		var vinkel := deg_to_rad(float(d.get("vinkel", 0.0)))
+		var hus := Node3D.new()
+		hus.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
+		hus.rotation.y = vinkel
+		värld.add_child(hus)
+		var w := float(d.get("w", 5.0))
+		var djup := float(d.get("d", 3.4))
+		var h := float(d.get("h", 4.2))
+		# VÄGGARNA: en kropp med spelets egen sten-/putsstruktur.
 		var kropp := MeshInstance3D.new()
 		var box := BoxMesh.new()
-		box.size = Vector3(5.0, 6.4, 3.2)
+		box.size = Vector3(w, h, djup)
 		kropp.mesh = box
-		var mat := StandardMaterial3D.new()
-		mat.albedo_texture = _byggnadstextur(i)
-		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-		mat.roughness = 0.9
-		kropp.material_override = mat
-		kropp.position = Vector3(sin(vinkel) * 9.0, 3.2, cos(vinkel) * 9.0)
-		kropp.rotation.y = vinkel
-		värld.add_child(kropp)
+		kropp.position = Vector3(0.0, h * 0.5, 0.0)
+		var vm := StandardMaterial3D.new()
+		vm.albedo_texture = load("res://assets/tiles/material/%s.png" % str(d.get("vag", "ancient_stone")))
+		vm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		vm.uv1_scale = Vector3(w / 2.0, h / 2.0, djup / 2.0)
+		vm.roughness = 0.95
+		kropp.material_override = vm
+		hus.add_child(kropp)
+		# TAKET: två lutande skivor möts på nock, med egen textur.
+		for sida in [-1.0, 1.0]:
+			var tak := MeshInstance3D.new()
+			var takplan := PlaneMesh.new()
+			takplan.size = Vector2(w + 0.6, djup * 0.62)
+			tak.mesh = takplan
+			tak.position = Vector3(0.0, h + djup * 0.13, sida * djup * 0.31)
+			tak.rotation = Vector3(sida * 0.70, 0.0, 0.0)
+			var tm := StandardMaterial3D.new()
+			tm.albedo_texture = load("res://assets/tiles/material/%s.png" % str(d.get("tak", "wooden_palisades")))
+			tm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+			tm.uv1_scale = Vector3(w / 2.0, djup, 1.0)
+			tm.cull_mode = BaseMaterial3D.CULL_DISABLED
+			tak.material_override = tm
+			hus.add_child(tak)
+		# DÖRREN: en mörk öppning i fasaden, så huset läses som hus och inte som en låda.
+		var dörr := MeshInstance3D.new()
+		var dörrplan := PlaneMesh.new()
+		dörrplan.size = Vector2(minf(1.4, w * 0.3), h * 0.45)
+		dörr.mesh = dörrplan
+		dörr.position = Vector3(0.0, h * 0.225, djup * 0.5 + 0.02)
+		var dm := StandardMaterial3D.new()
+		dm.albedo_color = Color(0.10, 0.07, 0.05)
+		dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		dörr.material_override = dm
+		hus.add_child(dörr)
+
 	# KAMERAN i mitten, i ögonhöjd.
 	_ring_kam = Camera3D.new()
-	_ring_kam.position = Vector3(0.0, 2.2, 0.0)
-	_ring_kam.fov = 62.0
+	_ring_kam.position = Vector3(0.0, 3.6, 0.0)
+	_ring_kam.rotation_degrees = Vector3(-4.0, 0.0, 0.0)
+	_ring_kam.fov = 76.0
 	värld.add_child(_ring_kam)
 	_ring_byggd = true
 
 ## Kameran tittar på plats i. Vinkeln räknas ur ringens delning, så byggnaden står rakt fram.
-func _ring_titta(i: int) -> void:
+## Kameran står i mitten och VRIDER sig med `_rot` — mjukt mellan stegen, inte hackigt per byggnad.
+func _ring_titta(_i: int) -> void:
 	if _ring_kam == null:
 		return
 	var antal := PLATSER.size()
-	var vinkel := TAU * float(i) / float(antal)
-	_ring_kam.rotation = Vector3(0.0, vinkel, 0.0)
+	_ring_kam.rotation = Vector3(0.0, TAU * _rot / float(antal), 0.0)
 
-## HELA BYN SYNS (M197). Alex: *"Du visar en liten bit av gatan, å inte ett jävla dugg i närheten
-## [av vad] de gör i VC"*. Vyn ritar bykonsten kant i kant i sin helhet, flyttad med `_pan` — inga
-## urklipp, inga remsor, ingen riddare. Det som vrider sig är gatan under en fast menyrad.
+## KARUSELLEN (M202). Alex: *"Det är ännu ingen karusell"*. Byggnaderna står på en RING kring
+## kameran: vinkeln avgör var de hamnar i sidled, hur stora de är och hur mycket de vrids bort.
+## Den valda står rakt fram (vinkel 0), grannarna vrids in mot mitten, de bakom är mindre och mörkare.
+## Bredden krymper med cosinus för vinkeln — det är den som gör att en byggnad ser VRIDEN ut och inte
+## bara flyttad.
 func _rita_roterande(vp: Vector2) -> void:
+	# 3D-RINGEN RITAS NÄR DEN FINNS (M203). M202 skrev över den här grenen med 2D-karusellen, så
+	# vyn visade bildskivor fast 3D-scenen var byggd — mätt: `_ring_vp` fanns, men ritades aldrig.
 	if _ring_vp != null:
 		_ring_titta(_vald)
 		draw_texture_rect(_ring_vp.get_texture(), Rect2(Vector2.ZERO, vp), false)
 		_rita_remsa(vp)
 		return
-	var tex := byscen()
-	if tex == null:
-		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
-		return
-	# OMSLAG (M201): byn ritas två gånger sida vid sida och förskjuts med `_pan`, så vridningen går
-	# runt utan att ta slut. Bredden är omgången, alltså minst en skärm.
-	var omg := _omgang()
-	var start := -fposmod(_pan, omg)
-	var k := 0
-	while start + float(k) * omg < vp.x:
-		draw_texture_rect(tex, Rect2(start + float(k) * omg, 0.0, omg, vp.y), false)
-		k += 1
+	# Himlen och marken: en lugn bakgrund som inte konkurrerar med byggnaderna.
+	draw_rect(Rect2(0.0, 0.0, vp.x, marklinje()), _bakfärg(0.08))
+	draw_rect(Rect2(0.0, marklinje(), vp.x, vp.y - marklinje()), _bakfärg(0.95))
+	var n := PLATSER.size()
+	var steg := TAU / float(n)
+	var lista := []
+	for i in n:
+		var varv := fposmod(float(i) - _rot + float(n) * 0.5, float(n)) - float(n) * 0.5
+		var vinkel := varv * steg
+		if absf(vinkel) > PI * 0.72:
+			continue                       # bakom kameran
+		lista.append([cos(vinkel), i, vinkel])
+	lista.sort_custom(func(a, b): return float(a[0]) < float(b[0]))   # bakt först
+	for post in lista:
+		var djup: float = float(post[0])          # 1 = rakt fram, -1 = rakt bakom
+		var i: int = int(post[1])
+		var vinkel: float = float(post[2])
+		var tex := _byggnadstextur(i)
+		if tex == null:
+			continue
+		var andel := (djup + 1.0) * 0.5           # 0..1
+		var skala := lerpf(0.52, 1.0, andel)
+		var h2 := vp.y * 0.60 * skala
+		var förh := maxf(0.08, float(tex.get_width()) / float(tex.get_height()))
+		# VRIDNINGEN: bredden krymper med cosinus, så huset viker sig bort från kameran.
+		var w2 := h2 * förh * maxf(0.12, absf(cos(vinkel)))
+		var x := vp.x * 0.5 + sin(vinkel) * vp.x * 0.46
+		var ton := lerpf(0.42, 1.0, andel)
+		# Skuggan under huset binder det till marken.
+		draw_rect(Rect2(x - w2 * 0.55, marklinje() - 2.0, w2 * 1.10, maxf(2.0, vp.y * 0.012)),
+			_a(Palett.c(0), 0.35 * andel))
+		draw_texture_rect(tex, Rect2(x - w2 * 0.5, marklinje() - h2, w2, h2), false,
+			Color(ton, ton, ton, 1.0))
 	_rita_remsa(vp)
 
 func _rita_remsa(vp: Vector2) -> void:

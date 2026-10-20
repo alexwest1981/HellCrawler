@@ -1,0 +1,72 @@
+{
+  "_": "Byn som DATA, inte en bild (M204). Varje post är ett hus på ringen: vinkel i grader runt byns mitt, mått i meter, och vilka av spelets egna material som används. Alex: \"annars får vi bygga en by som vi bygger banor\" — samma princip som rummen: layouten är en fil, konsten är våra egna rutor.",
+  "radie": 11.0,
+  "hus": [
+    {
+      "id": "tradet",
+      "namn": "THREAD OF DESTINY",
+      "skepp": "trad",
+      "vinkel": 0.0,
+      "w": 5.2,
+      "d": 3.6,
+      "h": 4.6,
+      "vag": "ancient_stone",
+      "tak": "wooden_palisades"
+    },
+    {
+      "id": "smed",
+      "namn": "BLACKSMITH",
+      "skepp": "smed",
+      "vinkel": 60.0,
+      "w": 5.0,
+      "d": 3.4,
+      "h": 4.2,
+      "vag": "fortified_stone_bricks",
+      "tak": "wooden_palisades"
+    },
+    {
+      "id": "vardshus",
+      "namn": "THE TAVERN",
+      "skepp": "vardshus",
+      "vinkel": 120.0,
+      "w": 6.0,
+      "d": 4.0,
+      "h": 5.6,
+      "vag": "chiseled_marble",
+      "tak": "wooden_palisades"
+    },
+    {
+      "id": "karta",
+      "namn": "THE GATE",
+      "skepp": "karta",
+      "vinkel": 180.0,
+      "w": 6.4,
+      "d": 2.6,
+      "h": 6.4,
+      "vag": "fortified_stone_bricks",
+      "tak": "ancient_stone"
+    },
+    {
+      "id": "juvelerare",
+      "namn": "JEWELER",
+      "skepp": "juvelerare",
+      "vinkel": 240.0,
+      "w": 4.6,
+      "d": 3.4,
+      "h": 4.0,
+      "vag": "chiseled_marble",
+      "tak": "wooden_palisades"
+    },
+    {
+      "id": "avsluta",
+      "namn": "EXIT",
+      "skepp": "avsluta",
+      "vinkel": 300.0,
+      "w": 3.4,
+      "d": 2.4,
+      "h": 3.4,
+      "vag": "ancient_stone",
+      "tak": "wooden_palisades"
+    }
+  ]
+}
