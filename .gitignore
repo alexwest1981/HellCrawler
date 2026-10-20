@@ -83,3 +83,4 @@ jobb/snapshots/
 
 # Tredjepartspaket som inte används av spelet (flyttade ur game/ 20/10, M188). Ligger kvar på disk.
 tredjepart_kalla/
+game/assets/vc_lan/

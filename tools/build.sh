@@ -12,6 +12,17 @@ cd "$(dirname "$0")/.."              # repo-roten
 [ -f game/project.godot ] || { echo "fel: hittar inte game/project.godot — kör skriptet ur repot" >&2; exit 1; }
 GODOT="${GODOT:-godot}"
 
+# SPÄRR MOT PLACEHOLDER-KONST (M199). Alex: *"Vi skall inte publicera något förrän allt är utbytt
+# till egen grafik"*. Allt som lånats in från Vampire Crawlers för att kunna SE byn ligger i
+# `game/assets/vc_lan/` med en `PLACEHOLDER`-fil bredvid. Finns den mappen, eller står den i en
+# scen/ett skript, går bygget inte igenom — en release med någon annans konst är ett brott, inte en
+# bugg. Radera mappen och kontrollera att `grep -r vc_lan game/` är tom när egen konst är på plats.
+if [ -d game/assets/vc_lan ] || grep -rql "assets/vc_lan" game --include=*.gd --include=*.tscn --include=*.tres 2>/dev/null; then
+	echo "fel: placeholder-konst från VC ligger kvar (game/assets/vc_lan) — bygget vägrar." >&2
+	echo "     Byt ut den mot egen grafik innan något publiceras." >&2
+	exit 1
+fi
+
 mkdir -p game/build/windows game/build/linux game/build/web
 
 "$GODOT" --headless --path game --export-release "Windows Desktop" "build/windows/HellCrawler.exe"
