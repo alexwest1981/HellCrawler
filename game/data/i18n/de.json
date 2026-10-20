@@ -681,5 +681,8 @@
   "ui.upplas.kills": "Tötungen",
   "ui.upplas.floors": "Ebenen",
   "ui.upplas.milstones": "MEILENSTEINE",
-  "ui.inn.fullt": "Gruppe voll (%d/%d) — das Limit steigt mit einem Upgrade"
+  "ui.inn.fullt": "Gruppe voll (%d/%d) — das Limit steigt mit einem Upgrade",
+  "ui.tree.tab.tree": "DER BAUM",
+  "ui.tree.tab.museum": "MUSEUM",
+  "ui.museum.title": "MUSEUM — gefundene Relikte: %d / %d"
 }

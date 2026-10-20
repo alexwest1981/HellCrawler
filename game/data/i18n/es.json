@@ -681,5 +681,8 @@
   "ui.upplas.kills": "muertes",
   "ui.upplas.floors": "pisos",
   "ui.upplas.milstones": "HITOS",
-  "ui.inn.fullt": "grupo lleno (%d/%d) — el límite sube con una mejora"
+  "ui.inn.fullt": "grupo lleno (%d/%d) — el límite sube con una mejora",
+  "ui.tree.tab.tree": "EL ÁRBOL",
+  "ui.tree.tab.museum": "MUSEO",
+  "ui.museum.title": "MUSEO — reliquias encontradas: %d / %d"
 }

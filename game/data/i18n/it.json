@@ -681,5 +681,8 @@
   "ui.upplas.kills": "uccisioni",
   "ui.upplas.floors": "piani",
   "ui.upplas.milstones": "TRAGUARDI",
-  "ui.inn.fullt": "gruppo pieno (%d/%d) — il limite sale con un miglioramento"
+  "ui.inn.fullt": "gruppo pieno (%d/%d) — il limite sale con un miglioramento",
+  "ui.tree.tab.tree": "L'ALBERO",
+  "ui.tree.tab.museum": "MUSEO",
+  "ui.museum.title": "MUSEO — reliquie trovate: %d / %d"
 }

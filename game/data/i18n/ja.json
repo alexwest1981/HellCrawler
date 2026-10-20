@@ -681,5 +681,8 @@
   "ui.upplas.kills": "撃破",
   "ui.upplas.floors": "階層",
   "ui.upplas.milstones": "マイルストーン",
-  "ui.inn.fullt": "パーティ満員（%d/%d）— 上限はアップグレードで上がる"
+  "ui.inn.fullt": "パーティ満員（%d/%d）— 上限はアップグレードで上がる",
+  "ui.tree.tab.tree": "樹",
+  "ui.tree.tab.museum": "博物館",
+  "ui.museum.title": "博物館 — 見つけたレリック: %d / %d"
 }

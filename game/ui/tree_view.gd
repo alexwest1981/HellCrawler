@@ -121,6 +121,12 @@ var _nodplan: Control
 var _info: Label
 var _ritare: Control
 var _meta: Meta
+## FLIKAR (önskemål 41, Alex 19/10): *"Museum kan ligga inne i Thread of Destiny, som en egen flik."*
+## Trädet och museet är två läsningar av samma metaspel — trädet köper, museet visar vad man hittat —
+## så de delar vy i stället för att bli två skärmar i byns meny.
+var _flik := 0
+var _flik_knappar: Array[Button] = []
+var _museum: Control
 var _grenlista: Array = []          ## grennamnen i datats ordning (M96)
 ## UTSNITTET (M96). Zoomen och panoreringen bor i _ur_bild/till_bild och ingen annanstans, alltså
 ## följer noderna, ringarna, kopplingarna och trädeditorns markör med utan att veta om dem.
@@ -193,6 +199,28 @@ func _bygg(läs_fil: bool = true) -> void:
 	_rubrik = rubrik
 	box.add_child(rubrik)
 
+	# FLIKRADEN: två flikar, samma knappar som resten av spelet. Museet är en flik och inte en egen
+	# skärm, så vägen tillbaka är densamma som inom trädet (Esc lämnar vyn).
+	var flikrad := HBoxContainer.new()
+	flikrad.name = "Flikar"
+	flikrad.alignment = BoxContainer.ALIGNMENT_BEGIN
+	box.add_child(flikrad)
+	for i in 2:
+		var b := Button.new()
+		b.text = Tr.t("ui.tree.tab.tree" if i == 0 else "ui.tree.tab.museum",
+			"TRÄDET" if i == 0 else "MUSEET")
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(_sätt_flik.bind(i))
+		flikrad.add_child(b)
+		_flik_knappar.append(b)
+
+	_museum = Control.new()
+	_museum.name = "Museum"
+	_museum.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_museum.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_museum.visible = false
+	add_child(_museum)
+
 	# SOCKETDATA. Filen skrivs av trädeditorn (för hand: game/editor/trad_editor.gd) och läses här.
 	# Formatet ägs av TreeSockets, så vyn och editorn kan inte glida ifrån varandra. Posten bär det en
 	# människa lagt till — kryss, krav, klass, ikon — och en plats bara om noden dragits (`pin`).
@@ -216,6 +244,47 @@ func _bygg(läs_fil: bool = true) -> void:
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_info)
 
+
+## Byt flik: trädet (nodlagret + ritaren) eller museet. En flik som inte syns får inte heller ta
+## musen — trädet panorerar med drag, och ett osynligt lager över det hade stulit draget.
+func _sätt_flik(i: int) -> void:
+	_flik = clampi(i, 0, 1)
+	if _nodplan != null:
+		_nodplan.visible = _flik == 0
+	if _ritare != null:
+		_ritare.visible = _flik == 0
+	if _museum != null:
+		_museum.visible = _flik == 1
+	for n in _flik_knappar.size():
+		_flik_knappar[n].disabled = n == _flik
+	if _flik == 1:
+		_uppdatera_museum()
+	queue_redraw()
+
+## MUSEET: relikerna med namn och text. De man inte hittat står kvar som en punkt — en samling man kan
+## se siluetten av är ett mål, en tom lista är ingenting. Läser bara `Relics` och `Meta`.
+func _uppdatera_museum() -> void:
+	if _museum == null:
+		return
+	for barn in _museum.get_children():
+		_museum.remove_child(barn)
+		barn.queue_free()
+	var ruta := PanelContainer.new()
+	ruta.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ruta.add_theme_stylebox_override("panel", _panel_stil())
+	_museum.add_child(ruta)
+	var box := VBoxContainer.new()
+	ruta.add_child(box)
+	var rubrik := Label.new()
+	rubrik.text = Tr.t("ui.museum.title", "MUSEET — reliker man hittat: %d / %d") 		% [_meta.relics.size(), Relics.load_all().size()]
+	box.add_child(rubrik)
+	for id in Relics.load_all():
+		var r: Relics.RelicDef = Relics.load_all()[id]
+		var ägd: bool = _meta != null and _meta.relics.has(str(id))
+		var rad := Label.new()
+		rad.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rad.text = "%s %s — %s" % ["✓" if ägd else "·", r.name, r.text if ägd else "—"]
+		box.add_child(rad)
 
 ## Vyns yta, med ett golv för en vy som ännu inte fått sin storlek.
 func _yta() -> Vector2:
@@ -258,6 +327,7 @@ func visa(meta: Meta, titel: String, läs_fil: bool = true) -> void:
 	_bygg(läs_fil)
 	_meta = meta
 	_rubrik.text = titel
+	_sätt_flik(_flik)          # museet läser `meta`, så texten måste ritas om när metan byts
 	for barn in _ikoner.values():
 		# remove_child FÖRST — samma fälla som hos juveleraren: en andra visa() i samma bildruta
 		# mätte annars de gamla ikonerna också och nodlagret växte för varje omritning.

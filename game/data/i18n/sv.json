@@ -681,5 +681,8 @@
   "ui.upplas.runs": "körningar",
   "ui.upplas.kills": "dråp",
   "ui.upplas.floors": "våningar",
-  "ui.upplas.milstones": "MILSTOLPAR"
+  "ui.upplas.milstones": "MILSTOLPAR",
+  "ui.tree.tab.tree": "TRÄDET",
+  "ui.tree.tab.museum": "MUSEET",
+  "ui.museum.title": "MUSEET — reliker man hittat: %d / %d"
 }

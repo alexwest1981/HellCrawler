@@ -681,5 +681,8 @@
   "ui.upplas.kills": "убийства",
   "ui.upplas.floors": "этажи",
   "ui.upplas.milstones": "РУБЕЖИ",
-  "ui.inn.fullt": "отряд полон (%d/%d) — предел растёт с улучшением"
+  "ui.inn.fullt": "отряд полон (%d/%d) — предел растёт с улучшением",
+  "ui.tree.tab.tree": "ДРЕВО",
+  "ui.tree.tab.museum": "МУЗЕЙ",
+  "ui.museum.title": "МУЗЕЙ — найдено реликвий: %d / %d"
 }

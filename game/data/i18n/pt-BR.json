@@ -681,5 +681,8 @@
   "ui.upplas.kills": "abates",
   "ui.upplas.floors": "andares",
   "ui.upplas.milstones": "MARCOS",
-  "ui.inn.fullt": "grupo cheio (%d/%d) — o limite sobe com uma melhoria"
+  "ui.inn.fullt": "grupo cheio (%d/%d) — o limite sobe com uma melhoria",
+  "ui.tree.tab.tree": "A ÁRVORE",
+  "ui.tree.tab.museum": "MUSEU",
+  "ui.museum.title": "MUSEU — relíquias encontradas: %d / %d"
 }

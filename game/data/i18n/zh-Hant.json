@@ -681,5 +681,8 @@
   "ui.upplas.kills": "擊殺",
   "ui.upplas.floors": "層數",
   "ui.upplas.milstones": "里程碑",
-  "ui.inn.fullt": "隊伍已滿（%d/%d）——上限可透過升級提高"
+  "ui.inn.fullt": "隊伍已滿（%d/%d）——上限可透過升級提高",
+  "ui.tree.tab.tree": "樹",
+  "ui.tree.tab.museum": "博物館",
+  "ui.museum.title": "博物館——已發現遺物：%d / %d"
 }

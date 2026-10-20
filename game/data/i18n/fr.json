@@ -681,5 +681,8 @@
   "ui.upplas.kills": "éliminations",
   "ui.upplas.floors": "étages",
   "ui.upplas.milstones": "JALONS",
-  "ui.inn.fullt": "groupe complet (%d/%d) — la limite monte avec une amélioration"
+  "ui.inn.fullt": "groupe complet (%d/%d) — la limite monte avec une amélioration",
+  "ui.tree.tab.tree": "L'ARBRE",
+  "ui.tree.tab.museum": "MUSÉE",
+  "ui.museum.title": "MUSÉE — reliques trouvées : %d / %d"
 }

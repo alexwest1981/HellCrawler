@@ -681,5 +681,8 @@
   "ui.upplas.kills": "zabójstwa",
   "ui.upplas.floors": "poziomy",
   "ui.upplas.milstones": "KAMIENIE MILOWE",
-  "ui.inn.fullt": "drużyna pełna (%d/%d) — limit rośnie z ulepszeniem"
+  "ui.inn.fullt": "drużyna pełna (%d/%d) — limit rośnie z ulepszeniem",
+  "ui.tree.tab.tree": "DRZEWO",
+  "ui.tree.tab.museum": "MUZEUM",
+  "ui.museum.title": "MUZEUM — znalezione relikwie: %d / %d"
 }

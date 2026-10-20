@@ -4700,6 +4700,11 @@ func _input_shell(key: int) -> void:
 			KEY_I, KEY_ESCAPE:
 				_på_plats("hem")
 		return
+	# FLIKARNA I TRÄDET (önskemål 41): TAB växlar mellan trädet och museet. Ligger före byns gren, så
+	# tangenten gäller i hela trädvyn och inte bara när inget annat fångar den.
+	if shell == "trad" and key == KEY_TAB:
+		trad_view._sätt_flik(0 if trad_view._flik == 1 else 1)
+		return
 	if shell == "hem":
 		# DAGENS KÖRNING (önskemål 24, punkt 5): T = en körning per dygn, med dagens frö.
 		if key == KEY_T:

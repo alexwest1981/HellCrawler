@@ -681,5 +681,8 @@
   "ui.upplas.kills": "처치",
   "ui.upplas.floors": "층",
   "ui.upplas.milstones": "이정표",
-  "ui.inn.fullt": "파티 가득 참 (%d/%d) — 상한은 업그레이드로 오른다"
+  "ui.inn.fullt": "파티 가득 참 (%d/%d) — 상한은 업그레이드로 오른다",
+  "ui.tree.tab.tree": "나무",
+  "ui.tree.tab.museum": "박물관",
+  "ui.museum.title": "박물관 — 찾은 유물: %d / %d"
 }
