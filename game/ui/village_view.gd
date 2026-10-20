@@ -1304,9 +1304,9 @@ func _ring_titta(_i: int) -> void:
 	if _ring_kam == null:
 		return
 	var antal := PLATSER.size()
-	# SPEGELVÄNT (M206): Alex: *"klickar du höger vänder den åt vänster"*. Kameran vrider mot
-	# ringens riktning, alltså minus — annars går husen åt motsatt håll mot tangenten.
-	_ring_kam.rotation = Vector3(0.0, -TAU * _rot / float(antal), 0.0)
+	# KAMERAN MÅSTE TITTA PÅ DET VALDA HUSET (M219): med minus låg vinkeln spegelvänd mot ringen, så
+	# etiketten sade THE SMITH medan bilden visade ett annat hus — och rekvisitan hamnade utanför rutan.
+	_ring_kam.rotation = Vector3(0.0, TAU * _rot / float(antal), 0.0)
 
 ## KARUSELLEN (M202). Alex: *"Det är ännu ingen karusell"*. Byggnaderna står på en RING kring
 ## kameran: vinkeln avgör var de hamnar i sidled, hur stora de är och hur mycket de vrids bort.
@@ -1506,38 +1506,47 @@ func _bygg_rekvisita(värld: Node3D) -> void:
 		data = JSON.parse_string(fil.get_as_text())
 		fil.close()
 	var radie := float(data.get("radie", 18.0))
-	# Vilka prylar som hör till vilket hus: tunnor och städ vid smeden, barbord vid värdshuset.
-	var plan := {
-		"smed": [["Anvil", 2.6, -1.6], ["Anvil_Log", 3.2, 0.4], ["Barrel", -2.8, -1.2], ["Barrel", -3.4, -0.2]],
-		"vardshus": [["Bench", 3.0, -1.8], ["Bench", 4.4, -1.4], ["Barrel", -3.2, -1.6]],
-		"tradet": [["Barrel", 2.8, -1.4], ["Barrel", 3.4, -0.6]],
-		"juvelerare": [["Barrel", -2.6, -1.2]],
-		"karta": [["Barrel", 3.0, -1.6], ["Barrel", -3.0, -1.6]],
+	# Möbleringen per hus: [namn, avstånd från byns mitt, sidled]. Avståndet räknas in mot torget,
+	# så pjäserna hamnar framför fasaden och inte inuti huset.
+	var möblering := {
+		"smed": [["Workbench", 4.2, -2.6], ["Anvil", 3.4, -1.3], ["Anvil_Log", 4.6, -1.7], ["Whetstone", 3.2, 0.5],
+				 ["WeaponStand", 4.4, 1.9], ["Barrel", 3.8, 2.7], ["Bucket_Wooden_1", 3.4, -0.2],
+				 ["Crate_Wooden", 5.2, -3.3], ["Torch_Metal", 2.8, -3.5], ["Torch_Metal", 2.8, 3.2]],
+		"vardshus": [["Table_Large", 3.9, -2.3], ["Chair_1", 3.3, -2.7], ["Chair_1", 4.5, -1.9],
+					 ["Table_Plate", 3.9, -1.5], ["Mug", 4.2, -1.2], ["Bench", 3.7, 1.7],
+					 ["Stool", 3.1, 2.5], ["Barrel_Apples", 4.7, 2.9], ["Cauldron", 4.9, -3.1],
+					 ["Banner_1", 3.0, 0.5]],
+		"tradet": [["Stall_Empty", 3.7, -1.9], ["Crate_Wooden", 4.5, -2.5], ["Barrel", 3.5, 1.7],
+				   ["Chest_Wood", 4.3, 2.3], ["Bottle_1", 3.2, 0.4], ["Banner_1", 3.0, 0.9]],
+		"juvelerare": [["Table_Large", 3.5, -1.3], ["CandleStick_Stand", 3.1, 0.5], ["Chest_Wood", 4.1, 1.5],
+					   ["Pot_1", 3.3, 2.1], ["Crate_Metal", 4.6, -2.4]],
+		"karta": [["Torch_Metal", 3.1, -2.5], ["Torch_Metal", 3.1, 2.5], ["Banner_2", 4.1, -3.1],
+				  ["Crate_Wooden", 4.5, 3.1], ["Dummy", 4.7, 1.7], ["Barrel", 4.0, 3.6]],
+		"avsluta": [["Barrel", 3.1, -1.5], ["Crate_Metal", 4.1, 1.3], ["Pot_1", 3.4, 1.9]],
 	}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
 	for hus_data in data.get("hus", []):
 		var d: Dictionary = hus_data
-		var uppsättning = plan.get(str(d.get("id", "")), [])
-		if uppsättning.is_empty():
-			continue
-		var vinkel := deg_to_rad(float(d.get("vinkel", 0.0))) + PI    # husets framsida pekar inåt
-		for post in uppsättning:
+		var lista = möblering.get(str(d.get("id", "")), [])
+		var vinkel := deg_to_rad(float(d.get("vinkel", 0.0)))
+		for post in lista:
 			var scen: PackedScene = load("res://assets/by/rekvisita/%s.gltf" % str(post[0]))
 			if scen == null:
+				push_warning("saknar pjäs: " + str(post[0]))
 				continue
 			var pjäs := scen.instantiate()
-			# Placeringen räknas i husets EGET system: sidled och ut mot torget.
-			var sidled := float(post[1])
-			var fram := float(post[2])
-			var x := sin(vinkel) * (radie - 2.2) - cos(vinkel) * sidled
-			var z := cos(vinkel) * (radie - 2.2) + sin(vinkel) * sidled
-			pjäs.position = Vector3(x, 0.0, z)
-			pjäs.rotation.y = vinkel + PI * 0.5
-			pjäs.scale = Vector3.ONE * 1.15
+			var avstånd := radie - float(post[1])
+			var sidled := float(post[2])
+			pjäs.position = Vector3(sin(vinkel) * avstånd + cos(vinkel) * sidled, 0.0,
+					cos(vinkel) * avstånd - sin(vinkel) * sidled)
+			pjäs.rotation.y = vinkel + PI + rng.randf_range(-0.25, 0.25)
+			pjäs.scale = Vector3.ONE * rng.randf_range(0.95, 1.2)
 			värld.add_child(pjäs)
+	print("rekvisita: utplacerad")
 
-## SKOGEN (M215): Alex: *"Använd modeller härifrån istället så länge"* — Stylized Nature MegaKit.
-## Sex trädmodeller (glTF) instansieras i ringen med slumpad skala och vridning. Voxelversionen är
-## borttagen: modellerna är 10,6 MB totalt och läses direkt av Godot, utan konvertering.
+
+## SKOGEN (M215): Stylized Nature MegaKit, sex trädmodeller som instansieras i ringen.
 func _bygg_skog(värld: Node3D) -> void:
 	var modeller: Array[PackedScene] = []
 	for namn in ["Pine_1", "Pine_2", "Pine_3", "CommonTree_1", "CommonTree_2", "CommonTree_3"]:
@@ -1553,8 +1562,7 @@ func _bygg_skog(värld: Node3D) -> void:
 		var vinkel := TAU * float(i) / 90.0 + rng.randf_range(-0.05, 0.05)
 		var radie := rng.randf_range(30.0, 56.0)
 		var träd := modeller[rng.randi_range(0, modeller.size() - 1)].instantiate()
-		var skala := rng.randf_range(1.15, 1.95)
-		träd.scale = Vector3.ONE * skala
+		träd.scale = Vector3.ONE * rng.randf_range(1.15, 1.95)
 		träd.rotation.y = rng.randf_range(0.0, TAU)
 		träd.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
 		värld.add_child(träd)
