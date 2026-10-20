@@ -1265,48 +1265,15 @@ func _bygg_ring() -> void:
 		hus.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
 		hus.rotation.y = vinkel
 		värld.add_child(hus)
+		# MODELLEN (M210): huset är en Blender-modell (tools/gen_by_hus3d.py), inte en låda.
+		# Saknas filen ritas ingen kropp alls — då syns felet direkt i stället för en tyst låda.
+		var modell: PackedScene = load("res://assets/by/models/%s.glb" % str(d.get("id", "")))
+		if modell != null:
+			var instans := modell.instantiate()
+			hus.add_child(instans)
 		var w := float(d.get("w", 5.0))
-		var djup := float(d.get("d", 3.4))
 		var h := float(d.get("h", 4.2))
-		# VÄGGARNA: en kropp med spelets egen sten-/putsstruktur.
-		var kropp := MeshInstance3D.new()
-		var box := BoxMesh.new()
-		box.size = Vector3(w, h, djup)
-		kropp.mesh = box
-		kropp.position = Vector3(0.0, h * 0.5, 0.0)
-		var vm := StandardMaterial3D.new()
-		vm.albedo_texture = load("res://assets/tiles/material/%s.png" % str(d.get("vag", "ancient_stone")))
-		vm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-		vm.uv1_scale = Vector3(w / 2.0, h / 2.0, djup / 2.0)
-		vm.roughness = 0.95
-		kropp.material_override = vm
-		hus.add_child(kropp)
-		# TAKET: två lutande skivor möts på nock, med egen textur.
-		for sida in [-1.0, 1.0]:
-			var tak := MeshInstance3D.new()
-			var takplan := PlaneMesh.new()
-			takplan.size = Vector2(w + 0.6, djup * 0.62)
-			tak.mesh = takplan
-			tak.position = Vector3(0.0, h + djup * 0.13, sida * djup * 0.31)
-			tak.rotation = Vector3(sida * 0.70, 0.0, 0.0)
-			var tm := StandardMaterial3D.new()
-			tm.albedo_texture = load("res://assets/tiles/material/%s.png" % str(d.get("tak", "wooden_palisades")))
-			tm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-			tm.uv1_scale = Vector3(w / 2.0, djup, 1.0)
-			tm.cull_mode = BaseMaterial3D.CULL_DISABLED
-			tak.material_override = tm
-			hus.add_child(tak)
-		# DÖRREN: en mörk öppning i fasaden, så huset läses som hus och inte som en låda.
-		var dörr := MeshInstance3D.new()
-		var dörrplan := PlaneMesh.new()
-		dörrplan.size = Vector2(minf(1.4, w * 0.3), h * 0.45)
-		dörr.mesh = dörrplan
-		dörr.position = Vector3(0.0, h * 0.225, djup * 0.5 + 0.02)
-		var dm := StandardMaterial3D.new()
-		dm.albedo_color = Color(0.10, 0.07, 0.05)
-		dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		dörr.material_override = dm
-		hus.add_child(dörr)
+		var djup := float(d.get("d", 3.4))
 		# FÖNSTERLJUSET: en varm punkt framför fasaden, som ett upplyst fönster i mörkret.
 		var lykta := OmniLight3D.new()
 		lykta.position = Vector3(w * 0.22, h * 0.55, djup * 0.5 + 0.6)
