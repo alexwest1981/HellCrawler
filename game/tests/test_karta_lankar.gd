@@ -203,6 +203,13 @@ func _initialize() -> void:
 	print("")
 	print("— KARTAN RITAR DEM (den våning körningen står på, den handritade) —")
 	var f: Dungeon.Floor = main.run.explore.floor_ref
+	# KARTAN RITAR BARA DÄR MAN SETT BÅDA ÄNDARNA (fog på kartan). Provet mäter GEOMETRIN för
+	# kopplingarna, inte dimman, så det avslöjar våningen först — annars mäter det hur långt provets
+	# gubbe råkade gå (mätt: 1 streck av 48 steg).
+	for y in f.h:
+		for x in f.w:
+			if f.is_floor_at(Vector2i(x, y)):
+				main.run.explore.sedda[Vector2i(x, y)] = true
 	var länkar: Array = main.map_view.länkar()
 	var steg_väntat := 0
 	for l in länkar:

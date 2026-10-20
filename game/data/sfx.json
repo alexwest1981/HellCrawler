@@ -17,5 +17,6 @@
   "enemy_die": "res://assets/tredjepart/ljud_400/Combat and Gore/splat_quick.wav",
   "enemy_die_big": "res://assets/tredjepart/ljud_400/Combat and Gore/crunch_splat.wav",
   "boss": "res://assets/tredjepart/ljud_400/Musical Effects/8_bit_level_start.wav",
-  "draft_pick": "res://assets/tredjepart/ljud_400/Card and Board/chips_place_1.wav"
+  "draft_pick": "res://assets/tredjepart/ljud_400/Card and Board/chips_place_1.wav",
+  "bump": "res://assets/sfx/hit.wav"
 }

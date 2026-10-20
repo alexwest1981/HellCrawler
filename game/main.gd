@@ -12465,8 +12465,7 @@ func _on_card(index: int) -> void:
 	# MILSTOLPSRÄKNAREN (önskemål 42): kortet räknas på sin typ, över alla körningar. Räknas bara på
 	# spelarens egen väg — botens autospel ska inte kunna spela upp en milstolpe.
 	if r.reason.is_empty():
-		meta.rakna_kort(str(kort.type))
-	if r.reason.is_empty():
+		meta.rakna_kort(kort.card_type)
 		var card_ev := {"type": "card", "card": r.card_id,
 			"mana": r.mana,
 			"hp": r.hp,
