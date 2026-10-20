@@ -283,6 +283,8 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	# RÖKEN LIGGER ÖVERST (M190): eget lager så den kan ritas om varje ruta utan att byns dyra
 	# textmätning körs. `show_behind_parent` är av — rök ska läggas ÖVER bilden.
+	if ROTERA:
+		_bygg_ring()
 	_rok = Rök.new()
 	_rok.vy = self
 	_rok.z_index = 1
@@ -1144,10 +1146,112 @@ func _delta(i: int) -> float:
 	var n := PLATSER.size()
 	return fposmod(float(i) - _rot + float(n) * 0.5, float(n)) - float(n) * 0.5
 
+
+## BYN I 3D (M198). Alex: *"De har någon form av 3d i sin meny"*. VC:s by är geometri med
+## pixelart-texturer (mätt i research/00) och karusellen (`ButtonCarousel`) vrider kameran mellan
+## byggnaderna. Här är samma sak i miniatyr: sex byggnadskroppar på en ring, kameran i mitten, och
+## vridningen är kamerans vinkel. Konstens urklipp blir byggnadernas fasad.
+## Medelfärgen ur en rad i bykonsten (0 = överkant, 1 = nederkant). Cachad: läses en gång.
+var _bakfärger: Dictionary = {}
+func _bakfärg(y: float) -> Color:
+	var nyckel := int(y * 100.0)
+	if _bakfärger.has(nyckel):
+		return _bakfärger[nyckel]
+	var tex := byscen()
+	if tex == null:
+		return Palett.c(1)
+	var bild := tex.get_image()
+	if bild == null:
+		return Palett.c(1)
+	var rad := clampi(int(y * float(bild.get_height())), 0, bild.get_height() - 1)
+	var summa := Color(0, 0, 0, 0)
+	var n := 0
+	for x in range(0, bild.get_width(), 8):
+		summa += bild.get_pixel(x, rad)
+		n += 1
+	summa /= maxf(1.0, float(n))
+	_bakfärger[nyckel] = summa
+	return summa
+
+var _ring_vp: SubViewport = null
+var _ring_kam: Camera3D = null
+var _ring_byggd := false
+
+func _bygg_ring() -> void:
+	var mått := Vector2i(int(_vy().x), int(_vy().y))
+	_ring_vp = SubViewport.new()
+	_ring_vp.size = mått
+	_ring_vp.own_world_3d = true
+	_ring_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_ring_vp.msaa_3d = Viewport.MSAA_4X
+	add_child(_ring_vp)
+	var värld := Node3D.new()
+	_ring_vp.add_child(värld)
+	# LJUSET: kallt omgivningsljus och en varm sol, samma förhållande som i konsten.
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = _bakfärg(0.10)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.62, 0.66, 0.78)
+	env.ambient_light_energy = 0.55
+	var we := WorldEnvironment.new()
+	we.environment = env
+	värld.add_child(we)
+	var sol := DirectionalLight3D.new()
+	sol.light_energy = 0.7
+	sol.light_color = Color(1.0, 0.86, 0.70)
+	sol.rotation_degrees = Vector3(-38.0, 34.0, 0.0)
+	värld.add_child(sol)
+	# MARKEN: en skiva med gatans färg.
+	var golv := MeshInstance3D.new()
+	var plan := PlaneMesh.new()
+	plan.size = Vector2(40.0, 40.0)
+	golv.mesh = plan
+	var gm := StandardMaterial3D.new()
+	gm.albedo_color = _bakfärg(0.95)
+	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	golv.material_override = gm
+	värld.add_child(golv)
+	# BYGGNADERNA PÅ RINGEN: en kropp per plats, med konstens urklipp som fasad.
+	var antal := PLATSER.size()
+	for i in antal:
+		var vinkel := TAU * float(i) / float(antal)
+		var kropp := MeshInstance3D.new()
+		var box := BoxMesh.new()
+		box.size = Vector3(5.0, 6.4, 3.2)
+		kropp.mesh = box
+		var mat := StandardMaterial3D.new()
+		mat.albedo_texture = _byggnadstextur(i)
+		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		mat.roughness = 0.9
+		kropp.material_override = mat
+		kropp.position = Vector3(sin(vinkel) * 9.0, 3.2, cos(vinkel) * 9.0)
+		kropp.rotation.y = vinkel
+		värld.add_child(kropp)
+	# KAMERAN i mitten, i ögonhöjd.
+	_ring_kam = Camera3D.new()
+	_ring_kam.position = Vector3(0.0, 2.2, 0.0)
+	_ring_kam.fov = 62.0
+	värld.add_child(_ring_kam)
+	_ring_byggd = true
+
+## Kameran tittar på plats i. Vinkeln räknas ur ringens delning, så byggnaden står rakt fram.
+func _ring_titta(i: int) -> void:
+	if _ring_kam == null:
+		return
+	var antal := PLATSER.size()
+	var vinkel := TAU * float(i) / float(antal)
+	_ring_kam.rotation = Vector3(0.0, vinkel, 0.0)
+
 ## HELA BYN SYNS (M197). Alex: *"Du visar en liten bit av gatan, å inte ett jävla dugg i närheten
 ## [av vad] de gör i VC"*. Vyn ritar bykonsten kant i kant i sin helhet, flyttad med `_pan` — inga
 ## urklipp, inga remsor, ingen riddare. Det som vrider sig är gatan under en fast menyrad.
 func _rita_roterande(vp: Vector2) -> void:
+	if _ring_vp != null:
+		_ring_titta(_vald)
+		draw_texture_rect(_ring_vp.get_texture(), Rect2(Vector2.ZERO, vp), false)
+		_rita_remsa(vp)
+		return
 	var tex := byscen()
 	if tex == null:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
@@ -1156,7 +1260,9 @@ func _rita_roterande(vp: Vector2) -> void:
 	var h2 := float(tex.get_height())
 	var w2 := maxf(vp.x, float(tex.get_width()) * vp.y / h2)
 	draw_texture_rect(tex, Rect2(-_pan, 0.0, w2, vp.y), false)
-	# Namn och status för platsen som står i mitten.
+	_rita_remsa(vp)
+
+func _rita_remsa(vp: Vector2) -> void:
 	var namn := Tr.t("ui.by.plats.%s" % str(PLATSER[_vald]["id"]), str(PLATSER[_vald]["namn"]))
 	var status: String = status_text(_vald)
 	var f := ThemeDB.fallback_font
