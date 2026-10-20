@@ -59,9 +59,11 @@ extends Control
 ## Platsen man valde och gick in i. `skepp` är skalets läge (main.gd), inte en egen sorts plats.
 signal vald(skepp: String)
 
-const BILD := "res://assets/by2d/byn.png"
+## BYN ENLIGT VC (M193): en bred målad gata med låg horisont, överdimensionerade hus i rad och
+## små figurer — samma uppbyggnad som Vampire Crawlers by, med vår egen konst (genererad, 1264x806).
+const BILD := "res://assets/by2d/byn_vc.png"
 ## Byn som MÅLAD 2.5D-scen (M172). False = Alex' panorama ritas, 3D-scenen är urkopplad.
-const BY3D := true
+const BY3D := false
 ## Figuren som går i byn (och på kartan): en av HJÄLTARNA ur Alex' hjälteark (`game/images/heroes.jpeg`,
 ## klippta av `tools/gen_hjalte.py`, som också sparar namnen i `assets/ui/hjalte.json`).
 ## HJÄLTEN MAN VALDE (M138): figuren är en MARKÖR, och valet (i huvudmenyn) styr både byn och kartan.
@@ -97,15 +99,13 @@ const FIGUR_SKALA := 1.0
 ## den, så platsen är borta härifrån — skärmen finns kvar i skalet (och nås av skalsvepet). Ska
 ## kortköpet ha en egen dörr får han säga vilket hus den ska bo i.
 const PLATSER := [
-	{"id": "tradet", "namn": "THREAD OF DESTINY", "skepp": "trad", "x": 9.0, "3d": "Weaver", "x0": 1.0, "x1": 18.0, "topp": 40.0, "färg": 1},
-	{"id": "smed", "namn": "BLACKSMITH", "skepp": "smed", "x": 29.0, "3d": "Smith", "x0": 19.0, "x1": 39.0, "topp": 38.0, "färg": 12},
-	{"id": "vardshus", "namn": "THE TAVERN", "skepp": "vardshus", "x": 52.0, "3d": "Tavern", "x0": 41.0, "x1": 64.0, "topp": 34.0, "färg": 13},
-	{"id": "karta", "namn": "THE GATE", "skepp": "karta", "x": 75.0, "3d": "Gate", "x0": 66.0, "x1": 85.0, "topp": 12.0, "färg": 25},
-	{"id": "juvelerare", "namn": "JEWELER", "skepp": "juvelerare", "x": 93.0, "3d": "Jeweler", "x0": 86.0, "x1": 100.0, "topp": 50.0, "färg": 30},
-	# EXIT-skylten i bilden (längst till höger) stänger spelet. Alex: "Exit på bilden behöver vara
-	# till att avsluta spelet." Den är ingen skärm i skalet — `_på_plats` i main.gd känner igen
-	# "avsluta" och avslutar, och provet mot SKAL_LÄGEN hoppar över just den här platsen.
-	{"id": "avsluta", "namn": "EXIT", "skepp": "avsluta", "x": 60.0, "3d": "Exit", "x0": 55.0, "x1": 65.0, "topp": 78.0, "färg": 14},
+	{"id": "tradet", "namn": "THREAD OF DESTINY", "skepp": "trad", "x": 24.0, "3d": "Weaver", "x0": 16.0, "x1": 33.0, "topp": 44.0, "färg": 1},
+	{"id": "smed", "namn": "BLACKSMITH", "skepp": "smed", "x": 41.0, "3d": "Smith", "x0": 34.0, "x1": 48.0, "topp": 40.0, "färg": 12},
+	{"id": "vardshus", "namn": "THE TAVERN", "skepp": "vardshus", "x": 57.0, "3d": "Tavern", "x0": 49.0, "x1": 66.0, "topp": 38.0, "färg": 13},
+	{"id": "karta", "namn": "THE GATE", "skepp": "karta", "x": 72.0, "3d": "Gate", "x0": 66.0, "x1": 79.0, "topp": 30.0, "färg": 25},
+	{"id": "juvelerare", "namn": "JEWELER", "skepp": "juvelerare", "x": 84.0, "3d": "Jeweler", "x0": 79.0, "x1": 91.0, "topp": 42.0, "färg": 30},
+	# EXIT-skylten stänger spelet (Alex: "Exit på bilden behöver vara till att avsluta spelet").
+	{"id": "avsluta", "namn": "EXIT", "skepp": "avsluta", "x": 95.0, "3d": "Exit", "x0": 91.0, "x1": 100.0, "topp": 60.0, "färg": 14},
 ]
 const MÄRKE := Vector2(20.0, 26.0)   ## platsens PUNKT-ruta: invarianten provet mäter (och klick i reserv)
 const DJUP := 6.0                    ## platsens skugga i sidled (provet räknar in den i krockmåttet)
