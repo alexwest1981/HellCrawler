@@ -1295,6 +1295,7 @@ func _bygg_ring() -> void:
 	värld.add_child(_ring_kam)
 	_bygg_landskap(värld)
 	_bygg_rekvisita(värld)
+	_bygg_himmel_dekor(värld)
 	_ring_byggd = true
 
 ## Kameran tittar på plats i. Vinkeln räknas ur ringens delning, så byggnaden står rakt fram.
@@ -1494,13 +1495,14 @@ func _bygg_landskap(värld: Node3D) -> void:
 		var berg := MeshInstance3D.new()
 		var bk := CylinderMesh.new()
 		bk.top_radius = 0.0
-		bk.bottom_radius = 30.0
-		bk.height = 34.0 + float(i % 3) * 14.0
+		bk.bottom_radius = 46.0
+		bk.height = 58.0 + float(i % 3) * 20.0
 		berg.mesh = bk
-		berg.position = Vector3(sin(vinkel2) * 105.0, bk.height * 0.5 - 6.0, cos(vinkel2) * 105.0)
+		berg.position = Vector3(sin(vinkel2) * 150.0, bk.height * 0.5 - 10.0, cos(vinkel2) * 150.0)
 		var bm := StandardMaterial3D.new()
-		bm.albedo_color = Color(0.27, 0.31, 0.41)
+		bm.albedo_color = Color(0.20, 0.24, 0.34)
 		bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		bm.disable_fog = true
 		berg.material_override = bm
 		värld.add_child(berg)
 
@@ -1568,3 +1570,64 @@ func _bygg_skog(värld: Node3D) -> void:
 		träd.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
 		värld.add_child(träd)
 	print("skog: ", 90, " träd ur ", modeller.size(), " modeller")
+
+
+## MÅNE, STJÄRNOR OCH MOLN (M217): Alex: *"nu saknas det några fina berg, lite moln, en måne, stjärnor"*.
+## Allt är enkla noder med `disable_fog`, så de syns genom dimman — himlen ska inte dränkas av markdimman.
+func _bygg_himmel_dekor(värld: Node3D) -> void:
+	# MÅNEN: en blek skiva högt uppe, unshaded så den inte påverkas av byns ljus.
+	var måne := MeshInstance3D.new()
+	var kula := SphereMesh.new()
+	kula.radius = 11.0
+	kula.height = 22.0
+	kula.radial_segments = 20
+	kula.rings = 10
+	måne.mesh = kula
+	var mm := StandardMaterial3D.new()
+	mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mm.albedo_color = Color(0.93, 0.94, 0.88)
+	mm.disable_fog = true
+	måne.material_override = mm
+	måne.position = Vector3(-150.0, 105.0, -300.0)
+	värld.add_child(måne)
+	# STJÄRNORNA: ett gäng små kuber på himlavalvet, i ett MultiMesh (ett draw call).
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 771
+	var mmesh := MultiMesh.new()
+	mmesh.transform_format = MultiMesh.TRANSFORM_3D
+	mmesh.mesh = BoxMesh.new()
+	var antal := 260
+	mmesh.instance_count = antal
+	for i in antal:
+		var vinkel := rng.randf_range(0.0, TAU)
+		var höjd := rng.randf_range(0.10, 0.95)
+		var riktning := Vector3(cos(vinkel) * sqrt(1.0 - höjd * höjd), höjd, sin(vinkel) * sqrt(1.0 - höjd * höjd))
+		var storlek := rng.randf_range(0.7, 1.9)
+		mmesh.set_instance_transform(i, Transform3D(Basis().scaled(Vector3.ONE * storlek), riktning * 320.0))
+	var stjärnor := MultiMeshInstance3D.new()
+	stjärnor.multimesh = mmesh
+	var sm := StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.albedo_color = Color(0.82, 0.86, 0.95)
+	sm.disable_fog = true
+	stjärnor.material_override = sm
+	värld.add_child(stjärnor)
+	# MOLNEN: kluster av små lådor, inte en enda stor skiva — en skiva läses som en glasskiva.
+	for i in 12:
+		var v := rng.randf_range(0.0, TAU)
+		var kluster := Node3D.new()
+		kluster.position = Vector3(cos(v) * rng.randf_range(110.0, 230.0), rng.randf_range(72.0, 118.0), sin(v) * rng.randf_range(110.0, 230.0))
+		värld.add_child(kluster)
+		for j in rng.randi_range(4, 7):
+			var puff := MeshInstance3D.new()
+			var låda := BoxMesh.new()
+			låda.size = Vector3(rng.randf_range(16.0, 34.0), rng.randf_range(7.0, 13.0), rng.randf_range(14.0, 26.0))
+			puff.mesh = låda
+			var molnmat := StandardMaterial3D.new()
+			molnmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			molnmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			molnmat.albedo_color = Color(0.62, 0.67, 0.80, 0.16)
+			molnmat.disable_fog = true
+			puff.material_override = molnmat
+			puff.position = Vector3(rng.randf_range(-40.0, 40.0), rng.randf_range(-6.0, 6.0), rng.randf_range(-24.0, 24.0))
+			kluster.add_child(puff)
