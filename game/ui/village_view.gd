@@ -711,9 +711,6 @@ func _pixel_låst(v: float) -> float:
 
 ## Platsens x i BILDENS koordinater (logiska px från bildens vänsterkant), ur dess procent.
 func _plats_x(i: int) -> float:
-	if ROTERA:
-		# Platserna fördelas jämnt över omgången: sex stopp på en gata, inte sex hus i en bild.
-		return _period() * (float(i) + 0.5) / float(PLATSER.size())
 	return bild_storlek().x * float(PLATSER[i]["x"]) / 100.0
 
 ## Husets ruta i VYNS px — KLICKYTAN (M126). Med 3D-byn är den husets EGEN position i byn.glb
@@ -758,12 +755,10 @@ func _period() -> float:
 
 func _mål_pan(i: int) -> float:
 	if ROTERA:
-		# Platsen ska stå mitt i vyn. Vridningen ligger i [0, period) och vi tar KORTASTE vägen dit,
-		# annars snurrar vyn nästan ett helt varv när man går ett steg bakåt.
-		var mål := _plats_x(i) - _vy().x * 0.5
-		var per := _period()
-		var skillnad := fposmod(mål - _pan + per * 0.5, per) - per * 0.5
-		return fposmod(_pan + skillnad, per)
+		# VRIDNINGEN (M197): platsen ska stå mitt i vyn. Gatan är HEL — hela byn syns hela tiden,
+		# grannhusen med — och vyn glider bara så långt konsten räcker. Ingen urklippt remsa.
+		var vp := _vy()
+		return clampf(_plats_x(i) - vp.x * 0.5, 0.0, maxf(0.0, bild_storlek().x - vp.x))
 	# 2.5D HD (M174): bilden fyller vyn exakt, så det finns inget att panorera. Alex: *"något weird
 	# parallax som flyttar sig åt fel håll när man rör muspekaren"* — bort.
 	if not BY3D:
@@ -794,7 +789,7 @@ func flytta(dir: Vector2i) -> bool:
 	if nästa_kol < 0 or nästa_kol >= _rader().size():
 		return false
 	var nästa: int = int(_rader()[nästa_kol])
-	_rot_mål += (1.0 if dir.x > 0 else -1.0)
+
 	_vald = nästa
 	_pan_mål = _mål_pan(_vald)
 	_om_markering()
@@ -871,11 +866,6 @@ func _process(delta: float) -> void:
 		queue_redraw()
 	# Panoreringen glider mot målet. Glider den klart ritas vyn om en sista gång och sedan inte mer:
 	# en stillastående bild ska kosta ingenting.
-	if ROTERA and absf(_rot_mål - _rot) > 0.001:
-		_rot = lerpf(_rot, _rot_mål, 1.0 - exp(-PAN_FART * delta))
-		if absf(_rot_mål - _rot) <= 0.001:
-			_rot = _rot_mål
-		queue_redraw()
 	if absf(_pan_mål - _pan) > 0.05:
 		_pan = lerpf(_pan, _pan_mål, 1.0 - exp(-PAN_FART * delta))
 		if absf(_pan_mål - _pan) <= 0.05:
@@ -960,7 +950,8 @@ func _draw() -> void:
 	for i in PLATSER.size():
 		_hus(i)
 	# GÅNGAREN sist: hon går på gatan framför husen, alltså närmast betraktaren.
-	_gångare_ritning()
+	if not ROTERA:
+		_gångare_ritning()
 
 ## HOVRINGSGLÖDEN ÄR BORTA (M152) — se `_draw`. Den här raden finns kvar bara för att provet ska
 ## kunna mäta att ingen ram ritas: den svarar alltid tom.
@@ -1153,80 +1144,29 @@ func _delta(i: int) -> float:
 	var n := PLATSER.size()
 	return fposmod(float(i) - _rot + float(n) * 0.5, float(n)) - float(n) * 0.5
 
-## Ringen: byggnaderna längre bak är mindre, mörkare och längre in mot mitten; den valda står rakt
-## fram. Figur och namn står still — det är ringen som vrider sig.
-## Medelfärgen ur en rad i bykonsten (0 = överkant, 1 = nederkant). Cachad: den läses en gång.
-var _bakfärger: Dictionary = {}
-func _bakfärg(y: float) -> Color:
-	var nyckel := int(y * 100.0)
-	if _bakfärger.has(nyckel):
-		return _bakfärger[nyckel]
+## HELA BYN SYNS (M197). Alex: *"Du visar en liten bit av gatan, å inte ett jävla dugg i närheten
+## [av vad] de gör i VC"*. Vyn ritar bykonsten kant i kant i sin helhet, flyttad med `_pan` — inga
+## urklipp, inga remsor, ingen riddare. Det som vrider sig är gatan under en fast menyrad.
+func _rita_roterande(vp: Vector2) -> void:
 	var tex := byscen()
 	if tex == null:
-		return Palett.c(1)
-	var bild := tex.get_image()
-	if bild == null:
-		return Palett.c(1)
-	var rad := clampi(int(y * float(bild.get_height())), 0, bild.get_height() - 1)
-	var summa := Color(0, 0, 0, 0)
-	for x in range(0, bild.get_width(), 8):
-		summa += bild.get_pixel(x, rad)
-	summa /= maxf(1.0, float(bild.get_width() / 8))
-	_bakfärger[nyckel] = summa
-	return summa
-
-func _rita_roterande(vp: Vector2) -> void:
-	if byscen() == null:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
 		return
-	# BAKPLATTAN (M195): hela bykonsten ligger underst, dämpad. Utan den möttes byggnadsrutorna i
-	# hårda kanter — mätt på skärmbild: synliga vertikala sömmar genom himmel, träd och mark.
-	# HIMLEN OCH MARKEN, inte bybilden (M195): en karusell har ingen gemensam bakgrund bakom
-	# byggnaderna — därför kunde urklippet aldrig smälta in i en bakplatta som föreställer samma sak.
-	# Färgerna tas ur konsten en gång, så vyn hör ihop med bilden utan att vara bilden.
-	var himmel := _bakfärg(0.08)
-	var mark := _bakfärg(0.95)
-	draw_rect(Rect2(0.0, 0.0, vp.x, marklinje()), himmel)
-	draw_rect(Rect2(0.0, marklinje(), vp.x, vp.y - marklinje()), mark)
-	var ordning := []
-	for i in PLATSER.size():
-		var d := _delta(i)
-		# Bara byggnaden i mitten ritas som egen bild — grannarna syns i bakplattan, och då behövs
-		# ingen söm där två urklipp möts.
-		if absf(d) <= 0.75:
-			ordning.append([cos(d * 0.55), i, d])
-	ordning.sort_custom(func(a, b): return float(a[0]) < float(b[0]))   # bakt först
-	for post in ordning:
-		var djup: float = float(post[0])
-		var i: int = int(post[1])
-		var d: float = float(post[2])
-		var tex := _byggnadstextur(i)
-		if tex == null:
-			continue
-		var x := vp.x * 0.5 + sin(d * 0.55) * vp.x * 0.30
-		var skala := lerpf(0.62, 1.0, clampf(djup, 0.0, 1.0))
-		var h2 := vp.y * 0.72 * skala
-		var förh := maxf(0.05, float(tex.get_width()) / float(tex.get_height()))
-		var w2 := h2 * förh
-		# Full täckning: urklippet är SAMMA pixlar som bakplattan, så med rätt alfa syns ingen ruta.
-		var al := 1.0
-		draw_texture_rect(tex, Rect2(x - w2 * 0.5, marklinje() - h2, w2, h2), false,
-			Color(1.0, 1.0, 1.0, al))
-	# Figuren står mitt i bilden, på gatulinjen, framför den valda byggnaden.
-	if _figur != null:
-		var storlek := _figur.get_size() * FIGUR_SKALA
-		draw_texture(_figur, Vector2(vp.x * 0.5 - storlek.x * 0.5, marklinje() - storlek.y))
-	# Namn och status för byggnaden i mitten.
+	# Konstens bredd vid vyns höjd; är den bredare än vyn panoreras den, annars fyller den rutan.
+	var h2 := float(tex.get_height())
+	var w2 := maxf(vp.x, float(tex.get_width()) * vp.y / h2)
+	draw_texture_rect(tex, Rect2(-_pan, 0.0, w2, vp.y), false)
+	# Namn och status för platsen som står i mitten.
 	var namn := Tr.t("ui.by.plats.%s" % str(PLATSER[_vald]["id"]), str(PLATSER[_vald]["namn"]))
 	var status: String = status_text(_vald)
 	var f := ThemeDB.fallback_font
-	var remsa := maxf(64.0, vp.y * 0.12)
-	draw_rect(Rect2(0.0, vp.y - remsa, vp.x, remsa), _a(Palett.c(1), 0.82))
+	var remsa := maxf(46.0, vp.y * 0.10)
+	draw_rect(Rect2(0.0, vp.y - remsa, vp.x, remsa), _a(Palett.c(1), 0.86))
 	draw_rect(Rect2(0.0, vp.y - remsa, vp.x, 1.0), Palett.c(14))
-	draw_string(f, Vector2(0.0, vp.y - remsa * 0.52), namn, HORIZONTAL_ALIGNMENT_CENTER, vp.x,
-		int(vp.y * 0.045), Palett.c(14))
+	draw_string(f, Vector2(0.0, vp.y - remsa * 0.50), namn, HORIZONTAL_ALIGNMENT_CENTER, vp.x,
+		int(vp.y * 0.042), Palett.c(14))
 	draw_string(f, Vector2(0.0, vp.y - remsa * 0.16), status, HORIZONTAL_ALIGNMENT_CENTER, vp.x,
-		int(vp.y * 0.032), _a(Palett.c(5), 0.9))
+		int(vp.y * 0.030), _a(Palett.c(5), 0.9))
 
 func _bar(vp: Vector2) -> void:
 	draw_rect(Rect2(0.0, bar_topp(), vp.x, 40.0), Palett.c(1))
