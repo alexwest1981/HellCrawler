@@ -1562,7 +1562,7 @@ func _bygg_skog(värld: Node3D) -> void:
 		var vinkel := TAU * float(i) / 90.0 + rng.randf_range(-0.05, 0.05)
 		var radie := rng.randf_range(30.0, 56.0)
 		var träd := modeller[rng.randi_range(0, modeller.size() - 1)].instantiate()
-		var skala := rng.randf_range(0.75, 1.35)
+		var skala := rng.randf_range(1.15, 1.95)
 		träd.scale = Vector3.ONE * skala
 		träd.rotation.y = rng.randf_range(0.0, TAU)
 		träd.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
