@@ -189,7 +189,6 @@
   "ui.meny.copyright": "© 2026 HellCrawler",
   "ui.alternativ.titel": "OPTIONS",
   "ui.alternativ.sprak": "language: %s",
-  "ui.alternativ.crt": "CRT mode: %s",
   "ui.alternativ.musik": "music: %s",
   "ui.alternativ.spar": "track: %s",
   "ui.alternativ.pa": "on",
