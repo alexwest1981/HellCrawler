@@ -1293,12 +1293,19 @@ func _bygg_ring() -> void:
 		dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		dörr.material_override = dm
 		hus.add_child(dörr)
+		# FÖNSTERLJUSET: en varm punkt framför fasaden, som ett upplyst fönster i mörkret.
+		var lykta := OmniLight3D.new()
+		lykta.position = Vector3(w * 0.22, h * 0.55, djup * 0.5 + 0.6)
+		lykta.light_color = Color(1.0, 0.72, 0.36)
+		lykta.light_energy = 2.2
+		lykta.omni_range = 6.0
+		hus.add_child(lykta)
 
 	# KAMERAN i mitten, i ögonhöjd.
 	_ring_kam = Camera3D.new()
-	_ring_kam.position = Vector3(0.0, 3.6, 0.0)
+	_ring_kam.position = Vector3(0.0, 3.0, 0.0)
 	_ring_kam.rotation_degrees = Vector3(-4.0, 0.0, 0.0)
-	_ring_kam.fov = 76.0
+	_ring_kam.fov = 62.0
 	värld.add_child(_ring_kam)
 	_ring_byggd = true
 

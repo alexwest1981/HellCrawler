@@ -1,6 +1,6 @@
 {
   "_": "Byn som DATA, inte en bild (M204). Varje post är ett hus på ringen: vinkel i grader runt byns mitt, mått i meter, och vilka av spelets egna material som används. Alex: \"annars får vi bygga en by som vi bygger banor\" — samma princip som rummen: layouten är en fil, konsten är våra egna rutor.",
-  "radie": 11.0,
+  "radie": 8.0,
   "hus": [
     {
       "id": "tradet",
@@ -9,7 +9,7 @@
       "vinkel": 0.0,
       "w": 5.2,
       "d": 3.6,
-      "h": 4.6,
+      "h": 6.7,
       "vag": "ancient_stone",
       "tak": "wooden_palisades"
     },
@@ -20,7 +20,7 @@
       "vinkel": 60.0,
       "w": 5.0,
       "d": 3.4,
-      "h": 4.2,
+      "h": 6.1,
       "vag": "fortified_stone_bricks",
       "tak": "wooden_palisades"
     },
@@ -31,7 +31,7 @@
       "vinkel": 120.0,
       "w": 6.0,
       "d": 4.0,
-      "h": 5.6,
+      "h": 8.1,
       "vag": "chiseled_marble",
       "tak": "wooden_palisades"
     },
@@ -42,7 +42,7 @@
       "vinkel": 180.0,
       "w": 6.4,
       "d": 2.6,
-      "h": 6.4,
+      "h": 9.3,
       "vag": "fortified_stone_bricks",
       "tak": "ancient_stone"
     },
@@ -53,7 +53,7 @@
       "vinkel": 240.0,
       "w": 4.6,
       "d": 3.4,
-      "h": 4.0,
+      "h": 5.8,
       "vag": "chiseled_marble",
       "tak": "wooden_palisades"
     },
@@ -64,7 +64,7 @@
       "vinkel": 300.0,
       "w": 3.4,
       "d": 2.4,
-      "h": 3.4,
+      "h": 4.9,
       "vag": "ancient_stone",
       "tak": "wooden_palisades"
     }
