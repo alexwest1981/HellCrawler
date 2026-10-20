@@ -80,3 +80,6 @@ jobb/snapshots/
 # assets/ är nu arbetsytan för byn: källkonsten (5 JPEG, 9 MB), arkivet med 18 äldre .blend (100 MB)
 # och arbetsfilen. Samma skäl som raderna ovan — källmaterial och binärer hör inte i ett publikt repo.
 /assets/
+
+# Tredjepartspaket som inte används av spelet (flyttade ur game/ 20/10, M188). Ligger kvar på disk.
+tredjepart_kalla/
