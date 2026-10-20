@@ -717,6 +717,10 @@ func _pixel_låst(v: float) -> float:
 
 ## Platsens x i BILDENS koordinater (logiska px från bildens vänsterkant), ur dess procent.
 func _plats_x(i: int) -> float:
+	if ROTERA:
+		# Jämnt fördelade över omgången: vridningen ska gå ett steg per byggnad, oavsett var i
+		# konsten huset råkade hamna.
+		return _omgang() * (float(i) + 0.5) / float(PLATSER.size())
 	return bild_storlek().x * float(PLATSER[i]["x"]) / 100.0
 
 ## Husets ruta i VYNS px — KLICKYTAN (M126). Med 3D-byn är den husets EGEN position i byn.glb
@@ -761,16 +765,23 @@ func _period() -> float:
 
 func _mål_pan(i: int) -> float:
 	if ROTERA:
-		# VRIDNINGEN (M197): platsen ska stå mitt i vyn. Gatan är HEL — hela byn syns hela tiden,
-		# grannhusen med — och vyn glider bara så långt konsten räcker. Ingen urklippt remsa.
-		var vp := _vy()
-		return clampf(_plats_x(i) - vp.x * 0.5, 0.0, maxf(0.0, bild_storlek().x - vp.x))
+		# VRIDNINGEN GÅR RUNT (M201). Alex: *"Den roterar inte"*. Platsen ska stå mitt i vyn och
+		# vridningen är en omgång = bildens bredd; kortaste vägen dit, annars snurrar byn nästan ett
+		# helt varv när man går bakåt.
+		var per := _omgang()
+		var mål := _plats_x(i) - _vy().x * 0.5
+		var skillnad := fposmod(mål - _pan + per * 0.5, per) - per * 0.5
+		return fposmod(_pan + skillnad, per)
 	# 2.5D HD (M174): bilden fyller vyn exakt, så det finns inget att panorera. Alex: *"något weird
 	# parallax som flyttar sig åt fel håll när man rör muspekaren"* — bort.
 	if not BY3D:
 		return 0.0
 	var vp := _vy()
 	return clampf(_plats_x(i) - vp.x * 0.5, 0.0, maxf(0.0, bild_storlek().x - vp.x))
+
+## En omgång: hur långt vridningen går innan byn kommer tillbaka till samma läge.
+func _omgang() -> float:
+	return maxf(_vy().x, bild_storlek().x)
 
 ## Ligger platsen inom vyn? De utanför ritas inte — ett märke utanför kanten syns inte, och klickytan
 ## ska inte fånga ett klick som hör till bilden.
@@ -1260,10 +1271,14 @@ func _rita_roterande(vp: Vector2) -> void:
 	if tex == null:
 		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
 		return
-	# Konstens bredd vid vyns höjd; är den bredare än vyn panoreras den, annars fyller den rutan.
-	var h2 := float(tex.get_height())
-	var w2 := maxf(vp.x, float(tex.get_width()) * vp.y / h2)
-	draw_texture_rect(tex, Rect2(-_pan, 0.0, w2, vp.y), false)
+	# OMSLAG (M201): byn ritas två gånger sida vid sida och förskjuts med `_pan`, så vridningen går
+	# runt utan att ta slut. Bredden är omgången, alltså minst en skärm.
+	var omg := _omgang()
+	var start := -fposmod(_pan, omg)
+	var k := 0
+	while start + float(k) * omg < vp.x:
+		draw_texture_rect(tex, Rect2(start + float(k) * omg, 0.0, omg, vp.y), false)
+		k += 1
 	_rita_remsa(vp)
 
 func _rita_remsa(vp: Vector2) -> void:
