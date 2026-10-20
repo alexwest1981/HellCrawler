@@ -1544,57 +1544,27 @@ func _bygg_rekvisita(värld: Node3D) -> void:
 			pjäs.scale = Vector3.ONE * 1.15
 			värld.add_child(pjäs)
 
-## VOXELSKOG (M214): Alex pekade på Meshys voxel-tag — *"något i den här stilen mer"*. Träden är nu
-## riktiga voxelmodeller: ett rutnät av små kuber (stam + konisk krona) i EN MultiMesh, så 90 träd blir
-## ett draw call i stället för hundra noder. Färgen per kloss ger skiftningar utan texturer.
+## SKOGEN (M215): Alex: *"Använd modeller härifrån istället så länge"* — Stylized Nature MegaKit.
+## Sex trädmodeller (glTF) instansieras i ringen med slumpad skala och vridning. Voxelversionen är
+## borttagen: modellerna är 10,6 MB totalt och läses direkt av Godot, utan konvertering.
 func _bygg_skog(värld: Node3D) -> void:
-	const KUB := 0.62
+	var modeller: Array[PackedScene] = []
+	for namn in ["Pine_1", "Pine_2", "Pine_3", "CommonTree_1", "CommonTree_2", "CommonTree_3"]:
+		var scen: PackedScene = load("res://assets/by/trad2/%s.gltf" % namn)
+		if scen != null:
+			modeller.append(scen)
+	if modeller.is_empty():
+		push_warning("Inga trädmodeller hittades i assets/by/trad2")
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20261020
-	var plaster: Array[Transform3D] = []
-	var färger: Array[Color] = []
 	for i in 90:
 		var vinkel := TAU * float(i) / 90.0 + rng.randf_range(-0.05, 0.05)
 		var radie := rng.randf_range(30.0, 56.0)
-		var höjd := rng.randf_range(12.0, 21.0)
-		var fot := Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
-		var lager := int(höjd / KUB)
-		var grönt := Color(0.22, 0.34, 0.23).lerp(Color(0.31, 0.45, 0.30), rng.randf())
-		for y in lager:
-			var andel := float(y) / float(lager)
-			# Stammen är en kloss bred; kronan en kon som smalnar av uppåt och kantas av slump.
-			var bredd := 0.0 if andel > 0.30 else (1.0 - andel) * 2.9
-			var rutor := int(bredd / KUB)
-			for x in range(-rutor, rutor + 1):
-				for z in range(-rutor, rutor + 1):
-					var avstånd := Vector2(float(x), float(z)).length() * KUB
-					if andel > 0.30 and avstånd > (1.0 - andel) * 1.7:
-						continue
-					if andel > 0.30 and rng.randf() < 0.18:
-						continue
-					if andel <= 0.30 and abs(x) > 0 and abs(z) > 0:
-						continue
-					var pos := fot + Vector3(float(x) * KUB, KUB * (float(y) + 0.5), float(z) * KUB)
-					plaster.append(Transform3D(Basis().scaled(Vector3.ONE * KUB), pos))
-					var ton := grönt
-					if andel <= 0.30:
-						ton = Color(0.12, 0.09, 0.07)
-					else:
-						ton = grönt.lightened(rng.randf_range(-0.06, 0.10))
-					färger.append(ton)
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
-	mm.mesh = BoxMesh.new()
-	mm.instance_count = plaster.size()
-	for i in plaster.size():
-		mm.set_instance_transform(i, plaster[i])
-		mm.set_instance_color(i, färger[i])
-	var nod := MultiMeshInstance3D.new()
-	nod.multimesh = mm
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 1.0
-	nod.material_override = mat
-	värld.add_child(nod)
-	print("voxelskog: ", plaster.size(), " klossar i ett draw call")
+		var träd := modeller[rng.randi_range(0, modeller.size() - 1)].instantiate()
+		var skala := rng.randf_range(0.75, 1.35)
+		träd.scale = Vector3.ONE * skala
+		träd.rotation.y = rng.randf_range(0.0, TAU)
+		träd.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
+		värld.add_child(träd)
+	print("skog: ", 90, " träd ur ", modeller.size(), " modeller")
