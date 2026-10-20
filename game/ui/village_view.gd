@@ -1294,6 +1294,7 @@ func _bygg_ring() -> void:
 	_ring_kam.fov = 62.0
 	värld.add_child(_ring_kam)
 	_bygg_landskap(värld)
+	_bygg_rekvisita(värld)
 	_ring_byggd = true
 
 ## Kameran tittar på plats i. Vinkeln räknas ur ringens delning, så byggnaden står rakt fram.
@@ -1464,24 +1465,20 @@ func _bygg_landskap(värld: Node3D) -> void:
 		var gran := Node3D.new()
 		gran.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
 		värld.add_child(gran)
-		var tall: PackedScene = load("res://assets/by/trad/pine_tree_01.gltf")
-		if tall != null:
-			var träd := tall.instantiate()
-			träd.scale = Vector3.ONE * (höjd / 9.0)
-			gran.add_child(träd)
-			continue
-		var krona := MeshInstance3D.new()
-		var kon := CylinderMesh.new()
-		kon.top_radius = 0.0
-		kon.bottom_radius = höjd * 0.26
-		kon.height = höjd
-		krona.mesh = kon
-		krona.position = Vector3(0.0, höjd * 0.5 + 0.7, 0.0)
-		var km := StandardMaterial3D.new()
-		km.albedo_color = Color(0.10, 0.17, 0.13).lerp(Color(0.17, 0.25, 0.18), rng.randf())
-		km.roughness = 1.0
-		krona.material_override = km
-		gran.add_child(krona)
+		# VOXELGRAN (M213): Alex: originalet var *"lite val avancerade modeller for trad"*. Tre staplade
+		# lådor i grönt och en stam — samma blockighet som resten av spelet, och inga hundra megabyte.
+		for lager in 3:
+			var krona := MeshInstance3D.new()
+			var kloss := BoxMesh.new()
+			var bredd := höjd * (0.42 - 0.10 * float(lager))
+			kloss.size = Vector3(bredd, höjd * 0.30, bredd)
+			krona.mesh = kloss
+			krona.position = Vector3(0.0, höjd * (0.42 + 0.24 * float(lager)), 0.0)
+			var km2 := StandardMaterial3D.new()
+			km2.albedo_color = Color(0.10, 0.17, 0.13).lerp(Color(0.16, 0.24, 0.18), rng.randf())
+			km2.roughness = 1.0
+			krona.material_override = km2
+			gran.add_child(krona)
 		var stam := MeshInstance3D.new()
 		var stamcyl := CylinderMesh.new()
 		stamcyl.top_radius = 0.14
@@ -1536,3 +1533,43 @@ func _bygg_landskap(värld: Node3D) -> void:
 		bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		berg.material_override = bm
 		värld.add_child(berg)
+
+
+## REKVISITA (M213): Alex: *"sätt ut lite tunnor, något städ vid smeden, barbord utanför tavernan.
+## Helt enkelt inreda inne i byn så det ser bebott ut."* Pjäserna är Quaternius fantasyprylar (CC0) som
+## ligger i game/assets/by/rekvisita. De ställs utifrån varje hus vinkel, så de hamnar där huset står.
+func _bygg_rekvisita(värld: Node3D) -> void:
+	var data: Dictionary = {}
+	var fil := FileAccess.open("res://data/by.json", FileAccess.READ)
+	if fil != null:
+		data = JSON.parse_string(fil.get_as_text())
+		fil.close()
+	var radie := float(data.get("radie", 18.0))
+	# Vilka prylar som hör till vilket hus: tunnor och städ vid smeden, barbord vid värdshuset.
+	var plan := {
+		"smed": [["Anvil", 2.6, -1.6], ["Anvil_Log", 3.2, 0.4], ["Barrel", -2.8, -1.2], ["Barrel", -3.4, -0.2]],
+		"vardshus": [["Bench", 3.0, -1.8], ["Bench", 4.4, -1.4], ["Barrel", -3.2, -1.6]],
+		"tradet": [["Barrel", 2.8, -1.4], ["Barrel", 3.4, -0.6]],
+		"juvelerare": [["Barrel", -2.6, -1.2]],
+		"karta": [["Barrel", 3.0, -1.6], ["Barrel", -3.0, -1.6]],
+	}
+	for hus_data in data.get("hus", []):
+		var d: Dictionary = hus_data
+		var uppsättning = plan.get(str(d.get("id", "")), [])
+		if uppsättning.is_empty():
+			continue
+		var vinkel := deg_to_rad(float(d.get("vinkel", 0.0))) + PI    # husets framsida pekar inåt
+		for post in uppsättning:
+			var scen: PackedScene = load("res://assets/by/rekvisita/%s.gltf" % str(post[0]))
+			if scen == null:
+				continue
+			var pjäs := scen.instantiate()
+			# Placeringen räknas i husets EGET system: sidled och ut mot torget.
+			var sidled := float(post[1])
+			var fram := float(post[2])
+			var x := sin(vinkel) * (radie - 2.2) - cos(vinkel) * sidled
+			var z := cos(vinkel) * (radie - 2.2) + sin(vinkel) * sidled
+			pjäs.position = Vector3(x, 0.0, z)
+			pjäs.rotation.y = vinkel + PI * 0.5
+			pjäs.scale = Vector3.ONE * 1.15
+			värld.add_child(pjäs)
