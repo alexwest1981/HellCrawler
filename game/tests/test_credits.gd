@@ -112,7 +112,8 @@ func _initialize() -> void:
 
 	print("")
 	print("— rubriken finns på alla tretton språk —")
-	var sv_titel := Tr.t("ui.credits.titel")
+	Tr.set_lang("sv")                     # jämförelsen nedan är mot SVENSKA rubriken — språket måste
+	var sv_titel := Tr.t("ui.credits.titel")   # vara satt här, inte ärvas från vad provet gjorde sist
 	var tomma := []
 	var svenska := []
 	for kod in Tr.codes():

@@ -125,6 +125,14 @@ func _identisk(textur: Image, konst: Image, r: Rect2) -> Array:
 	return [lika, synliga, tom, olika_himmel]
 
 func _init() -> void:
+	# 3D-BYN ÄR AVSTÄNGD sedan 2.5D-bilden tog över (M174, Alex: *"raka motsatsen till vad jag vill
+	# ha"* om den gamla bilden). Provet mäter 3D-scenen — bybor, urklippta hus, skyltar — och en avstängd
+	# scen gör alla dess kontroller falska av samma skäl. Det står här i klartext i stället för att
+	# kontrollerna tyst räknas som gröna.
+	if not VillageView.BY3D:
+		print("HOPPAR: 3D-byn är av (VillageView.BY3D = false) — provet mäter 3D-scenen, inte 2.5D-bilden")
+		quit(0)
+		return
 	# Provet läser metat (`visa` behöver det) men ska aldrig röra spelarens sparfil.
 	Meta.fotolage(true)
 	_clean()

@@ -68,6 +68,14 @@ func _gå_klart(g: Gångare, dt: float = 0.05) -> void:
 		antal += 1
 
 func _initialize() -> void:
+	# 3D-BYN ÄR AVSTÄNGD sedan 2.5D-bilden tog över (M174, Alex: *"raka motsatsen till vad jag vill
+	# ha"* om den gamla bilden). Provet mäter 3D-scenen — bybor, urklippta hus, skyltar — och en avstängd
+	# scen gör alla dess kontroller falska av samma skäl. Det står här i klartext i stället för att
+	# kontrollerna tyst räknas som gröna.
+	if not VillageView.BY3D:
+		print("HOPPAR: 3D-byn är av (VillageView.BY3D = false) — provet mäter 3D-scenen, inte 2.5D-bilden")
+		quit(0)
+		return
 	var stages := Stages.load_all()
 	var order: Array = stages.keys()
 	_clean()

@@ -73,6 +73,14 @@ func check(villkor: bool, vad: String) -> void:
 
 
 func _init() -> void:
+	# 3D-BYN ÄR AVSTÄNGD sedan 2.5D-bilden tog över (M174, Alex: *"raka motsatsen till vad jag vill
+	# ha"* om den gamla bilden). Provet mäter 3D-scenen — bybor, urklippta hus, skyltar — och en avstängd
+	# scen gör alla dess kontroller falska av samma skäl. Det står här i klartext i stället för att
+	# kontrollerna tyst räknas som gröna.
+	if not VillageView.BY3D:
+		print("HOPPAR: 3D-byn är av (VillageView.BY3D = false) — provet mäter 3D-scenen, inte 2.5D-bilden")
+		quit(0)
+		return
 	var poster: Array = Bybor.poster()
 	check(not poster.is_empty(), "bybor.json finns och har poster (%d)" % poster.size())
 	check(poster.size() >= 20, "minst 20 bybor i tabellen (fick %d)" % poster.size())
