@@ -24,6 +24,11 @@ func check(ok: bool, what: String, detail: String = "") -> void:
 
 func _initialize() -> void:
 	print("=== BYNS LIV (rök, glöd, eldflugor) ===")
+	# Effekterna hör till den målade byn; 3D-byn har rök-emittern i scenen (test_by_rok).
+	if VillageView.BY3D:
+		print("HOPPAR: 3D-byn är PÅ — röken i scenen mäts av test_by_rok, inte här")
+		quit(0)
+		return
 
 	# -- 1. NODEN FINNS OCH LIGGER ÖVER BILDEN
 	var main: Node = load("res://main.tscn").instantiate()

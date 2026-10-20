@@ -72,8 +72,8 @@ func _initialize() -> void:
 	# ha"* om den gamla bilden). Provet mäter 3D-scenen — bybor, urklippta hus, skyltar — och en avstängd
 	# scen gör alla dess kontroller falska av samma skäl. Det står här i klartext i stället för att
 	# kontrollerna tyst räknas som gröna.
-	if not VillageView.BY3D:
-		print("HOPPAR: 3D-byn är av (VillageView.BY3D = false) — provet mäter 3D-scenen, inte 2.5D-bilden")
+	if VillageView.BY3D:
+		print("HOPPAR: 3D-byn är PÅ (VillageView.BY3D = true) — provet mäter den målade 2.5D-plattan, inte scenen")
 		quit(0)
 		return
 	var stages := Stages.load_all()

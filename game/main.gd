@@ -9395,7 +9395,8 @@ func _placera_vy() -> void:
 	# inget skalas upp och inget blir grötigt. HUD:en ligger i logiska 480x270-rutor och skalas med
 	# `skala` — den behåller sin storlek och sin kantiga stil.
 	_skala = skala
-	_ssaa_aktuell = 1.0 if shell == "hem" else _ssaa
+	# Bara den MÅLADE byn ritas 1:1 (M189); 3D-byn vill ha supersamplingen.
+	_ssaa_aktuell = 1.0 if (shell == "hem" and not VillageView.BY3D) else _ssaa
 	_vy.size = Vector2i(int(bredd * _ssaa_aktuell), int(höjd * _ssaa_aktuell))
 	_vy_korg.size = Vector2(bredd, höjd)
 	# NEDSKALNINGEN: korgen ritar den större texturen i sin ruta. LINJÄR (inte NEAREST) är hela

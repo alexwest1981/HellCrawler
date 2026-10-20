@@ -61,7 +61,7 @@ signal vald(skepp: String)
 
 const BILD := "res://assets/by2d/byn.png"
 ## Byn som MÅLAD 2.5D-scen (M172). False = Alex' panorama ritas, 3D-scenen är urkopplad.
-const BY3D := false
+const BY3D := true
 ## Figuren som går i byn (och på kartan): en av HJÄLTARNA ur Alex' hjälteark (`game/images/heroes.jpeg`,
 ## klippta av `tools/gen_hjalte.py`, som också sparar namnen i `assets/ui/hjalte.json`).
 ## HJÄLTEN MAN VALDE (M138): figuren är en MARKÖR, och valet (i huvudmenyn) styr både byn och kartan.
@@ -197,7 +197,8 @@ class Rök extends Node2D:
 		return _puff_tex
 
 	func _draw() -> void:
-		if vy == null:
+		# Effekterna hör till den MÅLADE byn: i 3D-byn finns rök-emittern och facklorna i scenen.
+		if vy == null or not vy.hd_aktiv:
 			return
 		# Skalan räknas ur vyns EGEN storlek, inte ur main._skala: röken äger ingen referens till
 		# skalet och ska inte behöva en. `bild_storlek()` är designmåttet, `size` är ytan den ritas i.
