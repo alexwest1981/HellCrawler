@@ -22,6 +22,7 @@ static func fotolage(pa: bool) -> void:
 	PATH = "user://save_prov.json" if pa else "user://save.json"
 const DEFS_PATH := "res://data/powerups.json"
 const CRAWLERS_PATH := "res://data/crawlers/00_kamrater.json"
+const MILSTOLPAR_PATH := "res://data/milstolpar.json"
 const TREE_PATH := "res://data/tree.json"
 const GEMS_PATH := "res://data/gems.json"
 const GRADER := ["simpel", "fin", "god", "praktfull", "utsökt"]   ## 0..4, simpel -> utsökt
@@ -61,6 +62,12 @@ var boxar_utan_stor := 0
 ## av samma skäl som guldet — ett mål som bara levde i minnet skulle aldrig kunna brista ut.
 var kills_total := 0
 var floors_total := 0
+## MILSTOLPAR (önskemål 42, Alex 19/10): *"Något som ger permanenta boosts för att man låst upp dem
+## efter t ex dödat 3000 fiender, spelat en sorts kort 1000ggr osv."* Räknarna bor i sparfilen av samma
+## skäl som guldet, och boosten läggs in i `stat()` — alltså samma väg in i striden som kamraterna.
+var kort_antal: Dictionary = {}   ## korttyp -> antal spelade kort (över alla körningar)
+var milstolpar: Array = []        ## id:n för nådda milstolpar (betalas aldrig ut två gånger)
+var milstolpe_defs: Array = []    ## milstolparna, ur data/milstolpar.json
 var uppdrag_kvitterade: Array = []   ## id:n för de mål som redan betalats ut
 var hired: Array = []             ## hyrda kamrater (samma id som deras kort i data/cards)
 ## Den PERMANENTA kortsamlingen (M45): kort man vunnit av en boss. Id:n, inte kortobjekt, av samma
@@ -88,6 +95,7 @@ static func load_or_new(path: String = PATH) -> Meta:
 	var m := Meta.new()
 	m._load_defs()
 	m._load_crawlers()
+	m._load_milstolpar()
 	m._load_gems()
 	if not FileAccess.file_exists(path):
 		return m
@@ -151,6 +159,10 @@ static func load_or_new(path: String = PATH) -> Meta:
 	# räknat dråp och våningar; noll är samma sak som en ny spelare, och målen brister ut när de nås.
 	m.kills_total = int(parsed.get("kills_total", 0))
 	m.floors_total = int(parsed.get("floors_total", 0))
+	var ka = parsed.get("kort_antal", {})
+	m.kort_antal = ka if typeof(ka) == TYPE_DICTIONARY else {}
+	var ms = parsed.get("milstolpar", [])
+	m.milstolpar = ms if typeof(ms) == TYPE_ARRAY else []
 	m.uppdrag_kvitterade = parsed.get("uppdrag_kvitterade", [])
 	m.steg_max = parsed.get("steg_max", {})      # svårighetstrappan kom i version 8
 	m.steg_valt = parsed.get("steg_valt", {})
@@ -398,7 +410,59 @@ func stat(key: String) -> float:
 		var kamrat: Dictionary = crawler_for(str(hired[0])).get("passiv", {})
 		if kamrat.has(key):
 			sum += float(kamrat[key])
+	# MILSTOLPARNAS BOOST (önskemål 42): samma nyckelvokabulär som kamraternas passiv, så en ny
+	# milstolpe är en rad i JSON — inte en kodändring i striden.
+	for m in milstolpe_defs:
+		if not milstolpar.has(str(m.get("id", ""))):
+			continue
+		var boost: Dictionary = m.get("boost", {})
+		if boost.has(key):
+			sum += float(boost[key])
 	return sum
+
+## --- milstolparna (önskemål 42) ---------------------------------------------------------------
+
+func _load_milstolpar() -> void:
+	milstolpe_defs = []
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(MILSTOLPAR_PATH))
+	if typeof(parsed) != TYPE_ARRAY:
+		push_warning("kunde inte läsa %s" % MILSTOLPAR_PATH)
+		return
+	milstolpe_defs = parsed
+
+## Ett spelat kort räknas på sin TYP (attack, crawler, item, mana, wild). Räknaren ligger i sparfilen,
+## så en milstolpe som "1 000 attackkort" kan nås över många körningar.
+func rakna_kort(typ: String) -> void:
+	if typ.is_empty():
+		return
+	kort_antal[typ] = int(kort_antal.get(typ, 0)) + 1
+
+## Räknarens värde. Namnen är de som står i data/milstolpar.json (`kills`, `runs`, `floors`,
+## `cards:<typ>`), så filen kan lägga till en milstolpe utan att koden ändras.
+func milstolpe_varde(raknare: String) -> int:
+	if raknare.begins_with("cards:"):
+		return int(kort_antal.get(raknare.substr(6), 0))
+	match raknare:
+		"kills":
+			return kills_total
+		"runs":
+			return runs
+		"floors":
+			return floors_total
+	return 0
+
+## Nådda milstolpar som inte redan är utbetalda. Anropas när en körning tar slut; id:na sparas så en
+## milstolpe aldrig kan betalas ut två gånger.
+func kolla_milstolpar() -> Array:
+	var nya: Array = []
+	for m in milstolpe_defs:
+		var id := str(m.get("id", ""))
+		if id.is_empty() or milstolpar.has(id):
+			continue
+		if milstolpe_varde(str(m.get("counter", ""))) >= int(m.get("threshold", 0)):
+			milstolpar.append(id)
+			nya.append(id)
+	return nya
 
 func add_gold(n: int) -> void:
 	gold = max(0, gold + n)
@@ -1130,6 +1194,7 @@ func to_dict() -> Dictionary:
 		"shards": shards, "souls": souls, "gems": gems.duplicate(true), "gem_slots": gem_slots.duplicate(),
 		"gem_in": gem_in.duplicate(true), "boxar_utan_stor": boxar_utan_stor,
 		"kills_total": kills_total, "floors_total": floors_total,
+		"kort_antal": kort_antal.duplicate(), "milstolpar": milstolpar.duplicate(),
 		"steg_max": steg_max.duplicate(), "steg_valt": steg_valt.duplicate(),
 		"vad_valt": vad_valt.duplicate(), "dagens_datum": dagens_datum,
 		"uppdrag_kvitterade": uppdrag_kvitterade.duplicate(),

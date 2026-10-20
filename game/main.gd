@@ -394,7 +394,7 @@ var shell := "hem"              ## hem | butik | karta | körning. Bara körning
 ## Skärmarna i skalet. Listan finns för att en plats i byn som pekar fel ska mötas av en varning i
 ## stället för av en tom skärm (skalet ritar ingenting för ett läge det inte känner igen).
 const SKAL_LÄGEN := ["hem", "butik", "vardshus", "smed", "karta", "album", "juvelerare",
-	"banverkstad", "trad"]
+	"banverkstad", "trad", "upplas"]
 ## Raderna i ALTERNATIV-panelen: språk, CRT, musik och spår (M54). Byggs på ett ställe och fylls
 ## på ett ställe — antalet får inte stå som ett tal på två ställen.
 const ALT_RADER := 4
@@ -840,6 +840,8 @@ var _frame_worst := 0.0
 var _cam_tween: Tween = null       ## kamera-glidningen, så en snäpp-kamera kan döda den (se _snap_cam)
 # ALBUMET (M34, punkt 9): de ägda korten, det valda indexet och vyerna. Listan byggs när albumet
 # öppnas — den läses inte i någon annan väg, så den kan inte hamna i otakt med metat.
+var upplas_panel: PanelContainer
+var upplas_text: Label
 var album_panel: PanelContainer
 var album_label: Label
 var album_box: HBoxContainer       ## tumnaglarna under det stora kortet
@@ -3523,6 +3525,9 @@ func _refresh_shell() -> void:
 	trad_view.visible = shell == "trad"
 	butik_panel.visible = shell == "butik" or (shell == "smed" and _smed_läge == "shop")
 	album_panel.visible = shell == "album"
+	upplas_panel.visible = shell == "upplas"
+	if shell == "upplas":
+		_show_unlocks()
 	inn_panel.visible = shell == "vardshus"
 	smed_panel.visible = shell == "smed" and _smed_läge == "sharpen"
 	jewel_panel.visible = shell == "juvelerare"
@@ -4712,6 +4717,10 @@ func _input_shell(key: int) -> void:
 				by_view.gå_till()        # figuren går dit; valet kommer via signalen vald -> _på_plats
 			KEY_I:
 				_på_plats("album")       # indexet över samlingen. A/D är upptagna av platsvalet.
+			KEY_U:
+				_på_plats("upplas")      # upplåsningar och milstolpar (önskemål 40/42)
+			KEY_F5:
+				_show_unlocks()
 			KEY_Q:
 				get_tree().quit()
 	elif shell == "butik":
@@ -10173,6 +10182,19 @@ func _build_hud() -> void:
 	abox.add_child(album_box)
 	hud.add_child(album_panel)
 
+	# UNLOCKS (önskemål 40, Alex 19/10): *"Unlocks, relics, de måste in med"*. Referensen har Town Hall
+	# som bara listar upplåsningar. Här är den en TEXTlista ur `Meta` — ingen ny data, ingen ny bild,
+	# bara det som redan sparas, läst på ett ställe. Milstolparna (önskemål 42) står sist med procent.
+	upplas_panel = PanelContainer.new()
+	upplas_panel.set_anchors_preset(Control.PRESET_CENTER)
+	upplas_panel.add_theme_stylebox_override("panel", _panel_style())
+	upplas_panel.visible = false
+	upplas_text = Label.new()
+	upplas_text.add_theme_font_size_override("font_size", 8)
+	upplas_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	upplas_panel.add_child(upplas_text)
+	hud.add_child(upplas_panel)
+
 	# VÄRDSHUSET (önskemål 16, ombyggt efter Alex' referensbild). Alex: "Där skall korten på alla
 	# hjältar radas upp, så man kan välja dem, läsa om dem innan man köper dem, och sedan läggs de
 	# till i ens kortlek." Hjältarna står nu som FIGURER i ett rutnät i stället för som en kortvägg:
@@ -11800,6 +11822,43 @@ func _före(a: String, b: String) -> bool:
 
 ## Ritar albumet ur `album_ids` och `album_index`. Körs varje gång något ändras (öppning, bläddring,
 ## klick) och bygger om raden — sju kort är billigt, och en cache hade behövt hållas i takt med metat.
+## UNLOCKS (önskemål 40): en lista över vad som är upplåst och vad som låser upp resten, plus
+## milstolparna med sin procent. Läser bara `Meta` — ingen ny data sparas för den här skärmen.
+func _show_unlocks() -> void:
+	var rader: Array[String] = []
+	rader.append(Tr.t("ui.upplas.title", "UPPLÅSNINGAR"))
+	rader.append("")
+	rader.append("%s: %d / %d" % [Tr.t("ui.upplas.stages", "banor"), meta.unlocked.size(), _stage_order.size()])
+	rader.append("%s: %d" % [Tr.t("ui.upplas.relics", "relics"), meta.relics.size()])
+	rader.append("%s: %d" % [Tr.t("ui.upplas.crawlers", "kamrater"), meta.hired.size()])
+	rader.append("%s: %d" % [Tr.t("ui.upplas.cards", "kort i samlingen"), meta.samling.size()])
+	rader.append("%s: %d  ·  %s: %d  ·  %s: %d" % [
+		Tr.t("ui.upplas.runs", "körningar"), meta.runs,
+		Tr.t("ui.upplas.kills", "dråp"), meta.kills_total,
+		Tr.t("ui.upplas.floors", "våningar"), meta.floors_total])
+	rader.append("")
+	# BARA DE NÄSTA FEM (mätt: 15 milstolpar gav 24 rader och panelen blev högre än vyn — rubriken och
+	# banraden klipptes bort). De nådda räknas i stället, så listan alltid får plats.
+	# NÅDD mäts på RÄKNAREN, inte bara på den sparade listan: en milstolpe som passerats mitt i en
+	# körning visas som nådd direkt, i stället för som "250 / 250" med en punkt framför.
+	var nådda := 0
+	var kvar: Array = []
+	for m in meta.milstolpe_defs:
+		if meta.milstolpe_varde(str(m.get("counter", ""))) >= int(m.get("threshold", 0)):
+			nådda += 1
+		else:
+			kvar.append(m)
+	rader.append("%s: %d / %d" % [Tr.t("ui.upplas.milstones", "MILSTOLPAR"), nådda, meta.milstolpe_defs.size()])
+	for m in kvar.slice(0, 5):
+		var id := str(m.get("id", ""))
+		var värde: int = meta.milstolpe_varde(str(m.get("counter", "")))
+		var tröskel: int = maxi(1, int(m.get("threshold", 1)))
+		rader.append("· %s — %s  (%d / %d)" % [Tr.t("ui.upplas.m." + id, str(m.get("name", id))),
+			Tr.t("ui.upplas.m." + id + ".text", str(m.get("text", ""))), mini(värde, tröskel), tröskel])
+	upplas_text.text = "\n".join(rader)
+	upplas_panel.visible = true
+	_place_panel(upplas_panel, false)
+
 func _show_album() -> void:
 	album_ids = _ägda_kort()
 	album_index = clampi(album_index, 0, maxi(0, album_ids.size() - 1))
@@ -12332,6 +12391,10 @@ func _after_state_change() -> void:
 				print("ny bana upplåst: %s" % _unlocked_now)
 			if meta.steg_upplast > 0:
 				print("trappan: %s steg %d upplåst" % [meta.steg_upplast_bana, meta.steg_upplast])
+			# MILSTOLPARNA (önskemål 42): permanenta boosts. Kvitteras efter note_run, så räknarna har
+			# körningen inräknad — samma ordning som efterlysningarna, och av samma skäl.
+			for mid in meta.kolla_milstolpar():
+				print("milstolpe nådd: %s" % mid)
 			# EFTERLYSNINGARNA (önskemål 24, punkt 3) kvitteras EFTER note_run, så räknarna har
 			# körningen inräknad — annars brast ett mål ut först nästa gång. Raderna sparas för
 			# slutskärmen: ett mål som brast ut får inte försvinna i en logg man inte läser.
@@ -12387,6 +12450,10 @@ func _on_card(index: int) -> void:
 	# `tests/test_reward.gd`.
 	var rustning_före := active_combat.armor
 	var r := active_combat.play(hi)
+	# MILSTOLPSRÄKNAREN (önskemål 42): kortet räknas på sin typ, över alla körningar. Räknas bara på
+	# spelarens egen väg — botens autospel ska inte kunna spela upp en milstolpe.
+	if r.reason.is_empty():
+		meta.rakna_kort(str(kort.type))
 	if r.reason.is_empty():
 		var card_ev := {"type": "card", "card": r.card_id,
 			"mana": r.mana,

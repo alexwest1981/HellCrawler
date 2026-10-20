@@ -1,0 +1,37 @@
+[
+  {"id": "kills_250", "counter": "kills", "threshold": 250, "boost": {"max_hp": 5},
+   "name": "Slaktare I", "text": "+5 max-HP"},
+  {"id": "kills_1000", "counter": "kills", "threshold": 1000, "boost": {"might": 0.05},
+   "name": "Slaktare II", "text": "+5 % skada"},
+  {"id": "kills_3000", "counter": "kills", "threshold": 3000, "boost": {"might": 0.10, "max_hp": 10},
+   "name": "Slaktare III", "text": "+10 % skada, +10 max-HP"},
+
+  {"id": "attack_100", "counter": "cards:attack", "threshold": 100, "boost": {"might": 0.03},
+   "name": "Vana vid stål I", "text": "+3 % skada"},
+  {"id": "attack_500", "counter": "cards:attack", "threshold": 500, "boost": {"might": 0.05},
+   "name": "Vana vid stål II", "text": "+5 % skada"},
+  {"id": "attack_1000", "counter": "cards:attack", "threshold": 1000, "boost": {"might": 0.07, "area": 0.10},
+   "name": "Vana vid stål III", "text": "+7 % skada, +10 % area"},
+
+  {"id": "mana_100", "counter": "cards:mana", "threshold": 100, "boost": {"mana": 1},
+   "name": "Manavan I", "text": "+1 mana varje tur"},
+  {"id": "mana_500", "counter": "cards:mana", "threshold": 500, "boost": {"mana": 1},
+   "name": "Manavan II", "text": "+1 mana varje tur"},
+
+  {"id": "item_100", "counter": "cards:item", "threshold": 100, "boost": {"recovery": 1},
+   "name": "Apotekare I", "text": "+1 HP läkt efter strid"},
+  {"id": "item_500", "counter": "cards:item", "threshold": 500, "boost": {"recovery": 2},
+   "name": "Apotekare II", "text": "+2 HP läkt efter strid"},
+
+  {"id": "crawler_100", "counter": "cards:crawler", "threshold": 100, "boost": {"hand": 1},
+   "name": "Ledare I", "text": "+1 kort på handen"},
+  {"id": "crawler_500", "counter": "cards:crawler", "threshold": 500, "boost": {"hand": 1, "armor": 1},
+   "name": "Ledare II", "text": "+1 kort på handen, +1 rustning"},
+
+  {"id": "runs_10", "counter": "runs", "threshold": 10, "boost": {"max_hp": 5},
+   "name": "Van resenär", "text": "+5 max-HP"},
+  {"id": "runs_25", "counter": "runs", "threshold": 25, "boost": {"armor": 1},
+   "name": "Veteran", "text": "+1 rustning"},
+  {"id": "floors_100", "counter": "floors", "threshold": 100, "boost": {"recovery": 1},
+   "name": "Djupt nere", "text": "+1 HP läkt efter strid"}
+]
