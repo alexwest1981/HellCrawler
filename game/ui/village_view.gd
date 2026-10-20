@@ -1210,8 +1210,18 @@ func _bygg_ring() -> void:
 	_ring_vp.add_child(värld)
 	# LJUSET: kallt omgivningsljus och en varm sol, samma förhållande som i konsten.
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = _bakfärg(0.10)
+	# SKYBOX (M208): himlen är en egen panorama i spelets palett (tools/gen_himmel.py), inte en
+	# tom färg. Den ger horisont, måne och dis, och omgivningsljuset tas ur den så byn hänger ihop
+	# med himlen i stället för att stå i ett svart rum.
+	env.background_mode = Environment.BG_SKY
+	var himmel := Sky.new()
+	var pano := PanoramaSkyMaterial.new()
+	pano.panorama = load("res://assets/by2d/himmel.png")
+	pano.filter = false
+	himmel.sky_material = pano
+	env.sky = himmel
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.9
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.62, 0.66, 0.78)
 	env.ambient_light_energy = 0.55
