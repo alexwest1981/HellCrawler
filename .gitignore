@@ -84,3 +84,6 @@ jobb/snapshots/
 # Tredjepartspaket som inte används av spelet (flyttade ur game/ 20/10, M188). Ligger kvar på disk.
 tredjepart_kalla/
 game/assets/vc_lan/
+
+# Poly Havens tradmodell (CC0) ar 900 MB oppackad — hamtas med tools/hamta_trad.sh
+game/assets/by/trad/

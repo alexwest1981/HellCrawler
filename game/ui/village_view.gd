@@ -1216,7 +1216,10 @@ func _bygg_ring() -> void:
 	env.background_mode = Environment.BG_SKY
 	var himmel := Sky.new()
 	var pano := PanoramaSkyMaterial.new()
-	pano.panorama = load("res://assets/by2d/himmel.png")
+	# KVÄLLSHIMMEL (M212): Poly Havens "belfast_sunset_puresky" (CC0) i 1k, i stället för den ritade
+	# himlen. `puresky` har ingen mark, alltså ingen horisont som krockar med vår egen.
+	var kväll: Texture2D = load("res://assets/by2d/kvallshimmel.hdr")
+	pano.panorama = kväll if kväll != null else load("res://assets/by2d/himmel.png")
 	pano.filter = false
 	himmel.sky_material = pano
 	env.sky = himmel
@@ -1461,6 +1464,12 @@ func _bygg_landskap(värld: Node3D) -> void:
 		var gran := Node3D.new()
 		gran.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
 		värld.add_child(gran)
+		var tall: PackedScene = load("res://assets/by/trad/pine_tree_01.gltf")
+		if tall != null:
+			var träd := tall.instantiate()
+			träd.scale = Vector3.ONE * (höjd / 9.0)
+			gran.add_child(träd)
+			continue
 		var krona := MeshInstance3D.new()
 		var kon := CylinderMesh.new()
 		kon.top_radius = 0.0
