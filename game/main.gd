@@ -396,7 +396,11 @@ var shell := "hem"              ## hem | butik | karta | körning. Bara körning
 ## SUPERSAMPLING (M186): vyn ritas SSAA× större än fönstret och skalas ned linjärt av korgen. Det är
 ## den enda vägen till mjuka kanter som inte förstör pixelkonsten: 3D, text och sprites ritas alla i
 ## samma högre upplösning. Mätt kostnad och vinst i `research/15-grafik.md`.
-var _ssaa := 1.5
+## SUPERSAMPLINGEN ÄR AV I PROV (M187). Proverna ritar i headless/llvmpipe, där 1,5× blir 2,25×
+## fyllnad och tre prov hann inte klart (exit 124: test_dungeon, test_strid, test_tat). Proverna mäter
+## LOGIK och layout, och layouten räknas i logiska rutor (`_vy_mått` delar bort `_ssaa`), så de mäter
+## samma sak vid 1,0. `ssaa=`-flaggan kan sätta den för hand även i prov.
+var _ssaa := 1.0 if OS.get_environment("HC_TEST") == "1" else 1.5
 const SKAL_LÄGEN := ["hem", "butik", "vardshus", "smed", "karta", "album", "juvelerare",
 	"banverkstad", "trad", "upplas"]
 ## Raderna i ALTERNATIV-panelen: språk, CRT, musik och spår (M54). Byggs på ett ställe och fylls
