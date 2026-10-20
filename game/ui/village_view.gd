@@ -1222,6 +1222,10 @@ func _bygg_ring() -> void:
 	env.sky = himmel
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.9
+	# DIMHED (M209): Alex: *"det blir så tvärt avslutat"*. Marken tonar ut i himlens färg.
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.30, 0.34, 0.44)
+	env.fog_density = 0.020
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.62, 0.66, 0.78)
 	env.ambient_light_energy = 0.55
@@ -1317,6 +1321,7 @@ func _bygg_ring() -> void:
 	_ring_kam.rotation_degrees = Vector3(-4.0, 0.0, 0.0)
 	_ring_kam.fov = 62.0
 	värld.add_child(_ring_kam)
+	_bygg_landskap(värld)
 	_ring_byggd = true
 
 ## Kameran tittar på plats i. Vinkeln räknas ur ringens delning, så byggnaden står rakt fram.
@@ -1463,3 +1468,64 @@ func _ellips(p: Vector2, rx: float, ry: float) -> PackedVector2Array:
 		var v := TAU * float(i) / 12.0
 		pts.append(p + Vector2(cos(v) * rx, sin(v) * ry))
 	return pts
+
+
+## LANDSKAPET (M209): gräsplan ut till dimman, en ring av granar och bergsryggar bakom, så byn står i
+## ett landskap i stället för på en skiva med en hård kant. Allt i lågpoly och spelets färger.
+func _bygg_landskap(värld: Node3D) -> void:
+	var äng := MeshInstance3D.new()
+	var planmesh := PlaneMesh.new()
+	planmesh.size = Vector2(200.0, 200.0)
+	äng.mesh = planmesh
+	var planmat := StandardMaterial3D.new()
+	planmat.albedo_color = Color(0.15, 0.21, 0.16)
+	planmat.roughness = 1.0
+	äng.material_override = planmat
+	äng.position = Vector3(0.0, -0.02, 0.0)
+	värld.add_child(äng)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261020
+	for i in 90:
+		var vinkel := TAU * float(i) / 90.0 + rng.randf_range(-0.05, 0.05)
+		var radie := rng.randf_range(24.0, 48.0)
+		var höjd := rng.randf_range(6.0, 12.0)
+		var gran := Node3D.new()
+		gran.position = Vector3(sin(vinkel) * radie, 0.0, cos(vinkel) * radie)
+		värld.add_child(gran)
+		var krona := MeshInstance3D.new()
+		var kon := CylinderMesh.new()
+		kon.top_radius = 0.0
+		kon.bottom_radius = höjd * 0.26
+		kon.height = höjd
+		krona.mesh = kon
+		krona.position = Vector3(0.0, höjd * 0.5 + 0.7, 0.0)
+		var km := StandardMaterial3D.new()
+		km.albedo_color = Color(0.10, 0.17, 0.13).lerp(Color(0.17, 0.25, 0.18), rng.randf())
+		km.roughness = 1.0
+		krona.material_override = km
+		gran.add_child(krona)
+		var stam := MeshInstance3D.new()
+		var stamcyl := CylinderMesh.new()
+		stamcyl.top_radius = 0.14
+		stamcyl.bottom_radius = 0.19
+		stamcyl.height = 1.2
+		stam.mesh = stamcyl
+		stam.position = Vector3(0.0, 0.6, 0.0)
+		var sm := StandardMaterial3D.new()
+		sm.albedo_color = Color(0.12, 0.09, 0.07)
+		stam.material_override = sm
+		gran.add_child(stam)
+	for i in 9:
+		var vinkel2 := TAU * float(i) / 9.0 + 0.3
+		var berg := MeshInstance3D.new()
+		var bk := CylinderMesh.new()
+		bk.top_radius = 0.0
+		bk.bottom_radius = 30.0
+		bk.height = 34.0 + float(i % 3) * 14.0
+		berg.mesh = bk
+		berg.position = Vector3(sin(vinkel2) * 105.0, bk.height * 0.5 - 6.0, cos(vinkel2) * 105.0)
+		var bm := StandardMaterial3D.new()
+		bm.albedo_color = Color(0.27, 0.31, 0.41)
+		bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		berg.material_override = bm
+		värld.add_child(berg)
