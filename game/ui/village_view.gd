@@ -64,6 +64,11 @@ signal vald(skepp: String)
 const BILD := "res://assets/by2d/byn_vc.png"
 ## Byn som MÅLAD 2.5D-scen (M172). False = Alex' panorama ritas, 3D-scenen är urkopplad.
 const BY3D := false
+## BYN ROTERAR (M194). Alex: *"man roterar i byn på VC ... mellan porten ut, smeden, museet å allt
+## det. Inte en platt jävla bild!"* Vyn är en 360-gata: bilden läggs sida vid sida med sin egen
+## spegelvändning (skarven blir osynlig), `_pan` är vridningen, och vänster/höger vrider till nästa
+## plats. Figur och namn står still i mitten medan världen glider förbi.
+const ROTERA := true
 ## Figuren som går i byn (och på kartan): en av HJÄLTARNA ur Alex' hjälteark (`game/images/heroes.jpeg`,
 ## klippta av `tools/gen_hjalte.py`, som också sparar namnen i `assets/ui/hjalte.json`).
 ## HJÄLTEN MAN VALDE (M138): figuren är en MARKÖR, och valet (i huvudmenyn) styr både byn och kartan.
@@ -700,6 +705,9 @@ func _pixel_låst(v: float) -> float:
 
 ## Platsens x i BILDENS koordinater (logiska px från bildens vänsterkant), ur dess procent.
 func _plats_x(i: int) -> float:
+	if ROTERA:
+		# Platserna fördelas jämnt över omgången: sex stopp på en gata, inte sex hus i en bild.
+		return _period() * (float(i) + 0.5) / float(PLATSER.size())
 	return bild_storlek().x * float(PLATSER[i]["x"]) / 100.0
 
 ## Husets ruta i VYNS px — KLICKYTAN (M126). Med 3D-byn är den husets EGEN position i byn.glb
@@ -736,7 +744,20 @@ func _byggnad_rect_2d(i: int) -> Rect2:
 
 ## Hur långt bilden ska flyttas för att plats i ska stå mitt i vyn. Ändarna är taket: panoreringen går
 ## inte förbi bildens kant (Alex: "det gör inget om det tar stopp när man når vardera hörn").
+## Omgångens längd: bild + spegel, tre gånger om. Konsten är EN vy (1264x806), och en 360-gata
+## behöver en remsa som är flera skärmar lång — annars snurrar byn ett helt varv på två steg.
+const VARV_PAR := 3
+func _period() -> float:
+	return bild_storlek().x * 2.0 * float(VARV_PAR)
+
 func _mål_pan(i: int) -> float:
+	if ROTERA:
+		# Platsen ska stå mitt i vyn. Vridningen ligger i [0, period) och vi tar KORTASTE vägen dit,
+		# annars snurrar vyn nästan ett helt varv när man går ett steg bakåt.
+		var mål := _plats_x(i) - _vy().x * 0.5
+		var per := _period()
+		var skillnad := fposmod(mål - _pan + per * 0.5, per) - per * 0.5
+		return fposmod(_pan + skillnad, per)
 	# 2.5D HD (M174): bilden fyller vyn exakt, så det finns inget att panorera. Alex: *"något weird
 	# parallax som flyttar sig åt fel håll när man rör muspekaren"* — bort.
 	if not BY3D:
@@ -847,6 +868,8 @@ func _process(delta: float) -> void:
 		_pan = lerpf(_pan, _pan_mål, 1.0 - exp(-PAN_FART * delta))
 		if absf(_pan_mål - _pan) <= 0.05:
 			_pan = _pan_mål
+			if ROTERA:
+				_pan = fposmod(_pan, _period())
 		if _scen3d != null:
 			_scen3d.sätt_pan(_pan)      # husen och bakgrunden flyttas i 3D-rymden, inte på skärmen
 		# KARAKTÄREN FÖLJER GATAN (M141): han står på en fast fläck i byn, så när panoreringen glider
@@ -890,6 +913,9 @@ func _gui_input(event: InputEvent) -> void:
 # --- ritningen ---------------------------------------------------------------
 func _draw() -> void:
 	var vp := _vy()
+	if ROTERA:
+		_rita_roterande(vp)
+		return
 	# 3D-BYN (M125) ritas när den finns: Alex' texturerade scen ur sin egen ruta, kant i kant i vyn.
 	# Den gamla bakgrundsbilden ritas då INTE — varken över eller under byn (grenen nedan är
 	# reservvägen för en körning utan rityta eller ett projekt utan byn.glb).
@@ -1000,8 +1026,10 @@ func _bilden(vp: Vector2, bild: Texture2D) -> void:
 ## Orden i FÖNSTRETS upplösning (se ui_text.gd). Vyn ritar bara bilden, husen och listen — så
 ## pixelkonsten är kvar i vyns mått medan bokstäverna ritas skarpa i fönstret.
 func _ord() -> void:
+	# ROTERANDE BY (M194): namn och status ritas i vyns egen `_draw` för platsen i mitten. Den gamla
+	# listan med sex rader hör till den platta vyn och skulle ligga dubbelt över remsan.
 	if textlager != null:
-		textlager.sätt(etiketter())
+		textlager.sätt([] if ROTERA else etiketter())
 
 func _vy() -> Vector2:
 	return Vector2(size.x if size.x > 0.0 else 480.0, size.y if size.y > 0.0 else 270.0)
@@ -1070,6 +1098,42 @@ func _pil() -> void:
 ## Etikettlisten längst ned: en mörk list med en guldkant och en ruta per plats. Texten står I
 ## listen — över en bild med hus och gata drunknar den i kullerstenen (granskningen av den gamla
 ## byn: "text unreadable over busy terrain").
+## Den roterande gatan: bilden och dess spegelvändning sida vid sida, upprepade så vyn alltid är
+## täckt, förskjutna med `_pan`. Figur och namn står still — det är världen som vrider sig.
+func _rita_roterande(vp: Vector2) -> void:
+	var tex := byscen()
+	if tex == null:
+		draw_rect(Rect2(Vector2.ZERO, vp), Palett.c(1))
+		return
+	var w := bild_storlek().x
+	var källa := Rect2(Vector2.ZERO, tex.get_size())
+	var start := -fposmod(_pan, _period())
+	var k := 0
+	while start + float(k) * _period() < vp.x:
+		var x := start + float(k) * _period()
+		draw_texture_rect_region(tex, Rect2(x, 0.0, w, vp.y), källa)
+		# Spegelvändningen lägger bildens högerkant mot sin egen högerkant: ingen skarv, ingen söm.
+		draw_set_transform(Vector2(x + 2.0 * w, 0.0), 0.0, Vector2(-1.0, 1.0))
+		draw_texture_rect_region(tex, Rect2(0.0, 0.0, w, vp.y), källa)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		k += 1
+	# Figuren står mitt i bilden, på gatulinjen.
+	if _figur != null:
+		var storlek := _figur.get_size() * FIGUR_SKALA
+		draw_texture(_figur, Vector2(vp.x * 0.5 - storlek.x * 0.5, marklinje() - storlek.y))
+	# Namnet och statusraden för platsen som står i mitten, i en egen mörk remsa så orden går att
+	# läsa mot kullerstenen.
+	var namn := Tr.t("ui.by.plats.%s" % str(PLATSER[_vald]["id"]), str(PLATSER[_vald]["namn"]))
+	var status: String = status_text(_vald)
+	var f := ThemeDB.fallback_font
+	var remsa := maxf(64.0, vp.y * 0.12)
+	draw_rect(Rect2(0.0, vp.y - remsa, vp.x, remsa), _a(Palett.c(1), 0.82))
+	draw_rect(Rect2(0.0, vp.y - remsa, vp.x, 1.0), Palett.c(14))
+	draw_string(f, Vector2(0.0, vp.y - remsa * 0.52), namn, HORIZONTAL_ALIGNMENT_CENTER, vp.x,
+		int(vp.y * 0.045), Palett.c(14))
+	draw_string(f, Vector2(0.0, vp.y - remsa * 0.16), status, HORIZONTAL_ALIGNMENT_CENTER, vp.x,
+		int(vp.y * 0.032), _a(Palett.c(5), 0.9))
+
 func _bar(vp: Vector2) -> void:
 	draw_rect(Rect2(0.0, bar_topp(), vp.x, 40.0), Palett.c(1))
 	draw_rect(Rect2(0.0, bar_topp(), vp.x, 1.0), Palett.c(14))
