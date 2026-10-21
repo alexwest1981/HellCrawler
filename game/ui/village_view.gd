@@ -1264,13 +1264,16 @@ func _bygg_ring() -> void:
 	# HÖGRE UPPLÖSNING I BYN (M241). Alex: *"det är lite för ... pixligt, jag vill ha högre upplösning"*.
 	# 3D-vyn renderas 1,5 gånger större än vyn och skalas ned linjärt — samma grepp som SSAA, men bara
 	# för byns SubViewport, så kanttrappor och texturpixlar försvinner utan att HUD:en blir dyrare.
-	const RING_SSAA := 1.5
+	const RING_SSAA := 2.0
 	var mått := Vector2i(int(float(_vy().x) * RING_SSAA), int(float(_vy().y) * RING_SSAA))
 	_ring_vp = SubViewport.new()
 	_ring_vp.size = mått
 	_ring_vp.own_world_3d = true
 	_ring_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	_ring_vp.msaa_3d = Viewport.MSAA_4X
+	_ring_vp.msaa_3d = Viewport.MSAA_8X
+	# FXAA ovanpa MSAA (M251): Alex: *"de behover fa en mer mjuk och realistisk ton"*. MSAA tar
+	# trappan pa kanterna, FXAA tar resten inne i ytorna, sa texturernas korn inte flimrar.
+	_ring_vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 	add_child(_ring_vp)
 	var värld := Node3D.new()
 	_ring_vp.add_child(värld)
@@ -1302,7 +1305,7 @@ func _bygg_ring() -> void:
 	# depthmapping, normalmapping"*. Glöd kräver Forward+ (Vulkan), inte Compatibility — därför syntes
 	# ingen ljusspill i de tidigare skärmbilderna (de kördes med --rendering-driver opengl3).
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 1.05
+	env.tonemap_exposure = 1.15
 	env.glow_enabled = true
 	env.glow_intensity = 0.9
 	env.glow_strength = 1.1
@@ -1310,8 +1313,8 @@ func _bygg_ring() -> void:
 	env.glow_hdr_threshold = 0.85
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
 	env.ssao_enabled = true
-	env.ssao_radius = 1.8
-	env.ssao_intensity = 2.2
+	env.ssao_radius = 2.6
+	env.ssao_intensity = 2.6
 	env.ssao_power = 1.4
 	env.ssil_enabled = false
 	var we := WorldEnvironment.new()
