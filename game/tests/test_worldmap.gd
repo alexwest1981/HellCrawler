@@ -120,9 +120,10 @@ func _init() -> void:
 	check(alla_id.size() == order.size(), "kartan använder alla %d banor" % order.size(),
 		"%d nivåer" % alla_id.size())
 	check(alla_id == order, "och i svårighetsordning — upplåsningen följer kartan")
-	# Vinkeln ligger i DATA: en karta utan lutning är en plansch, och en fil utan zoom är fel fil.
-	check(karta.lutning > 0.0 and karta.komprimering < 1.0 and karta.zoom > 1.0,
-		"kartan är vinklad och större än vyn (zoom, komprimering, lutning)",
+	# KARTAN ÄR EN PLANSCH (M264): ingen lutning, ingen inzoomning — hela bilden ska rymas och
+	# Alex ska ha full uppsikt. Ett tal över 1,0 klipper kanterna, och det var precis felet.
+	check(karta.lutning == 0.0 and karta.komprimering <= 1.0 and karta.zoom <= 1.0,
+		"kartan är platt och ryms i vyn (lutning 0, zoom <= 1, komp <= 1)",
 		"zoom %.2f, komp %.2f, lutning %.2f" % [karta.zoom, karta.komprimering, karta.lutning])
 
 	print("")
@@ -381,11 +382,11 @@ func _init() -> void:
 	var avstånd_före := (v.plats(karta.antal() - 1) - v.fokus()).length()
 	v.steg_kamera(0.05)
 	var avstånd_efter := (v.plats(karta.antal() - 1) - v.fokus()).length()
-	check(avstånd_efter < avstånd_före, "kameran glider mot den valda platsen",
+	check(absf(avstånd_efter - avstånd_före) < 0.5, "kameran står still när hela kartan ryms",
 		"%.1f -> %.1f px" % [avstånd_före, avstånd_efter])
 	# Vinkeln ska vara en vinkel: med lutning och komprimering hamnar platserna på andra ställen än utan.
 	var kopia := Karta.ladda()
-	check(kopia.zoom > 1.0, "kartan är större än vyn (zoom ur filen)", "%.2f" % kopia.zoom)
+	check(kopia.zoom <= 1.0, "kartan är aldrig större än vyn (zoom ur filen)", "%.2f" % kopia.zoom)
 	var platt := WorldMapView.new()
 	platt.karta = kopia
 	platt.visa(stages, order, meta)
@@ -396,7 +397,7 @@ func _init() -> void:
 	kopia.komprimering = 1.0
 	platt.steg_kamera(0.0, true)
 	var kant_efter := (platt.plats(0) - platt.plats(1)).length()
-	check(absf(kant_före - kant_efter) > 1.0, "vinkeln flyttar platserna (lutning och komprimering ritas)",
+	check(absf(kant_före - kant_efter) < 0.5, "ingen vinkel: lutning och komprimering flyttar inte platserna",
 		"%.1f -> %.1f px" % [kant_före, kant_efter])
 	platt.free()
 

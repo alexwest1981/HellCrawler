@@ -246,7 +246,11 @@ func _bild_px(i: int) -> Vector2:
 func plats(i: int) -> Vector2:
 	if i < 0 or i >= _noder.size():
 		return Vector2.ZERO
-	return _vy_px(_bild_px(i))
+	# NODERNA STANNAR INNANFOR RAMEN OCH OVANFOR REMSAN (M264). Kartan fyller nu hela vyn, och da
+	# ligger de nedersta platserna bakom informationsremsan. Klämmen flyttar markören nagra pixlar upp;
+	# geografin ar kvar, men platsen gar att se och välja.
+	var p := _vy_px(_bild_px(i))
+	return Vector2(clampf(p.x, 12.0, _vy().x - 12.0), clampf(p.y, 12.0, bar() - NOD * 0.5))
 
 func gå_till(i: int) -> void:
 	_vald = clampi(i, 0, maxi(0, _noder.size() - 1))
@@ -1035,12 +1039,12 @@ func namnplåt(i: int) -> Rect2:
 	var vp := _vy()
 	var namn := str(_noder[i]["plats"])
 	var bredd: float = ThemeDB.fallback_font.get_string_size(namn, HORIZONTAL_ALIGNMENT_LEFT, -1, 9).x + 8.0
-	var x: float = clampf(p.x - bredd / 2.0, 3.0, vp.x - bredd - 3.0)
+	var x: float = clampf(p.x - bredd / 2.0, 9.0, vp.x - bredd - 9.0)
 	# Klämd mellan bården och remsan: med 2 låg plaketten mot ramen ("texten ligger klistrad mot den
 	# övre ramen"), och med kortets överkant hamnade den INUTI listen (mätt i bild: Nedre portens skylt
 	# skar rakt in i kortets överkant). Plaketten hör till kartytan, inte till remsan. M118: remsan
 	# ligger nu i vyns nederkant, så klämmen mäts mot dess ruta — inte mot ett designmått.
-	return Rect2(Vector2(x, clampf(p.y - NOD - 17.0 - float(PULS[_ram]), 10.0, kort_ruta().position.y - 14.0)),
+	return Rect2(Vector2(x, clampf(p.y - NOD - 17.0 - float(PULS[_ram]), 12.0, kort_ruta().position.y - 14.0)),
 		Vector2(bredd, 12.0))
 
 ## Markeringen: fyra klamrar runt noden och namnet på en plakett ovanför. Klamrar pekar ut platsen —
@@ -1189,7 +1193,7 @@ func etiketter(vp: Vector2) -> Array:
 	var rad1 := str(n["plats"]) if str(n["boss"]).is_empty() \
 		else "%s · %s" % [str(n["plats"]), str(n["boss"])]
 	rader.append(UiText.rad(rad1, Vector2(x0, rem.position.y + 12.0),
-		UiText.storlek_som_ryms([rad1], namn_bredd, 8, 12, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(14),
+		UiText.storlek_som_ryms([rad1], namn_bredd, 6, 9, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(14),
 		namn_bredd, HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
 	var bredd := rem.size.x - 10.0
 	var rad2 := "%s · %s" % [Tr.t("ui.map.diff", "sv%d") % int(n["svårighet"]), status_text(_vald)]
@@ -1203,7 +1207,7 @@ func etiketter(vp: Vector2) -> Array:
 		Tr.t("ui.map.levels", "%d nivåer") % nivåer(_vald).size(),
 		Tr.t("ui.map.cleared", "%d klara") % int(n["klar_nivåer"])]
 	rader.append(UiText.rad(rad2, Vector2(x0, rem.position.y + 24.0),
-		UiText.storlek_som_ryms([rad2], bredd, 8, 10, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(8), bredd,
+		UiText.storlek_som_ryms([rad2], bredd, 6, 8, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(8), bredd,
 		HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
 	var kol := [["låst", Tr.t("ui.map.locked_short", "låst")],
 		["öppen", Tr.t("ui.map.legend.open", "öppen")],
@@ -1212,7 +1216,7 @@ func etiketter(vp: Vector2) -> Array:
 		var ord := str(kol[k][1])
 		var bx := _legend_x(k) + 8.0
 		rader.append(UiText.rad(ord, Vector2(bx, rem.position.y + 12.0),
-			UiText.storlek_som_ryms([ord], float(LEGEND_STEG) - 14.0, 8, 9, HORIZONTAL_ALIGNMENT_LEFT),
+			UiText.storlek_som_ryms([ord], float(LEGEND_STEG) - 14.0, 6, 7, HORIZONTAL_ALIGNMENT_LEFT),
 			Palett.c(7), float(LEGEND_STEG) - 14.0,
 			HORIZONTAL_ALIGNMENT_LEFT, "kort", Palett.c(1)))
 	# 3) Nivåpanelen: rubriken och en rad per nivå — nummer och namn till vänster, status till höger.
@@ -1245,11 +1249,11 @@ func etiketter(vp: Vector2) -> Array:
 	if editor:
 		var rad := nod_text(_vald)
 		rader.append(UiText.rad(rad, Vector2(6.0, kort_ruta().position.y - 6.0),
-			UiText.storlek_som_ryms([rad], vp.x - 12.0, 9, 11, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(14),
+			UiText.storlek_som_ryms([rad], vp.x - 12.0, 7, 9, HORIZONTAL_ALIGNMENT_LEFT), Palett.c(14),
 			vp.x - 12.0, HORIZONTAL_ALIGNMENT_LEFT, "editor", Palett.c(1)))
 		if not _sparad.is_empty():
 			rader.append(UiText.rad(_sparad, Vector2(6.0, kort_ruta().position.y - 18.0),
-				UiText.storlek_som_ryms([_sparad], vp.x - 12.0, 9, 11, HORIZONTAL_ALIGNMENT_LEFT),
+				UiText.storlek_som_ryms([_sparad], vp.x - 12.0, 7, 9, HORIZONTAL_ALIGNMENT_LEFT),
 				Palett.c(15), vp.x - 12.0, HORIZONTAL_ALIGNMENT_LEFT, "editor", Palett.c(1)))
 	# 5) Sist: beskedet (en låst plats) eller ledtråden. Beskedet MÅSTE ligga sist — provet jämför
 	#    sista raden med `besked()`, och en rad som byter plats med ledtråden är ett fel i bild.
@@ -1263,7 +1267,7 @@ func etiketter(vp: Vector2) -> Array:
 		grupp = "besked"
 	var hint_bredd := rem.size.x - 10.0
 	rader.append(UiText.rad(nederst, Vector2(x0, rem.end.y - 4.0),
-		UiText.storlek_som_ryms([nederst], hint_bredd, 8, 11, HORIZONTAL_ALIGNMENT_LEFT), färg,
+		UiText.storlek_som_ryms([nederst], hint_bredd, 6, 8, HORIZONTAL_ALIGNMENT_LEFT), färg,
 		hint_bredd, HORIZONTAL_ALIGNMENT_LEFT, grupp, Palett.c(1)))
 	return rader
 
