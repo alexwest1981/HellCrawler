@@ -1263,12 +1263,17 @@ func _bygg_ring() -> void:
 	var plan := PlaneMesh.new()
 	plan.size = Vector2(40.0, 40.0)
 	golv.mesh = plan
+	# MARKEN (M239). Alex: *"Marken behöver få en annan textur som inte tile'ar så synligt ... rendrera
+	# random grus-effekt över hela marken"*. tools/gen_mark.py ritar en 4096-ruta med 26 000 stenar och
+	# 90 000 gruskorn; den läggs EN gång över hela torget (uv 1:1), alltså ingen synlig upprepning.
 	var gm := StandardMaterial3D.new()
-	var gattex: Texture2D = load("res://assets/tiles/material/ancient_stone.png")
-	gm.albedo_texture = gattex
-	gm.uv1_scale = Vector3(12.0, 12.0, 1.0)
-	gm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	gm.albedo_color = Color(0.75, 0.75, 0.78)
+	gm.albedo_texture = load("res://assets/tiles/material/mark_grus.png")
+	gm.normal_enabled = true
+	gm.normal_texture = load("res://assets/tiles/material/mark_grus_normal.png")
+	gm.normal_scale = 2.0
+	gm.uv1_scale = Vector3(1.0, 1.0, 1.0)
+	gm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	gm.albedo_color = Color(1.25, 1.22, 1.20)
 	golv.material_override = gm
 	värld.add_child(golv)
 	# HUSEN UR DATA (M204): `data/by.json` är byns layout — ringens radie och varje hus vinkel,
