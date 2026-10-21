@@ -1208,10 +1208,17 @@ func _bakfärg(y: float) -> Color:
 ## kortare nyckel, och "mur_grå" av "mur". Materialnamnen ar lasta ur GLB-filerna (sten, mur, puts,
 ## mörkt_virke, ljust_virke, takpanna_ljus, takpanna_mörk, tegel, järn, halm, läder, tyg_* ...).
 const MATERIALTEX := {
-	"takpanna_ljus": "roof_terracotta", "takpanna_mörk": "roof_slate", "mur_grå": "dark_stone",
-	"mörkt_virke": "wood_planks", "ljust_virke": "wood_planks", "puts": "stone_wall",
-	"mur": "stone_wall", "sten": "mossy_stone", "tegel": "roof_terracotta",
-	"järn": "dark_stone", "mässing": "dark_stone", "halm": "dirt", "läder": "wood_planks",
+	"takpanna_ljus": "T_RoundTiles", "takpanna_mörk": "T_RoundTiles", "mur_grå": "T_RockTrim",
+	"mörkt_virke": "T_WoodTrim", "ljust_virke": "T_WoodTrim", "puts": "T_UnevenBrick",
+	"mur": "T_UnevenBrick", "sten": "T_RockTrim", "tegel": "T_RedBrick",
+	"järn": "T_MetalOrnaments", "mässing": "T_MetalOrnaments", "halm": "T_WoodTrim",
+	"läder": "T_WoodTrim",
+}
+
+## Nyansen per material: samma ruta, olika ton (takpannorna skiljer sig åt, mörkt virke är mörkare).
+const MATERIALTON := {
+	"takpanna_mörk": Color(0.62, 0.60, 0.58), "mörkt_virke": Color(0.62, 0.55, 0.50),
+	"mur_grå": Color(0.86, 0.87, 0.86), "puts": Color(0.96, 0.94, 0.90),
 }
 
 ## MUR OCH PORT UR DATA (M244). Alex: *"du maste isa fall andra porten, sa den matchar in i oppningen i
@@ -1367,14 +1374,16 @@ func _bygg_ring() -> void:
 						var nyckel := str(kopia.resource_name).to_lower().replace(" ", "_")
 						for namn in MATERIALTEX:
 							if nyckel == namn or nyckel.begins_with(namn + "_"):
-								var texfil: String = "res://assets/by/texturer/pixel/%s.png" % MATERIALTEX[namn]
+								var texfil: String = "res://assets/by/texturer/megakit/%s_BaseColor.png" % MATERIALTEX[namn]
 								var alb: Texture2D = load(texfil)
 								if alb != null:
 									kopia.albedo_texture = alb
 									# Modellernas UV ar 0,018 varv/m, dvs en ruta per 55 m — stenarna blev 10 m
-									# breda. 34 varv per UV-enhet ger en ruta per ~1,6 m.
-									kopia.uv1_scale = Vector3(34.0, 34.0, 1.0)
-									var norm: Texture2D = load(texfil.replace(".png", "_normal.png"))
+									# breda. MegaKit-rutorna ar 1024 px och lagda pa 15 varv per UV-enhet = en ruta per ~3,7 m.
+									kopia.uv1_scale = Vector3(15.0, 15.0, 1.0)
+									if MATERIALTON.has(namn):
+										kopia.albedo_color = MATERIALTON[namn]
+									var norm: Texture2D = load(texfil.replace("_BaseColor.png", "_Normal.png"))
 									if norm != null:
 										kopia.normal_enabled = true
 										kopia.normal_texture = norm
@@ -1628,17 +1637,17 @@ func _bygg_landskap(värld: Node3D) -> void:
 	# sektion, 2-3 stenar per kurs, slumpad bredd, djup, ton och ett av tva stenmaterial. Kronraden
 	# ligger ovanpa och foljer sektionens hojd.
 	var sten_tex: Array[Texture2D] = [
-		load("res://assets/by/texturer/pixel/stone_wall.png"),
-		load("res://assets/by/texturer/pixel/mossy_stone.png"),
-		load("res://assets/by/texturer/pixel/dark_stone.png"),
+		load("res://assets/by/texturer/megakit/T_UnevenBrick_BaseColor.png"),
+		load("res://assets/by/texturer/megakit/T_RockTrim_BaseColor.png"),
+		load("res://assets/by/texturer/megakit/T_Brick_BaseColor.png"),
 	]
 	# NORMALMAPS (M234): Alex: *"vad hände med att sätta på normalmapping, så det ger det hela lite liv,
 	# någon för ljuset att landa på och skapa skuggor?"*. Stenmaterialen hade ingen normalmap alls —
 	# tools/gen_normal.py ritar dem ur albedon (Sobel), så fogar och stensprång får riktning i ljuset.
 	var sten_norm: Array[Texture2D] = [
-		load("res://assets/by/texturer/pixel/stone_wall_normal.png"),
-		load("res://assets/by/texturer/pixel/mossy_stone_normal.png"),
-		load("res://assets/by/texturer/pixel/dark_stone_normal.png"),
+		load("res://assets/by/texturer/megakit/T_UnevenBrick_Normal.png"),
+		load("res://assets/by/texturer/megakit/T_RockTrim_Normal.png"),
+		load("res://assets/by/texturer/megakit/T_Brick_Normal.png"),
 	]
 	var murrng := RandomNumberGenerator.new()
 	murrng.seed = 991
