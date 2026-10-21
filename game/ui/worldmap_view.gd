@@ -594,9 +594,20 @@ func _kamera_mål() -> Vector2:
 func _zoom() -> float:
 	return karta.zoom if karta != null else 1.0
 
-## px på skärmen per px i bilden. 1,0 = hela kartans bredd ryms i vyn.
+## px på skärmen per px i bilden. 1,0 = HELA bilden ryms i den fria kartytan (M260).
+##
+## Alex: *"visa hela direkt, och inte bara en del av den"*. Förut var skalan BAS * zoom, där BAS bara
+## visste om vyns bredd — kortets höjd (40 px längst ned) åt upp utrymme som skalan inte tog hänsyn till,
+## så bilden skars av i över- eller underkant beroende på fönstret. Nu räknas skalan ur den FAKTISKA
+## fria ytan: den minsta av bredd- och höjdkvoten, alltså "contain" i stället för "cover".
 func _s() -> float:
-	return BAS * _zoom()
+	if _noder.is_empty():
+		return BAS * _zoom()
+	var fri := _vy()
+	var kort := kort_ruta()
+	if kort.size.y > 0.0:
+		fri.y = maxf(1.0, kort.position.y)
+	return minf(fri.x / Karta.BILD_BREDD, fri.y / Karta.BILD_HÖJD) * _zoom()
 
 func _komprimering() -> float:
 	return karta.komprimering if karta != null else 1.0

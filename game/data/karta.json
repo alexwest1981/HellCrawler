@@ -1,7 +1,7 @@
 {
  "bild": "res://assets/ui/varldskarta.png",
  "zoom": 1.0,
- "komprimering": 0.85,
+ "komprimering": 1.0,
  "lutning": 0.0,
  "noder": [
   {
