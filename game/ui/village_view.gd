@@ -1234,6 +1234,22 @@ func _bygg_ring() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.62, 0.66, 0.78)
 	env.ambient_light_energy = 0.55
+	# GLOW OCH DJUP (M225): Alex: *"det känns 1995 a la playstation 1 ... det behöver ha glow,
+	# depthmapping, normalmapping"*. Glöd kräver Forward+ (Vulkan), inte Compatibility — därför syntes
+	# ingen ljusspill i de tidigare skärmbilderna (de kördes med --rendering-driver opengl3).
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 1.05
+	env.glow_enabled = true
+	env.glow_intensity = 0.9
+	env.glow_strength = 1.1
+	env.glow_bloom = 0.18
+	env.glow_hdr_threshold = 0.85
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	env.ssao_enabled = true
+	env.ssao_radius = 1.8
+	env.ssao_intensity = 2.2
+	env.ssao_power = 1.4
+	env.ssil_enabled = false
 	var we := WorldEnvironment.new()
 	we.environment = env
 	värld.add_child(we)
@@ -1477,20 +1493,34 @@ func _bygg_landskap(värld: Node3D) -> void:
 
 	# SKYDDSMUREN (M211): Alex: *"lägg hellre en mur i bakgrunden, så det känns som man är skyddad i
 	# byn"*. En ring av mursten bakom husen, med en mörkare krönrad, så byn ligger inom murar.
-	var murtex: Texture2D = load("res://assets/tiles/material/fortified_stone_bricks.png")
+	# MURVARIATION (M225): Alex: *"muren behöver ha lite variation"*. Tre stenmaterial i rotation,
+	# höjd- och lutningsvariation per sektion och en mörkare ton då och då, så muren inte är 64 likadana
+	# klossar. Samma sak ger fogarna liv när SSAO och glöd är på.
+	var murtexer: Array[Texture2D] = [
+		load("res://assets/tiles/material/fortified_stone_bricks.png"),
+		load("res://assets/tiles/material/ancient_stone.png"),
+		load("res://assets/tiles/material/chiseled_marble.png"),
+	]
+	var murrng := RandomNumberGenerator.new()
+	murrng.seed = 991
 	for i in 64:
 		var vinkel3 := TAU * float(i) / 64.0
 		var mur := MeshInstance3D.new()
 		var murbox := BoxMesh.new()
-		murbox.size = Vector3(2.9, 4.2, 0.9)
+		var murhöjd := 4.2 + murrng.randf_range(-0.35, 0.35)
+		murbox.size = Vector3(2.9, murhöjd, 0.9 + murrng.randf_range(-0.06, 0.06))
 		mur.mesh = murbox
-		mur.position = Vector3(sin(vinkel3) * 26.0, 2.1, cos(vinkel3) * 26.0)
-		mur.rotation.y = vinkel3
+		mur.position = Vector3(sin(vinkel3) * 26.0, murhöjd * 0.5, cos(vinkel3) * 26.0)
+		mur.rotation = Vector3(0.0, vinkel3, murrng.randf_range(-0.012, 0.012))
 		var mm := StandardMaterial3D.new()
-		mm.albedo_texture = murtex
+		mm.albedo_texture = murtexer[murrng.randi_range(0, 2)]
 		mm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-		mm.uv1_scale = Vector3(2.0, 2.0, 1.0)
+		mm.uv1_scale = Vector3(murrng.randf_range(1.7, 2.4), murrng.randf_range(1.7, 2.4), 1.0)
+		mm.uv1_offset = Vector3(murrng.randf(), murrng.randf(), 0.0)
 		mm.roughness = 1.0
+		# Tonvariation: några sektioner är mörkare (fukt/skugga), några har mossa.
+		var ton := murrng.randf_range(0.72, 1.0)
+		mm.albedo_color = Color(ton, ton * murrng.randf_range(0.97, 1.02), ton * 0.98)
 		mur.material_override = mm
 		värld.add_child(mur)
 		# KRÖNET: en rad mörkare stenar ovanpå, så muren läses som mur och inte som en vägg.
@@ -1498,7 +1528,7 @@ func _bygg_landskap(värld: Node3D) -> void:
 		var krönbox := BoxMesh.new()
 		krönbox.size = Vector3(2.9, 0.5, 1.1)
 		krön.mesh = krönbox
-		krön.position = Vector3(sin(vinkel3) * 26.0, 4.45, cos(vinkel3) * 26.0)
+		krön.position = Vector3(sin(vinkel3) * 26.0, murhöjd + 0.25, cos(vinkel3) * 26.0)
 		krön.rotation.y = vinkel3
 		var km2 := StandardMaterial3D.new()
 		km2.albedo_color = Color(0.30, 0.31, 0.34)
