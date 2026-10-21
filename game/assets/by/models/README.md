@@ -26,7 +26,7 @@ per fil.
 | `tradet.glb` | 12.5 × 7.5 | 10.5 | 50744 | 17 | 0.021 | järn, ljust_virke, mur, mörkt_virke, sten |
 | `smed.glb` | 12.5 × 8.5 | 15.2 | 98052 | 25 | 0.025 | glödhet, järn, ljust_virke, läder, mur, mörkt_virke, puts, rök_0, rök_1, rök_2, rök_3, sot, sten |
 | `vardshus.glb` | 13.5 × 8.5 | 15.7 | 63428 | 19 | 0.015 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
-| `karta.glb` | 17.8 × 6.8 | 11.7 | 65116 | 15 | 0.018 | järn, ljust_virke, mur, mur_grå, mörkt_virke, puts, sot, sten |
+| `karta.glb` | 17.8 × 6.8 | 17.5 | 65596 | 15 | 0.016 | järn, ljust_virke, mur, mur_grå, mörkt_virke, puts, sot, sten |
 | `juvelerare.glb` | 9.1 × 6.6 | 12.1 | 40240 | 19 | 0.024 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
 | `avsluta.glb` | 9.5 × 6.5 | 12.1 | 42056 | 16 | 0.023 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
 | `brunn.glb` | 2.3 × 2.3 | 2.6 | 3576 | 10 | 0.156 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
@@ -64,7 +64,7 @@ atlasbredd:
 | `tradet` | 0.021 | 43 | 173 |
 | `smed` | 0.025 | 51 | 206 |
 | `vardshus` | 0.015 | 30 | 123 |
-| `karta` | 0.018 | 36 | 145 |
+| `karta` | 0.016 | 32 | 129 |
 | `juvelerare` | 0.024 | 48 | 195 |
 | `avsluta` | 0.023 | 47 | 191 |
 | `brunn` | 0.156 | 318 | 1275 |
@@ -81,7 +81,7 @@ pekar åt olika håll).
 
 | Del | Material | UV-yta (m²) | Öar |
 |---|---|---|---|
-| `rekvisita` | `ljust_virke` | 63.79 | 6 |
+| `rekvisita` | `ljust_virke` | 76.54 | 6 |
 | `lykta` | `lyktglas` | 4.15 | 18 |
 | `skylt` | `mässing` | 1.64 | 6 |
 | `rekvisita` | `lera` | 0.83 | 6 |

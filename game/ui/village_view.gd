@@ -1298,6 +1298,18 @@ func _bygg_ring() -> void:
 			# 4-6 m; gangavstandet gor dem sma i rutan, sa de skalas upp till byniva.
 			instans.scale = Vector3.ONE
 			hus.add_child(instans)
+			# TEXTURERNA (M231): Alex: *"sen behöver vi se över texturen på det hela"*. Modellernas
+			# material importeras med skarp närmaste-grann-filter, vilket kraschar i kanterna på långt
+			# håll. Linjärt filter MED mipmaps och anisotropi ger mjuka övergångar utan att reliefen
+			# försvinner (normalkartorna ligger kvar — vi byter bara filtrering, inte material).
+			for mi in instans.find_children("*", "MeshInstance3D", true, false):
+				for yta in mi.mesh.get_surface_count():
+					var mat = mi.get_active_material(yta)
+					if mat is StandardMaterial3D:
+						var kopia: StandardMaterial3D = mat.duplicate()
+						kopia.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+						kopia.anisotropy_1_enabled = true
+						mi.set_surface_override_material(yta, kopia)
 		var w := float(d.get("w", 5.0))
 		var h := float(d.get("h", 4.2))
 		var djup := float(d.get("d", 3.4))

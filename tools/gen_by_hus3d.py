@@ -1692,8 +1692,8 @@ def karta(b):
 
     # --- porten: rundbåge genom hela tornet ---------------------------------------------------
     b.delnamn = "port"
-    portvalv(b, fram, hål, 0.0, 1.0, 3.6, 3.4, r=1.8, mat=murmat)
-    portvalv(b, bak, hål, 0.0, 1.0, 3.6, 3.4, r=1.8, mat=murmat)
+    portvalv(b, fram, hål, 0.0, 0.2, 3.6, 3.4, r=1.8, mat=murmat)
+    portvalv(b, bak, hål, 0.0, 0.2, 3.6, 3.4, r=1.8, mat=murmat)
     # anfangsstenar (springers) där bågen vilar, och en profilerad ring runt bågen
     for s2 in (-1, 1):
         for zz in (3.3, 3.75, 4.2):
@@ -1709,8 +1709,8 @@ def karta(b):
             v0, v1 = math.pi * k / 7, math.pi * (k + 1) / 7
             c = Vector((1.7 * math.cos((v0 + v1) / 2) * -1, yy, 4.35 + 1.7 * math.sin((v0 + v1) / 2)))
             b.låda((c.x, c.y, c.z), (0.5, 0.5, 0.36), murmat)
-    b.låda((0.0, 0.0, 0.9), (3.7, d - 0.3, 0.12), puts())          # gångens golv
-    b.låda((0.0, 0.0, 4.2), (3.5, d - 0.6, 0.3), sot())            # mörkt valv inuti
+    b.låda((0.0, 0.0, 0.05), (3.7, d - 0.3, 0.12), puts())          # gångens golv
+    b.låda((0.0, 0.0, 3.6), (3.5, d - 0.6, 0.3), sot())            # mörkt valv inuti
 
     # --- portblad: plankor, järnband, spik och ringar (stängda, 1,6 m in i gången) ------------
     b.delnamn = "portblad"
@@ -1821,7 +1821,7 @@ def karta(b):
     # Alex: *"Det skall vara en Gate, en stor port, inte ett torn"*. Geometrin byggs som förut och
     # skalas sedan: bredare (1,55), lägre (0,68) och grundare (0,85). Portöppningen blir då ca 5,6 m
     # bred och 4,2 m hög i en 17,8 m bred, 11,6 m hög port — en stadsport, inte ett vakttorn.
-    b.skala(1.55, 0.85, 0.68)
+    b.skala(1.55, 0.85, 1.02)
 
 def juvelerare(b):
     """Juvelerarstuga: krämvit puts med mörkbrunt timmer, stort upplyst skyltfönster med
