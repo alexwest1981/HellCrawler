@@ -1219,8 +1219,8 @@ const MATERIALTEX := {
 ## Alex: *"Texturen ar alldeles for liten, det blir antingen randigt eller brus av det"* — matt i bild
 ## behovdes storre ytor, sa vaggar ligger pa 7 (en ruta per ~8 m) och tak pa 11.
 const MATERIALSKALA := {
-	"mur": 7.0, "puts": 7.0, "sten": 8.0, "mur_grå": 8.0, "mörkt_virke": 9.0, "ljust_virke": 9.0,
-	"takpanna_ljus": 11.0, "takpanna_mörk": 11.0, "tegel": 11.0,
+	"mur": 3.5, "puts": 3.5, "sten": 4.0, "mur_grå": 4.0, "mörkt_virke": 4.5, "ljust_virke": 4.5,
+	"takpanna_ljus": 5.5, "takpanna_mörk": 5.5, "tegel": 5.5,
 }
 
 ## Nyansen per material: samma ruta, olika ton (takpannorna skiljer sig åt, mörkt virke är mörkare).
@@ -1388,8 +1388,14 @@ func _bygg_ring() -> void:
 									kopia.albedo_texture = alb
 									# Modellernas UV ar 0,018 varv/m, dvs en ruta per 55 m — stenarna blev 10 m
 									# breda. MegaKit-rutorna ar 1024 px och lagda pa 15 varv per UV-enhet = en ruta per ~3,7 m.
-									var skala: float = MATERIALSKALA.get(namn, 8.0)
-									kopia.uv1_scale = Vector3(skala, skala, 1.0)
+									# TRIPLANART I VARLDEN (M248). Modellernas UV-kartor ar ojämna mellan ytor, sa
+									# samma ruta blev utdragen pa somliga vaggar och randig pa andra. Med world
+									# triplanar ligger rutan fast i METER i stallet for i UV: en ruta per 2,4 m pa
+									# alla ytor, oavsett hur modellen ar upplagd.
+									kopia.uv1_triplanar = true
+									kopia.uv1_world_triplanar = true
+									var skala: float = 1.0 / 2.4
+									kopia.uv1_scale = Vector3(skala, skala, skala)
 									if MATERIALTON.has(namn):
 										kopia.albedo_color = MATERIALTON[namn]
 									var norm: Texture2D = load(texfil.replace("_BaseColor.png", "_Normal.png"))
