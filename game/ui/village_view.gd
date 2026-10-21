@@ -1309,6 +1309,16 @@ func _bygg_ring() -> void:
 		lykta.light_energy = 1.1
 		lykta.omni_range = 6.0
 		hus.add_child(lykta)
+		# VÄGEN UT (M228): Alex: *"Porten får gärna stå lite på glänt ... så man ser att det är en väg
+		# ut ur byn"*. Portvalvet är genomgående, men på natten läser en mörk öppning som en stängd port.
+		# En lykta på utsidan kastar ljus genom valvet, så öppningen syns och vägen ut blir läsbar.
+		if str(d.get("id", "")) == "karta":
+			var ute := OmniLight3D.new()
+			ute.position = Vector3(0.0, 2.6, -djup * 0.5 - 2.6)
+			ute.light_color = Color(1.0, 0.66, 0.34)
+			ute.light_energy = 3.4
+			ute.omni_range = 11.0
+			hus.add_child(ute)
 
 	# KAMERAN i mitten, i ögonhöjd.
 	_ring_kam = Camera3D.new()
