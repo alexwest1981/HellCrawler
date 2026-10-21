@@ -1409,7 +1409,10 @@ func _bygg_ring() -> void:
 									kopia.uv1_scale = Vector3(skala, skala, skala)
 									if MATERIALTON.has(namn):
 										kopia.albedo_color = MATERIALTON[namn]
-									var norm: Texture2D = load(texfil.replace("_BaseColor.png", "_Normal.png"))
+									# Inte alla MegaKit-rutor har normalmap (RedBrick och MetalOrnaments saknar) —
+									# finns filen inte ska den inte laddas, annars skriker varje bygge.
+									var normväg: String = texfil.replace("_BaseColor.png", "_Normal.png")
+									var norm: Texture2D = load(normväg) if ResourceLoader.exists(normväg) else null
 									if norm != null:
 										kopia.normal_enabled = true
 										kopia.normal_texture = norm
