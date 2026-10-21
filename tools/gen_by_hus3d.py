@@ -663,14 +663,38 @@ def korsvirke(b, yta, z0, z1, hål, puts_mat=None, trä_mat=None, stolp=2.1):
     for q in skär((-yta.längd / 2, z0, yta.längd / 2, z1), hål):
         yta.låda(b, (q[0] + q[2]) / 2, q[1], q[2] - q[0], q[3] - q[1], yta.tjock, puts_mat,
                  ut=-yta.tjock)
-    # syll, mittband och huvudband: smala nog att putsen dominerar fasaden
+    # BJÄLKARNA SKA INTE GA OVER FONSTREN (M252). Alex: *"trät som går i väggen korsar rutorna, det är
+    # ju inte riktigt korrekt"*. Bjälkarna lades tidigare över hela fasaden medan putsen skars runt
+    # hålen — alltså gick mittband och stolpar rakt genom glaset. Nu delas varje bjälke i de bitar som
+    # ligger utanför hålen, så ingen regel korsar en ruta eller en dörr.
+    def bitar(a, c, spann):
+        kvar = [(a, c)]
+        for h0, h1 in spann:
+            ny = []
+            for p0, p1 in kvar:
+                if h1 <= p0 or h0 >= p1:
+                    ny.append((p0, p1))
+                    continue
+                if h0 > p0:
+                    ny.append((p0, h0))
+                if h1 < p1:
+                    ny.append((h1, p1))
+            kvar = ny
+        return [(p0, p1) for p0, p1 in kvar if p1 - p0 > 0.03]
+
     band = [z0, (z0 + z1) / 2 - 0.08, z1 - 0.16]
     for z in band:
-        yta.låda(b, 0, z, yta.längd, 0.16, 0.09, trä_mat)
+        # hål som bandet skär genom, sett i sidled
+        i_vägen = [(h[0], h[2]) for h in hål if h[1] < z + 0.16 and h[3] > z]
+        for x0, x1 in bitar(-yta.längd / 2, yta.längd / 2, i_vägen):
+            yta.låda(b, (x0 + x1) / 2, z, x1 - x0, 0.16, 0.09, trä_mat)
     n = max(2, int(round(yta.längd / stolp)))
     bw = yta.längd / n
     for i in range(n + 1):
-        yta.låda(b, -yta.längd / 2 + bw * i, z0, 0.15, z1 - z0, 0.09, trä_mat)
+        x = -yta.längd / 2 + bw * i
+        i_vägen = [(h[1], h[3]) for h in hål if h[0] < x + 0.15 and h[2] > x]
+        for z0p, z1p in bitar(z0, z1, i_vägen):
+            yta.låda(b, x, z0p, 0.15, z1p - z0p, 0.09, trä_mat)
     # snedsträvor i ytterfacken, en per våning och sida
     for sida in (-1, 1):
         x = sida * (yta.längd / 2 - bw / 2)

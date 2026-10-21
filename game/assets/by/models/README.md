@@ -25,10 +25,10 @@ per fil.
 |---|---|---|---|---|---|---|
 | `tradet.glb` | 12.5 × 7.5 | 10.5 | 50744 | 17 | 0.021 | järn, ljust_virke, mur, mörkt_virke, sten |
 | `smed.glb` | 12.5 × 8.5 | 15.2 | 98052 | 25 | 0.025 | glödhet, järn, ljust_virke, läder, mur, mörkt_virke, puts, rök_0, rök_1, rök_2, rök_3, sot, sten |
-| `vardshus.glb` | 13.5 × 8.5 | 15.7 | 63428 | 19 | 0.015 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
+| `vardshus.glb` | 13.5 × 8.5 | 15.7 | 63932 | 19 | 0.015 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
 | `karta.glb` | 17.8 × 6.8 | 11.7 | 63772 | 15 | 0.018 | järn, ljust_virke, mur, mur_grå, mörkt_virke, puts, sot, sten |
-| `juvelerare.glb` | 9.1 × 6.6 | 12.1 | 40240 | 19 | 0.024 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
-| `avsluta.glb` | 9.5 × 6.5 | 12.1 | 42056 | 16 | 0.023 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
+| `juvelerare.glb` | 9.1 × 6.6 | 12.1 | 40372 | 19 | 0.024 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
+| `avsluta.glb` | 9.5 × 6.5 | 12.1 | 42188 | 16 | 0.023 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
 | `brunn.glb` | 2.3 × 2.3 | 2.6 | 3576 | 10 | 0.156 | järn, ljust_virke, mur, mörkt_virke, puts, sten |
 
 Varje modell är ihopsatt av riktiga byggdelar:
