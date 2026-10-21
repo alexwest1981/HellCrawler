@@ -570,6 +570,10 @@ func hint_y() -> float:
 ## Fokusets höjd: mitten av den FRIA kartytan ovanför remsan. Den valda platsen centreras där, så en
 ## nod aldrig hamnar bakom sin egen information.
 func _fokus_y() -> float:
+	# FOKUSET LIGGER I VYNS MITT nar hela kartan visas (M262). Forut drogs kortets hojd av, sa kartan
+	# centrerades 20 px for hogt och tappade 20 px i over- och underkant.
+	if _zoom() <= 1.0:
+		return _vy().y * 0.5
 	return (_vy().y - KORT_H) * 0.5
 
 ## Kamerans mål: den valda noden i kartytans mitt, klämd så kartan TÄCKER vyn helt (ingen tom yta
@@ -577,6 +581,10 @@ func _fokus_y() -> float:
 ## 0,35 x rutan kunde kartans kant stanna 50 px innanför vyns kant — och då syns en svart rand, som
 ## Alex beskrev den ("kartans bild tar bara ~50 % av fönstret").
 func _kamera_mål() -> Vector2:
+	# HELA KARTAN PÅ EN GÅNG (M261): med zoom <= 1 ryms allt, och då ska kameran inte panorama in mot
+	# den valda platsen — det var den som flyttade kanterna ut ur vyn trots att skalan räckte.
+	if _zoom() <= 1.0:
+		return Vector2.ZERO
 	var ruta := _kartruta()
 	var b := _bbox()
 	var mål := _fort(_bild_px(_vald))
@@ -591,8 +599,10 @@ func _kamera_mål() -> Vector2:
 		mål.y = b.get_center().y
 	return mål
 
+## ZOOMEN KAN ALDRIG ÖVER 1 (M261). Alex: *"Man skall ha full uppsikt over hela kartan"* — 1,0 är
+## "hela kartan ryms", och ett större tal klipper kanterna. Talet i karta.json far alltsa bara dra ned.
 func _zoom() -> float:
-	return karta.zoom if karta != null else 1.0
+	return minf(1.0, karta.zoom) if karta != null else 1.0
 
 ## px på skärmen per px i bilden. 1,0 = HELA bilden ryms i den fria kartytan (M260).
 ##
@@ -603,10 +613,10 @@ func _zoom() -> float:
 func _s() -> float:
 	if _noder.is_empty():
 		return BAS * _zoom()
+	# HELA VYN ar kartans yta (M262). Kortet langst ned reserverar inget utrymme langre: det ritas
+	# ovanpa kartans nederkant, sa bilden far 480x270 i stallet for 480x230 och fyller skarmen.
+	# Alex: *"Man skall ha full uppsikt over hela kartan"*.
 	var fri := _vy()
-	var kort := kort_ruta()
-	if kort.size.y > 0.0:
-		fri.y = maxf(1.0, kort.position.y)
 	return minf(fri.x / Karta.BILD_BREDD, fri.y / Karta.BILD_HÖJD) * _zoom()
 
 func _komprimering() -> float:
