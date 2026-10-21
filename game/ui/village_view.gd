@@ -1277,7 +1277,7 @@ func _bygg_ring() -> void:
 			var instans := modell.instantiate()
 			# SKALA (M221): Alex: *"de skall liksom inte tillhora en smurf"*. Modellerna ar byggda i
 			# 4-6 m; gangavstandet gor dem sma i rutan, sa de skalas upp till byniva.
-			instans.scale = Vector3.ONE * 1.75
+			instans.scale = Vector3.ONE
 			hus.add_child(instans)
 		var w := float(d.get("w", 5.0))
 		var h := float(d.get("h", 4.2))
