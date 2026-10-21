@@ -700,7 +700,13 @@ def korsvirke(b, yta, z0, z1, hål, puts_mat=None, trä_mat=None, stolp=2.1):
         x = sida * (yta.längd / 2 - bw / 2)
         for k in range(len(band) - 1):
             za, zb = band[k] + 0.16, band[k + 1]
-            sträva(b, yta, x + sida * bw * 0.44, za, x - sida * bw * 0.44, zb,
+            # Snedsträvan hoppas över om den skär en öppning (M253): en diagonal kan inte delas i
+            # bitar utan att se avhuggen ut, och en sträva genom glaset är värre än ingen sträva.
+            x0, x1 = x + sida * bw * 0.44, x - sida * bw * 0.44
+            if any(h[0] - 0.1 < max(x0, x1) and h[2] + 0.1 > min(x0, x1)
+                   and h[1] - 0.1 < zb and h[3] + 0.1 > za for h in hål):
+                continue
+            sträva(b, yta, x0, za, x1, zb,
                    bredd=0.14, mat=trä_mat, ut=0.045, tjock=0.08)
 
 
@@ -949,6 +955,12 @@ def fonster(b, yta, hål, u, z, w, h, sprojs=(2, 2), luckor=False, glas=None, ka
     yta.låda(b, u, z, w - 0.1, 0.1, t + 0.05, karm_mat, ut=-t)
     # fönsterbänk som skjuter ut ur fasaden
     yta.låda(b, u, z - 0.09, w + 0.2, 0.09, 0.16, karm_mat, ut=-0.02)
+    # SMYG (M253): en inklädnad av mörkt trä som går 0,22 m in i väggen runt hela öppningen, och glaset
+    # längre in. Utan den låg glaset nästan i fasaden och lästes som en platt lysande rektangel.
+    for zz, hh in ((z + 0.02, 0.1), (z + h - 0.12, 0.1)):
+        yta.låda(b, u, zz, w - 0.12, hh, 0.22, karm_mat, ut=-t + 0.02)
+    for s in (-1, 1):
+        yta.låda(b, u + s * (w / 2 - 0.11), z + 0.02, 0.1, h - 0.04, 0.22, karm_mat, ut=-t + 0.02)
     # glaset på halva djupet, delat i rutor
     kx, kz = sprojs
     gw, gh = (w - 0.16) / kx, (h - 0.16) / kz
@@ -956,7 +968,7 @@ def fonster(b, yta, hål, u, z, w, h, sprojs=(2, 2), luckor=False, glas=None, ka
         for j in range(kz):
             gx = u - (w - 0.16) / 2 + (i + 0.5) * gw
             gz = z + 0.08 + j * gh
-            yta.låda(b, gx, gz, gw * 0.96, gh * 0.96, 0.045, glas, ut=-t * 0.5)
+            yta.låda(b, gx, gz, gw * 0.96, gh * 0.96, 0.045, glas, ut=-t * 0.78)
     # blyspröjs: tunna ribbor på glaset, och den grövre spröjsen utanför
     for i in range(1, kx):
         yta.låda(b, u - (w - 0.16) / 2 + i * gw, z + 0.06, 0.028, h - 0.12, 0.02, karm_mat,
