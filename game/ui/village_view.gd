@@ -254,6 +254,8 @@ class Rök extends Node2D:
 ## KARUSELLEN (M195/M202): byggnaderna står på en ring och vyn vrider ett steg i taget. LÄST UR VC:s kod
 ## (`TownViewController` + `ButtonCarousel` + `TownBuilding`, se research/16): byn är inga panoramor,
 ## den är en ring av byggnadsobjekt med egen bild och egen låst/upplåst text.
+var _vinkel_hus := {}
+var _kam_vinkel := 0.0
 var _rot := 0.0
 var _rot_mål := 0.0
 var _byggnadstex: Dictionary = {}
@@ -1269,6 +1271,7 @@ func _bygg_ring() -> void:
 		# FASADEN INÅT (M211): modellerna byggdes med fasaden åt +Z, och på ringen pekade `vinkel` dem
 		# utåt — därför såg man baksidan. Ett halvt varv gör att man ser dörr och fönster.
 		hus.rotation.y = vinkel + PI
+		_vinkel_hus[str(d.get("id", ""))] = vinkel
 		värld.add_child(hus)
 		# MODELLEN (M210): huset är en Blender-modell (tools/gen_by_hus3d.py), inte en låda.
 		# Saknas filen ritas ingen kropp alls — då syns felet direkt i stället för en tyst låda.
@@ -1303,13 +1306,21 @@ func _bygg_ring() -> void:
 
 ## Kameran tittar på plats i. Vinkeln räknas ur ringens delning, så byggnaden står rakt fram.
 ## Kameran står i mitten och VRIDER sig med `_rot` — mjukt mellan stegen, inte hackigt per byggnad.
-func _ring_titta(_i: int) -> void:
+func _ring_titta(i: int) -> void:
 	if _ring_kam == null:
 		return
-	var antal := PLATSER.size()
-	# KAMERAN MÅSTE TITTA PÅ DET VALDA HUSET (M219): med minus låg vinkeln spegelvänd mot ringen, så
-	# etiketten sade THE SMITH medan bilden visade ett annat hus — och rekvisitan hamnade utanför rutan.
-	_ring_kam.rotation = Vector3(0.0, TAU * _rot / float(antal), 0.0)
+	# KAMERAN TITTAR PÅ DET VALDA HUSETS EGET HUS (M224). Två fel låg bakom att etiketten och bilden
+	# aldrig stämde: kameran räknade vinkel ur index i den FILTRERADE listan (som kan hoppa över hus),
+	# och Godots kamera ser längs -Z medan husen står på +Z-sidan — alltså tittade den på huset mittemot
+	# (mätt: THE SMITH i etiketten, porttornet i bilden). Nu slås vinkeln upp på husets id och kameran
+	# vrids PI + vinkeln, som är riktningen till huset.
+	var id := ""
+	if i >= 0 and i < _synliga.size():
+		id = str(PLATSER[int(_synliga[i])].get("skepp", ""))
+	var mål: float = float(_vinkel_hus.get(id, 0.0)) + PI
+	var skillnad: float = wrapf(mål - _kam_vinkel, -PI, PI)
+	_kam_vinkel += skillnad * 0.25
+	_ring_kam.rotation = Vector3(0.0, _kam_vinkel, 0.0)
 
 ## KARUSELLEN (M202). Alex: *"Det är ännu ingen karusell"*. Byggnaderna står på en RING kring
 ## kameran: vinkeln avgör var de hamnar i sidled, hur stora de är och hur mycket de vrids bort.
