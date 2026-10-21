@@ -804,8 +804,12 @@ func flytta(dir: Vector2i) -> bool:
 	# ÄNDLÖST I 3D-RINGEN (M241): välj nästa hus modulo antalet, så det aldrig tar stopp. Plattläget
 	# behåller sitt stopp i ändarna — där viker en panorering runt från bildens ena kant till den andra.
 	var nästa: int
-	if _ring_vp != null and _synliga.size() > 0:
-		nästa = int(fposmod(_vald + (1 if dir.x > 0 else -1), _synliga.size()))
+	if _ring_vp != null and _rader().size() > 0:
+		# `_vald` är ett index i PLATSER, inte i den filtrerade listan — därför räknas steget i
+		# kolumnlistan `_rader()` och översätts tillbaka. (Att vika `_vald` modulo `_synliga.size()`
+		# blandade två indexrum: provet gick 3 av 5 steg och markeringen hamnade fel.)
+		var koll: int = _kol(_vald)
+		nästa = int(_rader()[int(fposmod(koll + (1 if dir.x > 0 else -1), _rader().size()))])
 	else:
 		var kol := _kol(_vald)
 		var nästa_kol := kol + (1 if dir.x > 0 else -1)
@@ -1386,6 +1390,7 @@ func _bygg_ring() -> void:
 						var kopia: StandardMaterial3D = mat.duplicate()
 						# TEXTURBYTET (M242): slå upp materialets namn i kartan och sätt pixeltexturen.
 						var nyckel := str(kopia.resource_name).to_lower().replace(" ", "_")
+						var utbytt := false
 						for namn in MATERIALTEX:
 							if nyckel == namn or nyckel.begins_with(namn + "_"):
 								var texfil: String = "res://assets/by/texturer/megakit/%s_BaseColor.png" % MATERIALTEX[namn]
@@ -1410,10 +1415,13 @@ func _bygg_ring() -> void:
 										kopia.normal_texture = norm
 										# Lagre relief: hog normal_scale gav glittriga hogdagrar som lastes som brus.
 										kopia.normal_scale = 0.6
+								utbytt = true
 								break
 						kopia.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-						kopia.anisotropy_1_enabled = true
-						if kopia.normal_enabled:
+						kopia.anisotropy_enabled = true
+						# Modellernas egna normalkartor far 1,8; de utbytta behaller 0,6 (annars skrevs
+						# M251:s mjukare relief over igen och bruset kom tillbaka).
+						if kopia.normal_enabled and not utbytt:
 							kopia.normal_scale = 1.8
 						mi.set_surface_override_material(yta, kopia)
 		var w := float(d.get("w", 5.0))
@@ -1759,6 +1767,7 @@ func _bygg_landskap(värld: Node3D) -> void:
 		pm.normal_texture = sten_norm[0]
 		pm.normal_scale = 1.4
 		pm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		pm.anisotropy_enabled = true
 		pelare.material_override = pm
 		värld.add_child(pelare)
 		var hätta := MeshInstance3D.new()

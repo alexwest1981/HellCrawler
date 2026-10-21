@@ -562,12 +562,16 @@ func _init() -> void:
 	by.visa(meta, order.size())
 	var mål := []
 	by.vald.connect(func(skepp: String): mål.append(skepp))
-	check(by.valt_index() == 0, "markeringen börjar på den första platsen")
-	var platser: int = VillageView.PLATSER.size()
+	# Visade platser, inte alla: låsta byggnader döljs (samma regel som i byn), så den första SYNLIGA
+	# platsen är inte nödvändigtvis PLATSER[0]. Provet frågar vyn i stället för att anta.
+	var synliga: Array = by.synliga()
+	check(by.valt_index() == int(synliga[0]), "markeringen börjar på den första platsen som syns",
+		"index %d av %s" % [by.valt_index(), str(synliga)])
+	var platser: int = synliga.size()
 	# PANORERINGEN (M50) tar stopp i ändarna: Alex: *"det gör inget om det tar stopp när man når vardera
 	# hörn"*. Bildens kanter är taket, och en markering som vek runt skulle fara från ena kanten till
 	# den andra i ett svep.
-	check(not by.flytta(Vector2i(-1, 0)) and by.valt_index() == 0,
+	check(not by.flytta(Vector2i(-1, 0)) and by.valt_index() == int(synliga[0]),
 		"vänster från första platsen flyttar ingenting")
 	check(not by.flytta(Vector2i(0, -1)) and not by.flytta(Vector2i(0, 1)),
 		"gatan har ingen granne uppåt eller nedåt")

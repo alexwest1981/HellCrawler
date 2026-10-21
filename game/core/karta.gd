@@ -250,6 +250,12 @@ func skriv(fil := "") -> bool:
 	# Tom väg = skriv tillbaka till filen man LÄSTE (editorn). En egen variabel: namnet `sökväg`
 	# är fältet, och att skugga det i sin egen tilldelning är precis den sortens fälla som kostar en dag.
 	var mål := fil if not fil.is_empty() else sökväg
+	# ETT PROV SKRIVER ALDRIG I SPELETS DATA (M255). Uppmätt: efter en provkörning hade karta.json tappat
+	# "luminati" ur nivålistan — en sparning gick till res:// i stället för provets egen fil. Samma spärr
+	# som MapIo.skrivspärr, av samma skäl: spelets data är Alex, inte provets.
+	if OS.get_environment("HC_TEST") == "1" and mål.begins_with("res://"):
+		push_warning("karta.skriv: vagrar skriva i spelets data under prov (%s)" % mål)
+		return false
 	var ut := {"bild": bild, "zoom": zoom, "komprimering": komprimering, "lutning": lutning, "noder": []}
 	for n in noder:
 		ut["noder"].append({
