@@ -1215,6 +1215,14 @@ const MATERIALTEX := {
 	"läder": "T_WoodTrim",
 }
 
+## UV-skalan per material: hur manga ganger rutan upprepas per UV-enhet. Lagre tal = storre stenar/plankor.
+## Alex: *"Texturen ar alldeles for liten, det blir antingen randigt eller brus av det"* — matt i bild
+## behovdes storre ytor, sa vaggar ligger pa 7 (en ruta per ~8 m) och tak pa 11.
+const MATERIALSKALA := {
+	"mur": 7.0, "puts": 7.0, "sten": 8.0, "mur_grå": 8.0, "mörkt_virke": 9.0, "ljust_virke": 9.0,
+	"takpanna_ljus": 11.0, "takpanna_mörk": 11.0, "tegel": 11.0,
+}
+
 ## Nyansen per material: samma ruta, olika ton (takpannorna skiljer sig åt, mörkt virke är mörkare).
 const MATERIALTON := {
 	"takpanna_mörk": Color(0.62, 0.60, 0.58), "mörkt_virke": Color(0.62, 0.55, 0.50),
@@ -1380,14 +1388,16 @@ func _bygg_ring() -> void:
 									kopia.albedo_texture = alb
 									# Modellernas UV ar 0,018 varv/m, dvs en ruta per 55 m — stenarna blev 10 m
 									# breda. MegaKit-rutorna ar 1024 px och lagda pa 15 varv per UV-enhet = en ruta per ~3,7 m.
-									kopia.uv1_scale = Vector3(15.0, 15.0, 1.0)
+									var skala: float = MATERIALSKALA.get(namn, 8.0)
+									kopia.uv1_scale = Vector3(skala, skala, 1.0)
 									if MATERIALTON.has(namn):
 										kopia.albedo_color = MATERIALTON[namn]
 									var norm: Texture2D = load(texfil.replace("_BaseColor.png", "_Normal.png"))
 									if norm != null:
 										kopia.normal_enabled = true
 										kopia.normal_texture = norm
-										kopia.normal_scale = 1.6
+										# Lagre relief: hog normal_scale gav glittriga hogdagrar som lastes som brus.
+										kopia.normal_scale = 0.6
 								break
 						kopia.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 						kopia.anisotropy_1_enabled = true
