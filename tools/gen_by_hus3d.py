@@ -1003,44 +1003,59 @@ def fonster(b, yta, hål, u, z, w, h, sprojs=(2, 2), luckor=False, glas=None, ka
 
 
 def dörr(b, yta, hål, u, z, w=1.7, h=3.0, mat=None, karm_mat=None, steg=2, handtag=True):
-    """Dörr: plankor i karm, smidda band med nitar, ringhandtag, tröskel och trappsteg.
+    """Dörr: ett sammanhållet blad i en karm med smyg, gångjärn, band och ringhandtag.
 
-    Öppningen är ett hål rakt genom väggen; bladet sitter på halva djupet och banden utanpå det.
+    Alex: *"Dörrarna ser inte ut som dörrar, det är något ihopkokat av raka stänger, väggar, sten å
+    trä ... jag vill ha seriösa dörrar, så som en dörr ser ut."* Det som gav "stänger" var plankorna:
+    de lades med 10 % glapp rakt över hålet, så mörkret inne i huset syntes mellan dem. Nu ligger en
+    TÄT botten först och plankorna ovanpå med ett fnas glapp — springorna blir linjer, inte hål. Bladet
+    sitter indraget i en smyg, så det läser som en dörr i en öppning och inte som en skiva på väggen.
     """
     t = yta.tjock
     mat = mat or mörkt_virke()
     karm_mat = karm_mat or mörkt_virke()
     hål.setdefault(yta.sida, []).append((u - w / 2, z, u + w / 2, z + h + 0.1))
+    # KARM: två sidostycken och en överliggare, genom hela väggtjockleken.
     for s in (-1, 1):
-        yta.låda(b, u + s * (w / 2 - 0.06), z, 0.12, h + 0.2, t + 0.05, karm_mat, ut=-t)
-    yta.låda(b, u, z + h + 0.04, w - 0.12, 0.12, t + 0.05, karm_mat, ut=-t)
-    # dörrblad av plankor på halva djupet
-    n = max(7, int(round(w / 0.18)))
+        yta.låda(b, u + s * (w / 2 - 0.07), z, 0.14, h + 0.14, t + 0.04, karm_mat, ut=-t)
+    yta.låda(b, u, z + h + 0.05, w - 0.14, 0.14, t + 0.04, karm_mat, ut=-t)
+    # SMYG: inklädnad 0,2 m in i väggen runt öppningen, så bladet sitter i ett djup.
+    for s in (-1, 1):
+        yta.låda(b, u + s * (w / 2 - 0.13), z, 0.12, h, 0.2, karm_mat, ut=-t + 0.02)
+    yta.låda(b, u, z + h - 0.12, w - 0.26, 0.12, 0.2, karm_mat, ut=-t + 0.02)
+
+    blad = -t * 0.72          # bladets framsida, indragen i smygen
+    # TÄT BOTTEN: en skiva över hela öppningen som tar bort allt genomlyse.
+    yta.låda(b, u, z + 0.04, w - 0.18, h - 0.08, 0.05, mat, ut=blad + 0.055)
+    # PLANKOR: täta, med ett tunt fnas emellan så fogarna syns som linjer.
+    n = max(5, int(round(w / 0.24)))
     for i in range(n):
-        yta.låda(b, u - w / 2 + w * (i + 0.5) / n, z + 0.02, w / n * 0.9, h - 0.02, 0.09, mat,
-                 ut=-t * 0.5)
-    # tvärslåar på insidan och tre smidda band med nitar utanpå
-    for zz in (z + 0.3, z + h * 0.52):
-        yta.låda(b, u, zz, w * 0.94, 0.16, 0.06, ljust_virke(), ut=-t * 0.5 + 0.09)
-    for zz, bredd_band in ((z + 0.34, w * 0.9), (z + h * 0.5, w * 0.76), (z + h - 0.36, w * 0.9)):
-        yta.låda(b, u, zz, bredd_band, 0.13, 0.045, järn(), ut=-t * 0.5 + 0.09)
-        for i in range(int(bredd_band / 0.22)):
-            yta.låda(b, u - bredd_band / 2 + 0.11 + i * 0.22, zz + 0.03, 0.05, 0.05, 0.03, järn(),
-                     ut=-t * 0.5 + 0.135)
-    # gångjärn på gångjärnssidan
-    for zz in (z + 0.34, z + h - 0.36):
-        yta.låda(b, u - w / 2 + 0.34, zz - 0.02, 0.66, 0.16, 0.07, järn(), ut=-t * 0.5 + 0.09)
-        yta.låda(b, u - w / 2 + 0.06, zz - 0.06, 0.1, 0.24, 0.09, järn(), ut=-t * 0.5 + 0.1)
+        pw = (w - 0.18) / n
+        yta.låda(b, u - (w - 0.18) / 2 + pw * (i + 0.5), z + 0.05, pw - 0.012, h - 0.1, 0.055,
+                 mat, ut=blad)
+    # TVÅ SMIDDA BAND med nitar, långa nog att bära bladet.
+    for zz in (z + 0.42, z + h - 0.62):
+        yta.låda(b, u, zz, w - 0.3, 0.15, 0.035, järn(), ut=blad - 0.035)
+        nitar = int((w - 0.34) / 0.26)
+        for i in range(max(2, nitar)):
+            nx = u - (w - 0.34) / 2 + 0.13 + i * 0.26
+            yta.låda(b, nx, zz + 0.05, 0.055, 0.055, 0.022, järn(), ut=blad - 0.057)
+    # GÅNGJÄRN: tappar på gångjärnssidan, i höjd med banden.
+    for zz in (z + 0.42, z + h - 0.62):
+        yta.låda(b, u - w / 2 + 0.13, zz - 0.03, 0.16, 0.21, 0.06, järn(), ut=blad - 0.02)
     if handtag:
-        hx = u + w / 2 - 0.26
-        yta.låda(b, hx, z + h * 0.48, 0.14, 0.18, 0.05, järn(), ut=-t * 0.5 + 0.14)
-        ring = yta.punkt(hx, z + h * 0.45, -t * 0.5 + 0.19)
-        b.prisma(järn(), (ring.x, ring.y, ring.z), 0.11, 0.05, n=8, axel="y")
-        yta.låda(b, hx, z + h * 0.48 + 0.02, 0.06, 0.08, 0.06, järn(), ut=-t * 0.5 + 0.17)
-    # tröskelsten och steg
-    yta.låda(b, u, z - 0.12, w + 0.5, 0.1, 0.36, sten())
+        hx = u + w / 2 - 0.3
+        # Rosenplatta och ring i smidesjärn.
+        yta.låda(b, hx, z + h * 0.46, 0.16, 0.22, 0.02, järn(), ut=blad - 0.02)
+        yta.låda(b, hx, z + h * 0.46 + 0.16, 0.05, 0.1, 0.05, järn(), ut=blad - 0.04)
+        ring = yta.punkt(hx, z + h * 0.42, blad - 0.05)
+        b.prisma(järn(), (ring.x, ring.y, ring.z), 0.1, 0.03, n=8, axel="y")
+        # Nyckelhålsskylt under ringen.
+        yta.låda(b, hx, z + h * 0.33, 0.12, 0.12, 0.015, järn(), ut=blad - 0.02)
+    # TRÖSKELSTEN i öppningen och trappsteg framför, centrerade.
+    yta.låda(b, u, z - 0.1, w + 0.24, 0.1, t + 0.16, sten(), ut=-t)
     for i in range(steg):
-        yta.låda(b, u, 0, w + 0.6 - 0.08 * i, z * (steg - i) / (steg + 1), 0.3 + 0.34 * i, sten())
+        yta.låda(b, u, 0, w + 0.5 - 0.12 * i, (z - 0.1) * (steg - i) / (steg + 1), 0.26 + 0.3 * i, sten())
 
 
 def portvalv(b, yta, hål, u, z, w, h_spring, r=None, mat=None):
