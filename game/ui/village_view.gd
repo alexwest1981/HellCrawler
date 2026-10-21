@@ -1350,7 +1350,7 @@ func _bygg_ring() -> void:
 		# Modellen har bredden langs Blender-Y, som blir -Z i Godot: ett kvarts varv sa porten vander
 		# sin breda sida mot torget i stallet for att sta kant mot kant.
 		port.rotation.y = pv + PI * 0.5
-		port.scale = Vector3.ONE * 8.0
+		port.scale = Vector3.ONE * 32.0
 		# Materialet ur .blend-filen följer inte med i exporten (bara en tom Principled), så porten
 		# kläs här med zip-filens egna bilder via modellens UV-karta.
 		var port_mat := StandardMaterial3D.new()
