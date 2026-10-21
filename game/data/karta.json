@@ -2,7 +2,7 @@
  "bild": "res://assets/ui/varldskarta.png",
  "zoom": 1.9,
  "komprimering": 0.82,
- "lutning": 0.18,
+ "lutning": 0.0,
  "noder": [
   {
    "plats": "Nedre porten",
