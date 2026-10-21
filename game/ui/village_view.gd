@@ -1214,6 +1214,30 @@ const MATERIALTEX := {
 	"järn": "dark_stone", "halm": "dirt", "läder": "wood_planks",
 }
 
+## MUR OCH PORT UR DATA (M244). Alex: *"du maste isa fall andra porten, sa den matchar in i oppningen i
+## muren"*. Bada matten kommer nu ur data/by.json ("mur" och "port"), och portens BREDD styr bade
+## modellens skala och murens glapp — da kan de inte glida ifran varandra igen.
+var _mur_radie := 26.0
+var _mur_hojd := 4.2
+var _port_radie := 25.2
+var _port_bredd := 13.0
+var _port_skala := 15.7   ## portmodellen ar 0,83 m bred i Blender
+
+func _las_bymatt() -> void:
+	var fil := "res://data/by.json"
+	if not FileAccess.file_exists(fil):
+		return
+	var d = JSON.parse_string(FileAccess.get_file_as_string(fil))
+	if typeof(d) != TYPE_DICTIONARY:
+		return
+	var m: Dictionary = d.get("mur", {})
+	var p: Dictionary = d.get("port", {})
+	_mur_radie = float(m.get("radie", _mur_radie))
+	_mur_hojd = float(m.get("hojd", _mur_hojd))
+	_port_radie = float(p.get("radie", _port_radie))
+	_port_bredd = float(p.get("bredd", _port_bredd))
+	_port_skala = _port_bredd / 0.83
+
 var _ring_vp: SubViewport = null
 var _ring_kam: Camera3D = null
 var _ring_byggd := false
@@ -1389,11 +1413,11 @@ func _bygg_ring() -> void:
 		var port := portscen.instantiate()
 		var pv := deg_to_rad(180.0)
 		# Porten star i murlivet (25,2 m av 26) sa stolparna möter murens andar.
-		port.position = Vector3(sin(pv) * 25.2, 0.0, cos(pv) * 25.2)
+		port.position = Vector3(sin(pv) * _port_radie, 0.0, cos(pv) * _port_radie)
 		# Modellen har bredden langs Blender-Y, som blir -Z i Godot: ett kvarts varv sa porten vander
 		# sin breda sida mot torget i stallet for att sta kant mot kant.
 		port.rotation.y = pv + PI * 0.5
-		port.scale = Vector3.ONE * 32.0
+		port.scale = Vector3.ONE * _port_skala
 		# Materialet ur .blend-filen följer inte med i exporten (bara en tom Principled), så porten
 		# kläs här med zip-filens egna bilder via modellens UV-karta.
 		var port_mat := StandardMaterial3D.new()
@@ -1627,12 +1651,14 @@ func _bygg_landskap(värld: Node3D) -> void:
 	# 26,6 m bred — alltsa BREDARE an det glapp i murcirkeln (radie 26) som portplanet skar: cirkeln
 	# korsar portplanet vid x = sqrt(26^2 - 25,2^2) = 6,4 m, dvs 14,3 grader fran portens mitt. Med det
 	# glappet dor murens andar rakt in i portens stolpar i stallet for att stanna en dryg meter innan.
-	var kap_vinkel := acos(clampf(25.2 / 26.0, 0.0, 1.0))
+	# Glappet ar EXAKT portens bredd: halva bredden i sidled vid murradien ger vinkeln. Da dor murens
+	# andar in i portens stolpar, och porten fyller oppningen i stallet for att lamna en springa.
+	var kap_vinkel := asin(clampf(_port_bredd * 0.5 / _mur_radie, 0.0, 1.0))
 	for i in 64:
 		var vinkel3 := TAU * float(i) / 64.0
 		if absf(wrapf(vinkel3 - port_vinkel, -PI, PI)) < kap_vinkel:
 			continue
-		var mitt := Vector3(sin(vinkel3) * 26.0, 0.0, cos(vinkel3) * 26.0)
+		var mitt := Vector3(sin(vinkel3) * _mur_radie, 0.0, cos(vinkel3) * _mur_radie)
 		var sidled := Vector3(cos(vinkel3), 0.0, -sin(vinkel3))
 		var mur := Node3D.new()
 		mur.position = mitt
@@ -1690,9 +1716,9 @@ func _bygg_landskap(värld: Node3D) -> void:
 		var v: float = port_vinkel + float(sida) * kap_vinkel
 		var pelare := MeshInstance3D.new()
 		var pb := BoxMesh.new()
-		pb.size = Vector3(1.5, 5.4, 1.5)
+		pb.size = Vector3(1.5, _mur_hojd * 1.28, 1.5)
 		pelare.mesh = pb
-		pelare.position = Vector3(sin(v) * 26.0, 2.7, cos(v) * 26.0)
+		pelare.position = Vector3(sin(v) * _mur_radie, _mur_hojd * 0.5, cos(v) * _mur_radie)
 		pelare.rotation.y = v
 		var pm := StandardMaterial3D.new()
 		pm.albedo_texture = sten_tex[0]
@@ -1706,7 +1732,7 @@ func _bygg_landskap(värld: Node3D) -> void:
 		var hb := BoxMesh.new()
 		hb.size = Vector3(1.9, 0.35, 1.9)
 		hätta.mesh = hb
-		hätta.position = Vector3(sin(v) * 26.0, 5.55, cos(v) * 26.0)
+		hätta.position = Vector3(sin(v) * _mur_radie, _mur_hojd + 0.35, cos(v) * _mur_radie)
 		hätta.rotation.y = v
 		hätta.material_override = pm
 		värld.add_child(hätta)

@@ -68,5 +68,15 @@
       "vag": "ancient_stone",
       "tak": "wooden_palisades"
     }
-  ]
+  ],
+  "mur": {
+    "radie": 26.0,
+    "hojd": 4.2,
+    "_": "murens ring runt byn: radie i meter och hojd pa stenarna"
+  },
+  "port": {
+    "radie": 25.2,
+    "bredd": 13.0,
+    "_": "porten: avstand fran byns mitt och oppningens bredd. Bredden styr bade modellens skala och hur stort glapp muren lamnar - andrar du har foljer bada."
+  }
 }
