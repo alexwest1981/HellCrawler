@@ -314,6 +314,15 @@ class Bygge:
                     p.y *= sy
                     p.z *= sz
 
+    def flytta(self, dx, dy, dz):
+        """Flyttar all redan byggd geometri."""
+        for koll in (self.sockel, self.delar):
+            for _mn, (v, _f) in koll.items():
+                for p in v:
+                    p.x += dx
+                    p.y += dy
+                    p.z += dz
+
     def låda(self, mitt, storlek, mat, matris=None, mål=None):
         """Rätblock med undre mittpunkt i `mitt` = (x, y, z0). `matris` vrids kring hörnen."""
         cx, cy, z0 = mitt
@@ -1692,8 +1701,8 @@ def karta(b):
 
     # --- porten: rundbåge genom hela tornet ---------------------------------------------------
     b.delnamn = "port"
-    portvalv(b, fram, hål, 0.0, 0.2, 3.6, 3.4, r=1.8, mat=murmat)
-    portvalv(b, bak, hål, 0.0, 0.2, 3.6, 3.4, r=1.8, mat=murmat)
+    portvalv(b, fram, hål, 0.0, 0.0, 5.0, 4.0, r=2.2, mat=murmat)
+    portvalv(b, bak, hål, 0.0, 0.0, 5.0, 4.0, r=2.2, mat=murmat)
     # anfangsstenar (springers) där bågen vilar, och en profilerad ring runt bågen
     for s2 in (-1, 1):
         for zz in (3.3, 3.75, 4.2):
@@ -1719,15 +1728,15 @@ def karta(b):
     # det är en väg ut ur byn"*. Varje blad vrids kring sitt gångjärn (ytterkanten) inåt gången, 35
     # grader, så öppningen syns och vägen ut är fri. `matris` i Bygge.låda vrider varje bräda rätt.
     for s2 in (-1, 1):
-        gångjärn = Matrix.Translation((s2 * 1.8, gy, 0.0))
-        M = gångjärn @ Matrix.Rotation(s2 * -0.61, 4, 'Z') @ Matrix.Translation((s2 * -1.8, -gy, 0.0))
+        gångjärn = Matrix.Translation((s2 * 2.5, gy, 0.0))
+        M = gångjärn @ Matrix.Rotation(s2 * -0.61, 4, 'Z') @ Matrix.Translation((s2 * -2.5, -gy, 0.0))
         for i in range(9):
-            b.låda((s2 * 0.9 + (i - 4) * 0.2, gy, 1.0), (0.18, 0.14, 4.6), mörkt_virke(), matris=M)
-        for zz in (1.5, 2.6, 3.7, 4.8):
-            b.låda((s2 * 0.9, gy - 0.09, zz), (1.8, 0.08, 0.24), järn(), matris=M)
+            b.låda((s2 * 1.25 + (i - 4) * 0.28, gy, 0.0), (0.24, 0.14, 5.6), mörkt_virke(), matris=M)
+        for zz in (0.8, 2.2, 3.6, 5.0):
+            b.låda((s2 * 1.25, gy - 0.09, zz), (2.4, 0.08, 0.28), järn(), matris=M)
             for i in range(9):                                     # spik
-                b.låda((s2 * 0.9 - 0.8 + i * 0.2, gy - 0.14, zz + 0.06), (0.07, 0.05, 0.07), järn(), matris=M)
-        b.låda((s2 * 0.5, gy - 0.16, 2.6), (0.09, 0.05, 0.4), järn(), matris=M)
+                b.låda((s2 * 1.25 - 1.1 + i * 0.28, gy - 0.14, zz + 0.06), (0.07, 0.05, 0.07), järn(), matris=M)
+        b.låda((s2 * 0.7, gy - 0.16, 2.6), (0.09, 0.05, 0.4), järn(), matris=M)
 
     # --- fallgaller, upphissat i valvet ovanför porten ---------------------------------------
     b.delnamn = "fallgaller"
@@ -1821,7 +1830,11 @@ def karta(b):
     # Alex: *"Det skall vara en Gate, en stor port, inte ett torn"*. Geometrin byggs som förut och
     # skalas sedan: bredare (1,55), lägre (0,68) och grundare (0,85). Portöppningen blir då ca 5,6 m
     # bred och 4,2 m hög i en 17,8 m bred, 11,6 m hög port — en stadsport, inte ett vakttorn.
-    b.skala(1.55, 0.85, 1.02)
+    b.skala(1.55, 0.85, 0.68)
+    # SOCKELN NER (M232): Alex: *"porten sitter nu 2 rutor upp i luften ... det som skulle hoas var
+    # oppningen"*. Porten stod pa en 0,68 m hog sockel och lastes som en trappa. Hela porten flyttas ned
+    # sa sockeln hamnar under mark och oppningen ligger i markniva.
+    b.flytta(0.0, 0.0, -0.68)
 
 def juvelerare(b):
     """Juvelerarstuga: krämvit puts med mörkbrunt timmer, stort upplyst skyltfönster med
