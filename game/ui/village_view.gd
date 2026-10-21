@@ -59,14 +59,10 @@ extends Control
 ## Platsen man valde och gick in i. `skepp` är skalets läge (main.gd), inte en egen sorts plats.
 signal vald(skepp: String)
 
-## BYN ENLIGT VC (M193): en bred målad gata med låg horisont, överdimensionerade hus i rad och
-## små figurer — samma uppbyggnad som Vampire Crawlers by, med vår egen konst (genererad, 1264x806).
-## PLACEHOLDER (M200): byns riktiga bakgrund, utdragen ur VC:s `sharedassets2` — bara för att kunna SE
-## byn fungera innan vår egen bildgenerator är tillbaka. `tools/build.sh` VÄGRAR bygga så länge den här
-## raden pekar på `assets/vc_lan`: inget får publiceras med någon annans konst.
-const BILD := "res://assets/vc_lan/town/Town_BG.png"
-## Byn som MÅLAD 2.5D-scen (M172). False = Alex' panorama ritas, 3D-scenen är urkopplad.
-const BY3D := false
+## BYN ÄR EN ROTERANDE 3D-RING (M266): husen byggs ur `data/by.json` och ritas ur en SubViewport;
+## ingen målad bakgrundsbild finns längre, och ingen inlånad konst.
+const BILD := ""
+const BY3D := true
 ## BYN ROTERAR (M194). Alex: *"man roterar i byn på VC ... mellan porten ut, smeden, museet å allt
 ## det. Inte en platt jävla bild!"* Vyn är en 360-gata: bilden läggs sida vid sida med sin egen
 ## spegelvändning (skarven blir osynlig), `_pan` är vridningen, och vänster/höger vrider till nästa
@@ -494,36 +490,10 @@ func _hus_textur(i: int) -> Texture2D:
 ## (`x0`/`x1`) och höjden går från `HUS_TOPP` ned till gatulinjen — huset man ser är det som reses.
 ## Byggs om bara när vyns storlek har ändrats: i en kedja av bildrutor räcker det.
 func _bygg_scen() -> void:
-	# 2.5D HD (M174): den gamla scenen (bak.png + hus ur den gamla konsten) hör till 3D-vägen. Byggdes
-	# den ändå ritade den ÖVER HD-lagret — mätt: bilden visade den gamla dagsljusbyn med band och
-	# urklippta hus trots att HD-texturen var rätt.
-	if not BY3D:
-		_scen3d = null
-		return
-	# 3D-BYN först (M125): den är det som ritas, och den byggs ur SAMMA ruta som 2D-scenen.
+	# BYN ÄR 3D-RINGEN (M266). 2.5D-vägen (ByScen ur en målad bild) är borta tillsammans med
+	# VC-plattformen; ringen byggs ur by.json och husens klickytor ur deras egna positioner.
+	_scen3d = null
 	_bygg_by3d(_vy())
-	var konst := byscen()
-	if konst == null or konst.get_height() <= 0:
-		_scen3d = null
-		return
-	var vy := _vy()
-	if _scen3d != null and _scen3d.klar() and _scen3d.vp.size == Vector2i(int(vy.x), int(vy.y)):
-		return
-	var bak := bak_textur()
-	if bak == null:
-		_scen3d = null
-		return
-	var art := Vector2(konst.get_width(), konst.get_height())
-	_gata_px = art.y * BILDENS_GATA / 100.0
-	var hus: Array = []
-	for i in PLATSER.size():
-		hus.append({"ruta": _konst_ruta(i, art), "textur": _hus_textur(i)})
-	if _scen3d == null:
-		_scen3d = ByScen.new()
-	_scen3d.bygg(self, vy, bak, hus, _gata_px, bild_storlek().y / art.y)
-	_scen3d.sätt_pan(_pan)
-	_scen3d.sätt_kamera(_kamerapan.x, _kamerapan.y)
-	_om_markering()
 
 ## Markeringen. Med 3D-byn ritas hovringsglöden i VYN kring husets projicerade ruta (`_glod`) — 2D-scenens
 ## glöd låg på husets EGEN textur, och den texturen ritas inte längre. Anropas när valet eller hovringen
