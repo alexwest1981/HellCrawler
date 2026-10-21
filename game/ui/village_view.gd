@@ -1275,6 +1275,9 @@ func _bygg_ring() -> void:
 		var modell: PackedScene = load("res://assets/by/models/%s.glb" % str(d.get("id", "")))
 		if modell != null:
 			var instans := modell.instantiate()
+			# SKALA (M221): Alex: *"de skall liksom inte tillhora en smurf"*. Modellerna ar byggda i
+			# 4-6 m; gangavstandet gor dem sma i rutan, sa de skalas upp till byniva.
+			instans.scale = Vector3.ONE * 1.75
 			hus.add_child(instans)
 		var w := float(d.get("w", 5.0))
 		var h := float(d.get("h", 4.2))
@@ -1543,6 +1546,13 @@ func _bygg_rekvisita(värld: Node3D) -> void:
 			pjäs.rotation.y = vinkel + PI + rng.randf_range(-0.25, 0.25)
 			pjäs.scale = Vector3.ONE * rng.randf_range(0.95, 1.2)
 			värld.add_child(pjäs)
+	# BRUNNEN (M221): mitt på torget, vid sidan om kameran så den syns när man vrider mellan husen.
+	var brunn: PackedScene = load("res://assets/by/models/brunn.glb")
+	if brunn != null:
+		var b := brunn.instantiate()
+		b.position = Vector3(sin(deg_to_rad(90.0)) * 7.0, 0.0, cos(deg_to_rad(90.0)) * 7.0)
+		b.rotation.y = deg_to_rad(90.0)
+		värld.add_child(b)
 	print("rekvisita: utplacerad")
 
 
