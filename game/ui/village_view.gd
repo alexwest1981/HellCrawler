@@ -1291,7 +1291,12 @@ func _bygg_ring() -> void:
 		värld.add_child(hus)
 		# MODELLEN (M210): huset är en Blender-modell (tools/gen_by_hus3d.py), inte en låda.
 		# Saknas filen ritas ingen kropp alls — då syns felet direkt i stället för en tyst låda.
-		var modell: PackedScene = load("res://assets/by/models/%s.glb" % str(d.get("id", "")))
+		# PORTEN (M236): Alex: *"jag tänkte mig annars bara att det hade räckt om gaten såg ut som denna"*.
+		# karta-modellen (porttornet) ritas inte längre — porten är en egen träport (port.glb ur
+		# wooden-gate.zip) och muren tar slut på varsin sida om den.
+		var modell: PackedScene = null
+		if str(d.get("id", "")) != "karta":
+			modell = load("res://assets/by/models/%s.glb" % str(d.get("id", "")))
 		if modell != null:
 			var instans := modell.instantiate()
 			# SKALA (M221): Alex: *"de skall liksom inte tillhora en smurf"*. Modellerna ar byggda i
@@ -1315,6 +1320,8 @@ func _bygg_ring() -> void:
 		var w := float(d.get("w", 5.0))
 		var h := float(d.get("h", 4.2))
 		var djup := float(d.get("d", 3.4))
+		if str(d.get("id", "")) == "karta":
+			continue
 		# FÖNSTERLJUSET: en varm punkt framför fasaden, som ett upplyst fönster i mörkret.
 		var lykta := OmniLight3D.new()
 		lykta.position = Vector3(w * 0.18, minf(h * 0.35, 4.5), djup * 0.5 + 1.2)
@@ -1332,6 +1339,30 @@ func _bygg_ring() -> void:
 			ute.light_energy = 3.4
 			ute.omni_range = 11.0
 			hus.add_child(ute)
+
+	# SJÄLVA PORTEN: träporten ur wooden-gate.zip, skalad till 5,0 m bred och 4,5 m hög, ställd där
+	# karta-huset står och vänd mot torget.
+	var portscen: PackedScene = load("res://assets/by/models/port.glb")
+	if portscen != null:
+		var port := portscen.instantiate()
+		var pv := deg_to_rad(180.0)
+		port.position = Vector3(sin(pv) * 25.6, 0.0, cos(pv) * 25.6)
+		# Modellen har bredden langs Blender-Y, som blir -Z i Godot: ett kvarts varv sa porten vander
+		# sin breda sida mot torget i stallet for att sta kant mot kant.
+		port.rotation.y = pv + PI * 0.5
+		port.scale = Vector3.ONE * 8.0
+		# Materialet ur .blend-filen följer inte med i exporten (bara en tom Principled), så porten
+		# kläs här med zip-filens egna bilder via modellens UV-karta.
+		var port_mat := StandardMaterial3D.new()
+		port_mat.albedo_texture = load("res://assets/by/texturer/port_albedo.png")
+		port_mat.normal_enabled = true
+		port_mat.normal_texture = load("res://assets/by/texturer/port_normal.png")
+		port_mat.normal_scale = 1.4
+		port_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		port_mat.roughness = 0.9
+		for mi in port.find_children("*", "MeshInstance3D", true, false):
+			mi.material_override = port_mat
+		värld.add_child(port)
 
 	# KAMERAN i mitten, i ögonhöjd.
 	_ring_kam = Camera3D.new()
@@ -1540,8 +1571,13 @@ func _bygg_landskap(värld: Node3D) -> void:
 	murrng.seed = 991
 	const KURSER := 5
 	const KURSHOJD := 0.84
+	# MUREN TAR SLUT VID PORTEN (M236): Alex: *"att muren tar stop på varsin sida om den gaten"*.
+	# Sektioner inom 9 grader av portens vinkel (180 grader, huset karta) hoppas över.
+	var port_vinkel := deg_to_rad(180.0)
 	for i in 64:
 		var vinkel3 := TAU * float(i) / 64.0
+		if absf(wrapf(vinkel3 - port_vinkel, -PI, PI)) < deg_to_rad(9.0):
+			continue
 		var mitt := Vector3(sin(vinkel3) * 26.0, 0.0, cos(vinkel3) * 26.0)
 		var sidled := Vector3(cos(vinkel3), 0.0, -sin(vinkel3))
 		var mur := Node3D.new()
@@ -1671,6 +1707,9 @@ func _bygg_skog(värld: Node3D) -> void:
 	rng.seed = 20261020
 	for i in 90:
 		var vinkel := TAU * float(i) / 90.0 + rng.randf_range(-0.05, 0.05)
+		# Inga träd framför porten (180 grader): de skymde öppningen i vyn.
+		if absf(wrapf(vinkel - PI, -PI, PI)) < deg_to_rad(11.0):
+			continue
 		var radie := rng.randf_range(30.0, 56.0)
 		var träd := modeller[rng.randi_range(0, modeller.size() - 1)].instantiate()
 		träd.scale = Vector3.ONE * rng.randf_range(1.15, 1.95)
