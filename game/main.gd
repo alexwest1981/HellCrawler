@@ -872,6 +872,17 @@ var active_combat: Combat = null
 var last_events := 0
 
 func _ready() -> void:
+	# SKARP TEXT I ALLA STORLEKAR (M250). Alex: *"Allt ar annu alldeles for pixligt. Jag vill ha HOGRE
+	# KVALITET!"*. HUD:en ritas i 480x270-rutor och skalas upp 4x nar fonstret ar 1920 brett — varje
+	# glyf blev en trappa av 4x4-pixlar. MSDF ar en avstandsfil: glyferna raknas ur konturerna vid
+	# renderingen och ar skarpa i vilken skala som helst, utan att en enda layoutkonstant skrivs om.
+	var hudfont: FontFile = load("res://assets/fonts/hud_serif.ttf")
+	if hudfont != null and not hudfont.multichannel_signed_distance_field:
+		hudfont.multichannel_signed_distance_field = true
+		hudfont.msdf_pixel_range = 12
+		hudfont.msdf_size = 96
+		ThemeDB.fallback_font = hudfont
+		ThemeDB.fallback_font_size = 16
 	db = Cards.load_all()
 	stages = Stages.load_all()
 	bestiary = Enemies.load_all()
