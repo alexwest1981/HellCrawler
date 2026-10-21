@@ -1304,9 +1304,9 @@ func _bygg_ring() -> void:
 		var djup := float(d.get("d", 3.4))
 		# FÖNSTERLJUSET: en varm punkt framför fasaden, som ett upplyst fönster i mörkret.
 		var lykta := OmniLight3D.new()
-		lykta.position = Vector3(w * 0.22, h * 0.55, djup * 0.5 + 0.6)
+		lykta.position = Vector3(w * 0.18, minf(h * 0.35, 4.5), djup * 0.5 + 1.2)
 		lykta.light_color = Color(1.0, 0.72, 0.36)
-		lykta.light_energy = 2.2
+		lykta.light_energy = 1.1
 		lykta.omni_range = 6.0
 		hus.add_child(lykta)
 
