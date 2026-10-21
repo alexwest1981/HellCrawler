@@ -1218,9 +1218,12 @@ const MATERIALTEX := {
 ## UV-skalan per material: hur manga ganger rutan upprepas per UV-enhet. Lagre tal = storre stenar/plankor.
 ## Alex: *"Texturen ar alldeles for liten, det blir antingen randigt eller brus av det"* — matt i bild
 ## behovdes storre ytor, sa vaggar ligger pa 7 (en ruta per ~8 m) och tak pa 11.
-const MATERIALSKALA := {
-	"mur": 3.5, "puts": 3.5, "sten": 4.0, "mur_grå": 4.0, "mörkt_virke": 4.5, "ljust_virke": 4.5,
-	"takpanna_ljus": 5.5, "takpanna_mörk": 5.5, "tegel": 5.5,
+## METER PER RUTA (M249). Alex: *"stenarna ar storre an dorren"* — matt i bild var rutorna 2,4 m, sa
+## murstenarna blev ~0,8 m. Riktig mursten ar 0,3-0,5 m, alltsa en ruta per ~1,4 m; virke och takpannor
+## ar nagot grövre.
+const MATERIALMETER := {
+	"mur": 1.4, "puts": 1.5, "sten": 1.3, "mur_grå": 1.3, "mörkt_virke": 1.6, "ljust_virke": 1.6,
+	"takpanna_ljus": 1.8, "takpanna_mörk": 1.8, "tegel": 1.8, "järn": 1.0, "mässing": 1.0,
 }
 
 ## Nyansen per material: samma ruta, olika ton (takpannorna skiljer sig åt, mörkt virke är mörkare).
@@ -1394,7 +1397,7 @@ func _bygg_ring() -> void:
 									# alla ytor, oavsett hur modellen ar upplagd.
 									kopia.uv1_triplanar = true
 									kopia.uv1_world_triplanar = true
-									var skala: float = 1.0 / 2.4
+									var skala: float = 1.0 / float(MATERIALMETER.get(namn, 1.5))
 									kopia.uv1_scale = Vector3(skala, skala, skala)
 									if MATERIALTON.has(namn):
 										kopia.albedo_color = MATERIALTON[namn]
