@@ -574,10 +574,6 @@ func hint_y() -> float:
 ## Fokusets höjd: mitten av den FRIA kartytan ovanför remsan. Den valda platsen centreras där, så en
 ## nod aldrig hamnar bakom sin egen information.
 func _fokus_y() -> float:
-	# FOKUSET LIGGER I VYNS MITT nar hela kartan visas (M262). Forut drogs kortets hojd av, sa kartan
-	# centrerades 20 px for hogt och tappade 20 px i over- och underkant.
-	if _zoom() <= 1.0:
-		return _vy().y * 0.5
 	return (_vy().y - KORT_H) * 0.5
 
 ## Kamerans mål: den valda noden i kartytans mitt, klämd så kartan TÄCKER vyn helt (ingen tom yta
@@ -617,10 +613,12 @@ func _zoom() -> float:
 func _s() -> float:
 	if _noder.is_empty():
 		return BAS * _zoom()
-	# HELA VYN ar kartans yta (M262). Kortet langst ned reserverar inget utrymme langre: det ritas
-	# ovanpa kartans nederkant, sa bilden far 480x270 i stallet for 480x230 och fyller skarmen.
-	# Alex: *"Man skall ha full uppsikt over hela kartan"*.
+	# REMSAN TACKER INTE KARTAN (M265). Kartytan ar vyn UTAN remsan, sa bilden ryms ovanfor den i
+	# stallet for att ligga under. Alex: *"baren inte tacker kartan alls"*.
 	var fri := _vy()
+	var kort := kort_ruta()
+	if kort.size.y > 0.0:
+		fri.y = maxf(1.0, kort.position.y)
 	return minf(fri.x / Karta.BILD_BREDD, fri.y / Karta.BILD_HÖJD) * _zoom()
 
 func _komprimering() -> float:
@@ -1075,6 +1073,9 @@ func _markerad(i: int) -> void:
 ## (Namnet är inte `_ram` — det är pulsens bildruta, och två saker med samma namn i samma klass är
 ## ett parsefel, inte en varning.)
 func _bård(vp: Vector2) -> void:
+	# Barden slutar dar remsan borjar (M265): ramen ritades runt hela vyn och dess nederkant lag
+	# bakom remsan. Alex: *"baren inte tacker kartan alls"*.
+	vp.y = kort_ruta().position.y
 	draw_rect(Rect2(3, 3, vp.x - 6, vp.y - 6), Palett.c(6), false, 2.0)
 	draw_rect(Rect2(6, 6, vp.x - 12, vp.y - 12), Palett.c(3), false, 1.0)
 	for p in [Vector2(6, 6), Vector2(vp.x - 12, 6), Vector2(6, vp.y - 12), Vector2(vp.x - 12, vp.y - 12)]:
