@@ -1309,6 +1309,8 @@ func _bygg_ring() -> void:
 						var kopia: StandardMaterial3D = mat.duplicate()
 						kopia.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 						kopia.anisotropy_1_enabled = true
+						if kopia.normal_enabled:
+							kopia.normal_scale = 1.8
 						mi.set_surface_override_material(yta, kopia)
 		var w := float(d.get("w", 5.0))
 		var h := float(d.get("h", 4.2))
@@ -1518,44 +1520,80 @@ func _bygg_landskap(värld: Node3D) -> void:
 	# MURVARIATION (M225): Alex: *"muren behöver ha lite variation"*. Tre stenmaterial i rotation,
 	# höjd- och lutningsvariation per sektion och en mörkare ton då och då, så muren inte är 64 likadana
 	# klossar. Samma sak ger fogarna liv när SSAO och glöd är på.
-	var murtexer: Array[Texture2D] = [
+	# MUREN (M233). Alex: *"Muren ser forjavlig ut ... ser inte ut som en mur med de texturerna, och
+	# alla vaggar som anvander samma textur: Byt"*. Forsta versionen var 64 likadana ladA med en textur
+	# skalad 2x — det laser som tapet, inte mur. Nu byggs muren av ENSKILDA STENAR i skift: 5 kurser per
+	# sektion, 2-3 stenar per kurs, slumpad bredd, djup, ton och ett av tva stenmaterial. Kronraden
+	# ligger ovanpa och foljer sektionens hojd.
+	var sten_tex: Array[Texture2D] = [
 		load("res://assets/tiles/material/fortified_stone_bricks.png"),
 		load("res://assets/tiles/material/ancient_stone.png"),
-		load("res://assets/tiles/material/chiseled_marble.png"),
+	]
+	# NORMALMAPS (M234): Alex: *"vad hände med att sätta på normalmapping, så det ger det hela lite liv,
+	# någon för ljuset att landa på och skapa skuggor?"*. Stenmaterialen hade ingen normalmap alls —
+	# tools/gen_normal.py ritar dem ur albedon (Sobel), så fogar och stensprång får riktning i ljuset.
+	var sten_norm: Array[Texture2D] = [
+		load("res://assets/tiles/material/fortified_stone_bricks_normal.png"),
+		load("res://assets/tiles/material/ancient_stone_normal.png"),
 	]
 	var murrng := RandomNumberGenerator.new()
 	murrng.seed = 991
+	const KURSER := 5
+	const KURSHOJD := 0.84
 	for i in 64:
 		var vinkel3 := TAU * float(i) / 64.0
-		var mur := MeshInstance3D.new()
-		var murbox := BoxMesh.new()
-		var murhöjd := 4.2 + murrng.randf_range(-0.35, 0.35)
-		murbox.size = Vector3(2.9, murhöjd, 0.9 + murrng.randf_range(-0.06, 0.06))
-		mur.mesh = murbox
-		mur.position = Vector3(sin(vinkel3) * 26.0, murhöjd * 0.5, cos(vinkel3) * 26.0)
-		mur.rotation = Vector3(0.0, vinkel3, murrng.randf_range(-0.012, 0.012))
-		var mm := StandardMaterial3D.new()
-		mm.albedo_texture = murtexer[murrng.randi_range(0, 2)]
-		mm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-		mm.uv1_scale = Vector3(murrng.randf_range(1.7, 2.4), murrng.randf_range(1.7, 2.4), 1.0)
-		mm.uv1_offset = Vector3(murrng.randf(), murrng.randf(), 0.0)
-		mm.roughness = 1.0
-		# Tonvariation: några sektioner är mörkare (fukt/skugga), några har mossa.
-		var ton := murrng.randf_range(0.72, 1.0)
-		mm.albedo_color = Color(ton, ton * murrng.randf_range(0.97, 1.02), ton * 0.98)
-		mur.material_override = mm
+		var mitt := Vector3(sin(vinkel3) * 26.0, 0.0, cos(vinkel3) * 26.0)
+		var sidled := Vector3(cos(vinkel3), 0.0, -sin(vinkel3))
+		var mur := Node3D.new()
+		mur.position = mitt
+		mur.rotation.y = vinkel3
 		värld.add_child(mur)
-		# KRÖNET: en rad mörkare stenar ovanpå, så muren läses som mur och inte som en vägg.
+		for kurs in KURSER:
+			var x := -1.45
+			var förskjutning := 0.0 if kurs % 2 == 0 else 0.5   # förband: varannan kurs förskjuten
+			x += förskjutning
+			while x < 1.45:
+				var bredd := murrng.randf_range(0.38, 1.25)
+				if murrng.randf() < 0.05:                        # enstaka saknad sten (mörk ficka)
+					x += bredd + 0.02
+					continue
+				var sten := MeshInstance3D.new()
+				var låda := BoxMesh.new()
+				var höjd := KURSHOJD * murrng.randf_range(0.86, 1.06)
+				var djup := 0.92 + murrng.randf_range(-0.05, (0.12 if murrng.randf() < 0.12 else 0.04))
+				låda.size = Vector3(minf(bredd, 1.45 - x), höjd - 0.03, djup)
+				sten.mesh = låda
+				sten.position = Vector3(x + bredd * 0.5, kurs * KURSHOJD + höjd * 0.5, murrng.randf_range(-0.03, 0.03))
+				var mm := StandardMaterial3D.new()
+				var vilken := murrng.randi_range(0, 1)
+				mm.albedo_texture = sten_tex[vilken]
+				mm.normal_enabled = true
+				mm.normal_texture = sten_norm[vilken]
+				mm.normal_scale = murrng.randf_range(1.0, 1.8)
+				mm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+				# Skalan ar i stenar per meter, inte i varv: en sten ska vara en sten, inte en tapetruta.
+				mm.uv1_scale = Vector3(murrng.randf_range(0.8, 1.5), murrng.randf_range(0.8, 1.5), 1.0)
+				mm.uv1_offset = Vector3(murrng.randf(), murrng.randf(), 0.0)
+				mm.roughness = 0.95
+				var ton := murrng.randf_range(0.62, 1.0)
+				mm.albedo_color = Color(ton, ton * murrng.randf_range(0.97, 1.03), ton * 0.96)
+				sten.material_override = mm
+				mur.add_child(sten)
+				x += bredd + 0.02
+		# KRÖNET: en mörkare, sammanhängande stenrad ovanpå, så muren får en avslutning.
 		var krön := MeshInstance3D.new()
 		var krönbox := BoxMesh.new()
-		krönbox.size = Vector3(2.9, 0.5, 1.1)
+		krönbox.size = Vector3(2.92, 0.34, 1.06)
 		krön.mesh = krönbox
-		krön.position = Vector3(sin(vinkel3) * 26.0, murhöjd + 0.25, cos(vinkel3) * 26.0)
-		krön.rotation.y = vinkel3
+		krön.position = Vector3(0.0, KURSER * KURSHOJD + 0.17, 0.0)
 		var km2 := StandardMaterial3D.new()
-		km2.albedo_color = Color(0.30, 0.31, 0.34)
+		km2.albedo_texture = sten_tex[0]
+		km2.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		km2.uv1_scale = Vector3(2.5, 0.6, 1.0)
+		km2.albedo_color = Color(0.45, 0.45, 0.46)
 		krön.material_override = km2
-		värld.add_child(krön)
+		mur.add_child(krön)
+
 	# BERGSKEDJOR (M218): Alex: *"Bergen får inte vara pyramider, de måste se ut som berg"*. Två
 	# ryggar med midpunktsförflyttning — en riktig kam med toppar och sadlar, inte koner.
 	_bergskedja(värld, 190.0, 22.0, 58.0, Color(0.16, 0.19, 0.28), 11)
