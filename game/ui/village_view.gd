@@ -1209,9 +1209,9 @@ func _bakfärg(y: float) -> Color:
 ## mörkt_virke, ljust_virke, takpanna_ljus, takpanna_mörk, tegel, järn, halm, läder, tyg_* ...).
 const MATERIALTEX := {
 	"takpanna_ljus": "roof_terracotta", "takpanna_mörk": "roof_slate", "mur_grå": "dark_stone",
-	"mörkt_virke": "wood_planks", "ljust_virke": "wood_planks", "puts": "tudor_wall",
+	"mörkt_virke": "wood_planks", "ljust_virke": "wood_planks", "puts": "stone_wall",
 	"mur": "stone_wall", "sten": "mossy_stone", "tegel": "roof_terracotta",
-	"järn": "dark_stone", "halm": "dirt", "läder": "wood_planks",
+	"järn": "dark_stone", "mässing": "dark_stone", "halm": "dirt", "läder": "wood_planks",
 }
 
 ## MUR OCH PORT UR DATA (M244). Alex: *"du maste isa fall andra porten, sa den matchar in i oppningen i
@@ -1371,7 +1371,9 @@ func _bygg_ring() -> void:
 								var alb: Texture2D = load(texfil)
 								if alb != null:
 									kopia.albedo_texture = alb
-									kopia.uv1_scale = Vector3(1.0, 1.0, 1.0)
+									# Modellernas UV ar 0,018 varv/m, dvs en ruta per 55 m — stenarna blev 10 m
+									# breda. 34 varv per UV-enhet ger en ruta per ~1,6 m.
+									kopia.uv1_scale = Vector3(34.0, 34.0, 1.0)
 									var norm: Texture2D = load(texfil.replace(".png", "_normal.png"))
 									if norm != null:
 										kopia.normal_enabled = true
