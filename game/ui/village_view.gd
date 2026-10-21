@@ -801,13 +801,17 @@ func plats_px(i: int) -> Vector2:
 func flytta(dir: Vector2i) -> bool:
 	if dir.x == 0:
 		return false
-	var kol := _kol(_vald)
-	var nästa_kol := kol + (1 if dir.x > 0 else -1)
-	# Stopp i ändarna, som förut: en panorering som viker runt skulle fara från bildens ena kant till
-	# den andra i ett svep, och det är precis den sortens kast Alex inte tål.
-	if nästa_kol < 0 or nästa_kol >= _rader().size():
-		return false
-	var nästa: int = int(_rader()[nästa_kol])
+	# ÄNDLÖST I 3D-RINGEN (M241): välj nästa hus modulo antalet, så det aldrig tar stopp. Plattläget
+	# behåller sitt stopp i ändarna — där viker en panorering runt från bildens ena kant till den andra.
+	var nästa: int
+	if _ring_vp != null and _synliga.size() > 0:
+		nästa = int(fposmod(_vald + (1 if dir.x > 0 else -1), _synliga.size()))
+	else:
+		var kol := _kol(_vald)
+		var nästa_kol := kol + (1 if dir.x > 0 else -1)
+		if nästa_kol < 0 or nästa_kol >= _rader().size():
+			return false
+		nästa = int(_rader()[nästa_kol])
 	_rot_mål += (1.0 if dir.x > 0 else -1.0)
 
 	_vald = nästa
@@ -1201,7 +1205,11 @@ var _ring_kam: Camera3D = null
 var _ring_byggd := false
 
 func _bygg_ring() -> void:
-	var mått := Vector2i(int(_vy().x), int(_vy().y))
+	# HÖGRE UPPLÖSNING I BYN (M241). Alex: *"det är lite för ... pixligt, jag vill ha högre upplösning"*.
+	# 3D-vyn renderas 1,5 gånger större än vyn och skalas ned linjärt — samma grepp som SSAA, men bara
+	# för byns SubViewport, så kanttrappor och texturpixlar försvinner utan att HUD:en blir dyrare.
+	const RING_SSAA := 1.5
+	var mått := Vector2i(int(float(_vy().x) * RING_SSAA), int(float(_vy().y) * RING_SSAA))
 	_ring_vp = SubViewport.new()
 	_ring_vp.size = mått
 	_ring_vp.own_world_3d = true
@@ -1391,11 +1399,13 @@ func _ring_titta(i: int) -> void:
 	# och Godots kamera ser längs -Z medan husen står på +Z-sidan — alltså tittade den på huset mittemot
 	# (mätt: THE SMITH i etiketten, porttornet i bilden). Nu slås vinkeln upp på husets id och kameran
 	# vrids PI + vinkeln, som är riktningen till huset.
-	var id := ""
-	if i >= 0 and i < _synliga.size():
-		id = str(PLATSER[int(_synliga[i])].get("skepp", ""))
-	var mål: float = float(_vinkel_hus.get(id, 0.0)) + PI
-	var skillnad: float = wrapf(mål - _kam_vinkel, -PI, PI)
+	# ÄNDLÖS ROTATION (M241). Alex: *"det skall gå att snurra runt 360 grader, det skall inte ta stopp,
+	# utan man skall kunna stå å bli yr i huvudet om man så vill"*. Kameran följer nu `_rot` som är ett
+	# obegränsat varvtal i steg om en plats — den viker aldrig och stannar aldrig, och husen kommer
+	# tillbaka när varvet är fullt. Riktningen är NEGATIV så D går åt höger och A åt vänster.
+	var n := float(max(1, _synliga.size()))
+	var mål: float = PI - TAU * _rot / n
+	var skillnad: float = mål - _kam_vinkel
 	_kam_vinkel += skillnad * 0.25
 	_ring_kam.rotation = Vector3(0.0, _kam_vinkel, 0.0)
 

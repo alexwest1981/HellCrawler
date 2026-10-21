@@ -400,11 +400,11 @@ var shell := "hem"              ## hem | butik | karta | körning. Bara körning
 ## fyllnad och tre prov hann inte klart (exit 124: test_dungeon, test_strid, test_tat). Proverna mäter
 ## LOGIK och layout, och layouten räknas i logiska rutor (`_vy_mått` delar bort `_ssaa`), så de mäter
 ## samma sak vid 1,0. `ssaa=`-flaggan kan sätta den för hand även i prov.
-var _ssaa := 1.0 if OS.get_environment("HC_TEST") == "1" else 1.5
+var _ssaa := 1.0 if OS.get_environment("HC_TEST") == "1" else 1.75
 ## Den FAKTISKA supersamplingen just nu (M189). Byn och menyn är en färdig bild i sin egen
 ## upplösning — att rita den 1,5× och skala ned igen är ren förlust. Där är den 1,0, och då ritas
 ## konsten 1:1 i fönstret. 3D:n har inget att förlora på 1,5.
-var _ssaa_aktuell := 1.5
+var _ssaa_aktuell := 1.75
 const SKAL_LÄGEN := ["hem", "butik", "vardshus", "smed", "karta", "album", "juvelerare",
 	"banverkstad", "trad", "upplas"]
 ## Raderna i ALTERNATIV-panelen: språk, CRT, musik och spår (M54). Byggs på ett ställe och fylls
