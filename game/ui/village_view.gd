@@ -1296,7 +1296,8 @@ func _bygg_ring() -> void:
 			var instans := modell.instantiate()
 			# SKALA (M221): Alex: *"de skall liksom inte tillhora en smurf"*. Modellerna ar byggda i
 			# 4-6 m; gangavstandet gor dem sma i rutan, sa de skalas upp till byniva.
-			instans.scale = Vector3.ONE
+			# Porttornet ar 17,1 m hogt och klipptes av bildkanten; 0,78 gor det 13,3 m — fortfarande hogst.
+			instans.scale = Vector3.ONE * (0.78 if str(d.get("id", "")) == "karta" else 1.0)
 			hus.add_child(instans)
 		var w := float(d.get("w", 5.0))
 		var h := float(d.get("h", 4.2))
@@ -1311,9 +1312,9 @@ func _bygg_ring() -> void:
 
 	# KAMERAN i mitten, i ögonhöjd.
 	_ring_kam = Camera3D.new()
-	_ring_kam.position = Vector3(0.0, 3.0, 0.0)
-	_ring_kam.rotation_degrees = Vector3(-4.0, 0.0, 0.0)
-	_ring_kam.fov = 62.0
+	_ring_kam.position = Vector3(0.0, 4.0, 0.0)
+	_ring_kam.rotation_degrees = Vector3(8.0, 0.0, 0.0)
+	_ring_kam.fov = 75.0
 	värld.add_child(_ring_kam)
 	_bygg_landskap(värld)
 	_bygg_rekvisita(värld)
