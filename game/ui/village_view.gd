@@ -1346,7 +1346,8 @@ func _bygg_ring() -> void:
 	if portscen != null:
 		var port := portscen.instantiate()
 		var pv := deg_to_rad(180.0)
-		port.position = Vector3(sin(pv) * 25.6, 0.0, cos(pv) * 25.6)
+		# Porten dras in i byn sa den star innanfor muren i stallet for i murliv: 22 m i stallet for 26.
+		port.position = Vector3(sin(pv) * 22.0, 0.0, cos(pv) * 22.0)
 		# Modellen har bredden langs Blender-Y, som blir -Z i Godot: ett kvarts varv sa porten vander
 		# sin breda sida mot torget i stallet for att sta kant mot kant.
 		port.rotation.y = pv + PI * 0.5
@@ -1573,10 +1574,14 @@ func _bygg_landskap(värld: Node3D) -> void:
 	const KURSHOJD := 0.84
 	# MUREN TAR SLUT VID PORTEN (M236): Alex: *"att muren tar stop på varsin sida om den gaten"*.
 	# Sektioner inom 9 grader av portens vinkel (180 grader, huset karta) hoppas över.
+	# Muren kapas dar portens STOLPAR star: halva portens bredd (0,83 m * 32 / 2 = 13,3 m) i sidled vid
+	# 26 m radie ger 30,7 grader. Tidigare var det ett fast 9-gradersglapp, sa muren skar in genom porten.
 	var port_vinkel := deg_to_rad(180.0)
+	var port_halvbredd := 0.83 * 32.0 * 0.5
+	var kap_vinkel := asin(clampf(port_halvbredd / 26.0, 0.0, 1.0))
 	for i in 64:
 		var vinkel3 := TAU * float(i) / 64.0
-		if absf(wrapf(vinkel3 - port_vinkel, -PI, PI)) < deg_to_rad(9.0):
+		if absf(wrapf(vinkel3 - port_vinkel, -PI, PI)) < kap_vinkel:
 			continue
 		var mitt := Vector3(sin(vinkel3) * 26.0, 0.0, cos(vinkel3) * 26.0)
 		var sidled := Vector3(cos(vinkel3), 0.0, -sin(vinkel3))
