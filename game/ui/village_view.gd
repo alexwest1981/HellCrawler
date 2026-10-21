@@ -1200,6 +1200,20 @@ func _bakfärg(y: float) -> Color:
 	_bakfärger[nyckel] = summa
 	return summa
 
+## MATERIALKARTA (M242): Alex: *"alla texturer behöver göras något åt, för de ser inte bra ut alls"*.
+## Modellerna har material NAMNGIVNA efter vad de är (mur, puts, mörkt_virke, sten, järn ...), så vi kan
+## byta albedo per namn i stället för att bygga om geometrin. Texturerna är pixelpacken i
+## assets/by/texturer/pixel (512x512, samma formspråk som spelets egen konst) + normalmap per ruta.
+## Nycklarna matchas i ordning och de SPECIFIKA star forst: "takpanna_ljus" hade annars fangats av en
+## kortare nyckel, och "mur_grå" av "mur". Materialnamnen ar lasta ur GLB-filerna (sten, mur, puts,
+## mörkt_virke, ljust_virke, takpanna_ljus, takpanna_mörk, tegel, järn, halm, läder, tyg_* ...).
+const MATERIALTEX := {
+	"takpanna_ljus": "roof_terracotta", "takpanna_mörk": "roof_slate", "mur_grå": "dark_stone",
+	"mörkt_virke": "wood_planks", "ljust_virke": "wood_planks", "puts": "tudor_wall",
+	"mur": "stone_wall", "sten": "mossy_stone", "tegel": "roof_terracotta",
+	"järn": "dark_stone", "halm": "dirt", "läder": "wood_planks",
+}
+
 var _ring_vp: SubViewport = null
 var _ring_kam: Camera3D = null
 var _ring_byggd := false
@@ -1325,6 +1339,21 @@ func _bygg_ring() -> void:
 					var mat = mi.get_active_material(yta)
 					if mat is StandardMaterial3D:
 						var kopia: StandardMaterial3D = mat.duplicate()
+						# TEXTURBYTET (M242): slå upp materialets namn i kartan och sätt pixeltexturen.
+						var nyckel := str(kopia.resource_name).to_lower().replace(" ", "_")
+						for namn in MATERIALTEX:
+							if nyckel == namn or nyckel.begins_with(namn + "_"):
+								var texfil: String = "res://assets/by/texturer/pixel/%s.png" % MATERIALTEX[namn]
+								var alb: Texture2D = load(texfil)
+								if alb != null:
+									kopia.albedo_texture = alb
+									kopia.uv1_scale = Vector3(1.0, 1.0, 1.0)
+									var norm: Texture2D = load(texfil.replace(".png", "_normal.png"))
+									if norm != null:
+										kopia.normal_enabled = true
+										kopia.normal_texture = norm
+										kopia.normal_scale = 1.6
+								break
 						kopia.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 						kopia.anisotropy_1_enabled = true
 						if kopia.normal_enabled:
@@ -1359,8 +1388,8 @@ func _bygg_ring() -> void:
 	if portscen != null:
 		var port := portscen.instantiate()
 		var pv := deg_to_rad(180.0)
-		# Porten dras in i byn sa den star innanfor muren i stallet for i murliv: 22 m i stallet for 26.
-		port.position = Vector3(sin(pv) * 22.0, 0.0, cos(pv) * 22.0)
+		# Porten star i murlivet (25,2 m av 26) sa stolparna möter murens andar.
+		port.position = Vector3(sin(pv) * 25.2, 0.0, cos(pv) * 25.2)
 		# Modellen har bredden langs Blender-Y, som blir -Z i Godot: ett kvarts varv sa porten vander
 		# sin breda sida mot torget i stallet for att sta kant mot kant.
 		port.rotation.y = pv + PI * 0.5
@@ -1573,15 +1602,17 @@ func _bygg_landskap(värld: Node3D) -> void:
 	# sektion, 2-3 stenar per kurs, slumpad bredd, djup, ton och ett av tva stenmaterial. Kronraden
 	# ligger ovanpa och foljer sektionens hojd.
 	var sten_tex: Array[Texture2D] = [
-		load("res://assets/tiles/material/fortified_stone_bricks.png"),
-		load("res://assets/tiles/material/ancient_stone.png"),
+		load("res://assets/by/texturer/pixel/stone_wall.png"),
+		load("res://assets/by/texturer/pixel/mossy_stone.png"),
+		load("res://assets/by/texturer/pixel/dark_stone.png"),
 	]
 	# NORMALMAPS (M234): Alex: *"vad hände med att sätta på normalmapping, så det ger det hela lite liv,
 	# någon för ljuset att landa på och skapa skuggor?"*. Stenmaterialen hade ingen normalmap alls —
 	# tools/gen_normal.py ritar dem ur albedon (Sobel), så fogar och stensprång får riktning i ljuset.
 	var sten_norm: Array[Texture2D] = [
-		load("res://assets/tiles/material/fortified_stone_bricks_normal.png"),
-		load("res://assets/tiles/material/ancient_stone_normal.png"),
+		load("res://assets/by/texturer/pixel/stone_wall_normal.png"),
+		load("res://assets/by/texturer/pixel/mossy_stone_normal.png"),
+		load("res://assets/by/texturer/pixel/dark_stone_normal.png"),
 	]
 	var murrng := RandomNumberGenerator.new()
 	murrng.seed = 991
@@ -1592,8 +1623,11 @@ func _bygg_landskap(värld: Node3D) -> void:
 	# Muren kapas dar portens STOLPAR star: halva portens bredd (0,83 m * 32 / 2 = 13,3 m) i sidled vid
 	# 26 m radie ger 30,7 grader. Tidigare var det ett fast 9-gradersglapp, sa muren skar in genom porten.
 	var port_vinkel := deg_to_rad(180.0)
-	var port_halvbredd := 0.83 * 32.0 * 0.5
-	var kap_vinkel := asin(clampf(port_halvbredd / 26.0, 0.0, 1.0))
+	# MUREN SKA MÖTA PORTEN (M243). Alex: *"muren tar slut innan porten"*. Porten star pa 25,2 m och ar
+	# 26,6 m bred — alltsa BREDARE an det glapp i murcirkeln (radie 26) som portplanet skar: cirkeln
+	# korsar portplanet vid x = sqrt(26^2 - 25,2^2) = 6,4 m, dvs 14,3 grader fran portens mitt. Med det
+	# glappet dor murens andar rakt in i portens stolpar i stallet for att stanna en dryg meter innan.
+	var kap_vinkel := acos(clampf(25.2 / 26.0, 0.0, 1.0))
 	for i in 64:
 		var vinkel3 := TAU * float(i) / 64.0
 		if absf(wrapf(vinkel3 - port_vinkel, -PI, PI)) < kap_vinkel:
@@ -1621,7 +1655,7 @@ func _bygg_landskap(värld: Node3D) -> void:
 				sten.mesh = låda
 				sten.position = Vector3(x + bredd * 0.5, kurs * KURSHOJD + höjd * 0.5, murrng.randf_range(-0.03, 0.03))
 				var mm := StandardMaterial3D.new()
-				var vilken := murrng.randi_range(0, 1)
+				var vilken := murrng.randi_range(0, 2)
 				mm.albedo_texture = sten_tex[vilken]
 				mm.normal_enabled = true
 				mm.normal_texture = sten_norm[vilken]
@@ -1649,6 +1683,33 @@ func _bygg_landskap(värld: Node3D) -> void:
 		km2.albedo_color = Color(0.45, 0.45, 0.46)
 		krön.material_override = km2
 		mur.add_child(krön)
+
+	# MURÄNDAR (M243): Alex: *"muren tar slut innan porten"*. Sektionerna ar 5,6 grader, sa det blev
+	# 1-1,5 m luft mellan sista stenblocket och portstolpen. Två pelare laggs exakt vid glappets kanter.
+	for sida in [-1.0, 1.0]:
+		var v: float = port_vinkel + float(sida) * kap_vinkel
+		var pelare := MeshInstance3D.new()
+		var pb := BoxMesh.new()
+		pb.size = Vector3(1.5, 5.4, 1.5)
+		pelare.mesh = pb
+		pelare.position = Vector3(sin(v) * 26.0, 2.7, cos(v) * 26.0)
+		pelare.rotation.y = v
+		var pm := StandardMaterial3D.new()
+		pm.albedo_texture = sten_tex[0]
+		pm.normal_enabled = true
+		pm.normal_texture = sten_norm[0]
+		pm.normal_scale = 1.4
+		pm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		pelare.material_override = pm
+		värld.add_child(pelare)
+		var hätta := MeshInstance3D.new()
+		var hb := BoxMesh.new()
+		hb.size = Vector3(1.9, 0.35, 1.9)
+		hätta.mesh = hb
+		hätta.position = Vector3(sin(v) * 26.0, 5.55, cos(v) * 26.0)
+		hätta.rotation.y = v
+		hätta.material_override = pm
+		värld.add_child(hätta)
 
 	# BERGSKEDJOR (M218): Alex: *"Bergen får inte vara pyramider, de måste se ut som berg"*. Två
 	# ryggar med midpunktsförflyttning — en riktig kam med toppar och sadlar, inte koner.
