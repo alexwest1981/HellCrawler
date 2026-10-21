@@ -43,11 +43,14 @@ def normalmap(bild: Image.Image, styrka: float = STYRKA) -> Image.Image:
     return ut
 
 
-for fil in FILER:
-    if not os.path.exists(fil):
-        print("hoppar över (saknas):", fil)
-        continue
-    bild = Image.open(fil).convert("RGB")
-    mål = fil.rsplit(".", 1)[0] + "_normal.png"
-    normalmap(bild).save(mål)
-    print("skrev", mål, bild.size)
+if __name__ == "__main__":
+    # Bara när filen körs själv — annars skrev import av normalmap() om alla stenormaler som
+    # sidoeffekt (hände när gen_mark.py importerade funktionen).
+    for fil in FILER:
+        if not os.path.exists(fil):
+            print("hoppar över (saknas):", fil)
+            continue
+        bild = Image.open(fil).convert("RGB")
+        mål = fil.rsplit(".", 1)[0] + "_normal.png"
+        normalmap(bild).save(mål)
+        print("skrev", mål, bild.size)
