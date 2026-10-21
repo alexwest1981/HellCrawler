@@ -9314,6 +9314,11 @@ func _bygg_vy() -> void:
 	# stretch AV: korgen får inte tvinga vyn till fönstrets storlek (då ritas 3D:n i 1280x720 och
 	# pixelkonsten är borta). Vyn behåller sina 480x270 och korgen skalas i stället, med NEAREST —
 	# annars smetas pixlarna ut till en grå röra i stället för att bli hårda fyrkanter.
+	# STRETCH PÅ (M263). Med `stretch = false` visade korgen bara det ÖVRE VÄNSTRA hörnet av vyn: vyn
+	# ritas i ssaa gånger fönstret (3360x1890 vid 1920x1080 och ssaa 1,75), och en 1920x1080-korg som
+	# inte skalar klipper resten. Mätt: på kartskärmen syntes 57 % av bredden och 57 % av höjden — Alex:
+	# *"Är du inte kapabel att se att 3/4 av kartan saknas?"*. Nu skalas texturen ned till fönstret, och
+	# texturfiltret nedan (LINEAR när ssaa > 1) gör nedskalningen mjuk i stället för klippt.
 	_vy_korg.stretch = false
 	_vy_korg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	# Korgen måste TA emot pekaren, annars skickas inget vidare in i vyn (IGNORE = "delta inte i
@@ -9414,7 +9419,10 @@ func _placera_vy() -> void:
 	# poängen — det är den som gör 1,5× till mjuka kanter i stället för hårda pixlar.
 	_vy_korg.texture_filter = (CanvasItem.TEXTURE_FILTER_NEAREST if _ssaa_aktuell <= 1.0
 		else CanvasItem.TEXTURE_FILTER_LINEAR)
-	_vy_korg.scale = Vector2.ONE
+	# NEDSKALNINGEN AV SSAA (M263): vyn ritas i ssaa gånger fönstret, så korgen måste skalas NED med
+	# samma faktor — annars visades bara det övre vänstra hörnet av vyn. Mätt på kartskärmen: is-sjön
+	# låg på 67 % av bredden och 79 % av höjden, mot 41 % och 61 % i konsten; alltså ett utsnitt.
+	_vy_korg.scale = Vector2.ONE / _ssaa_aktuell
 	if hud != null:
 		hud.transform = Transform2D(0.0, Vector2(skala * _ssaa_aktuell, skala * _ssaa_aktuell), 0.0, Vector2.ZERO)
 		if crt != null:
