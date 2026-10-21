@@ -304,6 +304,16 @@ class Bygge:
         self.etikett[nyckel].setdefault(mat.name, []).append(
             (self.delnamn, self.fiber, len(f) - len(ytor), len(f)))
 
+    def skala(self, sx, sy, sz):
+        """Skalar all redan byggd geometri. Används för att göra porttornet till en PORT: bredare,
+        lägre och grundare — proportionerna sitter i geometrin, inte i en efterhandsmatris i spelet."""
+        for koll in (self.sockel, self.delar):
+            for _mn, (v, _f) in koll.items():
+                for p in v:
+                    p.x *= sx
+                    p.y *= sy
+                    p.z *= sz
+
     def låda(self, mitt, storlek, mat, matris=None, mål=None):
         """Rätblock med undre mittpunkt i `mitt` = (x, y, z0). `matris` vrids kring hörnen."""
         cx, cy, z0 = mitt
@@ -1807,6 +1817,11 @@ def karta(b):
     tunna(b, 4.9, -d / 2 - 1.6, 0, 0.4, 1.0, mörkt_virke())
     kista(b, 4.2, -d / 2 - 2.1, 0, 0.7)
 
+    # --- PORT, INTE TORN (M230) ----------------------------------------------------------------
+    # Alex: *"Det skall vara en Gate, en stor port, inte ett torn"*. Geometrin byggs som förut och
+    # skalas sedan: bredare (1,55), lägre (0,68) och grundare (0,85). Portöppningen blir då ca 5,6 m
+    # bred och 4,2 m hög i en 17,8 m bred, 11,6 m hög port — en stadsport, inte ett vakttorn.
+    b.skala(1.55, 0.85, 0.68)
 
 def juvelerare(b):
     """Juvelerarstuga: krämvit puts med mörkbrunt timmer, stort upplyst skyltfönster med
