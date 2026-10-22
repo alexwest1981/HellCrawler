@@ -42,7 +42,7 @@ The browser build is 149 MB of pack plus 37 MB of WebAssembly, 186 MB in total. 
 
 ## The art in the build
 
-The six buildings, the gate, the wall and the props in the street are modelled for the game by `tools/gen_by_hus3d.py` and rebuilt with one command. The textures on them are Quaternius kits under CC0, listed with their licence files in `CREDITS.md`, and the sprites and tiles are drawn from our own sheets.
+The six buildings, the gate, the wall and the props in the street are modelled for the game by `tools/gen_by_hus3d.py` and rebuilt with one command. The textures on them are Quaternius kits under CC0, listed with their licence files in `CREDITS.md`, and the sprites and tiles are drawn on my own sheets.
 
 ## What is thin
 
