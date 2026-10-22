@@ -34,11 +34,11 @@ The six buildings, the gate, the wall and the props in the street are modelled f
 
 ## Numbers
 
-The builds are 254 MB on Windows and Linux, and a 250 MB pack plus 37 MB of WebAssembly for the browser. The pack roughly doubled this release because the village's models and textures travel inside it. The game runs at 1920x1080 with 1.75x supersampling, and the village is rendered in its own viewport at 1.5x on top of that.
+The builds are 153 MB on Windows and Linux. The browser build is a 149 MB pack plus 37 MB of WebAssembly, 186 MB in total, which is under the 200 MB the web version is allowed. Most of the pack is the village's models and the dungeon textures. The game runs at 1920x1080 with 1.75x supersampling, and the village is rendered in its own viewport at 1.5x on top of that.
 
 ## What is thin
 
-The browser build is 286 MB of download. It works, and it takes a while to arrive the first time.
+Textures were capped at 1024 px, which is still four times the height of a wall on screen, and the dungeon tiles use lossy compression at 0.9. Both were measured on screenshots before the build went out.
 
 The street is six buildings because the game has six places to walk into. A seventh means a model in Blender, a line in `data/by.json` and a rebuild, so the ring stays at six for now.
 
