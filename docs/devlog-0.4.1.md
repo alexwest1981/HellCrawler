@@ -32,7 +32,7 @@ Clicking a house takes you into it, wherever it stands in the ring. A and D turn
 
 The web build has a ceiling of 200 MB, and it was sitting at 287. Three things brought it down.
 
-Textures above 1024 px were scaled to 1024. The ground was a 4096 square with a normal map to match, and 44 textures were over the line. The sources went from 107 MB to 30 MB. A wall is about 256 px tall on screen at 1920 wide, so 1024 still leaves four times the detail.
+Textures above 1024 px were scaled to 1024. The ground was a 4096 square with a normal map to match, and 44 textures were over the line. The sources went from 107 MB to 30 MB. A wall face covers a few hundred pixels on a 1920 wide screen, so 1024 leaves more detail than the screen can show.
 
 The dungeon tiles use lossy compression at 0.9 instead of lossless. That alone took the pack from 193 MB to 149 MB. I tried VRAM compression first, which got it to 123 MB, and rejected it: the stone walls came out with blocky edges that were easy to see in the dark.
 
